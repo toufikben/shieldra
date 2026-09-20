@@ -1,0 +1,46 @@
+name: Group A diagnostics
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostics:
+    name: Reproducible Android/Gradle environment diagnostics
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK tools
+        uses: android-actions/setup-android@v3
+
+      - name: Install required SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Run Group A diagnostics
+        shell: bash
+        run: bash .github/scripts/group-a-diagnostics.sh
+
+      - name: Upload actual diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: group-a-evidence-${{ github.run_id }}
+          path: evidence/group-a-diagnostics.md
+          if-no-files-found: error
