@@ -38,10 +38,16 @@ jobs:
         shell: bash
         run: bash .github/scripts/group-a-diagnostics.sh
 
-      - name: Upload actual diagnostic evidence
+      - name: Publish actual evidence to job summary
         if: always()
+        shell: bash
+        run: cat evidence/group-a-diagnostics.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload actual diagnostic evidence when storage is available
+        if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: group-a-evidence-${{ github.run_id }}
           path: evidence/group-a-diagnostics.md
-          if-no-files-found: error
+          if-no-files-found: warn
