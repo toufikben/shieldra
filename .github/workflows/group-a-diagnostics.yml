@@ -32,11 +32,18 @@ jobs:
         run: |
           set -euo pipefail
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
 
       - name: Run Group A diagnostics
         shell: bash
         run: bash .github/scripts/group-a-diagnostics.sh
+
+      - name: Run Group B tests and Android build
+        shell: bash
+        run: ./gradlew clean test assembleDebug --stacktrace
 
       - name: Publish actual evidence to job summary
         if: always()
