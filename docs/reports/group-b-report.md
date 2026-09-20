@@ -6,105 +6,76 @@
 
 ## Micro-tasks executed
 
-- Preserved the supplied Group B scope as `docs/authority/phase-1-group-b-supplied-scope.md`.
-- Created the authority index and recorded missing Product Freeze v5 and complete Phase 1 Sections 1–43 as `BLOCKED`.
-- Created the implementation plan, project structure map, dependency inventory, ADR-001, and traceability matrix.
-- Created a minimal Android project from scratch with one `app` module.
-- Created typed architecture boundary interfaces and the Signal contract.
-- Added a real unit test for Signal contract values.
-- Added Group B test and Android build verification to the existing CI workflow without changing Group A diagnostics.
+The supplied Group B scope was preserved as `docs/authority/phase-1-group-b-supplied-scope.md`. The authority index records Product Freeze v5 and the complete Phase 1 Sections 1–43 as unavailable rather than inventing them. The project plan, package map, dependency inventory, ADR-001, traceability matrix, and this report were created. A minimal Android project was created from scratch with one `app` module. Typed architecture boundary interfaces and the Signal contract were added, together with a real unit test for the Signal contract. The existing Group A workflow was extended with Group B test and Android build verification; Group A diagnostics were not removed or rewritten.
 
 ## Micro-tasks not executed
 
-- No Group C or later work.
-- No production security, detection, event, evidence, delivery, authentication, persistence, notification, billing, advertising, safe-zone, geofencing, location, or final UI behavior.
-- No use of legacy project code or configuration.
+No Group C or later work was started. No production security, detection, event, evidence, delivery, authentication, persistence, notification, billing, advertising, Safe Zone, geofencing, location, or final UI behavior was implemented. No legacy project code or configuration was used.
 
 ## Files created
 
-- `settings.gradle.kts`
-- `build.gradle.kts`
-- `gradle.properties`
-- `gradlew`
-- `gradlew.bat`
-- `gradle/wrapper/gradle-wrapper.jar`
-- `gradle/wrapper/gradle-wrapper.properties`
-- `app/build.gradle.kts`
-- `app/src/main/AndroidManifest.xml`
-- `app/src/main/kotlin/com/shieldra/...` boundary files
-- `app/src/test/kotlin/com/shieldra/domain/SignalTest.kt`
-- `docs/authority/...`
-- `docs/architecture/...`
-- `docs/traceability/phase-1-traceability.md`
-- `docs/reports/group-b-report.md`
-- `docs/superpowers/plans/2026-09-20-group-b-architecture.md`
+The project contains the Gradle settings and wrapper, the single Android app module, the manifest, typed boundary files under `app/src/main/kotlin/com/shieldra/`, the real unit test, and the documentation under `docs/authority/`, `docs/architecture/`, `docs/traceability/`, `docs/reports/`, and `docs/superpowers/plans/`.
 
 ## Dependencies changed
 
-- Android Gradle Plugin `9.0.0`.
-- Kotlin compiler support `2.2.10` resolved through AGP 9 built-in Kotlin.
-- Kotlin test JUnit 5 adapter `2.2.10` resolved through `kotlin("test-junit5")`.
-- No production runtime dependency was added.
+The project uses Android Gradle Plugin `9.0.0`. AGP 9 supplies built-in Kotlin support; a separate Kotlin Android Gradle plugin is intentionally not declared because AGP rejects it. The Kotlin test JUnit 5 adapter resolved as `2.2.10` through `kotlin("test-junit5")`. No production runtime dependency was added.
 
-## Commands executed
+## Commands and results
 
-- `/tmp/gradle-dist/gradle-9.7.1/bin/gradle wrapper --gradle-version 9.7.1 --distribution-type bin` — PASS after removing the obsolete Kotlin Android plugin required by AGP 9.
-- `./gradlew clean test assembleDebug --stacktrace` with JDK 17 and Android SDK 35 — PASS; 41 tasks executed.
+- `/tmp/gradle-dist/gradle-9.7.1/bin/gradle wrapper --gradle-version 9.7.1 --distribution-type bin` — PASS after correcting AGP 9 Kotlin plugin compatibility.
+- `./gradlew clean lint test assembleDebug --stacktrace` with JDK 17 and Android SDK Platform 35 — PASS locally.
 - `bash -n .github/scripts/group-a-diagnostics.sh` — PASS.
 - `shellcheck .github/scripts/group-a-diagnostics.sh` — PASS.
-- `yamllint -d relaxed .github/workflows/group-a-diagnostics.yml` — PASS with one existing line-length warning.
+- `yamllint -d relaxed .github/workflows/group-a-diagnostics.yml` — PASS.
+- Forbidden implementation scan over `app/` — PASS; no forbidden implementation symbols found.
+- TODO/FIXME/placeholder/security scan over `app/` — PASS; no unintended findings.
+- Secret-pattern scan — PASS; no obvious secret patterns found.
+- `git diff --check` — PASS.
+- `git fsck --full --no-progress` — PASS after pruning the unreachable local object from the failed pre-commit attempt.
 
-## Tests
+## Remote CI evidence
 
-`./gradlew test` passed. The tests verify Signal type, strength, timestamp, context, and the complete declared strength set.
+Run `35543045310` executed on commit `bc61d7534e86a0970a657ed3a5debe9a350430cd` and completed with `success`. The job steps `Run Group A diagnostics`, `Run Group B tests and Android build`, and `Publish actual evidence to job summary` all completed with `success`. The remote Gradle step reported:
 
-## Build
+```text
+BUILD SUCCESSFUL in 1m 53s
+41 actionable tasks: 40 executed, 1 up-to-date
+```
 
-`./gradlew assembleDebug` passed locally with JDK 17, Android SDK Platform 35, and Build Tools 35.0.0. The resulting debug APK was generated under `app/build/outputs/apk/debug/` during verification. The CI workflow now repeats this command on `ubuntu-24.04`.
-
-## Static analysis
-
-ShellCheck passed. YAML lint passed with one line-length warning. Forbidden-symbol scans found no Safe Zone, geofencing, continuous GPS, Firebase, WhatsApp, Telegram, billing, advertising, or legacy-project references in the new Group B source and documentation except explicit non-goal statements. No hardcoded secret patterns were found.
+The run URL is <https://github.com/toufikben/shieldra/actions/runs/35543045310>.
 
 ## Git evidence
 
 - Branch: `main`
-- Status: to be recorded immediately before commit
-- Changed files: to be recorded with `git diff --stat`
-- Untracked files: to be recorded immediately before commit
-- Commit SHA: not created yet
+- Delivered commit: `bc61d7534e86a0970a657ed3a5debe9a350430cd`
 - Remote: `https://github.com/toufikben/shieldra.git`
-- Push verification: pending CI verification
+- Push verification: GitHub API returned the same commit SHA and message `feat: add Group B architecture foundation`.
+- Local/remote match: `git diff --exit-code HEAD origin/main` returned success during the independent self-audit.
+- Final report update: this report is being updated after the CI run and requires one final documentation commit.
 
 ## Decisions
 
-- One app module with package boundaries; see ADR-001.
-- AGP 9 built-in Kotlin is used instead of the rejected separate Kotlin Android plugin.
-- Unavailable authority is recorded as `BLOCKED`, not invented.
+One app module with package boundaries was selected; see ADR-001. AGP 9 built-in Kotlin is used instead of the rejected separate Kotlin Android plugin. Unavailable authority is recorded as `BLOCKED`, not invented. All architectural assumptions remain subject to external review.
 
 ## ADRs
 
-- `docs/architecture/adr/ADR-001-single-app-module.md` — PENDING EXTERNAL REVIEW.
+`docs/architecture/adr/ADR-001-single-app-module.md` is marked `PENDING EXTERNAL REVIEW`.
 
 ## Traceability entries
 
-- `docs/traceability/phase-1-traceability.md`
+`docs/traceability/phase-1-traceability.md` contains only IDs derived from the supplied Group B scope and explicitly marks unavailable higher-authority requirements as `BLOCKED`.
 
 ## Out-of-scope checks
 
-- No production behavior was added.
-- Removed Safe Zone, geofencing, continuous GPS, and production feature symbols remain absent.
-- No Group C work was started.
+The source tree contains no production behavior. Safe Zone, geofencing, continuous GPS, delivery integrations, security confirmation, and production encryption/authentication symbols are absent from the app source. Group C was not started.
 
 ## Limitations
 
-- Product Freeze v5 and complete Phase 1 Sections 1–43 were not supplied.
-- Package boundaries are not yet enforced by separate Gradle modules.
-- External review is required for all architecture assumptions.
+Product Freeze v5 and complete Phase 1 Sections 1–43 were not supplied. Package boundaries are documented and typed but are not yet enforced through separate Gradle modules. The supplied Group B scope is therefore not a substitute for the missing higher-authority documents.
 
 ## Blockers
 
-- Complete authority documents are required for final compliance review.
+Complete authority documents are required for final external compliance review.
 
 ## Next proposed group
 
