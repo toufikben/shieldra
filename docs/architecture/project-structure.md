@@ -1,40 +1,39 @@
-# Group B Project Structure
+# Shieldra Project Structure — Group C
 
 ## Module map
 
-The project uses one Android `app` module. A multi-module layout is not justified before behavior exists and would add build complexity without improving the present boundary contract.
+The project uses one Android `app` module. Package boundaries are explicit in source and documentation; separate Gradle modules remain deferred until implementation behavior justifies stronger module-level visibility.
 
 ```text
-app/
-├── build.gradle.kts
-└── src/
-    ├── main/
-    │   ├── AndroidManifest.xml
-    │   └── kotlin/com/shieldra/
-    │       ├── ui/PresentationBoundary.kt
-    │       ├── domain/
-    │       │   ├── DomainBoundaries.kt
-    │       │   └── Signal.kt
-    │       ├── detection/GuardBoundaries.kt
-    │       ├── evidence/EvidenceBoundaries.kt
-    │       ├── delivery/DeliveryBoundaries.kt
-    │       └── platform/PlatformBoundaries.kt
-    └── test/kotlin/com/shieldra/domain/SignalTest.kt
+app/src/main/kotlin/com/shieldra/
+├── ui/PresentationBoundary.kt
+├── domain/
+│   ├── AuthenticationContracts.kt
+│   ├── DomainBoundaries.kt
+│   ├── ErrorContracts.kt
+│   ├── EventState.kt
+│   ├── IdentityAndTime.kt
+│   ├── RepositoryContracts.kt
+│   ├── SecurityEventContracts.kt
+│   └── Signal.kt
+├── detection/GuardBoundaries.kt
+├── evidence/
+│   ├── EvidenceContracts.kt
+│   └── platform boundary remains in PlatformBoundaries.kt
+├── delivery/DeliveryContracts.kt
+└── platform/PlatformBoundaries.kt
+
+app/src/test/kotlin/com/shieldra/domain/
+├── ContractTest.kt
+└── SignalTest.kt
 ```
 
 ## Dependency direction
 
-The allowed conceptual direction is **UI → Domain → Contracts/abstractions → Platform**. The Group B source contains declarations only, so no runtime dependency is introduced between the packages. Detection, Evidence, and Delivery do not depend on UI. Platform boundaries do not own business rules.
+The intended direction is **UI → Domain → Detection/Evidence/Delivery → Platform**. Domain models use Kotlin/JVM and `java.time` only. Detection guards expose signal-producing boundaries. Evidence and Delivery expose contract models without implementation. Platform names remain boundary declarations only.
 
-| Package | Responsibility | Allowed dependencies | Forbidden dependencies |
-|---|---|---|---|
-| `ui` | Presentation boundary only | Domain contracts | Security rules, state decisions, detection, delivery, Android feature behavior |
-| `domain` | Future orchestration boundaries and the Signal contract | Standard Kotlin/JVM types | Android UI, platform implementations, delivery providers, detection implementations |
-| `detection` | Future guard boundaries | Domain Signal type only when a future contract requires it | UI, delivery, evidence capture, confirmed security events |
-| `evidence` | Future capture, validation, and vault boundaries | Domain abstractions only when later specified | Camera, location, production encryption, security-state decisions |
-| `delivery` | Future queue and channel boundaries | Domain abstractions only when later specified | SMTP, WhatsApp, Telegram, security-state decisions |
-| `platform` | Future Android integration boundaries | Android SDK in later phases | Business rules, security decisions, feature implementations |
+`ProtectionStateEngine` is the only boundary that exposes the contract operation for creating a confirmed `SecurityEvent`. No implementation exists in Group C.
 
 ## Explicit non-goals
 
-This structure does not implement a state engine, event lifecycle, guard detection, evidence capture, encryption, authentication, database schema, delivery, notifications, safe zones, geofencing, continuous GPS, billing, advertising, or final UI.
+This structure does not implement failed-unlock detection, motion detection, SIM detection, battery emergency behavior, camera, location collection, evidence capture, SMTP, WhatsApp, Telegram, Smart Queue, Safe Zones, geofencing, continuous GPS, production notifications, production billing, Ads SDK, final UI, production encryption, or production authentication.

@@ -1,15 +1,15 @@
 # Shieldra
 
-Shieldra is a clean-slate Android project repository. Group A established the reproducible GitHub Actions environment. Group B adds only the minimal architecture and project structure foundation described in the supplied Group B scope.
+Shieldra is a clean-slate Android project repository. Group A established the reproducible environment. Group B created the Android project structure. Group C now establishes typed core contracts and architectural boundaries without implementing production features.
 
-The project contains one Android `app` module, typed boundary interfaces, and a typed `Signal` contract with unit tests. It does not implement security behavior, detection, evidence capture, delivery, authentication, production encryption, persistence, notifications, billing, advertising, Safe Zones, geofencing, continuous GPS, or final UI.
+The current source includes typed Signal and SecurityEvent contracts, explicit event states and pure transitions, evidence/location models, delivery receipts, authentication operations, repository boundaries, error categories, and injectable time/identity abstractions. It does not implement detection, camera, location collection, evidence capture, network delivery, authentication, persistence, notifications, billing, advertising, Safe Zones, geofencing, continuous GPS, or final UI.
 
 ## Authority limitation
 
-Product Freeze v5 and the complete Phase 1 Specification — Sections 1–43 were not supplied. The available Group B scope is preserved in `docs/authority/phase-1-group-b-supplied-scope.md`, while unavailable authority is recorded as `BLOCKED` in `docs/authority/authority-index.md` and `docs/traceability/phase-1-traceability.md`.
+Product Freeze v5 and the complete Phase 1 Specification — Sections 1–43 were not supplied. The available Group B and Group C scopes are preserved under `docs/authority/`. Missing authority is recorded as `BLOCKED` in `docs/authority/authority-index.md` and the relevant traceability matrices.
 
 ## Current status
 
 **IMPLEMENTATION COMPLETE — AWAITING EXTERNAL REVIEW**
 
-Group C and all later groups have not started. External review is required before further work.
+Group D, Phase 2, Phase 3, and feature implementation have not started. External review is required before further work.

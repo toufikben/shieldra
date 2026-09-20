@@ -2,9 +2,10 @@
 
 | Authority | Version | Sections | Status | Source | Last Updated |
 |---|---|---:|---|---|---|
-| Product Freeze | v5 | Not supplied | BLOCKED | Not provided in the task attachments or current repository | 2026-09-20 |
-| Phase 1 Specification | Sections 1–43 | Not supplied in full | BLOCKED | Not provided in the task attachments or current repository | 2026-09-20 |
+| Product Freeze | v5 | Not supplied | BLOCKED | Not provided in the task attachments or current repository | 2026-09-21 |
+| Phase 1 Specification | Sections 1–43 | Not supplied in full | BLOCKED | Not provided in the task attachments or current repository | 2026-09-21 |
 | Group B supplied execution scope | Current attachment | 1–27 | AVAILABLE PARTIAL | `phase-1-group-b-supplied-scope.md` | 2026-09-20 |
-| External Reviewer decisions | Not specified | N/A | NONE PROVIDED | No decision document supplied | 2026-09-20 |
+| Group C supplied execution scope | Current attachment | 1–29 | AVAILABLE PARTIAL | `phase-1-group-c-supplied-scope.md` | 2026-09-21 |
+| External Reviewer decisions | Not specified | N/A | NONE PROVIDED | No decision document supplied | 2026-09-21 |
 
-Product Freeze v5 remains the highest authority. This repository does not claim that the supplied Group B scope is a complete replacement for Product Freeze v5 or Phase 1 Sections 1–43. Any unresolved requirement is recorded as `NEEDS REVIEW` or `BLOCKED`.
+Product Freeze v5 remains the highest authority. This repository does not claim that the supplied Group B or Group C scopes are complete replacements for Product Freeze v5 or Phase 1 Sections 1–43. Any unresolved requirement is recorded as `NEEDS REVIEW` or `BLOCKED`.

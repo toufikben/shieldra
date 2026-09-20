@@ -1,9 +1,12 @@
 package com.shieldra.domain
 
-interface ProtectionStateEngine
+interface ProtectionStateEngine {
+    /** Only this boundary may create a confirmed SecurityEvent contract. */
+    fun createConfirmedEvent(
+        signal: Signal,
+        clock: Clock,
+        identityProvider: IdentityProvider,
+    ): SecurityEvent
+}
 
 interface EventPipeline
-
-interface DeliveryOrchestrator
-
-interface AuthenticationGate

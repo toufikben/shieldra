@@ -41,9 +41,13 @@ jobs:
         shell: bash
         run: bash .github/scripts/group-a-diagnostics.sh
 
-      - name: Run Group B tests and Android build
+      - name: Run Group B and Group C tests and Android build
         shell: bash
-        run: ./gradlew clean test assembleDebug --stacktrace
+        run: ./gradlew clean test lint assembleDebug --stacktrace
+
+      - name: Run Group C boundary scan
+        shell: bash
+        run: bash .github/scripts/group-c-contract-check.sh
 
       - name: Publish actual evidence to job summary
         if: always()
