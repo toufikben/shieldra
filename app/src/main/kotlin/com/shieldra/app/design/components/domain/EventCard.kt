@@ -2,9 +2,9 @@ package com.shieldra.app.design.components.domain
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.design.icons.icon
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.design.tokens.ShieldraPillShape
 import com.shieldra.app.presentation.model.DeliveryStatus
 import com.shieldra.app.presentation.model.EventType
@@ -64,7 +65,7 @@ fun EventCard(
     modifier: Modifier = Modifier,
 ) {
     val spacing = ShieldraTheme.spacing
-    val shape = RoundedCornerShape(14.dp)
+    val shape = ShieldraCardShape
     val deliveryDescription = stringResource(
         R.string.delivery_label,
         deliveryLabel(event.deliveryStatus),
@@ -114,7 +115,10 @@ fun EventCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(spacing.s))
-            Row(horizontalArrangement = Arrangement.spacedBy(spacing.s)) {
+            FlowRow(
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(spacing.s),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(spacing.xs),
+            ) {
                 if (event.hasPhoto) Pill(stringResource(R.string.event_photo), MaterialTheme.colorScheme.surfaceVariant,
                     MaterialTheme.colorScheme.onSurfaceVariant)
                 if (event.hasLocation) Pill(stringResource(R.string.event_location), MaterialTheme.colorScheme.surfaceVariant,

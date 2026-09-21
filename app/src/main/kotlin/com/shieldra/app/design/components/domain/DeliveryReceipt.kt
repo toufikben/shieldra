@@ -23,6 +23,7 @@ import com.shieldra.app.R
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.presentation.model.ChannelId
 import com.shieldra.app.presentation.model.ChannelReceiptUiModel
 import com.shieldra.app.presentation.model.DeliveryStatus
@@ -62,7 +63,7 @@ fun DeliveryReceipt(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(ShieldraCardShape)
             .background(MaterialTheme.colorScheme.surface)
             .padding(spacing.l),
     ) {

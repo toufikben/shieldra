@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.shieldra.app.design.components.foundation.ShieldraButton
 import com.shieldra.app.design.components.foundation.ShieldraButtonVariant
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.design.tokens.ShieldraCardShape
 
 @Composable
 fun ErrorStateInline(
@@ -34,7 +35,7 @@ fun ErrorStateInline(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(ShieldraCardShape)
             .background(MaterialTheme.colorScheme.errorContainer)
             .padding(spacing.l),
         verticalArrangement = Arrangement.spacedBy(spacing.xs),

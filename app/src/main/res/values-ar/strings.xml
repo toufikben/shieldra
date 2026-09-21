@@ -162,6 +162,12 @@
     <string name="demo_motion_detected">تم اكتشاف حركة</string>
     <string name="demo_movement_after_stillness">حركة بعد سكون</string>
     <string name="demo_today_time_seconds">اليوم · %1$s</string>
+    <string name="demo_time_failed_unlock">اليوم · ١٤:٣٢</string>
+    <string name="demo_time_motion">اليوم · ١٣:١٥</string>
+    <string name="demo_time_detail">اليوم · ١٤:٣٢:٠٨</string>
+    <string name="demo_receipt_time">١٤:٣٢</string>
+    <string name="demo_network_wifi">واي فاي</string>
+    <string name="demo_premium_price">٩٫٩٩</string>
     <string name="demo_invalid_recipient">المستلم غير صالح</string>
     <string name="premium_feature_channels">قنوات تسليم متعددة</string>
     <string name="premium_feature_channels_detail">البريد الإلكتروني · واتساب · تيليجرام</string>

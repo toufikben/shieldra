@@ -1,7 +1,6 @@
 package com.shieldra.app.design.components.domain
 
 import androidx.compose.animation.core.Easing
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -61,7 +60,7 @@ private fun configFor(state: ProtectionVisualState): ShieldCoreConfig {
             color = semantic.protection,
             ringWidthDp = 4f,
             haloAlpha = 0.18f,
-            pulseMs = 3000,
+            pulseMs = ShieldraTheme.motion.breathingMs,
             pulseScale = 1.015f,
             label = stringResource(R.string.protection_protected),
             accessibilityLabel = stringResource(R.string.protection_protected_accessibility),
@@ -70,7 +69,7 @@ private fun configFor(state: ProtectionVisualState): ShieldCoreConfig {
             color = semantic.suspicious,
             ringWidthDp = 5f,
             haloAlpha = 0.22f,
-            pulseMs = 1400,
+            pulseMs = ShieldraTheme.motion.suspiciousPulseMs,
             pulseScale = 1.03f,
             label = stringResource(R.string.protection_suspicious),
             accessibilityLabel = stringResource(R.string.protection_suspicious_accessibility),
@@ -88,7 +87,7 @@ private fun configFor(state: ProtectionVisualState): ShieldCoreConfig {
             color = semantic.attention,
             ringWidthDp = 4f,
             haloAlpha = 0.20f,
-            pulseMs = 2000,
+            pulseMs = ShieldraTheme.motion.standardMs,
             pulseScale = 1.02f,
             label = stringResource(R.string.protection_attention),
             accessibilityLabel = stringResource(R.string.protection_attention_accessibility),
@@ -114,7 +113,7 @@ fun ShieldCore(
     val config = configFor(state)
     val spacing = ShieldraTheme.spacing
     val surface = MaterialTheme.colorScheme.surface
-    val easing: Easing = FastOutSlowInEasing
+    val easing: Easing = ShieldraTheme.motion.easingStandard
     val lastCheckLabel = formatLastCheck(lastCheckSeconds)
     val accessibilityDescription = "${config.accessibilityLabel}. $lastCheckLabel"
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.R
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.design.tokens.ShieldraCardShape
 
 @Composable
 fun LiveStatusStrip(
@@ -60,7 +61,7 @@ fun LiveStatusStrip(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(ShieldraCardShape)
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = spacing.l, vertical = spacing.m)
             .semantics(mergeDescendants = true) {

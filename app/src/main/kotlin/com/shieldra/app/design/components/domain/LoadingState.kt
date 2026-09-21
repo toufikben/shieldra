@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.R
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.design.tokens.ShieldraCardShape
 
 @Composable
 fun SkeletonBlock(
@@ -55,7 +56,7 @@ fun SkeletonBlock(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(ShieldraCardShape)
             .background(brush),
     )
 }

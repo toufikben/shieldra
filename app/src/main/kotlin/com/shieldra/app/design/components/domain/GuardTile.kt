@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.shieldra.app.R
 import com.shieldra.app.design.icons.icon
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.presentation.model.GuardKind
 import com.shieldra.app.presentation.model.GuardStatus
 import com.shieldra.app.presentation.model.GuardUiModel
@@ -51,7 +52,7 @@ fun GuardTile(
 ) {
     val spacing = ShieldraTheme.spacing
     val color = statusColor(guard.status)
-    val shape = RoundedCornerShape(14.dp)
+    val shape = ShieldraCardShape
     val statusLabel = stringResource(when (guard.status) {
         GuardStatus.Active -> R.string.guard_status_active
         GuardStatus.Signal -> R.string.guard_status_signal

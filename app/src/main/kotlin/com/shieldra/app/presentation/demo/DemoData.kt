@@ -18,8 +18,8 @@ object DemoData {
 
     @Composable
     fun recentEvents(): List<EventUiModel> = listOf(
-        EventUiModel("evt_1", EventType.FailedUnlock, stringResource(R.string.demo_failed_unlock), stringResource(R.string.demo_attempt, 2), stringResource(R.string.demo_today_time, "14:32"), DeliveryStatus.Delivered, true, true),
-        EventUiModel("evt_2", EventType.Motion, stringResource(R.string.demo_motion_detected), stringResource(R.string.demo_movement_after_stillness), stringResource(R.string.demo_today_time, "13:15"), DeliveryStatus.Deferred, true, false),
+        EventUiModel("evt_1", EventType.FailedUnlock, stringResource(R.string.demo_failed_unlock), stringResource(R.string.demo_attempt, 2), stringResource(R.string.demo_time_failed_unlock), DeliveryStatus.Delivered, true, true),
+        EventUiModel("evt_2", EventType.Motion, stringResource(R.string.demo_motion_detected), stringResource(R.string.demo_movement_after_stillness), stringResource(R.string.demo_time_motion), DeliveryStatus.Deferred, true, false),
     )
 
     @Composable
@@ -29,7 +29,7 @@ object DemoData {
         guards(),
         recentEvents(),
         84,
-        "Wi-Fi",
+        stringResource(R.string.demo_network_wifi),
         true,
         true,
     )
@@ -40,20 +40,20 @@ object DemoData {
         type = EventType.FailedUnlock,
         title = stringResource(R.string.demo_failed_unlock),
         attemptNumber = 2,
-        timestampLabel = stringResource(R.string.demo_today_time_seconds, "14:32:08"),
+        timestampLabel = stringResource(R.string.demo_time_detail),
         batteryPercent = 84,
         hasPhoto = true,
         location = LocationUiModel(LocationKind.Current, 36.7538, 3.0588, 8, 4, stringResource(R.string.location_source_gps)),
         delivery = listOf(
-            ChannelReceiptUiModel(ChannelId.Email, DeliveryStatus.Delivered, "14:32"),
+            ChannelReceiptUiModel(ChannelId.Email, DeliveryStatus.Delivered, stringResource(R.string.demo_receipt_time)),
             ChannelReceiptUiModel(ChannelId.WhatsApp, DeliveryStatus.Failed, stringResource(R.string.demo_invalid_recipient)),
-            ChannelReceiptUiModel(ChannelId.Telegram, DeliveryStatus.Delivered, "14:32"),
+            ChannelReceiptUiModel(ChannelId.Telegram, DeliveryStatus.Delivered, stringResource(R.string.demo_receipt_time)),
         ),
     )
 
     @Composable
     fun premium(): PremiumUiModel = PremiumUiModel(
-        priceLabel = "9.99",
+        priceLabel = stringResource(R.string.demo_premium_price),
         features = listOf(
             PremiumFeatureUiModel(stringResource(R.string.premium_feature_channels), stringResource(R.string.premium_feature_channels_detail)),
             PremiumFeatureUiModel(stringResource(R.string.premium_feature_battery), stringResource(R.string.premium_feature_battery_detail)),

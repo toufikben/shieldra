@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.design.tokens.ShieldraTextStyles
 import com.shieldra.app.presentation.model.LocationKind
 import com.shieldra.app.presentation.model.LocationUiModel
@@ -52,7 +53,7 @@ fun PhotoEvidenceCard(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(4f / 3f)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(ShieldraCardShape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .then(interactionModifier),
         contentAlignment = Alignment.Center,
@@ -84,7 +85,7 @@ fun LocationEvidenceCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(ShieldraCardShape)
             .background(MaterialTheme.colorScheme.surface)
             .padding(spacing.l),
     ) {
