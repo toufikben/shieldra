@@ -25,10 +25,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.shieldra.app.R
 import com.shieldra.app.design.theme.ShieldraTheme
 
 @Composable
@@ -40,6 +42,17 @@ fun LiveStatusStrip(
     modifier: Modifier = Modifier,
 ) {
     val spacing = ShieldraTheme.spacing
+    val networkDescription = if (networkOk) {
+        stringResource(R.string.status_network_connected, networkLabel)
+    } else {
+        stringResource(R.string.status_network_offline)
+    }
+    val accessibilityDescription = stringResource(
+        R.string.status_network_semantics,
+        lastCheckLabel,
+        batteryPercent ?: 0,
+        networkDescription,
+    )
 
     Row(
         modifier = modifier
@@ -48,11 +61,7 @@ fun LiveStatusStrip(
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = spacing.l, vertical = spacing.m)
             .semantics(mergeDescendants = true) {
-                contentDescription = buildString {
-                    append("Last check $lastCheckLabel. ")
-                    if (batteryPercent != null) append("Battery $batteryPercent percent. ")
-                    append(if (networkOk) "Network connected: $networkLabel" else "Network offline")
-                }
+                contentDescription = accessibilityDescription
             },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -60,19 +69,19 @@ fun LiveStatusStrip(
         StatusSlot(
             icon = Icons.Filled.Schedule,
             primary = lastCheckLabel,
-            secondary = "Last check",
+            secondary = stringResource(R.string.status_last_check),
         )
         VerticalDivider()
         StatusSlot(
             icon = Icons.Filled.BatteryFull,
             primary = batteryPercent?.let { "$it%" } ?: "—",
-            secondary = "Battery",
+            secondary = stringResource(R.string.status_battery),
         )
         VerticalDivider()
         StatusSlot(
             icon = if (networkOk) Icons.Filled.Wifi else Icons.Filled.WifiOff,
-            primary = if (networkOk) networkLabel else "Offline",
-            secondary = "Network",
+            primary = if (networkOk) networkLabel else stringResource(R.string.status_network_offline),
+            secondary = stringResource(R.string.status_network),
         )
     }
 }

@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -39,6 +40,7 @@ import com.shieldra.app.design.graphics.drawGlyphExclamation
 import com.shieldra.app.design.graphics.drawGlyphSlash
 import com.shieldra.app.design.graphics.drawGlyphX
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.R
 import com.shieldra.app.presentation.model.ProtectionVisualState
 
 private data class ShieldCoreConfig(
@@ -61,8 +63,8 @@ private fun configFor(state: ProtectionVisualState): ShieldCoreConfig {
             haloAlpha = 0.18f,
             pulseMs = 3000,
             pulseScale = 1.015f,
-            label = "PROTECTED",
-            accessibilityLabel = "Protection is active",
+            label = stringResource(R.string.protection_protected),
+            accessibilityLabel = stringResource(R.string.protection_protected_accessibility),
         )
         ProtectionVisualState.Suspicious -> ShieldCoreConfig(
             color = semantic.suspicious,
@@ -70,8 +72,8 @@ private fun configFor(state: ProtectionVisualState): ShieldCoreConfig {
             haloAlpha = 0.22f,
             pulseMs = 1400,
             pulseScale = 1.03f,
-            label = "SUSPICIOUS",
-            accessibilityLabel = "Suspicious activity detected",
+            label = stringResource(R.string.protection_suspicious),
+            accessibilityLabel = stringResource(R.string.protection_suspicious_accessibility),
         )
         ProtectionVisualState.SecurityEvent -> ShieldCoreConfig(
             color = semantic.securityEvent,
@@ -79,8 +81,8 @@ private fun configFor(state: ProtectionVisualState): ShieldCoreConfig {
             haloAlpha = 0.28f,
             pulseMs = 0,
             pulseScale = 1f,
-            label = "SECURITY EVENT",
-            accessibilityLabel = "Security event confirmed",
+            label = stringResource(R.string.protection_security_event),
+            accessibilityLabel = stringResource(R.string.protection_security_event_accessibility),
         )
         ProtectionVisualState.Attention -> ShieldCoreConfig(
             color = semantic.attention,
@@ -88,8 +90,8 @@ private fun configFor(state: ProtectionVisualState): ShieldCoreConfig {
             haloAlpha = 0.20f,
             pulseMs = 2000,
             pulseScale = 1.02f,
-            label = "ATTENTION",
-            accessibilityLabel = "Attention required",
+            label = stringResource(R.string.protection_attention),
+            accessibilityLabel = stringResource(R.string.protection_attention_accessibility),
         )
         ProtectionVisualState.Disabled -> ShieldCoreConfig(
             color = semantic.disabledState,
@@ -97,8 +99,8 @@ private fun configFor(state: ProtectionVisualState): ShieldCoreConfig {
             haloAlpha = 0f,
             pulseMs = 0,
             pulseScale = 1f,
-            label = "DISABLED",
-            accessibilityLabel = "Protection disabled",
+            label = stringResource(R.string.protection_disabled),
+            accessibilityLabel = stringResource(R.string.protection_disabled_accessibility),
         )
     }
 }
@@ -113,6 +115,8 @@ fun ShieldCore(
     val spacing = ShieldraTheme.spacing
     val surface = MaterialTheme.colorScheme.surface
     val easing: Easing = FastOutSlowInEasing
+    val lastCheckLabel = formatLastCheck(lastCheckSeconds)
+    val accessibilityDescription = "${config.accessibilityLabel}. $lastCheckLabel"
 
     val scale: Float = if (config.pulseMs > 0) {
         val transition = rememberInfiniteTransition(label = "shield_pulse")
@@ -133,9 +137,7 @@ fun ShieldCore(
             .fillMaxWidth()
             .padding(vertical = spacing.xxl)
             .semantics(mergeDescendants = true) {
-                contentDescription =
-                    "${config.accessibilityLabel}. Last check: " +
-                    "${lastCheckSeconds}s ago."
+                contentDescription = accessibilityDescription
             },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -210,17 +212,18 @@ fun ShieldCore(
         )
         Spacer(Modifier.height(spacing.xs))
         Text(
-            text = formatLastCheck(lastCheckSeconds),
+            text = lastCheckLabel,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
+@Composable
 private fun formatLastCheck(seconds: Long): String = when {
-    seconds < 60 -> "Last check: ${seconds}s ago"
-    seconds < 3600 -> "Last check: ${seconds / 60}m ago"
-    else -> "Last check: ${seconds / 3600}h ago"
+    seconds < 60 -> stringResource(R.string.last_check_seconds, seconds)
+    seconds < 3600 -> stringResource(R.string.last_check_minutes, seconds / 60)
+    else -> stringResource(R.string.last_check_hours, seconds / 3600)
 }
 
 @Preview(name = "ShieldCore Protected", showBackground = true)

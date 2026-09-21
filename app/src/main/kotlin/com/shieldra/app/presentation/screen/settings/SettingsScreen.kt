@@ -26,6 +26,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.shieldra.app.R
 import com.shieldra.app.design.icons.icon
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.presentation.model.SettingsRowUiModel
@@ -48,27 +50,27 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = spacing.l, vertical = spacing.l),
     ) {
-        SettingsSectionTitle("SECURITY")
+        SettingsSectionTitle(stringResource(R.string.settings_section_security))
         SettingsGroup(grouped[SettingsSection.Security].orEmpty(), callbacks)
         Spacer(Modifier.height(spacing.xl))
 
-        SettingsSectionTitle("DELIVERY")
+        SettingsSectionTitle(stringResource(R.string.settings_section_delivery))
         SettingsGroup(grouped[SettingsSection.Delivery].orEmpty(), callbacks)
         Spacer(Modifier.height(spacing.xl))
 
-        SettingsSectionTitle("APPEARANCE")
+        SettingsSectionTitle(stringResource(R.string.settings_section_appearance))
         SettingsGroup(grouped[SettingsSection.Appearance].orEmpty(), callbacks)
         Spacer(Modifier.height(spacing.xl))
 
-        SettingsSectionTitle("DATA & PRIVACY")
+        SettingsSectionTitle(stringResource(R.string.settings_section_data_privacy))
         SettingsGroup(grouped[SettingsSection.PrivacyData].orEmpty(), callbacks)
         Spacer(Modifier.height(spacing.xl))
 
-        SettingsSectionTitle("SECURITY (APP)")
+        SettingsSectionTitle(stringResource(R.string.settings_section_security_app))
         SettingsGroup(grouped[SettingsSection.SecurityApp].orEmpty(), callbacks)
         Spacer(Modifier.height(spacing.xl))
 
-        SettingsSectionTitle("ABOUT")
+        SettingsSectionTitle(stringResource(R.string.settings_section_about))
         SettingsGroup(grouped[SettingsSection.About].orEmpty(), callbacks)
         Spacer(Modifier.height(spacing.xxxl))
     }

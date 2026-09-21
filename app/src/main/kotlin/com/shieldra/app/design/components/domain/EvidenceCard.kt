@@ -23,6 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import com.shieldra.app.R
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -64,7 +66,7 @@ fun PhotoEvidenceCard(
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = if (available) "Photo evidence" else "No photo available",
+                text = stringResource(if (available) R.string.evidence_photo else R.string.evidence_no_photo),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -87,7 +89,7 @@ fun LocationEvidenceCard(
             .padding(spacing.l),
     ) {
         Text(
-            text = "LOCATION",
+            text = stringResource(R.string.location_section),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -104,7 +106,7 @@ fun LocationEvidenceCard(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Location unavailable",
+                        text = stringResource(R.string.location_unavailable_short),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -122,7 +124,7 @@ fun LocationEvidenceCard(
 
                 Box(mapPlaceholder, contentAlignment = Alignment.Center) {
                     Text(
-                        text = "[ Map ]",
+                        text = stringResource(R.string.map_placeholder_bracket),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -133,7 +135,7 @@ fun LocationEvidenceCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (location.accuracyMeters != null) {
                         Text(
-                            text = "±${location.accuracyMeters}m",
+                            text = stringResource(R.string.accuracy_meters, location.accuracyMeters),
                             style = ShieldraTextStyles.NumericData,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -155,7 +157,7 @@ fun LocationEvidenceCard(
                 if (onOpenInMaps != null) {
                     Spacer(Modifier.height(spacing.s))
                     com.shieldra.app.design.components.foundation.ShieldraButton(
-                        text = "Open in Maps",
+                        text = stringResource(R.string.location_open_in_maps),
                         onClick = onOpenInMaps,
                         variant = com.shieldra.app.design.components.foundation.ShieldraButtonVariant.Secondary,
                     )

@@ -25,7 +25,7 @@ import com.shieldra.app.design.theme.ShieldraTheme
 
 @Composable
 fun ErrorStateInline(
-    title: String = "Something went wrong",
+    title: String? = null,
     message: String,
     onRetry: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -40,7 +40,7 @@ fun ErrorStateInline(
         verticalArrangement = Arrangement.spacedBy(spacing.xs),
     ) {
         Text(
-            text = title,
+            text = title ?: stringResource(R.string.error_something_wrong),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onErrorContainer,
         )
@@ -62,7 +62,7 @@ fun ErrorStateInline(
 
 @Composable
 fun ErrorStateFullScreen(
-    title: String = "Unable to load",
+    title: String? = null,
     message: String,
     onRetry: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -75,7 +75,7 @@ fun ErrorStateFullScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = title,
+            text = title ?: stringResource(R.string.error_unable_to_load),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,

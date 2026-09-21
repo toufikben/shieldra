@@ -71,7 +71,7 @@ fun PermissionsScreen(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(spacing.xxxl))
-        ShieldraFullWidthButton("Allow", onAllow)
+        ShieldraFullWidthButton(stringResource(R.string.action_allow), onAllow)
         Spacer(Modifier.height(spacing.s))
         ShieldraFullWidthButton(
             text = stringResource(R.string.action_not_now),

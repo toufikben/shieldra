@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.shieldra.app.R
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.design.theme.ShieldraTheme
@@ -44,11 +46,12 @@ fun FreshnessIndicator(
     }
 }
 
+@Composable
 private fun formatAge(seconds: Long): String = when {
-    seconds < 60 -> "${seconds}s old"
-    seconds < 3600 -> "${seconds / 60}m old"
-    seconds < 86400 -> "${seconds / 3600}h old"
-    else -> "${seconds / 86400}d old"
+    seconds < 60 -> stringResource(R.string.freshness_seconds, seconds)
+    seconds < 3600 -> stringResource(R.string.freshness_minutes, seconds / 60)
+    seconds < 86400 -> stringResource(R.string.freshness_hours, seconds / 3600)
+    else -> stringResource(R.string.freshness_days, seconds / 86400)
 }
 
 @Preview(showBackground = true)

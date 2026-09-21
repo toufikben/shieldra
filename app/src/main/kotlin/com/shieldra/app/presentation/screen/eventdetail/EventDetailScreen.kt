@@ -151,19 +151,20 @@ private fun DetailsBlock(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        DetailRow("Type", model.title)
+        DetailRow(stringResource(R.string.detail_type), model.title)
         if (model.attemptNumber != null) {
-            DetailRow("Attempt", "${model.attemptNumber}")
+            DetailRow(stringResource(R.string.detail_attempt), "${model.attemptNumber}")
         }
-        DetailRow("Timestamp", model.timestampLabel)
+        DetailRow(stringResource(R.string.detail_timestamp), model.timestampLabel)
         if (model.batteryPercent != null) {
             DetailRow(
-                "Battery",
-                "${model.batteryPercent}% · " +
-                    if (model.charging) "Charging" else "Not charging",
+                stringResource(R.string.detail_battery),
+                "${model.batteryPercent}% · " + stringResource(
+                    if (model.charging) R.string.charging else R.string.not_charging,
+                ),
             )
         }
-        DetailRow("Event ID", model.id)
+        DetailRow(stringResource(R.string.detail_event_id), model.id)
     }
 }
 

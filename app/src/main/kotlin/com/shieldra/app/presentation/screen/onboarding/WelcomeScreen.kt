@@ -69,7 +69,7 @@ fun WelcomeScreen(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(spacing.xxxl))
-        ShieldraFullWidthButton("Get started", onGetStarted)
+        ShieldraFullWidthButton(stringResource(R.string.action_get_started), onGetStarted)
         Spacer(Modifier.height(spacing.s))
         ShieldraFullWidthButton(
             text = stringResource(R.string.welcome_skip),

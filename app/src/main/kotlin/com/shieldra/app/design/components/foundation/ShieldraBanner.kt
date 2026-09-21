@@ -110,7 +110,7 @@ fun ShieldraBanner(
 
 /** Ad slot placeholder — no SDK. */
 @Composable
-fun ShieldraAdSlot(modifier: Modifier = Modifier, label: String = "Ad") {
+fun ShieldraAdSlot(modifier: Modifier = Modifier, label: String? = null) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -121,7 +121,7 @@ fun ShieldraAdSlot(modifier: Modifier = Modifier, label: String = "Ad") {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = label,
+            text = label ?: stringResource(R.string.ad),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

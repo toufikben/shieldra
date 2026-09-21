@@ -5,6 +5,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.shieldra.app.R
 import com.shieldra.app.design.tokens.ShieldraHeroShape
 
 @Composable
@@ -14,7 +16,7 @@ fun ShieldraDialog(
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
-    dismissLabel: String = "Cancel",
+    dismissLabel: String? = null,
     destructive: Boolean = false,
 ) {
     AlertDialog(
@@ -43,7 +45,7 @@ fun ShieldraDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(dismissLabel)
+                Text(dismissLabel ?: stringResource(R.string.action_cancel))
             }
         },
     )

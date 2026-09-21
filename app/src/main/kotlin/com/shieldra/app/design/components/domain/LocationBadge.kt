@@ -17,8 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.shieldra.app.R
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraPillShape
 import com.shieldra.app.presentation.model.LocationKind
@@ -34,11 +36,11 @@ fun LocationBadge(
         LocationKind.LastKnown -> MaterialTheme.colorScheme.onSurfaceVariant
         LocationKind.Unavailable -> MaterialTheme.colorScheme.outline
     }
-    val label = when (kind) {
-        LocationKind.Current -> "Current Location"
-        LocationKind.LastKnown -> "Last Known Location"
-        LocationKind.Unavailable -> "Location unavailable"
-    }
+    val label = stringResource(when (kind) {
+        LocationKind.Current -> R.string.location_current
+        LocationKind.LastKnown -> R.string.location_last_known
+        LocationKind.Unavailable -> R.string.location_unavailable
+    })
 
     Row(
         modifier = modifier

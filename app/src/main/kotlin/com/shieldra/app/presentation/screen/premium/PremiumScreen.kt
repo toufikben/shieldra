@@ -55,7 +55,9 @@ fun PremiumScreen(
         Spacer(Modifier.height(spacing.l))
 
         ShieldraFullWidthButton(
-            text = model.priceLabel?.let { "Buy Lifetime — $it" } ?: "Buy Lifetime",
+            text = model.priceLabel?.let {
+                stringResource(R.string.premium_buy_lifetime_price, it)
+            } ?: stringResource(R.string.premium_buy_lifetime),
             onClick = callbacks.onBuy,
         )
         ShieldraFullWidthButton(

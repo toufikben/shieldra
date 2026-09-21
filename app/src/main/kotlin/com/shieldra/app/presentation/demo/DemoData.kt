@@ -1,70 +1,78 @@
 package com.shieldra.app.presentation.demo
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.shieldra.app.R
 import com.shieldra.app.presentation.model.*
 
-/** Static data for previews and the intentionally demo-only Phase 3 shell. */
+/** Localized static data for the intentionally demo-only Phase 3 shell. */
 object DemoData {
-    val guards = listOf(
-        GuardUiModel(GuardKind.Lock, "Lock Guard", "Active · 2 attempts", GuardStatus.Active),
-        GuardUiModel(GuardKind.Motion, "Motion Guard", "Monitoring", GuardStatus.Active),
-        GuardUiModel(GuardKind.Sim, "SIM Guard", "Monitored", GuardStatus.Active),
-        GuardUiModel(GuardKind.Panic, "Panic", "Ready", GuardStatus.Active),
+    @Composable
+    fun guards(): List<GuardUiModel> = listOf(
+        GuardUiModel(GuardKind.Lock, stringResource(R.string.demo_lock_guard), stringResource(R.string.demo_active_attempts, 2), GuardStatus.Active),
+        GuardUiModel(GuardKind.Motion, stringResource(R.string.demo_motion_guard), stringResource(R.string.demo_monitoring), GuardStatus.Active),
+        GuardUiModel(GuardKind.Sim, stringResource(R.string.demo_sim_guard), stringResource(R.string.demo_monitored), GuardStatus.Active),
+        GuardUiModel(GuardKind.Panic, stringResource(R.string.demo_panic), stringResource(R.string.demo_ready), GuardStatus.Active),
     )
 
-    val recentEvents = listOf(
-        EventUiModel("evt_1", EventType.FailedUnlock, "Failed unlock attempt", "Attempt 2", "Today · 14:32", DeliveryStatus.Delivered, true, true),
-        EventUiModel("evt_2", EventType.Motion, "Motion detected", "Movement after stillness", "Today · 13:15", DeliveryStatus.Deferred, true, false),
+    @Composable
+    fun recentEvents(): List<EventUiModel> = listOf(
+        EventUiModel("evt_1", EventType.FailedUnlock, stringResource(R.string.demo_failed_unlock), stringResource(R.string.demo_attempt, 2), stringResource(R.string.demo_today_time, "14:32"), DeliveryStatus.Delivered, true, true),
+        EventUiModel("evt_2", EventType.Motion, stringResource(R.string.demo_motion_detected), stringResource(R.string.demo_movement_after_stillness), stringResource(R.string.demo_today_time, "13:15"), DeliveryStatus.Deferred, true, false),
     )
 
-    val dashboard = DashboardUiModel(ProtectionVisualState.Protected, 12L, guards, recentEvents, 84, "Wi-Fi", true, true)
-    val dashboardEmpty = dashboard.copy(recentEvents = emptyList())
-    val dashboardSuspicious = dashboard.copy(protectionState = ProtectionVisualState.Suspicious, lastCheckSeconds = 4L)
-    val dashboardDisabled = dashboard.copy(
-        protectionState = ProtectionVisualState.Disabled,
-        guards = guards.map { it.copy(status = GuardStatus.Disabled) },
+    @Composable
+    fun dashboard(): DashboardUiModel = DashboardUiModel(
+        ProtectionVisualState.Protected,
+        12L,
+        guards(),
+        recentEvents(),
+        84,
+        "Wi-Fi",
+        true,
+        true,
     )
 
-    val eventDetail = EventDetailUiModel(
+    @Composable
+    fun eventDetail(): EventDetailUiModel = EventDetailUiModel(
         id = "evt_8a3f...d92",
         type = EventType.FailedUnlock,
-        title = "Failed unlock attempt",
+        title = stringResource(R.string.demo_failed_unlock),
         attemptNumber = 2,
-        timestampLabel = "Today · 14:32:08",
+        timestampLabel = stringResource(R.string.demo_today_time_seconds, "14:32:08"),
         batteryPercent = 84,
         hasPhoto = true,
         location = LocationUiModel(LocationKind.Current, 36.7538, 3.0588, 8, 4, "GPS"),
         delivery = listOf(
             ChannelReceiptUiModel(ChannelId.Email, DeliveryStatus.Delivered, "14:32"),
-            ChannelReceiptUiModel(ChannelId.WhatsApp, DeliveryStatus.Failed, "Invalid recipient"),
+            ChannelReceiptUiModel(ChannelId.WhatsApp, DeliveryStatus.Failed, stringResource(R.string.demo_invalid_recipient)),
             ChannelReceiptUiModel(ChannelId.Telegram, DeliveryStatus.Delivered, "14:32"),
         ),
     )
 
-    val eventDetailLastKnown = eventDetail.copy(
-        location = LocationUiModel(LocationKind.LastKnown, 36.7538, 3.0588, 45, 7200, "Fused"),
-    )
-
-    val premium = PremiumUiModel(
+    @Composable
+    fun premium(): PremiumUiModel = PremiumUiModel(
         priceLabel = "9.99",
         features = listOf(
-            PremiumFeatureUiModel("Multiple delivery channels", "Email · WhatsApp · Telegram"),
-            PremiumFeatureUiModel("Battery Emergency", "Queue evidence when battery is low"),
-            PremiumFeatureUiModel("Extended history", "90 days · 500 events"),
-            PremiumFeatureUiModel("Advanced delivery receipts"),
-            PremiumFeatureUiModel("No ads"),
+            PremiumFeatureUiModel(stringResource(R.string.premium_feature_channels), stringResource(R.string.premium_feature_channels_detail)),
+            PremiumFeatureUiModel(stringResource(R.string.premium_feature_battery), stringResource(R.string.premium_feature_battery_detail)),
+            PremiumFeatureUiModel(stringResource(R.string.premium_feature_history), stringResource(R.string.premium_feature_history_detail)),
+            PremiumFeatureUiModel(stringResource(R.string.premium_feature_receipts)),
+            PremiumFeatureUiModel(stringResource(R.string.premium_feature_no_ads)),
         ),
-        freeTierSummary = "Free includes: Lock Guard · Motion Guard · SIM Guard · Panic · Email delivery.",
+        freeTierSummary = stringResource(R.string.premium_free_summary),
     )
 
-    val settingsRows = listOf(
-        SettingsRowUiModel("protection", "Protection", "Lock Guard · Guards", SettingsIcon.Security, section = SettingsSection.Security),
-        SettingsRowUiModel("delivery", "Delivery channels", "Email · WhatsApp · Telegram", SettingsIcon.Delivery, section = SettingsSection.Delivery),
-        SettingsRowUiModel("app_lock", "App lock", "Require authentication", SettingsIcon.Lock, true, SettingsSection.SecurityApp),
-        SettingsRowUiModel("theme", "Theme", "Match system", SettingsIcon.Theme, section = SettingsSection.Appearance),
-        SettingsRowUiModel("language", "Language", icon = SettingsIcon.Language, section = SettingsSection.Appearance),
-        SettingsRowUiModel("storage", "Storage", "12 events · 3.2 MB", SettingsIcon.Storage, section = SettingsSection.PrivacyData),
-        SettingsRowUiModel("retention", "Retention policy", "7 days", SettingsIcon.Retention, true, SettingsSection.PrivacyData),
-        SettingsRowUiModel("about", "About Shieldra", icon = SettingsIcon.Info, section = SettingsSection.About),
-        SettingsRowUiModel("help", "Help", icon = SettingsIcon.Help, section = SettingsSection.About),
+    @Composable
+    fun settingsRows(): List<SettingsRowUiModel> = listOf(
+        SettingsRowUiModel("protection", stringResource(R.string.settings_protection), stringResource(R.string.settings_guards_summary), SettingsIcon.Security, section = SettingsSection.Security),
+        SettingsRowUiModel("delivery", stringResource(R.string.settings_delivery_channels), stringResource(R.string.demo_delivery_channels), SettingsIcon.Delivery, section = SettingsSection.Delivery),
+        SettingsRowUiModel("app_lock", stringResource(R.string.settings_app_lock), stringResource(R.string.settings_require_authentication), SettingsIcon.Lock, true, SettingsSection.SecurityApp),
+        SettingsRowUiModel("theme", stringResource(R.string.settings_theme), stringResource(R.string.settings_match_system), SettingsIcon.Theme, section = SettingsSection.Appearance),
+        SettingsRowUiModel("language", stringResource(R.string.settings_language), icon = SettingsIcon.Language, section = SettingsSection.Appearance),
+        SettingsRowUiModel("storage", stringResource(R.string.settings_storage), stringResource(R.string.settings_storage_summary), SettingsIcon.Storage, section = SettingsSection.PrivacyData),
+        SettingsRowUiModel("retention", stringResource(R.string.settings_retention), stringResource(R.string.settings_seven_days), SettingsIcon.Retention, true, SettingsSection.PrivacyData),
+        SettingsRowUiModel("about", stringResource(R.string.settings_about_shieldra), icon = SettingsIcon.Info, section = SettingsSection.About),
+        SettingsRowUiModel("help", stringResource(R.string.settings_help), icon = SettingsIcon.Help, section = SettingsSection.About),
     )
 }

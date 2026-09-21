@@ -22,11 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.shieldra.app.R
 import com.shieldra.app.design.icons.icon
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.presentation.model.GuardKind
@@ -50,6 +52,24 @@ fun GuardTile(
     val spacing = ShieldraTheme.spacing
     val color = statusColor(guard.status)
     val shape = RoundedCornerShape(14.dp)
+    val statusLabel = stringResource(when (guard.status) {
+        GuardStatus.Active -> R.string.guard_status_active
+        GuardStatus.Signal -> R.string.guard_status_signal
+        GuardStatus.Disabled -> R.string.guard_status_disabled
+        GuardStatus.Locked -> R.string.guard_status_locked
+    })
+    val premiumSuffix = if (guard.isPremiumLocked) {
+        " ${stringResource(R.string.guard_premium_feature)}."
+    } else {
+        ""
+    }
+    val accessibilityDescription = stringResource(
+        R.string.guard_accessibility,
+        guard.title,
+        guard.subtitle,
+        statusLabel,
+        premiumSuffix,
+    )
 
     Column(
         modifier = modifier
@@ -62,9 +82,7 @@ fun GuardTile(
             )
             .padding(spacing.l)
             .semantics(mergeDescendants = true) {
-                val premiumSuffix = if (guard.isPremiumLocked) ". Premium feature." else ""
-                contentDescription =
-                    "${guard.title}. ${guard.subtitle}. Status: ${guard.status.name}.$premiumSuffix"
+                contentDescription = accessibilityDescription
             },
     ) {
         Box(

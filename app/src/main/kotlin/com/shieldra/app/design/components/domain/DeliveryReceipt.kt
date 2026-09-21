@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.shieldra.app.R
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.design.theme.ShieldraTheme
@@ -33,21 +35,23 @@ private fun statusColor(status: DeliveryStatus): Color = when (status) {
     else -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
+@Composable
 private fun statusLabel(status: DeliveryStatus): String = when (status) {
-    DeliveryStatus.Delivered -> "✓ Delivered"
-    DeliveryStatus.Failed -> "✗ Failed"
-    DeliveryStatus.Skipped -> "— Skipped"
-    DeliveryStatus.Delivering -> "· Sending"
-    DeliveryStatus.Ready -> "· Ready"
-    DeliveryStatus.Deferred -> "· Retrying"
-    DeliveryStatus.Expired -> "· Expired"
+    DeliveryStatus.Delivered -> stringResource(R.string.delivery_delivered)
+    DeliveryStatus.Failed -> stringResource(R.string.delivery_failed)
+    DeliveryStatus.Skipped -> stringResource(R.string.delivery_skipped)
+    DeliveryStatus.Delivering -> stringResource(R.string.delivery_sending)
+    DeliveryStatus.Ready -> stringResource(R.string.delivery_ready)
+    DeliveryStatus.Deferred -> stringResource(R.string.delivery_retrying)
+    DeliveryStatus.Expired -> stringResource(R.string.delivery_expired)
 }
 
-private fun channelLabel(channel: ChannelId): String = when (channel) {
-    ChannelId.Email -> "Email"
-    ChannelId.WhatsApp -> "WhatsApp"
-    ChannelId.Telegram -> "Telegram"
-}
+@Composable
+private fun channelLabel(channel: ChannelId): String = stringResource(when (channel) {
+    ChannelId.Email -> R.string.channel_email
+    ChannelId.WhatsApp -> R.string.channel_whatsapp
+    ChannelId.Telegram -> R.string.channel_telegram
+})
 
 @Composable
 fun DeliveryReceipt(
@@ -63,7 +67,7 @@ fun DeliveryReceipt(
             .padding(spacing.l),
     ) {
         Text(
-            text = "DELIVERY",
+            text = stringResource(R.string.delivery_section),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

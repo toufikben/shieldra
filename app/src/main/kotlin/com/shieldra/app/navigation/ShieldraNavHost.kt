@@ -115,7 +115,7 @@ fun ShieldraNavHost(
             // ===== Main =====
             composable(ShieldraRoutes.DASHBOARD) {
                 DashboardScreen(
-                    model = DemoData.dashboard,
+                    model = DemoData.dashboard(),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->
                             navController.navigate(ShieldraRoutes.eventDetail(id))
@@ -131,7 +131,7 @@ fun ShieldraNavHost(
             composable(ShieldraRoutes.HISTORY) {
                 var historyFilterState by remember { mutableStateOf(HistoryFilterState()) }
                 HistoryScreen(
-                    events = DemoData.recentEvents,
+                    events = DemoData.recentEvents(),
                     filterState = historyFilterState,
                     callbacks = HistoryCallbacks(
                         onEventClick = { id ->
@@ -148,7 +148,7 @@ fun ShieldraNavHost(
             }
             composable(ShieldraRoutes.PREMIUM) {
                 PremiumScreen(
-                    model = DemoData.premium,
+                    model = DemoData.premium(),
                     callbacks = PremiumCallbacks(
                         onBuy = { defer() },
                         onRestore = { defer() },
@@ -157,7 +157,7 @@ fun ShieldraNavHost(
             }
             composable(ShieldraRoutes.SETTINGS) {
                 SettingsScreen(
-                    rows = DemoData.settingsRows,
+                    rows = DemoData.settingsRows(),
                     callbacks = SettingsCallbacks { _, _ -> defer() },
                 )
             }
@@ -171,7 +171,7 @@ fun ShieldraNavHost(
             ) { entry ->
                 val id = entry.arguments?.getString(ShieldraRoutes.EVENT_DETAIL_ARG_ID).orEmpty()
                 EventDetailScreen(
-                    model = DemoData.eventDetail.copy(id = id),
+                    model = DemoData.eventDetail().copy(id = id),
                     callbacks = EventDetailCallbacks(
                         onBack = { navController.popBackStack() },
                         onOpenInMaps = { _, _ -> defer() },

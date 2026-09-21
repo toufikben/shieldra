@@ -77,11 +77,11 @@
 
 **Files:** all production Kotlin under `app/src/main/kotlin/com/shieldra/app/**`, `app/src/main/res/values/**`, `values-ar/**`, and locale-sensitive tests.
 
-- [ ] Run a complete hardcoded user-visible string scan, excluding comments, debug labels, test data, and non-user-facing animation labels.
-- [ ] Add resource IDs with English and Arabic values, preserving placeholders and mixed numbers/IDs.
-- [ ] Re-run the complete scan and resource-reference check.
-- [ ] Inspect RTL-sensitive rows, navigation, icons, timestamps, and phone/ID text.
-- [ ] Write `docs/reports/batch-4-localization.md`.
+- [x] Run a complete hardcoded user-visible string scan, excluding comments, debug labels, test data, and non-user-facing animation labels.
+- [x] Add resource IDs with English and Arabic values, preserving placeholders and mixed numbers/IDs.
+- [x] Re-run the complete scan and resource-reference check.
+- [x] Inspect RTL-sensitive rows, navigation, icons, timestamps, and phone/ID text.
+- [x] Write `docs/reports/batch-4-localization.md`.
 - [ ] Commit/push only if clean; verify remote CI.
 
 ## Batch 5 — Accessibility

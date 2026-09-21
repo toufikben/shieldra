@@ -131,21 +131,23 @@ private fun StatusFilterRow(
     }
 }
 
-private fun HistoryTypeFilter.displayLabel(): String = when (this) {
-    HistoryTypeFilter.All -> "All"
-    HistoryTypeFilter.Lock -> "Lock"
-    HistoryTypeFilter.Motion -> "Motion"
-    HistoryTypeFilter.Sim -> "SIM"
-    HistoryTypeFilter.Panic -> "Panic"
-    HistoryTypeFilter.Battery -> "Battery"
-}
+@Composable
+private fun HistoryTypeFilter.displayLabel(): String = stringResource(when (this) {
+    HistoryTypeFilter.All -> R.string.filter_all
+    HistoryTypeFilter.Lock -> R.string.filter_lock
+    HistoryTypeFilter.Motion -> R.string.filter_motion
+    HistoryTypeFilter.Sim -> R.string.filter_sim
+    HistoryTypeFilter.Panic -> R.string.filter_panic
+    HistoryTypeFilter.Battery -> R.string.filter_battery
+})
 
-private fun HistoryStatusFilter.displayLabel(): String = when (this) {
-    HistoryStatusFilter.All -> "Any status"
-    HistoryStatusFilter.Delivered -> "Delivered"
-    HistoryStatusFilter.Deferred -> "Deferred"
-    HistoryStatusFilter.Failed -> "Failed"
-}
+@Composable
+private fun HistoryStatusFilter.displayLabel(): String = stringResource(when (this) {
+    HistoryStatusFilter.All -> R.string.filter_any_status
+    HistoryStatusFilter.Delivered -> R.string.status_delivered
+    HistoryStatusFilter.Deferred -> R.string.filter_deferred
+    HistoryStatusFilter.Failed -> R.string.status_failed
+})
 
 @Preview(showBackground = true)
 @Composable

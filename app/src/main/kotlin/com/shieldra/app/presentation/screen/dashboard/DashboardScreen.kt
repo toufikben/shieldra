@@ -64,7 +64,7 @@ fun DashboardScreen(
 
         item {
             LiveStatusStrip(
-                lastCheckLabel = "${model.lastCheckSeconds}s ago",
+                lastCheckLabel = stringResource(R.string.seconds_ago, model.lastCheckSeconds),
                 batteryPercent = model.batteryPercent,
                 networkLabel = model.networkLabel,
                 networkOk = model.networkOk,
@@ -79,7 +79,7 @@ fun DashboardScreen(
 
         item {
             Spacer(Modifier.height(spacing.xxl))
-            SectionLabel("GUARDS")
+            SectionLabel(stringResource(R.string.dashboard_section_guards))
         }
 
         item {
@@ -94,7 +94,7 @@ fun DashboardScreen(
             Spacer(Modifier.height(spacing.xxl))
             SectionHeaderWithAction(
                 label = stringResource(R.string.dashboard_section_recent),
-                actionLabel = "View all",
+                actionLabel = stringResource(R.string.dashboard_view_all),
                 onAction = callbacks.onViewAllEvents,
             )
         }

@@ -17,6 +17,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.shieldra.app.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,15 +46,16 @@ private fun deliveryColor(status: DeliveryStatus): Color = when (status) {
     DeliveryStatus.Skipped -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-private fun deliveryLabel(status: DeliveryStatus): String = when (status) {
-    DeliveryStatus.Ready -> "Ready"
-    DeliveryStatus.Delivering -> "Sending"
-    DeliveryStatus.Delivered -> "Delivered"
-    DeliveryStatus.Deferred -> "Retrying"
-    DeliveryStatus.Failed -> "Failed"
-    DeliveryStatus.Expired -> "Expired"
-    DeliveryStatus.Skipped -> "Skipped"
-}
+@Composable
+private fun deliveryLabel(status: DeliveryStatus): String = stringResource(when (status) {
+    DeliveryStatus.Ready -> R.string.status_ready
+    DeliveryStatus.Delivering -> R.string.status_sending
+    DeliveryStatus.Delivered -> R.string.status_delivered
+    DeliveryStatus.Deferred -> R.string.status_retrying
+    DeliveryStatus.Failed -> R.string.status_failed
+    DeliveryStatus.Expired -> R.string.status_expired
+    DeliveryStatus.Skipped -> R.string.status_skipped
+})
 
 @Composable
 fun EventCard(
@@ -62,6 +65,10 @@ fun EventCard(
 ) {
     val spacing = ShieldraTheme.spacing
     val shape = RoundedCornerShape(14.dp)
+    val deliveryDescription = stringResource(
+        R.string.delivery_label,
+        deliveryLabel(event.deliveryStatus),
+    )
 
     Row(
         modifier = modifier
@@ -73,7 +80,7 @@ fun EventCard(
             .semantics(mergeDescendants = true) {
                 contentDescription =
                     "${event.title}. ${event.timestampLabel}. " +
-                    "Delivery: ${deliveryLabel(event.deliveryStatus)}."
+                    deliveryDescription
             },
         verticalAlignment = Alignment.Top,
     ) {
@@ -108,9 +115,9 @@ fun EventCard(
             )
             Spacer(Modifier.height(spacing.s))
             Row(horizontalArrangement = Arrangement.spacedBy(spacing.s)) {
-                if (event.hasPhoto) Pill("Photo", MaterialTheme.colorScheme.surfaceVariant,
+                if (event.hasPhoto) Pill(stringResource(R.string.event_photo), MaterialTheme.colorScheme.surfaceVariant,
                     MaterialTheme.colorScheme.onSurfaceVariant)
-                if (event.hasLocation) Pill("Location", MaterialTheme.colorScheme.surfaceVariant,
+                if (event.hasLocation) Pill(stringResource(R.string.event_location), MaterialTheme.colorScheme.surfaceVariant,
                     MaterialTheme.colorScheme.onSurfaceVariant)
                 val dColor = deliveryColor(event.deliveryStatus)
                 Pill(deliveryLabel(event.deliveryStatus), dColor.copy(alpha = 0.12f), dColor)

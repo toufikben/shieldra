@@ -68,7 +68,7 @@ Every batch report must include: batch number, objective, files inspected, files
 
 ## Current controlled-command status
 
-Batches 0, 1, 2, and 3 have passed their static controlled audits. Batch 2 corrected history-filter state propagation and Batch 3 corrected reusable-component interaction semantics, an unwired callback, and the deprecated motion icon mapping. Batch 4 is next. Runtime navigation, accessibility, and device-level layout remain UNKNOWN because no emulator or connected device is available.
+Batches 0, 1, 2, 3, and 4 have passed their static controlled audits. Batch 2 corrected history-filter state propagation; Batch 3 corrected reusable-component interaction semantics, an unwired callback, and the deprecated motion icon mapping; Batch 4 migrated production user-visible copy and runtime demo fixtures to English/Arabic resources. Batch 5 accessibility is next. Runtime navigation, Arabic layout, accessibility behavior, and device-level visual checks remain UNKNOWN because no emulator or connected device is available.
 
 ## References
 
