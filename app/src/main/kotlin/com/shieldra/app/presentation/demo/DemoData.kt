@@ -52,6 +52,22 @@ object DemoData {
     )
 
     @Composable
+    fun eventDetail(id: String): EventDetailUiModel? = when (id) {
+        "evt_1" -> eventDetail().copy(id = id)
+        "evt_2" -> eventDetail().copy(
+            id = id,
+            type = EventType.Motion,
+            title = stringResource(R.string.demo_motion_detected),
+            attemptNumber = null,
+            location = LocationUiModel(LocationKind.Unavailable),
+            delivery = listOf(
+                ChannelReceiptUiModel(ChannelId.Email, DeliveryStatus.Deferred),
+            ),
+        )
+        else -> null
+    }
+
+    @Composable
     fun premium(): PremiumUiModel = PremiumUiModel(
         priceLabel = stringResource(R.string.demo_premium_price),
         features = listOf(

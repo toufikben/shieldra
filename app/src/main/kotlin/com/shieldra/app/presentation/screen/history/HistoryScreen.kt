@@ -63,8 +63,14 @@ fun HistoryScreen(
 
         if (filteredEvents.isEmpty()) {
             EmptyState(
-                title = stringResource(R.string.empty_history_title),
-                message = stringResource(R.string.empty_history_message),
+                title = stringResource(
+                    if (events.isEmpty()) R.string.empty_history_no_events_title
+                    else R.string.empty_history_title,
+                ),
+                message = stringResource(
+                    if (events.isEmpty()) R.string.empty_history_no_events_message
+                    else R.string.empty_history_message,
+                ),
                 modifier = Modifier.fillMaxSize(),
             )
         } else {

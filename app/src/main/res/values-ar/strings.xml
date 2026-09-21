@@ -4,7 +4,7 @@
 
     <string name="welcome_title">شيلدرا</string>
     <string name="welcome_subtitle">حارس هاتفك الهادئ.</string>
-    <string name="welcome_body">يكتشف الاستخدام غير المصرح به، يجمع الأدلة، ويسلمها — لتعرف ما حدث.</string>
+    <string name="welcome_body">استكشف العرض التقديمي لشيلدرا لتجربة حماية مستقبلية.</string>
     <string name="welcome_get_started">ابدأ الآن</string>
     <string name="welcome_skip">تخطَّ الآن</string>
 
@@ -22,9 +22,13 @@
     <string name="dashboard_panic_subtitle">تفعيل حدث طوارئ</string>
 
     <string name="empty_events_title">لا توجد أحداث بعد</string>
-    <string name="empty_events_message">عندما يكتشف شيلدرا نشاطًا مشبوهًا، سيظهر هنا.</string>
+    <string name="empty_events_message">ستظهر أحداث العرض هنا عند تزويد واجهة العرض بها.</string>
     <string name="empty_history_title">لا توجد أحداث مطابقة</string>
-    <string name="empty_history_message">حاول تعديل الفلاتر، أو انتظر حتى يكتشف شيلدرا نشاطًا.</string>
+    <string name="empty_history_message">حاول تعديل الفلاتر للأحداث التجريبية المتاحة لهذه الشاشة.</string>
+    <string name="empty_history_no_events_title">لا توجد أحداث تجريبية</string>
+    <string name="empty_history_no_events_message">لا تحتوي واجهة العرض التقديمية على بيانات أحداث لهذا العرض.</string>
+    <string name="event_unknown_title">الحدث غير متوفر</string>
+    <string name="event_unknown_message">هذا الحدث ليس جزءًا من العرض التقديمي للمرحلة الثالثة.</string>
 
     <string name="location_current">الموقع الحالي</string>
     <string name="location_last_known">آخر موقع معروف</string>
@@ -53,7 +57,6 @@
     <string name="settings_section_about">حول</string>
 
     <string name="action_retry">إعادة المحاولة</string>
-    <string name="action_allow">السماح</string>
     <string name="action_not_now">ليس الآن</string>
     <string name="action_continue">متابعة</string>
     <string name="action_delete">حذف</string>
@@ -62,7 +65,7 @@
 
     <string name="step_of">الخطوة %1$d من %2$d</string>
     <string name="notifications">الإشعارات</string>
-    <string name="permission_notification_reason">عندما يكتشف شيلدرا حدثًا أمنيًا، ستصلك إشعارات.</string>
+    <string name="permission_notification_reason">يعرض هذا النموذج في المرحلة الثالثة مكان إعداد الإشعارات؛ ولا يطلب أي صلاحية من أندرويد.</string>
     <string name="lock_guard">حارس القفل</string>
     <string name="protection_setup_question">كم محاولة فتح فاشلة قبل أن يسجل شيلدرا حدثًا؟</string>
     <string name="failed_attempts_threshold">حد المحاولات الفاشلة</string>

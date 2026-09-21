@@ -30,6 +30,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.shieldra.app.presentation.demo.DemoData
+import com.shieldra.app.design.components.domain.ErrorStateFullScreen
 import com.shieldra.app.presentation.screen.dashboard.DashboardCallbacks
 import com.shieldra.app.presentation.screen.dashboard.DashboardScreen
 import com.shieldra.app.presentation.screen.eventdetail.EventDetailCallbacks
@@ -95,7 +96,7 @@ fun ShieldraNavHost(
                     icon = Icons.Filled.Settings,
                     title = stringResource(R.string.notifications),
                     reason = stringResource(R.string.permission_notification_reason),
-                    onAllow = { navController.navigate(ShieldraRoutes.ONBOARDING_PROTECTION) },
+                    onAllow = { defer() },
                     onNotNow = {
                         navController.navigate(ShieldraRoutes.ONBOARDING_PROTECTION)
                     },
@@ -170,15 +171,23 @@ fun ShieldraNavHost(
                 ),
             ) { entry ->
                 val id = entry.arguments?.getString(ShieldraRoutes.EVENT_DETAIL_ARG_ID).orEmpty()
-                EventDetailScreen(
-                    model = DemoData.eventDetail().copy(id = id),
-                    callbacks = EventDetailCallbacks(
-                        onBack = { navController.popBackStack() },
-                        onOpenInMaps = { _, _ -> defer() },
-                        onDelete = { defer() },
-                        onExport = { defer() },
-                    ),
-                )
+                val detail = DemoData.eventDetail(id)
+                if (detail == null) {
+                    ErrorStateFullScreen(
+                        title = stringResource(R.string.event_unknown_title),
+                        message = stringResource(R.string.event_unknown_message),
+                    )
+                } else {
+                    EventDetailScreen(
+                        model = detail,
+                        callbacks = EventDetailCallbacks(
+                            onBack = { navController.popBackStack() },
+                            onOpenInMaps = { _, _ -> defer() },
+                            onDelete = { defer() },
+                            onExport = { defer() },
+                        ),
+                    )
+                }
             }
         }
     }

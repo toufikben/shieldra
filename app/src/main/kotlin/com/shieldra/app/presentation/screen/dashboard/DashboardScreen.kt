@@ -64,6 +64,15 @@ fun DashboardScreen(
         }
 
         item {
+            Text(
+                text = stringResource(R.string.phase3_demo_disclosure),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = spacing.l),
+            )
+        }
+
+        item {
             LiveStatusStrip(
                 lastCheckLabel = stringResource(R.string.seconds_ago, model.lastCheckSeconds),
                 batteryPercent = model.batteryPercent,

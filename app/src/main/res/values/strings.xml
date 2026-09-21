@@ -4,7 +4,7 @@
 
     <string name="welcome_title">Shieldra</string>
     <string name="welcome_subtitle">Your phone is quietly guarded.</string>
-    <string name="welcome_body">Detects unauthorized use, collects evidence, and delivers it — so you know what happened.</string>
+    <string name="welcome_body">Explore the Shieldra presentation demo for a future protection experience.</string>
     <string name="welcome_get_started">Get started</string>
     <string name="welcome_skip">Skip for now</string>
 
@@ -22,9 +22,13 @@
     <string name="dashboard_panic_subtitle">Trigger an emergency event</string>
 
     <string name="empty_events_title">No events yet</string>
-    <string name="empty_events_message">When Shieldra detects suspicious activity, it will appear here.</string>
+    <string name="empty_events_message">Demo events will appear here when they are provided to the presentation shell.</string>
     <string name="empty_history_title">No events match</string>
-    <string name="empty_history_message">Try adjusting filters, or wait for Shieldra to detect activity.</string>
+    <string name="empty_history_message">Try adjusting the filters for the demo events provided to this screen.</string>
+    <string name="empty_history_no_events_title">No demo events</string>
+    <string name="empty_history_no_events_message">The presentation shell has no event data for this view.</string>
+    <string name="event_unknown_title">Event unavailable</string>
+    <string name="event_unknown_message">This event is not part of the Phase 3 presentation demo.</string>
 
     <string name="location_current">Current Location</string>
     <string name="location_last_known">Last Known Location</string>
@@ -53,7 +57,6 @@
     <string name="settings_section_about">ABOUT</string>
 
     <string name="action_retry">Retry</string>
-    <string name="action_allow">Allow</string>
     <string name="action_not_now">Not now</string>
     <string name="action_continue">Continue</string>
     <string name="action_delete">Delete</string>
@@ -62,7 +65,7 @@
 
     <string name="step_of">Step %1$d of %2$d</string>
     <string name="notifications">Notifications</string>
-    <string name="permission_notification_reason">When Shieldra detects a security event, notifications will appear here.</string>
+    <string name="permission_notification_reason">This Phase 3 demo shows where notification setup would appear; no Android permission is requested.</string>
     <string name="lock_guard">Lock Guard</string>
     <string name="protection_setup_question">How many failed unlock attempts before Shieldra records an event?</string>
     <string name="failed_attempts_threshold">Failed attempts threshold</string>
