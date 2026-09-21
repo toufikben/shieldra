@@ -1,11 +1,11 @@
 package com.shieldra.app.design.icons
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
@@ -21,7 +21,7 @@ import com.shieldra.app.presentation.model.SettingsIcon
 
 fun GuardKind.icon(): ImageVector = when (this) {
     GuardKind.Lock -> Icons.Filled.Lock
-    GuardKind.Motion -> Icons.Filled.DirectionsRun
+    GuardKind.Motion -> Icons.AutoMirrored.Filled.DirectionsRun
     GuardKind.Sim -> Icons.Filled.SimCard
     GuardKind.Panic -> Icons.Filled.WarningAmber
     GuardKind.Battery -> Icons.Filled.BatteryAlert
@@ -29,7 +29,7 @@ fun GuardKind.icon(): ImageVector = when (this) {
 
 fun EventType.icon(): ImageVector = when (this) {
     EventType.FailedUnlock -> Icons.Filled.Lock
-    EventType.Motion -> Icons.Filled.DirectionsRun
+    EventType.Motion -> Icons.AutoMirrored.Filled.DirectionsRun
     EventType.SimChange -> Icons.Filled.SimCard
     EventType.Panic -> Icons.Filled.WarningAmber
     EventType.Battery -> Icons.Filled.BatteryAlert

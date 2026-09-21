@@ -67,10 +67,10 @@
 
 **Files:** one component family per sub-batch under `design/components/foundation/**` and `design/components/domain/**`.
 
-- [ ] Inspect every component implementation and all call sites.
-- [ ] For each family check API/state, semantics, RTL, target size, token usage, theme access, and Compose API correctness.
-- [ ] Compile after each component family; do not mix unrelated fixes.
-- [ ] Write `docs/reports/batch-3-components.md` with a component matrix.
+- [x] Inspect every component implementation and all call sites.
+- [x] For each family check API/state, semantics, RTL, target size, token usage, theme access, and Compose API correctness.
+- [x] Compile after each component family; do not mix unrelated fixes.
+- [x] Write `docs/reports/batch-3-components.md` with a component matrix.
 - [ ] Commit/push only if clean; verify remote CI.
 
 ## Batch 4 — Localization + RTL

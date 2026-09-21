@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.design.tokens.ShieldraPillShape
@@ -42,7 +43,10 @@ fun ShieldraChip(
             .then(borderMod)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp)
-            .semantics { this.role = Role.Button },
+            .semantics {
+                this.role = Role.Button
+                this.selected = selected
+            },
     ) {
         Text(
             text = label,
