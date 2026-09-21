@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">شيلدرا</string>
+
+    <string name="welcome_title">شيلدرا</string>
+    <string name="welcome_subtitle">حارس هاتفك الهادئ.</string>
+    <string name="welcome_body">يكتشف الاستخدام غير المصرح به، يجمع الأدلة، ويسلمها — لتعرف ما حدث.</string>
+    <string name="welcome_get_started">ابدأ الآن</string>
+    <string name="welcome_skip">تخطَّ الآن</string>
+
+    <string name="tab_dashboard">الرئيسية</string>
+    <string name="tab_history">السجل</string>
+    <string name="tab_premium">بريميوم</string>
+    <string name="tab_settings">الإعدادات</string>
+
+    <string name="nav_back">رجوع</string>
+
+    <string name="dashboard_section_guards">الحُرّاس</string>
+    <string name="dashboard_section_recent">الأحدث</string>
+    <string name="dashboard_view_all">عرض الكل</string>
+    <string name="dashboard_panic_title">الذعر الصامت</string>
+    <string name="dashboard_panic_subtitle">تفعيل حدث طوارئ</string>
+
+    <string name="empty_events_title">لا توجد أحداث بعد</string>
+    <string name="empty_events_message">عندما يكتشف شيلدرا نشاطًا مشبوهًا، سيظهر هنا.</string>
+    <string name="empty_history_title">لا توجد أحداث مطابقة</string>
+    <string name="empty_history_message">حاول تعديل الفلاتر، أو انتظر حتى يكتشف شيلدرا نشاطًا.</string>
+
+    <string name="location_current">الموقع الحالي</string>
+    <string name="location_last_known">آخر موقع معروف</string>
+    <string name="location_unavailable">الموقع غير متوفر</string>
+    <string name="location_open_in_maps">افتح في الخرائط</string>
+
+    <string name="delivery_section">التسليم</string>
+    <string name="delivery_delivered">✓ تم التسليم</string>
+    <string name="delivery_failed">✗ فشل</string>
+    <string name="delivery_skipped">— تم التخطي</string>
+    <string name="delivery_sending">· قيد الإرسال</string>
+    <string name="delivery_ready">· جاهز</string>
+    <string name="delivery_retrying">· إعادة المحاولة</string>
+    <string name="delivery_expired">· منتهي</string>
+
+    <string name="premium_title">شيلدرا بريميوم</string>
+    <string name="premium_tagline">دفعة واحدة. مدى الحياة.</string>
+    <string name="premium_buy_lifetime">شراء مدى الحياة</string>
+    <string name="premium_restore">استعادة الشراء</string>
+
+    <string name="settings_section_security">الأمان</string>
+    <string name="settings_section_delivery">التسليم</string>
+    <string name="settings_section_appearance">المظهر</string>
+    <string name="settings_section_data_privacy">البيانات والخصوصية</string>
+    <string name="settings_section_security_app">أمان التطبيق</string>
+    <string name="settings_section_about">حول</string>
+
+    <string name="action_retry">إعادة المحاولة</string>
+    <string name="action_allow">السماح</string>
+    <string name="action_not_now">ليس الآن</string>
+    <string name="action_continue">متابعة</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_export">تصدير</string>
+    <string name="action_cancel">إلغاء</string>
+
+    <string name="step_of">الخطوة %1$d من %2$d</string>
+    <string name="notifications">الإشعارات</string>
+    <string name="permission_notification_reason">عندما يكتشف شيلدرا حدثًا أمنيًا، ستصلك إشعارات.</string>
+    <string name="lock_guard">حارس القفل</string>
+    <string name="protection_setup_question">كم محاولة فتح فاشلة قبل أن يسجل شيلدرا حدثًا؟</string>
+    <string name="failed_attempts_threshold">حد المحاولات الفاشلة</string>
+    <string name="recommended_threshold">الموصى به: 2 لمعظم المستخدمين.</string>
+    <string name="attempt_recording_note">يتم تجاهل المحاولة الأولى. تُسجل كل محاولة بعدها.</string>
+    <string name="silent_panic">الذعر الصامت</string>
+    <string name="trigger_emergency_event">تفعيل حدث طوارئ</string>
+    <string name="details">التفاصيل</string>
+    <string name="dismiss">إغلاق</string>
+    <string name="ad">إعلان</string>
+    <string name="could_not_load_events">تعذر تحميل الأحداث.</string>
+    <string name="map_placeholder">الخريطة غير متاحة في المرحلة الثالثة</string>
+    <string name="channel_email">البريد الإلكتروني</string>
+    <string name="channel_whatsapp">واتساب</string>
+    <string name="channel_telegram">تيليجرام</string>
+    <string name="status_ready">جاهز</string>
+    <string name="status_sending">جارٍ الإرسال</string>
+    <string name="status_delivered">تم التسليم</string>
+    <string name="status_retrying">إعادة المحاولة</string>
+    <string name="status_failed">فشل</string>
+    <string name="status_expired">منتهي</string>
+    <string name="status_skipped">تم التخطي</string>
+    <string name="event_type">النوع</string>
+    <string name="event_timestamp">الطابع الزمني</string>
+    <string name="event_battery">البطارية</string>
+    <string name="charging">جارٍ الشحن</string>
+    <string name="not_charging">غير متصل بالشحن</string>
+    <string name="event_id">معرف الحدث</string>
+    <string name="open_in_maps">فتح في الخرائط</string>
+    <string name="phase3_deferred">هذا الإجراء مؤجل عمدًا في المرحلة الثالثة.</string>
+    <string name="phase3_demo_disclosure">عرض المرحلة الثالثة — لا توجد بيانات إنتاج أو تكاملات.</string>
+    <string name="settings_row_deferred">الإعدادات للعرض فقط في المرحلة الثالثة.</string>
+</resources>

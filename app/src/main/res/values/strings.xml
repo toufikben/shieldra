@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Shieldra</string>
+
+    <string name="welcome_title">Shieldra</string>
+    <string name="welcome_subtitle">Your phone is quietly guarded.</string>
+    <string name="welcome_body">Detects unauthorized use, collects evidence, and delivers it — so you know what happened.</string>
+    <string name="welcome_get_started">Get started</string>
+    <string name="welcome_skip">Skip for now</string>
+
+    <string name="tab_dashboard">Home</string>
+    <string name="tab_history">History</string>
+    <string name="tab_premium">Premium</string>
+    <string name="tab_settings">Settings</string>
+
+    <string name="nav_back">Back</string>
+
+    <string name="dashboard_section_guards">GUARDS</string>
+    <string name="dashboard_section_recent">RECENT</string>
+    <string name="dashboard_view_all">View all</string>
+    <string name="dashboard_panic_title">Silent Panic</string>
+    <string name="dashboard_panic_subtitle">Trigger an emergency event</string>
+
+    <string name="empty_events_title">No events yet</string>
+    <string name="empty_events_message">When Shieldra detects suspicious activity, it will appear here.</string>
+    <string name="empty_history_title">No events match</string>
+    <string name="empty_history_message">Try adjusting filters, or wait for Shieldra to detect activity.</string>
+
+    <string name="location_current">Current Location</string>
+    <string name="location_last_known">Last Known Location</string>
+    <string name="location_unavailable">Location unavailable</string>
+    <string name="location_open_in_maps">Open in Maps</string>
+
+    <string name="delivery_section">DELIVERY</string>
+    <string name="delivery_delivered">✓ Delivered</string>
+    <string name="delivery_failed">✗ Failed</string>
+    <string name="delivery_skipped">— Skipped</string>
+    <string name="delivery_sending">· Sending</string>
+    <string name="delivery_ready">· Ready</string>
+    <string name="delivery_retrying">· Retrying</string>
+    <string name="delivery_expired">· Expired</string>
+
+    <string name="premium_title">Shieldra Premium</string>
+    <string name="premium_tagline">One payment. Lifetime.</string>
+    <string name="premium_buy_lifetime">Buy Lifetime</string>
+    <string name="premium_restore">Restore purchase</string>
+
+    <string name="settings_section_security">SECURITY</string>
+    <string name="settings_section_delivery">DELIVERY</string>
+    <string name="settings_section_appearance">APPEARANCE</string>
+    <string name="settings_section_data_privacy">DATA &amp; PRIVACY</string>
+    <string name="settings_section_security_app">SECURITY (APP)</string>
+    <string name="settings_section_about">ABOUT</string>
+
+    <string name="action_retry">Retry</string>
+    <string name="action_allow">Allow</string>
+    <string name="action_not_now">Not now</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_export">Export</string>
+    <string name="action_cancel">Cancel</string>
+
+    <string name="step_of">Step %1$d of %2$d</string>
+    <string name="notifications">Notifications</string>
+    <string name="permission_notification_reason">When Shieldra detects a security event, notifications will appear here.</string>
+    <string name="lock_guard">Lock Guard</string>
+    <string name="protection_setup_question">How many failed unlock attempts before Shieldra records an event?</string>
+    <string name="failed_attempts_threshold">Failed attempts threshold</string>
+    <string name="recommended_threshold">Recommended: 2 for most users.</string>
+    <string name="attempt_recording_note">Attempt 1 is ignored. Each attempt after is recorded.</string>
+    <string name="silent_panic">Silent Panic</string>
+    <string name="trigger_emergency_event">Trigger an emergency event</string>
+    <string name="details">DETAILS</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="ad">Ad</string>
+    <string name="could_not_load_events">Could not load events.</string>
+    <string name="map_placeholder">Map unavailable in Phase 3</string>
+    <string name="channel_email">Email</string>
+    <string name="channel_whatsapp">WhatsApp</string>
+    <string name="channel_telegram">Telegram</string>
+    <string name="status_ready">Ready</string>
+    <string name="status_sending">Sending</string>
+    <string name="status_delivered">Delivered</string>
+    <string name="status_retrying">Retrying</string>
+    <string name="status_failed">Failed</string>
+    <string name="status_expired">Expired</string>
+    <string name="status_skipped">Skipped</string>
+    <string name="event_type">Type</string>
+    <string name="event_timestamp">Timestamp</string>
+    <string name="event_battery">Battery</string>
+    <string name="charging">Charging</string>
+    <string name="not_charging">Not charging</string>
+    <string name="event_id">Event ID</string>
+    <string name="open_in_maps">Open in Maps</string>
+    <string name="phase3_deferred">This action is intentionally deferred in Phase 3.</string>
+    <string name="phase3_demo_disclosure">Phase 3 presentation demo — no production data or integrations.</string>
+    <string name="settings_row_deferred">Settings are presentation-only in Phase 3.</string>
+</resources>

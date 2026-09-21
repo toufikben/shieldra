@@ -1,15 +1,24 @@
 # Shieldra
 
-Shieldra is a clean-slate Android project repository. Group A established the reproducible environment. Group B created the Android project structure. Group C now establishes typed core contracts and architectural boundaries without implementing production features.
+Shieldra is a clean-slate Android project repository. Group A established the reproducible environment, Group B created the Android project structure, and Group C established typed core contracts and architectural boundaries. Phase 3 now adds the presentation-only Compose shell described by the original handoff.
 
-The current source includes typed Signal and SecurityEvent contracts, explicit event states and pure transitions, evidence/location models, delivery receipts, authentication operations, repository boundaries, error categories, and injectable time/identity abstractions. It does not implement detection, camera, location collection, evidence capture, network delivery, authentication, persistence, notifications, billing, advertising, Safe Zones, geofencing, continuous GPS, or final UI.
+The current app includes onboarding, dashboard, history, event detail, premium, settings, reusable design-system components, a localized English/Arabic resource foundation, an explicit vector launcher icon, and a Compose navigation graph. The runnable shell uses clearly named `DemoData`; it is not production data and does not claim that deferred actions succeeded.
 
-## Authority limitation
+## Explicit Phase 3 non-goals
 
-Product Freeze v5 and the complete Phase 1 Specification — Sections 1–43 were not supplied. The available Group B and Group C scopes are preserved under `docs/authority/`. Missing authority is recorded as `BLOCKED` in `docs/authority/authority-index.md` and the relevant traceability matrices.
+This repository does not implement detection, camera capture, location collection, evidence capture, network delivery, WhatsApp or Telegram integrations, authentication, persistence, encryption, notifications, billing, advertising, Safe Zones, geofencing, continuous GPS, cloud synchronization, or a backend. Panic, maps, delete, export, billing, restore, settings enforcement, and guard actions surface an honest deferred message.
 
-## Current status
+## Authority and source documents
 
-**IMPLEMENTATION COMPLETE — AWAITING EXTERNAL REVIEW**
+The original handoff was audited read-only from `toufikben/Ai_super_cleaner` using its complete `Phase1` and `README.md` documents. The forensic baseline and discrepancy record are preserved in [`docs/reports/phase-3-audit.md`](docs/reports/phase-3-audit.md), and the controlled batch plan is preserved in [`docs/superpowers/plans/2026-09-21-phase-3-controlled-implementation.md`](docs/superpowers/plans/2026-09-21-phase-3-controlled-implementation.md). Product Freeze v5 and the complete Phase 1 authority documents were not supplied as repository files; that limitation remains explicit rather than being invented away.
 
-Group D, Phase 2, Phase 3, and feature implementation have not started. External review is required before further work.
+## Validation
+
+The local validation suite uses JDK 17 and a temporary Android SDK 35 installation:
+
+```text
+./gradlew clean testDebugUnitTest lintDebug assembleDebug
+bash .github/scripts/phase3-review-check.sh
+```
+
+The current local result is a successful debug build, successful unit tests, zero lint errors, and a passing static review. Runtime visual verification on an emulator/device remains UNKNOWN in this sandbox because no emulator or connected device is available.

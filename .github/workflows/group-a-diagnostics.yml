@@ -49,6 +49,10 @@ jobs:
         shell: bash
         run: bash .github/scripts/group-c-contract-check.sh
 
+      - name: Run Phase 3 static review
+        shell: bash
+        run: bash .github/scripts/phase3-review-check.sh
+
       - name: Publish actual evidence to job summary
         if: always()
         shell: bash
