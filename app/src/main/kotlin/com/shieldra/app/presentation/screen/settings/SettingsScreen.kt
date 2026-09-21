@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -30,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import com.shieldra.app.R
 import com.shieldra.app.design.icons.icon
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.presentation.model.SettingsRowUiModel
 import com.shieldra.app.presentation.model.SettingsSection
 import com.shieldra.app.presentation.preview.PreviewData
@@ -97,7 +97,7 @@ private fun SettingsGroup(
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(ShieldraCardShape)
             .background(MaterialTheme.colorScheme.surface),
     ) {
         rows.forEachIndexed { idx, row ->

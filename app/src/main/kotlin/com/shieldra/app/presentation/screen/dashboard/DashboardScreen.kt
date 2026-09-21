@@ -38,6 +38,7 @@ import com.shieldra.app.design.components.domain.LiveStatusStrip
 import com.shieldra.app.design.components.domain.ShieldCore
 import com.shieldra.app.design.components.foundation.ShieldraAdSlot
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.presentation.model.DashboardUiModel
 import com.shieldra.app.presentation.model.GuardUiModel
 import com.shieldra.app.presentation.preview.PreviewData
@@ -190,7 +191,7 @@ private fun PanicQuickAction(onPanic: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = spacing.l)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(ShieldraCardShape)
             .background(MaterialTheme.colorScheme.errorContainer)
             .clickable(role = Role.Button, onClick = onPanic)
             .padding(horizontal = spacing.l, vertical = spacing.m),

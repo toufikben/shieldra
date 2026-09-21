@@ -89,7 +89,7 @@ fun ShieldraNavHost(
                 )
             }
             composable(ShieldraRoutes.ONBOARDING_PERMISSIONS) {
-                // Placeholder — Phase 3 does not implement permission acquisition.
+                // Presentation-only Phase 3 screen; Android permission acquisition is not implemented.
                 com.shieldra.app.presentation.screen.onboarding.PermissionsScreen(
                     step = 1,
                     totalSteps = 1,

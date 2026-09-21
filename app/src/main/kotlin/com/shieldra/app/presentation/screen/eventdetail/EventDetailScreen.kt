@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +36,7 @@ import com.shieldra.app.design.components.domain.PhotoEvidenceCard
 import com.shieldra.app.design.components.foundation.ShieldraButton
 import com.shieldra.app.design.components.foundation.ShieldraButtonVariant
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.design.tokens.ShieldraTextStyles
 import com.shieldra.app.presentation.model.EventDetailUiModel
 import com.shieldra.app.presentation.model.LocationKind
@@ -144,7 +144,7 @@ private fun DetailsBlock(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(ShieldraCardShape)
             .background(MaterialTheme.colorScheme.surface)
             .padding(spacing.l),
         verticalArrangement = Arrangement.spacedBy(spacing.s),

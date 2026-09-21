@@ -108,7 +108,7 @@ fun ShieldraBanner(
     }
 }
 
-/** Ad slot placeholder — no SDK. */
+/** Phase 3 ad slot demo — no SDK. */
 @Composable
 fun ShieldraAdSlot(modifier: Modifier = Modifier, label: String? = null) {
     Box(
