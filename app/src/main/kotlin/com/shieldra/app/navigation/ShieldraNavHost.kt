@@ -15,8 +15,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -127,14 +129,20 @@ fun ShieldraNavHost(
                 )
             }
             composable(ShieldraRoutes.HISTORY) {
+                var historyFilterState by remember { mutableStateOf(HistoryFilterState()) }
                 HistoryScreen(
                     events = DemoData.recentEvents,
-                    filterState = HistoryFilterState(),
+                    filterState = historyFilterState,
                     callbacks = HistoryCallbacks(
                         onEventClick = { id ->
                             navController.navigate(ShieldraRoutes.eventDetail(id))
                         },
-                        onFilterChange = { defer() },
+                        onFilterChange = { change ->
+                            historyFilterState = HistoryFilterState(
+                                type = change.type,
+                                status = change.status,
+                            )
+                        },
                     ),
                 )
             }

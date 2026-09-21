@@ -56,11 +56,11 @@
 
 **Files:** `navigation/ShieldraRoutes.kt`, `navigation/ShieldraNavHost.kt`, every screen entry point, callbacks, and `DemoData` usages.
 
-- [ ] Build a route matrix listing every route, entry, exit, argument, back behavior, and bottom-tab behavior.
-- [ ] Detect dead routes and unreachable screens statically.
-- [ ] Verify every callback has either navigation or an honest deferred outcome.
-- [ ] Run unit/build/static checks and re-read every changed navigation usage.
-- [ ] Write `docs/reports/batch-2-navigation.md`.
+- [x] Build a route matrix listing every route, entry, exit, argument, back behavior, and bottom-tab behavior.
+- [x] Detect dead routes and unreachable screens statically.
+- [x] Verify every callback has either navigation or an honest deferred outcome.
+- [x] Run unit/build/static checks and re-read every changed navigation usage.
+- [x] Write `docs/reports/batch-2-navigation.md`.
 - [ ] Commit/push only if clean; verify remote CI.
 
 ## Batch 3 — Reusable Components

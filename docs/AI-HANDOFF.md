@@ -66,6 +66,10 @@ Do not create a large implementation without batch boundaries. Do not redesign S
 
 Every batch report must include: batch number, objective, files inspected, files changed, problems found, problems fixed, validation performed, validation result, remaining problems, and next batch. Use factual status words such as `PASS`, `FAIL`, `UNKNOWN`, or `BLOCKED`; never convert an untested runtime condition into `PASS`.
 
+## Current controlled-command status
+
+Batches 0, 1, and 2 have passed their static controlled audits. Batch 2 corrected history-filter state propagation and recorded the route matrix in `docs/reports/batch-2-navigation.md`. Batch 3 is next. Runtime navigation and device-level layout remain UNKNOWN because no emulator or connected device is available.
+
 ## References
 
 [1]: https://github.com/toufikben/shieldra/actions/runs/35575159609 "Shieldra final successful CI run"
