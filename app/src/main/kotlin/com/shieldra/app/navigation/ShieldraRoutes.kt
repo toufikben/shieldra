@@ -16,9 +16,9 @@ object ShieldraRoutes {
     fun eventDetail(eventId: String): String = "main/event/$eventId"
 }
 
-enum class BottomTab(val route: String, val label: String) {
-    Dashboard(ShieldraRoutes.DASHBOARD, "Home"),
-    History(ShieldraRoutes.HISTORY, "History"),
-    Premium(ShieldraRoutes.PREMIUM, "Premium"),
-    Settings(ShieldraRoutes.SETTINGS, "Settings"),
+enum class BottomTab(val route: String) {
+    Dashboard(ShieldraRoutes.DASHBOARD),
+    History(ShieldraRoutes.HISTORY),
+    Premium(ShieldraRoutes.PREMIUM),
+    Settings(ShieldraRoutes.SETTINGS),
 }

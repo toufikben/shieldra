@@ -42,7 +42,7 @@ object DemoData {
         timestampLabel = stringResource(R.string.demo_today_time_seconds, "14:32:08"),
         batteryPercent = 84,
         hasPhoto = true,
-        location = LocationUiModel(LocationKind.Current, 36.7538, 3.0588, 8, 4, "GPS"),
+        location = LocationUiModel(LocationKind.Current, 36.7538, 3.0588, 8, 4, stringResource(R.string.location_source_gps)),
         delivery = listOf(
             ChannelReceiptUiModel(ChannelId.Email, DeliveryStatus.Delivered, "14:32"),
             ChannelReceiptUiModel(ChannelId.WhatsApp, DeliveryStatus.Failed, stringResource(R.string.demo_invalid_recipient)),

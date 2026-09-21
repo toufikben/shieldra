@@ -68,7 +68,7 @@ Every batch report must include: batch number, objective, files inspected, files
 
 ## Current controlled-command status
 
-Batches 0, 1, 2, 3, and 4 have passed their static controlled audits. Batch 2 corrected history-filter state propagation; Batch 3 corrected reusable-component interaction semantics, an unwired callback, and the deprecated motion icon mapping; Batch 4 migrated production user-visible copy and runtime demo fixtures to English/Arabic resources. Batch 5 accessibility is next. Runtime navigation, Arabic layout, accessibility behavior, and device-level visual checks remain UNKNOWN because no emulator or connected device is available.
+Batches 0, 1, 2, 3, and 4 have passed their static controlled audits. An independent final red-team audit is recorded in `docs/reports/final-red-team-audit.md`; it found and fixed two compact touch targets, removed the remaining production non-null assertions, hardened long/mixed-direction event-detail rows, and found no unresolved critical or high correctness issue. Batch 5 remains the next controlled batch if further audit execution continues. Runtime navigation, Arabic layout, accessibility behavior, and device-level visual checks remain UNKNOWN because no emulator or connected device is available.
 
 ## References
 

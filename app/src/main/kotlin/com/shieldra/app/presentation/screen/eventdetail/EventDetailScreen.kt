@@ -28,6 +28,7 @@ import com.shieldra.app.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.design.components.domain.DeliveryReceipt
@@ -49,6 +50,8 @@ fun EventDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val spacing = ShieldraTheme.spacing
+    val latitude = model.location.latitude
+    val longitude = model.location.longitude
 
     Scaffold(
         modifier = modifier,
@@ -96,13 +99,13 @@ fun EventDetailScreen(
                     location = model.location,
                     onOpenInMaps = if (
                         model.location.kind != LocationKind.Unavailable &&
-                        model.location.latitude != null &&
-                        model.location.longitude != null
+                        latitude != null &&
+                        longitude != null
                     ) {
                         {
                             callbacks.onOpenInMaps(
-                                model.location.latitude!!,
-                                model.location.longitude!!,
+                                latitude,
+                                longitude,
                             )
                         }
                     } else null,
@@ -178,11 +181,14 @@ private fun DetailRow(label: String, value: String) {
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(0.4f),
         )
         Text(
             text = value,
             style = ShieldraTextStyles.NumericData,
             color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(0.6f),
         )
     }
 }

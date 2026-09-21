@@ -191,4 +191,6 @@
     <string name="guard_status_disabled">Disabled</string>
     <string name="guard_status_locked">Locked</string>
     <string name="guard_accessibility">%1$s. %2$s. Status: %3$s.%4$s</string>
+    <string name="location_source_gps">GPS</string>
+    <string name="location_source_fused">Fused</string>
 </resources>

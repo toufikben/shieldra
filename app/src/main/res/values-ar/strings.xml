@@ -191,4 +191,6 @@
     <string name="guard_status_disabled">معطل</string>
     <string name="guard_status_locked">مقفل</string>
     <string name="guard_accessibility">%1$s. %2$s. الحالة: %3$s.%4$s</string>
+    <string name="location_source_gps">GPS</string>
+    <string name="location_source_fused">مُدمج</string>
 </resources>

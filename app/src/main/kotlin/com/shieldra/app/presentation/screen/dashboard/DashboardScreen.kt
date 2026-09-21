@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -166,6 +167,7 @@ private fun SectionHeaderWithAction(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
+                .defaultMinSize(minHeight = 48.dp)
                 .clickable(role = Role.Button, onClick = onAction)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         )
