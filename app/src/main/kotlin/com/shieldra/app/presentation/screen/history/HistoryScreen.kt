@@ -37,6 +37,7 @@ fun HistoryScreen(
     modifier: Modifier = Modifier,
 ) {
     val spacing = ShieldraTheme.spacing
+    val filteredEvents = filterHistoryEvents(events, filterState)
 
     Column(
         modifier = modifier
@@ -60,7 +61,7 @@ fun HistoryScreen(
             },
         )
 
-        if (events.isEmpty()) {
+        if (filteredEvents.isEmpty()) {
             EmptyState(
                 title = stringResource(R.string.empty_history_title),
                 message = stringResource(R.string.empty_history_message),
@@ -76,7 +77,7 @@ fun HistoryScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(spacing.s),
             ) {
-                items(events) { event ->
+                items(filteredEvents) { event ->
                     EventCard(
                         event = event,
                         onClick = { callbacks.onEventClick(event.id) },

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="demo_active_attempts">
+        <item quantity="zero">نشط · لا توجد محاولات</item>
+        <item quantity="one">نشط · محاولة واحدة</item>
+        <item quantity="two">نشط · محاولتان</item>
+        <item quantity="few">نشط · %1$d محاولات</item>
+        <item quantity="many">نشط · %1$d محاولة</item>
+        <item quantity="other">نشط · %1$d محاولة</item>
+    </plurals>
+</resources>

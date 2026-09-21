@@ -19,8 +19,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material3.Icon
 import androidx.compose.ui.unit.dp
+import com.shieldra.app.R
 import com.shieldra.app.design.tokens.ShieldraCardShape
 
 enum class ShieldraButtonVariant { Primary, Secondary, Ghost, Destructive }
@@ -38,12 +43,19 @@ fun ShieldraButton(
     val height = 52.dp
     val contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
     val effectiveEnabled = enabled && !loading
+    val loadingDescription = if (loading) stringResource(R.string.loading) else null
+    val accessibilityModifier = if (loading) {
+        Modifier.semantics {
+            contentDescription = text
+            stateDescription = loadingDescription.orEmpty()
+        }
+    } else Modifier
 
     when (variant) {
         ShieldraButtonVariant.Primary -> Button(
             onClick = onClick,
             enabled = effectiveEnabled,
-            modifier = modifier.height(height),
+            modifier = modifier.then(accessibilityModifier).height(height),
             shape = ShieldraCardShape,
             contentPadding = contentPadding,
             colors = ButtonDefaults.buttonColors(
@@ -55,7 +67,7 @@ fun ShieldraButton(
         ShieldraButtonVariant.Secondary -> OutlinedButton(
             onClick = onClick,
             enabled = effectiveEnabled,
-            modifier = modifier.height(height),
+            modifier = modifier.then(accessibilityModifier).height(height),
             shape = ShieldraCardShape,
             contentPadding = contentPadding,
         ) { ButtonContent(text, leadingIcon, loading) }
@@ -63,7 +75,7 @@ fun ShieldraButton(
         ShieldraButtonVariant.Ghost -> TextButton(
             onClick = onClick,
             enabled = effectiveEnabled,
-            modifier = modifier.height(height),
+            modifier = modifier.then(accessibilityModifier).height(height),
             shape = ShieldraCardShape,
             contentPadding = contentPadding,
         ) { ButtonContent(text, leadingIcon, loading) }
@@ -71,7 +83,7 @@ fun ShieldraButton(
         ShieldraButtonVariant.Destructive -> Button(
             onClick = onClick,
             enabled = effectiveEnabled,
-            modifier = modifier.height(height),
+            modifier = modifier.then(accessibilityModifier).height(height),
             shape = ShieldraCardShape,
             contentPadding = contentPadding,
             colors = ButtonDefaults.buttonColors(

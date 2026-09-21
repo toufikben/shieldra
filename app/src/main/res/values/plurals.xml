@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="demo_active_attempts">
+        <item quantity="one">Active · %1$d attempt</item>
+        <item quantity="other">Active · %1$d attempts</item>
+    </plurals>
+</resources>

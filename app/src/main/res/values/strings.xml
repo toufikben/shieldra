@@ -123,8 +123,11 @@
     <string name="status_network">Network</string>
     <string name="status_last_check">Last check</string>
     <string name="status_battery">Battery</string>
+    <string name="status_battery_percent">%1$d percent</string>
+    <string name="status_battery_unknown">Battery unknown</string>
     <string name="status_network_connected">Network connected: %1$s</string>
-    <string name="status_network_semantics">Last check %1$s. Battery %2$d percent. %3$s</string>
+    <string name="status_network_semantics">Last check %1$s. %2$s. %3$s</string>
+    <string name="loading">Loading</string>
     <string name="error_something_wrong">Something went wrong</string>
     <string name="error_unable_to_load">Unable to load</string>
     <string name="delivery_label">Delivery: %1$s.</string>
@@ -150,7 +153,6 @@
     <string name="demo_motion_guard">Motion Guard</string>
     <string name="demo_sim_guard">SIM Guard</string>
     <string name="demo_panic">Panic</string>
-    <string name="demo_active_attempts">Active · %1$d attempts</string>
     <string name="demo_monitoring">Monitoring</string>
     <string name="demo_monitored">Monitored</string>
     <string name="demo_ready">Ready</string>

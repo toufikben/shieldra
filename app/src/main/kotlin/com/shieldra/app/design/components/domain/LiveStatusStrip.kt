@@ -47,10 +47,13 @@ fun LiveStatusStrip(
     } else {
         stringResource(R.string.status_network_offline)
     }
+    val batteryDescription = batteryPercent?.let {
+        stringResource(R.string.status_battery_percent, it)
+    } ?: stringResource(R.string.status_battery_unknown)
     val accessibilityDescription = stringResource(
         R.string.status_network_semantics,
         lastCheckLabel,
-        batteryPercent ?: 0,
+        batteryDescription,
         networkDescription,
     )
 

@@ -3,6 +3,10 @@ package com.shieldra.app.design.components.foundation
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarData
@@ -15,7 +19,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.shieldra.app.R
 import com.shieldra.app.design.tokens.ShieldraCardShape
 
 enum class ShieldraSnackbarKind { Success, Error, Info }
@@ -55,6 +61,16 @@ private fun ShieldraSnackbar(data: SnackbarData) {
             ShieldraSnackbarKind.Error -> MaterialTheme.colorScheme.onErrorContainer
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         },
+        dismissAction = if (data.visuals.withDismissAction) {
+            {
+                IconButton(onClick = data::dismiss) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.dismiss),
+                    )
+                }
+            }
+        } else null,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(

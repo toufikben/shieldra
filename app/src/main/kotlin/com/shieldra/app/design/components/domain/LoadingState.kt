@@ -20,9 +20,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.shieldra.app.R
 import com.shieldra.app.design.theme.ShieldraTheme
 
 @Composable
@@ -61,8 +65,11 @@ fun LoadingStateList(
     modifier: Modifier = Modifier,
     rows: Int = 4,
 ) {
+    val loadingDescription = stringResource(R.string.loading)
     Column(
-        modifier = modifier.padding(16.dp),
+        modifier = modifier
+            .padding(16.dp)
+            .semantics { stateDescription = loadingDescription },
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         repeat(rows) { SkeletonBlock(88.dp) }

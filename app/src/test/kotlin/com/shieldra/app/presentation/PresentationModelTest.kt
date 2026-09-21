@@ -3,9 +3,14 @@ package com.shieldra.app.presentation
 import com.shieldra.app.presentation.model.ChannelId
 import com.shieldra.app.presentation.model.DeliveryStatus
 import com.shieldra.app.presentation.model.EventType
+import com.shieldra.app.presentation.model.EventUiModel
 import com.shieldra.app.presentation.model.GuardKind
+import com.shieldra.app.presentation.model.HistoryFilterState
+import com.shieldra.app.presentation.model.HistoryStatusFilter
+import com.shieldra.app.presentation.model.HistoryTypeFilter
 import com.shieldra.app.presentation.model.LocationKind
 import com.shieldra.app.presentation.model.ProtectionVisualState
+import com.shieldra.app.presentation.screen.history.filterHistoryEvents
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -25,5 +30,28 @@ class PresentationModelTest {
         assertEquals(DeliveryStatus.Deferred, DeliveryStatus.entries.first { it.name == "Deferred" })
         assertEquals(LocationKind.LastKnown, LocationKind.entries.first { it.name == "LastKnown" })
         assertEquals(ChannelId.Email, ChannelId.entries.first { it.name == "Email" })
+    }
+
+    @Test
+    fun history_filters_apply_type_and_delivery_status() {
+        val events = listOf(
+            EventUiModel("lock", EventType.FailedUnlock, "", "", "", DeliveryStatus.Delivered, false, false),
+            EventUiModel("motion", EventType.Motion, "", "", "", DeliveryStatus.Deferred, false, false),
+        )
+
+        assertEquals(
+            listOf("lock"),
+            filterHistoryEvents(
+                events,
+                HistoryFilterState(HistoryTypeFilter.Lock, HistoryStatusFilter.Delivered),
+            ).map { it.id },
+        )
+        assertEquals(
+            emptyList(),
+            filterHistoryEvents(
+                events,
+                HistoryFilterState(HistoryTypeFilter.Panic, HistoryStatusFilter.All),
+            ),
+        )
     }
 }

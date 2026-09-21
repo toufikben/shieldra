@@ -1,6 +1,7 @@
 package com.shieldra.app.presentation.demo
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.shieldra.app.R
 import com.shieldra.app.presentation.model.*
@@ -9,7 +10,7 @@ import com.shieldra.app.presentation.model.*
 object DemoData {
     @Composable
     fun guards(): List<GuardUiModel> = listOf(
-        GuardUiModel(GuardKind.Lock, stringResource(R.string.demo_lock_guard), stringResource(R.string.demo_active_attempts, 2), GuardStatus.Active),
+        GuardUiModel(GuardKind.Lock, stringResource(R.string.demo_lock_guard), pluralStringResource(R.plurals.demo_active_attempts, 2, 2), GuardStatus.Active),
         GuardUiModel(GuardKind.Motion, stringResource(R.string.demo_motion_guard), stringResource(R.string.demo_monitoring), GuardStatus.Active),
         GuardUiModel(GuardKind.Sim, stringResource(R.string.demo_sim_guard), stringResource(R.string.demo_monitored), GuardStatus.Active),
         GuardUiModel(GuardKind.Panic, stringResource(R.string.demo_panic), stringResource(R.string.demo_ready), GuardStatus.Active),

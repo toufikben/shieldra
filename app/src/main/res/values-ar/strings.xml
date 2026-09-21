@@ -123,8 +123,11 @@
     <string name="status_network">الشبكة</string>
     <string name="status_last_check">آخر تحقق</string>
     <string name="status_battery">البطارية</string>
+    <string name="status_battery_percent">%1$d بالمئة</string>
+    <string name="status_battery_unknown">البطارية غير معروفة</string>
     <string name="status_network_connected">الشبكة متصلة: %1$s</string>
-    <string name="status_network_semantics">آخر تحقق %1$s. البطارية %2$d بالمئة. %3$s</string>
+    <string name="status_network_semantics">آخر تحقق %1$s. %2$s. %3$s</string>
+    <string name="loading">جارٍ التحميل</string>
     <string name="error_something_wrong">حدث خطأ ما</string>
     <string name="error_unable_to_load">تعذر التحميل</string>
     <string name="delivery_label">التسليم: %1$s.</string>
@@ -150,7 +153,6 @@
     <string name="demo_motion_guard">حارس الحركة</string>
     <string name="demo_sim_guard">حارس SIM</string>
     <string name="demo_panic">الذعر</string>
-    <string name="demo_active_attempts">نشط · %1$d محاولات</string>
     <string name="demo_monitoring">مراقبة</string>
     <string name="demo_monitored">مراقب</string>
     <string name="demo_ready">جاهز</string>
