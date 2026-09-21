@@ -121,7 +121,7 @@ After each batch:
 
 Stop immediately and report if a batch reveals missing authority that changes product intent, a regression that cannot be fixed within the batch, a need for production behavior outside Phase 3, a protected external action, or a conflict between the supplied command and the committed architecture. Do not guess through a material ambiguity.
 
-**Current gate:** documentation preflight is being published before controlled-command execution. Phase 4 remains not started.
+**Current gate:** Batch 0 passed its controlled foundation audit; Batch 1 architecture/models/data-flow re-audit is next. Phase 4 remains not started.
 
 ## References
 
