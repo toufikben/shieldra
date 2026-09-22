@@ -1,11 +1,11 @@
 # Shieldra Phase 4 — Readiness and Gated Execution Plan
 
 **Date:** 2026-09-21  
-**Decision:** **BLOCKED for production implementation; preparation and existing-contract validation are safe.**
+**Decision:** **Internal development is authorized; production platform/security implementation remains controlled and gated.**
 
 ## Executive decision
 
-The repository explicitly states that Phase 4 has not started. The available authority package contains Group B and Group C scopes plus the Phase 3 presentation shell, but it does not contain Product Freeze v5, the complete Phase 1 Sections 1–43, or a Phase 4 specification. The current interfaces for detection, evidence, delivery, persistence, authentication, and platform behavior are boundaries or marker contracts; they do not authorize concrete runtime behavior.
+The repository explicitly separates internal development authority from historical external documents. The unified internal register now authorizes continued work without waiting for Product Freeze v5 or complete Phase 1 files. It does not authorize unresolved platform, evidence, cryptographic, provider, or release behavior. The current interfaces for detection, evidence, delivery, persistence, authentication, and platform behavior remain boundaries or marker contracts until their specific decisions are closed.
 
 Therefore, implementing all Phase 4 features immediately would require inventing security thresholds, event semantics, persistence schemas, privacy rules, Android permission behavior, provider choices, retry policy, authentication, billing, and account behavior. That would risk false protection, false delivery, privacy violations, and unsafe security claims. No production Phase 4 code was added in this review.
 
@@ -28,9 +28,9 @@ Six independent workstream reviews plus a synthesis review covered:
 
 Complete controlled Batches 5–9: accessibility, design-system review, every-screen state review, deferred-functionality honesty, and final integration. Maintain DemoData-only runtime behavior and honest deferred messages. Do not add Phase 4 permissions, runtime integrations, provider SDKs, persistence, background workers, or fake implementations.
 
-### Gate 1 — Authority and product decision package
+### Gate 1 — Approved internal authority and product decision package
 
-Obtain and commit the missing Product Freeze v5, complete Phase 1 Sections 1–43, an explicit Phase 4 specification, and the external-review decision authorizing advancement beyond the current controlled gate.
+Use the committed internal decision package as the authority for this development cycle. Historical Product Freeze v5, complete Phase 1 Sections 1–43, and external review remain useful future inputs but are not a blocker to pure contract work. They remain required before final production/security claims if they are needed by the owner or release authority.
 
 The decision package must resolve guard triggers and thresholds, signal corroboration/debounce/cooldown, panic semantics, event identity/idempotency, lifecycle including the conflict between the Group B `EXPIRED` mention and the Group C seven-state model, EventPipeline operations, evidence/privacy policy, authentication, Android permissions/background execution, persistence, providers, billing, ads, accounts, and release ownership.
 

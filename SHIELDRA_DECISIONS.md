@@ -1,0 +1,43 @@
+# SHIELDRA Internal Decisions
+
+**Status:** Authoritative internal development record for this cycle.
+**Repository:** `toufikben/shieldra`
+**Last reconciled:** 2026-09-22
+
+This document records decisions approved in the unified SHIELDRA engineering protocol. It does not invent unresolved security, privacy, Android, cryptographic, provider, or release policy. Items not marked **APPROVED** remain proposed, unknown, deferred, or blocked.
+
+## Approved decisions
+
+| ID | Area | Decision | Status | Boundary |
+|---|---|---|---|---|
+| G0-01 | Project authority | Continue development without waiting for historical Product Freeze v5 or Phase 1 files; this internal register is authoritative for the current cycle. | **APPROVED** | It does not replace a later product or security review. |
+| G0-02 | Architecture | Device-first architecture. | **APPROVED** | Cloud and external providers are deferred initially. |
+| G0-03 | Monitoring | Maximum technically feasible continuous protection using legitimate Android mechanisms; never claim guaranteed 24/7 operation. | **APPROVED PRINCIPLE** | API, permission, OEM, Doze, and recovery details remain to be decided. |
+| G0-04 | Storage direction | Room for structured data, DataStore for preferences/configuration, and encrypted evidence files with metadata references. | **APPROVED DIRECTION** | Cryptographic algorithms, key lifecycle, schema, migrations, and backup policy require technical review. |
+| G0-05 | External services | External cloud, delivery, billing, ads, analytics, and backend services are deferred initially. | **APPROVED / DEFERRED** | Interfaces may exist; production providers must not be added without approval. |
+| G0-06 | Review | Continuous owner + AI review during development; final dedicated security/privacy audit before production security claims. | **APPROVED PROCESS** | The final audit is still required and is not claimed complete. |
+| G0-07 | Execution | Small sequential batches. Every batch follows READ → TRACE → IMPLEMENT → BUILD/TEST → RE-AUDIT → COMMIT → PUSH → VERIFY. | **APPROVED PROCESS** | Dependent security areas are never parallelized. |
+| G1-01 | Lock Guard | One wrong PIN is a Signal. Two consecutive wrong PIN attempts within two minutes produce a confirmed Lock Security Event. Reset after ten minutes without another failed attempt. Five-minute same-sequence cooldown. Severity HIGH. | **APPROVED RULE** | Actual Android observability and API/OEM feasibility remain to be verified. |
+| G1-02 | Motion Guard | Motion is not counted like PIN attempts. Confirm after strong/unusual movement lasting approximately three seconds, or two suspicious movements within ten seconds, after sensor-quality validation. Ignore isolated noise. | **APPROVED RULE** | Sensor API support, calibration, sampling, and battery behavior remain to be verified. |
+| G1-03 | SIM Guard | A confirmed SIM/subscription state change is an immediate confirmed event without repetition. Severity HIGH. | **APPROVED RULE** | Android API/device limitations must be documented before implementation. |
+| G1-04 | Battery Guard | Battery percentage alone is not a security event. No battery security event is implemented until an abnormal power/charging condition is separately defined and approved. | **APPROVED LIMITATION** | Battery metadata may be evidence; the security anomaly remains unknown. |
+| G1-05 | Panic Guard | Explicit user Panic activation is an immediate confirmed event without confirmation delay or attempt counting. Severity CRITICAL/HIGHEST. | **APPROVED RULE** | Response, recipients, and evidence remain separately undecided. |
+| G2-01 | Evidence | No continuous camera or location capture. A Signal alone does not collect evidence. Collection begins only after a confirmed event and only for approved Guard-relevant minimum evidence. | **APPROVED PRINCIPLE** | Camera/location permissions, retention, deletion, export, and crypto details remain unresolved. |
+| G3-01 | Monitoring honesty | Use legitimate Android mechanisms and recovery strategies; document Doze, OEM restrictions, process death, reboot, and Force Stop limitations. | **APPROVED PRINCIPLE** | Exact service, permission, and supported-device policy remains unresolved. |
+
+## Explicitly not approved yet
+
+The following must not be silently selected or implemented: exact camera trigger, location precision/freshness thresholds, evidence retention duration, deletion/export authority, cryptographic algorithm and Keystore lifecycle, authentication provider and session policy, Android foreground/background mechanism, notification payload policy, storage schema and migration details, external provider, delivery retry policy, billing, ads, accounts/cloud, or final release claims.
+
+## Status vocabulary
+
+- **APPROVED:** authorized product/process decision.
+- **APPROVED PRINCIPLE/DIRECTION:** the direction is authorized, but implementation parameters remain open.
+- **PROPOSED — NOT APPROVED:** a concrete option for review only.
+- **UNKNOWN:** requires technical or product information.
+- **DEFERRED:** intentionally not part of the current device-first scope.
+- **BLOCKED:** cannot safely proceed until an input or approval exists.
+
+## Operating rule
+
+Engineer approved behavior, propose unresolved behavior without implementing it, verify actual Android limits, and keep the roadmap synchronized after every meaningful batch.

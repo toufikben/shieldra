@@ -1,7 +1,8 @@
-# Shieldra Phase 4 Decision Register
+# Shieldra Phase 4 Decision Register — Legacy Technical Register
 
-**Status:** Gates 0–6 are not satisfied; production implementation is blocked.  
-**Purpose:** Separate documented facts from Android constraints, engineering decisions, assumptions, and unknowns. This register proposes alternatives without silently selecting one.
+**Status:** Superseded as the primary authority by [`../PHASE4_DECISION_REGISTER.md`](../PHASE4_DECISION_REGISTER.md) and [`../../SHIELDRA_DECISIONS.md`](../../SHIELDRA_DECISIONS.md). Retained as a detailed technical analysis and open-question record.
+**Current interpretation:** G0 is approved for internal development; approved G1 Guard rules may proceed into pure contract closure. Platform, evidence, storage implementation, cryptography, monitoring, and provider details remain controlled or blocked until their specific decisions are closed.
+**Purpose:** Separate documented facts from Android constraints, engineering decisions, assumptions, and unknowns without silently selecting unresolved behavior.
 
 ## Classification rules
 

@@ -1,12 +1,12 @@
 # Phase 4 Contract Readiness Preflight
 
 **Date:** 2026-09-22  
-**Result:** PREPARED / BLOCKED for production implementation.  
+**Result:** PREPARED for internal pure-contract work / CONTROLLED for production implementation.
 **Scope:** Safe Phase 4 preparation only; no production runtime behavior added.
 
 ## Executive decision
 
-The current repository contains pure boundaries and marker contracts for protection state, event pipeline, guards, evidence, delivery, repositories, platform execution, and authentication. These contracts are useful architectural seams, but they do not define enough product or security behavior to authorize implementation.
+The current repository contains pure boundaries and marker contracts for protection state, event pipeline, guards, evidence, delivery, repositories, platform execution, and authentication. The unified internal decision register now authorizes framework-free contract closure for the approved Guard rules. It does not authorize Android capabilities, persistence engines, cryptography, evidence capture, background workers, notifications, providers, or final security claims.
 
 No camera, location, sensor, persistence, background worker, encryption, authentication, notification, delivery, billing, account, or network implementation was added in this preflight.
 
@@ -34,7 +34,7 @@ Repository, platform, evidence, delivery, and authentication boundaries are inte
 
 The following remain required inputs, not implementation tasks:
 
-1. Product Freeze v5, complete Phase 1 Sections 1–43, and an approved Phase 4 specification.
+1. The internal decision register is authoritative for current pure-contract work; historical Product Freeze v5, complete Phase 1 Sections 1–43, and any later product authority remain release/review inputs where required.
 2. Per-guard triggers, thresholds, corroboration, debounce, cooldown, cancellation, lifecycle, and failure UX.
 3. Authoritative event state list, terminal states, expiry, idempotency, replay protection, and concurrency rules.
 4. Evidence consent, precision, retention, deletion, export, redaction, encryption, and backup policy.
@@ -47,7 +47,7 @@ The Phase 3 final matrix remains green: clean unit tests, lint, Debug and Releas
 
 ## Next action
 
-Keep Phase 4 production implementation blocked. Commit and publish this preflight so the repository has an explicit, reviewable starting gate. After the authority package is approved, begin Order 1 with pure contracts and deterministic tests only.
+Keep Phase 4 platform/security production implementation controlled. Begin Order 1 with pure contracts and deterministic tests only, using the approved internal Guard rules and preserving every unresolved item as open.
 
 ## References
 

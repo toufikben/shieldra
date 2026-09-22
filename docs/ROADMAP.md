@@ -2,130 +2,113 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `7f8399fc8dbf619cb5a2cd6e4dbac1b10d37aaf8`
-**Last known remote CI:** run `35575159609`, successful
-**Project mode:** controlled implementation; Phase 3 presentation shell delivered; Phase 4 not started
+**Current HEAD:** `ef66c9458da6e4db69894333607b22074fef3472`
+**Last observed remote CI:** `35769603650` (`in_progress` at the last audit)
+**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities are not yet implemented.
+**Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
-The user-supplied 38-section audit and controlled implementation protocol is preserved in [`authority/shieldra-master-audit-controlled-protocol.md`](authority/shieldra-master-audit-controlled-protocol.md). It is process authority only and does not replace missing Product Freeze v5 or Phase 1 requirements.
+## Operating rule
 
-## Purpose
+Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST → RE-AUDIT → COMMIT → PUSH → VERIFY**. Dependent security areas are sequential. Only independent documentation, localization, UI, design-system, and test work may be parallelized when file ownership cannot conflict.
 
-This document is the authoritative navigation point for a new AI agent entering the repository. It records the project history, authority limitations, delivered work, evidence, known limitations, and the exact controlled command that governs the next audit. A new agent must read this file, [`AI-HANDOFF.md`](AI-HANDOFF.md), the latest report in `docs/reports/`, and the active plan in `docs/superpowers/plans/` before inspecting or changing application code.
+## Current state summary
 
-## Repository history
-
-| Commit | Meaning | State |
+| Area | Status | Evidence |
 |---|---|---|
-| `77f4d2618431f8165b75e388c02a76d1d34b1b4a` | Group A baseline diagnostics | Superseded by later commits, retained in history |
-| `bc61d75` | Group B architecture foundation | Delivered |
-| `871e190` | Group B verification report | Delivered |
-| `825941f88ddf14fb37273dc7a90c5de08657caad` | Group C contracts and boundaries | Clean pre-Phase-3 baseline |
-| `96a5e6e7e0af60f31185e8c975a5fe6a3555d7ae` | Phase 3 presentation shell | Delivered and CI-validated |
-| `ddc001ebf71ae595cc905e5450814679522714d8` | Phase 3 CI evidence update | Current HEAD |
+| Repository and CI foundation | DONE | Group A diagnostics and GitHub workflow |
+| Group B project structure | DONE | Android app module and boundaries |
+| Group C pure contracts | DONE / READY FOR CLOSURE | `app/src/main/kotlin/com/shieldra/domain` |
+| Phase 3 presentation shell | DONE for source/build/static scope | Batches 0–9 and remediation reports |
+| Batch 1 foundation fixes | DONE | Commit `bf5e77c` |
+| Batch 2 screen states and PreviewData isolation | DONE | Commit `ef66c94` |
+| Runtime device visual/RTL/accessibility verification | UNKNOWN | No emulator or connected device available |
+| Phase 4 authority register | UPDATED | `docs/PHASE4_DECISION_REGISTER.md` |
+| Phase 4 production behavior | BLOCKED / CONTROLLED | No Android security capability implemented |
 
-The repository is independent of the original handoff repository. The original `toufikben/Ai_super_cleaner` repository was inspected read-only during forensic review; it was never used as the destination and was not modified.
+## Gate status
 
-## Authority status
+| Gate | Status | What is authorized now | What remains |
+|---|---|---|---|
+| G0 — Authority | APPROVED FOR INTERNAL DEVELOPMENT | Continue without historical Product Freeze dependency; internal register is authoritative for this cycle | Later product/release authority may supersede it |
+| G1 — Protection rules | APPROVED FOR PURE CONTRACT CLOSURE | Encode approved Guard semantics in framework-free contracts/tests | Android feasibility, response, evidence, and API limitations |
+| G2 — Evidence/privacy | APPROVED PRINCIPLE / DETAILS BLOCKED | Maintain minimum post-confirmation evidence contracts and matrices | Capture, consent, retention, deletion, export, redaction, crypto |
+| G3 — Android monitoring | APPROVED PRINCIPLE / DETAILS BLOCKED | Research capability limits and prepare adapters without runtime behavior | Service, permissions, device matrix, Doze/OEM/recovery |
+| G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Define pure repository contracts and storage proposal | Schema, migrations, crypto, Keystore, backup, auth |
+| G5 — External services | DEFERRED | Keep provider interfaces only where already justified | Cloud, delivery, billing, ads, analytics, backend |
+| G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit |
+| G7 — Implementation | READY FOR CONTROLLED PURE BATCHES | Batch 1 contract closure after this documentation batch | Sequential engine, pipeline, then isolated platform capabilities |
 
-The complete Product Freeze v5 and complete Phase 1 authority package were not supplied as repository files. The available supplied scopes are preserved under `docs/authority/`. No missing authority has been invented. Where a requirement depends on unavailable higher-authority text, the status remains **UNKNOWN/BLOCKED** and must not be silently upgraded to complete.
+## Phases and batches
 
-The original handoff source and the controlled command are process inputs, not product authority. The current product boundary is the committed Group C architecture plus the delivered Phase 3 presentation-only scope.
+### Phase 0 — Repository/Foundation Audit
 
-## Delivered phases
+**Status:** DONE. The repository, branch, build, CI, source boundaries, resources, tests, and existing reports have been rechecked at `ef66c94`.
 
-### Group A — environment diagnostics
+### Phase 1 — Product/Handoff Verification
 
-Group A established reproducible GitHub Actions diagnostics for Ubuntu, architecture, JDK, Gradle, Android SDK, platform tools, build tools, and ADB-related environment facts. Gradle cache configuration was removed because the clean-slate repository had no Gradle project at that checkpoint. The obsolete Android SDK `tools` package was removed from setup because the package was unavailable. Artifact quota exhaustion was made non-blocking after the actual evidence was preserved in the Job Summary.
+**Status:** DONE for the available supplied scopes; historical Product Freeze v5 and complete Phase 1 files are not required for this cycle under approved G0-01. The internal decision record is now authoritative and preserves unresolved items explicitly.
 
-### Group B — project structure
+### Phase 3 — UI/Foundation Completion
 
-Group B created a single Android application module with a Gradle 9.7.1 wrapper, explicit package boundaries, documentation, and real unit tests. It intentionally added no production runtime integration.
+**Status:** DONE for source/build/static scope. The presentation shell, localization, accessibility source checks, screen-state previews, deferred-action honesty, and PreviewData removal are complete. Runtime device claims remain UNKNOWN.
 
-### Group C — contracts and boundaries
+### Phase 4 — Protection Architecture
 
-Group C added typed security-event contracts, event states and pure transitions, evidence/location freshness models, delivery receipts, authentication operation contracts, repository boundaries, and injectable time/identity abstractions. It did not implement production behavior.
+**Status:** IN PROGRESS — documentation and contract preparation only.
 
-### Phase 3 — presentation shell
+**Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices.
 
-Phase 3 added the supplied Compose presentation shell, including onboarding, dashboard, history, event detail, premium, settings, reusable components, design tokens, navigation, English/Arabic resource foundations, and a vector launcher icon. Runtime sample content is in `app/src/main/kotlin/com/shieldra/app/presentation/demo/DemoData.kt`; it is explicitly demo data and not a production data source.
+**Remaining:** pure contract closure, event identity/idempotency representation, result/error semantics, lifecycle/expiry decision closure, and technical Android capability reports.
 
-The following remain intentionally unimplemented: security engine, Safe Zones, geofencing, continuous GPS, camera/evidence capture, delivery backend, WhatsApp/Telegram integration, billing, ads, authentication, encryption, persistence, backend, and cloud behavior. Deferred UI actions show an honest Phase 3 message rather than fake success.
+**Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
-## Current validation evidence
+**Approval requirements:** do not implement Android security behavior, capture, monitoring, persistence engine, encryption, or providers until their open decisions are approved.
 
-The local validation command was:
+### Phase 5 — Guard Implementation
 
-```bash
-./gradlew clean testDebugUnitTest lintDebug assembleDebug
-bash .github/scripts/phase3-review-check.sh
-```
+**Status:** BLOCKED after pure engine contracts until Android feasibility and capability-specific approval exist.
 
-The final local gate produced successful Debug and unsigned Release APKs, passed unit tests, compilation, lint, `git diff --check`, Phase 3 static review, and Group C boundary checks. Three remediation commits were independently pushed and their remote CI runs passed: `35607861749`, `35609003985`, and `35609986266`. The final closure report is [`docs/reports/phase-3-final-closure.md`](reports/phase-3-final-closure.md). The latest audited source commit is `dc1fccb78760ad88b87a0c3958a2eb22c0603bca`.
+**Order:** Lock, Motion, SIM, Battery only after each rule/API review; Panic is a separate direct-action capability. Battery security anomaly remains undefined and must not be invented.
 
-The working tree must be rechecked after the closure documentation commit. Device-level visual, RTL, accessibility, and large-text verification remain UNKNOWN because no emulator or connected device is available.
+### Phase 6 — Evidence & Privacy
 
-## Controlled command status
+**Status:** BLOCKED. The minimum-evidence principle is approved, but camera/location policy, permission, retention, deletion, export, redaction, encryption, and backup are unresolved.
 
-The attached controlled command defines Batches 0–9 and requires a stop-and-recheck gate after every batch. The command is preserved in [`docs/authority/controlled-implementation-command.md`](authority/controlled-implementation-command.md). Its operational status is tracked in [`docs/traceability/controlled-batch-traceability.md`](traceability/controlled-batch-traceability.md).
+### Phase 7 — Continuous Monitoring
 
-The command must be executed in this order:
+**Status:** BLOCKED. The principle is maximum technically feasible legitimate monitoring without guarantees; service type, lifecycle, restart, Doze, OEM, Force Stop, notification, and device matrix are unresolved.
 
-1. **Batch 0 — Build/Foundation:** Gradle/build files, missing files, imports, resources, launcher icon, compilation blockers, dependency consistency.
-2. **Batch 1 — Architecture/Models/Data Flow:** presentation/domain boundaries, pure models, state ownership, callback contracts, navigation data flow, preview/runtime separation.
-3. **Batch 2 — Navigation + Screen Connectivity:** route graph, entries/exits, parameters, back navigation, callbacks, state propagation, dead/unreachable routes.
-4. **Batch 3 — Reusable Components:** one component family at a time, including API, usages, state, semantics, RTL, touch targets, tokens, compilation, and re-review.
-5. **Batch 4 — Localization + RTL:** complete production-source hardcoded-string scan, English/Arabic resources, placeholders, pluralization, mixed scripts/numbers, labels, and a second scan.
-6. **Batch 5 — Accessibility:** every interactive element, approximately 48dp targets, semantics, roles, descriptions, state descriptions, keyboard behavior, contrast, and large text.
-7. **Batch 6 — Design System:** colors, typography, spacing, shapes, elevation, icons, motion, tokens, and raw-value inconsistencies without redesign.
-8. **Batch 7 — Every Screen:** each screen in normal, loading, empty, error, disabled, long-text, Arabic, narrow-width, and large-text states.
-9. **Batch 8 — Deferred Functionality Honesty:** premium, restore, panic, permissions, maps, delete, and export must not claim fake success or add backend behavior.
-10. **Batch 9 — Final Integration:** clean build, tests, static checks, resource verification, navigation verification, full-project reinspection, and final report.
+### Phase 8 — Local Alerts/Response
 
-Each batch requires its own report containing objective, inspected files, changed files, findings, fixes, validation, result, remaining problems, and next batch. A known failure must never be carried into the next batch.
+**Status:** BLOCKED. Panic severity is approved; local response, notifications, lock-screen disclosure, deduplication, and failure semantics remain open.
 
-## Known limitations before the controlled command
+### Phase 9 — External Services
 
-The existing Phase 3 report records 59 non-fatal lint warnings, principally unused handoff resource keys. Some user-visible sample/model values and reusable component labels were not migrated in the first localization pass. No emulator or connected device is available in the sandbox; screenshot-level visual verification, large-font runtime verification, and Arabic runtime layout verification remain unknown. These are the first review targets in Batches 4–7.
+**Status:** DEFERRED. Device-first scope excludes cloud, email, SMS, messaging providers, billing, ads, analytics, and backend services until a new approval changes G5.
 
-## Next-agent operating procedure
+### Phase 10 — Security/Privacy Audit
 
-Before editing:
+**Status:** REQUIRED before production/security claims. It must cover threat model, abuse cases, privacy, permissions, retention, evidence exposure, dependencies, background execution, device/OEM evidence, and recovery.
 
-1. Read this file and [`AI-HANDOFF.md`](AI-HANDOFF.md).
-2. Read the controlled command source and the active batch plan.
-3. Check `git status --short`, `git rev-parse HEAD`, and `gh api repos/toufikben/shieldra/commits/main --jq '.sha'`.
-4. Read the latest report and the exact files named by the current batch.
-5. Do not start Phase 4 and do not add production behavior.
+### Phase 11 — Release Hardening
 
-After each batch:
+**Status:** NOT STARTED. Requires all implementation batches, device/provider/migration/recovery evidence, rollback plan, and final release authority.
 
-1. Stop implementation.
-2. Re-read the relevant handoff section.
-3. Re-read every modified file and every usage of modified APIs.
-4. Run the narrow validation and the relevant defect-class search.
-5. Write the batch report.
-6. Commit and push only after the batch is clean.
-7. Verify remote SHA and CI before moving to the next batch.
+## Dependency-aware execution plan
 
-## Reports and plans index
+| Batch | Scope | Dependencies | Status |
+|---|---|---|---|
+| 0 | Reconciled decisions, gate register, Guard rules, Android/evidence/storage matrices, roadmap | Unified prompts | IN PROGRESS |
+| 1 | Pure contract closure: approved Guard outputs, result/error types, event identity and lifecycle contracts, repository/pipeline boundaries, deterministic tests | Batch 0; no Android APIs or persistence engine | READY NEXT |
+| 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1 | BLOCKED UNTIL BATCH 1 |
+| 3 | Pure `EventPipeline` coordinator: stage ownership, idempotency, deferred/resume/failure semantics over abstractions | Batch 2 plus unresolved stage decisions | BLOCKED / NEEDS DECISION CLOSURE |
+| 4a | Android capability research and device matrix | G3 review; no production behavior | READY AS INVESTIGATION |
+| 4b | Storage adapter | G4 schema/crypto/migration approval | BLOCKED |
+| 4c+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
+| 5 | Local response and notifications | G2/G3 policy | BLOCKED |
+| 6 | External providers | G5 change from deferred | DEFERRED |
+| 7 | End-to-end security/release review | All prior batches | BLOCKED |
 
-| Document | Purpose |
-|---|---|
-| [`AI-HANDOFF.md`](AI-HANDOFF.md) | Self-contained onboarding for a new AI agent |
-| [`authority/controlled-implementation-command.md`](authority/controlled-implementation-command.md) | Exact attached command preserved verbatim |
-| [`traceability/controlled-batch-traceability.md`](traceability/controlled-batch-traceability.md) | Batch-by-batch execution ledger |
-| [`reports/phase-3-audit.md`](reports/phase-3-audit.md) | Phase 3 forensic audit and evidence |
-| [`superpowers/plans/2026-09-21-phase-3-controlled-implementation.md`](superpowers/plans/2026-09-21-phase-3-controlled-implementation.md) | Phase 3 implementation plan |
-| [`superpowers/plans/2026-09-21-controlled-command-execution.md`](superpowers/plans/2026-09-21-controlled-command-execution.md) | Batches 0–9 execution plan |
-| [`reports/controlled-command-preflight.md`](reports/controlled-command-preflight.md) | Documentation preflight before command execution |
+## Required next batch
 
-## Stop conditions
-
-Stop immediately and report if a batch reveals missing authority that changes product intent, a regression that cannot be fixed within the batch, a need for production behavior outside Phase 3, a protected external action, or a conflict between the supplied command and the committed architecture. Do not guess through a material ambiguity.
-
-**Current gate:** Batches 0–9 and the three safe remediation batches passed their source/build/static gates. Phase 3 is closed for the audited scope; runtime Arabic layout, accessibility behavior, and visual behavior remain UNKNOWN without an emulator/device. Phase 4 contract-readiness preflight documentation is complete, while production implementation remains BLOCKED pending the approved decision register inputs. See [`reports/phase-4-contract-readiness-preflight.md`](reports/phase-4-contract-readiness-preflight.md).
-
-## References
-
-[1]: https://github.com/toufikben/shieldra/actions/runs/35575159609 "Shieldra final successful CI run"
-[2]: https://github.com/toufikben/shieldra "Shieldra repository"
+**Batch 1 — Pure contract closure** is the next safe implementation batch after this documentation batch. It must first re-read and trace the existing contracts, then add only framework-free types and deterministic tests. It must not add Room, DataStore, Keystore, sensors, camera, location, notifications, workers, services, network, billing, or provider SDKs.
