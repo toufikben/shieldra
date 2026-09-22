@@ -50,6 +50,10 @@ The controlled audit and decisions are recorded in:
 - [`batch-safe-phase3-remediation-1.md`](batch-safe-phase3-remediation-1.md)
 - [`batch-safe-phase3-remediation-2.md`](batch-safe-phase3-remediation-2.md)
 - [`batch-safe-phase3-remediation-3.md`](batch-safe-phase3-remediation-3.md)
+- [`batch-5-accessibility.md`](batch-5-accessibility.md)
+- [`batch-6-design-system.md`](batch-6-design-system.md)
+- [`batch-7-screen-state-review.md`](batch-7-screen-state-review.md)
+- [`batch-8-deferred-functionality.md`](batch-8-deferred-functionality.md)
 
 ## Remaining unknowns
 

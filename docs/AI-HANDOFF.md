@@ -68,7 +68,7 @@ Every batch report must include: batch number, objective, files inspected, files
 
 ## Current controlled-command status
 
-Batches 0–4 have passed their controlled audits. Three subsequent safe remediation batches and the final integration gate are recorded in `docs/reports/phase-3-final-closure.md`; commits `ddb923f8e5ab4e4e8a23a2868f221810a07dfe1b`, `e72ff7f6826e575ba8bfbe5fbd6cd02783f667cc`, and `dc1fccb78760ad88b87a0c3958a2eb22c0603bca` passed local validation and remote CI. Phase 3 is closed for the source/build/static scope. Runtime navigation, Arabic layout, accessibility behavior, and device-level visual checks remain UNKNOWN because no emulator or connected device is available. Phase 4 remains BLOCKED pending the decision register inputs.
+Batches 0–9 have passed their controlled source/build/static audits. Batch reports for accessibility, design system, every-screen state review, and deferred-functionality honesty are in `docs/reports/batch-5-accessibility.md` through `docs/reports/batch-8-deferred-functionality.md`; final integration is recorded in `docs/reports/phase-3-final-closure.md`. The three safe remediation commits `ddb923f8e5ab4e4e8a23a2868f221810a07dfe1b`, `e72ff7f6826e575ba8bfbe5fbd6cd02783f667cc`, and `dc1fccb78760ad88b87a0c3958a2eb22c0603bca` passed local validation and remote CI. Phase 3 is closed for the source/build/static scope. Runtime navigation, Arabic layout, accessibility behavior, and device-level visual checks remain UNKNOWN because no emulator or connected device is available. Phase 4 remains BLOCKED pending the decision register inputs.
 
 ## References
 
