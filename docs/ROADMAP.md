@@ -2,8 +2,8 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `d50e62611b58f243de521f4a297c37e59781fcee`
-**Last observed remote CI:** `35777863380` (`in_progress` at the last audit)
+**Current HEAD:** `6dc83964851ff3afce125abe65b340edd6095ae3`
+**Last observed remote CI:** `35778220471` (`in_progress` at the last audit)
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities are not yet implemented.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
@@ -99,8 +99,8 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | Batch | Scope | Dependencies | Status |
 |---|---|---|---|
 | 0 | Reconciled decisions, gate register, Guard rules, Android/evidence/storage matrices, roadmap | Unified prompts | DONE — `d50e626` |
-| 1 | Pure Guard contract closure: typed observations, approved rule values, confirmation results, deterministic tests | Batch 0; no Android APIs or persistence engine | IN PROGRESS |
-| 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1 | BLOCKED UNTIL BATCH 1 |
+| 1 | Pure Guard contract closure: typed observations, approved rule values, confirmation results, deterministic tests | Batch 0; no Android APIs or persistence engine | DONE — `6dc8396` |
+| 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1; pure deterministic implementation only | IN PROGRESS |
 | 3 | Pure `EventPipeline` coordinator: stage ownership, idempotency, deferred/resume/failure semantics over abstractions | Batch 2 plus unresolved stage decisions | BLOCKED / NEEDS DECISION CLOSURE |
 | 4a | Android capability research and device matrix | G3 review; no production behavior | READY AS INVESTIGATION |
 | 4b | Storage adapter | G4 schema/crypto/migration approval | BLOCKED |
@@ -111,4 +111,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Batch 1 — Pure Guard contract closure** is the active safe implementation batch. It adds only framework-free types and deterministic tests. It must not add Room, DataStore, Keystore, sensors, camera, location, notifications, workers, services, network, billing, or provider SDKs. Event identity/lifecycle and EventPipeline stage decisions remain separate follow-up work.
+**Batch 2 — Pure `ProtectionStateEngine`** is the active safe implementation batch. It may implement only the approved pure Guard confirmation semantics over the Batch 1 contracts with injected Clock/IdentityProvider. It must not add Room, DataStore, Keystore, sensors, camera, location, notifications, workers, services, network, billing, or provider SDKs. Battery remains non-event until an anomaly is separately approved.
