@@ -100,8 +100,8 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 |---|---|---|---|
 | 0 | Reconciled decisions, gate register, Guard rules, Android/evidence/storage matrices, roadmap | Unified prompts | DONE — `d50e626` |
 | 1 | Pure Guard contract closure: typed observations, approved rule values, confirmation results, deterministic tests | Batch 0; no Android APIs or persistence engine | DONE — `6dc8396` |
-| 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1; pure deterministic implementation only | IN PROGRESS |
-| 3 | Pure `EventPipeline` coordinator: stage ownership, idempotency, deferred/resume/failure semantics over abstractions | Batch 2 plus unresolved stage decisions | BLOCKED / NEEDS DECISION CLOSURE |
+| 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1; pure deterministic implementation only | DONE — pending remote verification |
+| 3 | Pure `EventPipeline` coordinator: stage ownership, idempotency, deferred/resume/failure semantics over abstractions | Batch 2 plus unresolved stage decisions | READY FOR DESIGN REVIEW |
 | 4a | Android capability research and device matrix | G3 review; no production behavior | READY AS INVESTIGATION |
 | 4b | Storage adapter | G4 schema/crypto/migration approval | BLOCKED |
 | 4c+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
@@ -111,4 +111,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Batch 2 — Pure `ProtectionStateEngine`** is the active safe implementation batch. It may implement only the approved pure Guard confirmation semantics over the Batch 1 contracts with injected Clock/IdentityProvider. It must not add Room, DataStore, Keystore, sensors, camera, location, notifications, workers, services, network, billing, or provider SDKs. Battery remains non-event until an anomaly is separately approved.
+**Batch 3 — Pure `EventPipeline` design review** is next. It must first resolve and document stage ownership, idempotency, deferred/resume/failure semantics, and lifecycle boundaries before implementation. No persistence engine, worker, network, provider, evidence capture, or Android API may be added.
