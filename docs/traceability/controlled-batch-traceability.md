@@ -2,7 +2,7 @@
 
 **Command source:** `docs/authority/controlled-implementation-command.md`
 **Execution mode:** one batch at a time with stop-and-recheck gates
-**Current gate:** Batch 5 accessibility preflight after Batch 4 localization pass
+**Current gate:** Phase 3 final closure complete; stop before Phase 4 until the decision register is approved
 
 | Batch | Objective | Files inspected | Files changed | Problems found | Problems fixed | Validation | Result | Remaining problems | Next batch |
 |---|---|---|---|---|---|---|---|---|---|
@@ -16,7 +16,10 @@
 | 6 | Design System | Pending | Pending | Design-token consistency audit not yet recorded | Pending | Pending raw-value/token scan and build | PENDING | No redesign permitted | Batch 7 |
 | 7 | Every Screen | Pending | Pending | State matrix has not been independently recorded for every screen | Pending | Pending screen-state matrix and available tests | PENDING | Device-dependent cases remain UNKNOWN | Batch 8 |
 | 8 | Deferred Functionality Honesty | Pending | Pending | Must recheck every deferred callback after other batches | Pending | Pending forbidden-implementation scan and callback audit | PENDING | No fake success/backend allowed | Batch 9 |
-| 9 | Final Integration | Pending | Pending | Pending | Pending | Clean build, tests, static/resource/navigation scans, full reinspection, CI | PENDING | Final report required | Stop before Phase 4 |
+| 9 | Final Integration | Full source tree, resources, scripts, APK outputs, reports | `docs/reports/phase-3-final-closure.md` plus handoff/roadmap updates | No unresolved source/build/static blocker; Phase 4 authority inputs remain absent | Produced Debug and unsigned Release APKs and recorded the Phase 4 block | Debug/Release assemble, tests, lint, static review, Group C, diff check; final closure report | PASS for source/build/static scope | Runtime/device behavior UNKNOWN; Phase 4 BLOCKED | Stop before Phase 4 |
+| Safe remediation 1 | Phase 3 evidence-driven hardening | Presentation components, motion tokens, DemoData, localization, navigation | Domain components, DemoData, resources, reports | Direct shape bypasses, remaining visible fixture values, token/motion inconsistencies | Applied canonical tokens, localized remaining demo values, wired existing motion tokens | Local build/tests/lint/static review/Group C; remote CI run `35607861749` | PASS | Device rendering remains UNKNOWN | Safe remediation 2 |
+| Safe remediation 2 | Deferred-functionality honesty and demo-state clarity | Navigation, onboarding, Dashboard, History, DemoData, resources | Navigation, Dashboard, History, onboarding, resources, report | Permission wording implied an action; event details were static for arbitrary IDs; empty states lacked source distinction | Added explicit demo disclosure, deferred permission wording, finite event lookup, unknown-event state, and accurate empty states | Local build/tests/lint/static review/Group C; remote CI run `35609003985` | PASS | Device rendering remains UNKNOWN | Safe remediation 3 |
+| Safe remediation 3 | Token consistency and Premium semantics | Dashboard, Event Detail, Settings, Premium, Banner, navigation | Same plus closure report | Three direct card-shape recreations, Unicode Premium check mark, stale placeholder comment | Reused `ShieldraCardShape`, rendered semantic check icon, clarified Phase 3 comments | Local build/tests/lint/static review/Group C; remote CI run `35609986266` | PASS | Device rendering remains UNKNOWN | Final integration |
 
 ## Required batch report fields
 

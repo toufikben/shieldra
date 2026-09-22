@@ -58,9 +58,9 @@ The local validation command was:
 bash .github/scripts/phase3-review-check.sh
 ```
 
-The last local result was a successful build with 11 passing unit tests, zero lint errors, and a passing Phase 3 static review. The successful remote workflow run `35575159609` checked out the current report commit and passed all steps: Group A diagnostics, Group B/Group C build, Group C boundary scan, Phase 3 static review, Job Summary publication, and artifact upload. The actual Job Summary log recorded Ubuntu 24.04.5, x86_64/amd64, Temurin JDK 17.0.20.1, Gradle 9.7.1, and Android SDK paths.
+The final local gate produced successful Debug and unsigned Release APKs, passed unit tests, compilation, lint, `git diff --check`, Phase 3 static review, and Group C boundary checks. Three remediation commits were independently pushed and their remote CI runs passed: `35607861749`, `35609003985`, and `35609986266`. The final closure report is [`docs/reports/phase-3-final-closure.md`](reports/phase-3-final-closure.md). The latest audited source commit is `dc1fccb78760ad88b87a0c3958a2eb22c0603bca`.
 
-The current local working tree was clean at the time this roadmap was written. Verify it again before any change.
+The working tree must be rechecked after the closure documentation commit. Device-level visual, RTL, accessibility, and large-text verification remain UNKNOWN because no emulator or connected device is available.
 
 ## Controlled command status
 

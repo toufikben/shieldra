@@ -4,7 +4,7 @@ This file is written for a new AI agent that must continue Shieldra without repe
 
 ## Immediate facts
 
-The repository is `toufikben/shieldra`, branch `main`, and the current commit at handoff preparation is `ddc001ebf71ae595cc905e5450814679522714d8`. The working tree must be checked before editing. The repository is a private, independent clean-slate project. The original handoff repository was `toufikben/Ai_super_cleaner`; it was inspected read-only and is not the destination.
+The repository is `toufikben/shieldra`, branch `main`, and the latest audited source commit is `dc1fccb78760ad88b87a0c3958a2eb22c0603bca`. The working tree must be checked before editing. The repository is a private, independent clean-slate project. The original handoff repository was `toufikben/Ai_super_cleaner`; it was inspected read-only and is not the destination.
 
 The latest completed remote workflow is [run 35575159609](https://github.com/toufikben/shieldra/actions/runs/35575159609), which succeeded on the report-evidence commit. The workflow's actual log recorded Ubuntu 24.04.5, x86_64/amd64, Temurin JDK 17.0.20.1, Gradle 9.7.1, and Android SDK paths. The run passed Group A diagnostics, Group B/Group C build, Group C boundary scan, Phase 3 static review, Job Summary publication, and artifact upload. The Checks API returned 403 for the available token; this is a permission limitation, not a workflow failure.
 
@@ -68,7 +68,7 @@ Every batch report must include: batch number, objective, files inspected, files
 
 ## Current controlled-command status
 
-Batches 0, 1, 2, 3, and 4 have passed their static controlled audits. An independent final red-team audit is recorded in `docs/reports/final-red-team-audit.md`; it found and fixed two compact touch targets, removed the remaining production non-null assertions, hardened long/mixed-direction event-detail rows, and found no unresolved critical or high correctness issue. Batch 5 remains the next controlled batch if further audit execution continues. Runtime navigation, Arabic layout, accessibility behavior, and device-level visual checks remain UNKNOWN because no emulator or connected device is available.
+Batches 0–4 have passed their controlled audits. Three subsequent safe remediation batches and the final integration gate are recorded in `docs/reports/phase-3-final-closure.md`; commits `ddb923f8e5ab4e4e8a23a2868f221810a07dfe1b`, `e72ff7f6826e575ba8bfbe5fbd6cd02783f667cc`, and `dc1fccb78760ad88b87a0c3958a2eb22c0603bca` passed local validation and remote CI. Phase 3 is closed for the source/build/static scope. Runtime navigation, Arabic layout, accessibility behavior, and device-level visual checks remain UNKNOWN because no emulator or connected device is available. Phase 4 remains BLOCKED pending the decision register inputs.
 
 ## References
 
