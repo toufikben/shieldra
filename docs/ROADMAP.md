@@ -4,7 +4,7 @@
 **Branch:** `main`
 **Current HEAD:** `f6f637b6d5933493d5bc2d9d20a069af3dc67864`
 **Last observed remote CI:** `35781595250` (`in_progress` at the last audit)
-**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities are not yet implemented.
+**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities remain gated while Batch 4a research is documented.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
 ## Operating rule
@@ -23,7 +23,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | Batch 2 screen states and PreviewData isolation | DONE | Commit `ef66c94` |
 | Runtime device visual/RTL/accessibility verification | UNKNOWN | No emulator or connected device available |
 | Phase 4 authority register | UPDATED | `docs/PHASE4_DECISION_REGISTER.md` |
-| Phase 4 production behavior | BLOCKED / CONTROLLED | Pure local EventPipeline is implemented; no Android security capability implemented |
+| Phase 4 production behavior | BLOCKED / CONTROLLED | Pure local EventPipeline is implemented; Batch 4a has research only; no Android security capability implemented |
 
 ## Gate status
 
@@ -32,7 +32,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | G0 — Authority | APPROVED FOR INTERNAL DEVELOPMENT | Continue without historical Product Freeze dependency; internal register is authoritative for this cycle | Later product/release authority may supersede it |
 | G1 — Protection rules | APPROVED FOR PURE CONTRACT CLOSURE | Encode approved Guard semantics in framework-free contracts/tests | Android feasibility, response, evidence, and API limitations |
 | G2 — Evidence/privacy | APPROVED PRINCIPLE / DETAILS BLOCKED | Maintain minimum post-confirmation evidence contracts and matrices | Capture, consent, retention, deletion, export, redaction, crypto |
-| G3 — Android monitoring | APPROVED PRINCIPLE / DETAILS BLOCKED | Research capability limits and prepare adapters without runtime behavior | Service, permissions, device matrix, Doze/OEM/recovery |
+| G3 — Android monitoring | APPROVED PRINCIPLE / DETAILS BLOCKED | Batch 4a research and device matrix only | Service, permissions, device evidence, Doze/OEM/recovery |
 | G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Define pure repository contracts and storage proposal | Schema, migrations, crypto, Keystore, backup, auth |
 | G5 — External services | DEFERRED | Keep provider interfaces only where already justified | Cloud, delivery, billing, ads, analytics, backend |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit |
@@ -54,11 +54,11 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ### Phase 4 — Protection Architecture
 
-**Status:** IN PROGRESS — pure/local architecture implemented; platform production behavior remains gated.
+**Status:** IN PROGRESS — pure/local architecture implemented; Batch 4a research complete; platform production behavior remains gated.
 
 **Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices.
 
-**Remaining:** technical Android capability reports, evidence/privacy details, storage/crypto details, and platform adapters.
+**Remaining:** device execution evidence, capability-specific approvals, evidence/privacy details, storage/crypto details, and platform adapters.
 
 **Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
@@ -102,7 +102,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 1 | Pure Guard contract closure: typed observations, approved rule values, confirmation results, deterministic tests | Batch 0; no Android APIs or persistence engine | DONE — `6dc8396` |
 | 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1; pure deterministic implementation only | DONE — `0e02f55` |
 | 3 | Local/in-memory `EventPipeline`: canonical EventId idempotency, EXPIRED lifecycle, coordinator/repository split, persisted-stage resume, per-event expiry, sequential per-event processing | Batch 2; approved Batch 3 decisions | DONE — `f6f637b` |
-| 4a | Android capability research and device matrix | G3 review; no production behavior | NEXT SAFE BATCH |
+| 4a | Android capability research and device matrix | G3 review; no production behavior | RESEARCH COMPLETE — DEVICE EXECUTION PENDING |
 | 4b | Storage adapter | G4 schema/crypto/migration approval | BLOCKED |
 | 4c+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
@@ -111,4 +111,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Batch 3 — Local/in-memory `EventPipeline`** is implemented and locally verified under the approved decisions. The next safe batch is **4a — Android capability research and device matrix**, documentation/investigation only; no production Android behavior may be added until capability-specific decisions are closed.
+**Batch 4a — Android capability research and device matrix** is documented from official Android sources. The next step is executing the matrix on AOSP emulators and representative physical devices. No production Android behavior may be added until a capability-specific decision package and device evidence are complete.

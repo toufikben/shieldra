@@ -72,3 +72,9 @@ The following seven decisions are now **APPROVED** for the local/in-memory Batch
 | Initial implementation | Local/in-memory repository and coordinator first; Room remains a future adapter with no coordinator redesign. DataStore remains for lightweight preferences and encrypted files remain the evidence direction. |
 
 This amendment opens only the pure/local EventPipeline architecture. Android APIs, Room, evidence capture, encryption, network delivery, external providers, billing, ads, and production monitoring remain gated.
+
+## Batch 4a research completion — 2026-09-22
+
+Batch 4a research is **COMPLETE AS DOCUMENTATION ONLY**. Official Android sources were reviewed for motion sensors, SIM/subscription APIs, background execution, Doze, WorkManager, foreground services, notifications, camera, and location. The results are recorded in [`PHASE4_ANDROID_CAPABILITY_MATRIX.md`](PHASE4_ANDROID_CAPABILITY_MATRIX.md) and [`reports/batch-4a-android-capability-research.md`](reports/batch-4a-android-capability-research.md).
+
+The device/API test plan is recorded in [`PHASE4_DEVICE_TEST_MATRIX.md`](PHASE4_DEVICE_TEST_MATRIX.md). This completion does not authorize Android permissions, services, sensors, telephony, notifications, camera, location, Room, or monitoring code. Device execution evidence and capability-specific approval remain required before any platform adapter.
