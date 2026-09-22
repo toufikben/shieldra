@@ -2,8 +2,8 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `6dc83964851ff3afce125abe65b340edd6095ae3`
-**Last observed remote CI:** `35778220471` (`in_progress` at the last audit)
+**Current HEAD:** `0e02f550363016e6575b262fb00fc9f2a8c82b3b`
+**Last observed remote CI:** `35778481683` (`in_progress` at the last audit)
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities are not yet implemented.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
@@ -100,8 +100,8 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 |---|---|---|---|
 | 0 | Reconciled decisions, gate register, Guard rules, Android/evidence/storage matrices, roadmap | Unified prompts | DONE — `d50e626` |
 | 1 | Pure Guard contract closure: typed observations, approved rule values, confirmation results, deterministic tests | Batch 0; no Android APIs or persistence engine | DONE — `6dc8396` |
-| 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1; pure deterministic implementation only | DONE — pending remote verification |
-| 3 | Pure `EventPipeline` coordinator: stage ownership, idempotency, deferred/resume/failure semantics over abstractions | Batch 2 plus unresolved stage decisions | READY FOR DESIGN REVIEW |
+| 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1; pure deterministic implementation only | DONE — `0e02f55` |
+| 3 | EventPipeline design review: identity, lifecycle, stage ownership, idempotency, deferred/resume/failure semantics | Batch 2; decision closure required before code | IN PROGRESS — DESIGN ONLY |
 | 4a | Android capability research and device matrix | G3 review; no production behavior | READY AS INVESTIGATION |
 | 4b | Storage adapter | G4 schema/crypto/migration approval | BLOCKED |
 | 4c+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
@@ -111,4 +111,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Batch 3 — Pure `EventPipeline` design review** is next. It must first resolve and document stage ownership, idempotency, deferred/resume/failure semantics, and lifecycle boundaries before implementation. No persistence engine, worker, network, provider, evidence capture, or Android API may be added.
+**Batch 3 — Pure `EventPipeline` design review** is active as documentation only. It must resolve and document stage ownership, idempotency, deferred/resume/failure semantics, and lifecycle boundaries before implementation. No persistence engine, worker, network, provider, evidence capture, or Android API may be added.
