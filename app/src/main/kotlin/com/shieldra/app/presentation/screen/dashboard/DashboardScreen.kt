@@ -41,7 +41,7 @@ import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.presentation.model.DashboardUiModel
 import com.shieldra.app.presentation.model.GuardUiModel
-import com.shieldra.app.presentation.preview.PreviewData
+import com.shieldra.app.presentation.demo.DemoData
 
 @Composable
 fun DashboardScreen(
@@ -247,7 +247,7 @@ private fun GuardsGrid(
 private fun DashboardDarkPreview() {
     ShieldraTheme(darkTheme = true) {
         DashboardScreen(
-            model = PreviewData.dashboard,
+            model = DemoData.dashboard(),
             callbacks = DashboardCallbacks({}, {}, {}, {}),
         )
     }
@@ -258,7 +258,40 @@ private fun DashboardDarkPreview() {
 private fun DashboardLightPreview() {
     ShieldraTheme(darkTheme = false) {
         DashboardScreen(
-            model = PreviewData.dashboard,
+            model = DemoData.dashboard(),
+            callbacks = DashboardCallbacks({}, {}, {}, {}),
+        )
+    }
+}
+
+@Preview(name = "Dashboard Empty", showBackground = true)
+@Composable
+private fun DashboardEmptyPreview() {
+    ShieldraTheme(darkTheme = true) {
+        DashboardScreen(
+            model = DemoData.dashboardEmpty(),
+            callbacks = DashboardCallbacks({}, {}, {}, {}),
+        )
+    }
+}
+
+@Preview(name = "Dashboard Suspicious", showBackground = true)
+@Composable
+private fun DashboardSuspiciousPreview() {
+    ShieldraTheme(darkTheme = true) {
+        DashboardScreen(
+            model = DemoData.dashboardSuspicious(),
+            callbacks = DashboardCallbacks({}, {}, {}, {}),
+        )
+    }
+}
+
+@Preview(name = "Dashboard Disabled", showBackground = true)
+@Composable
+private fun DashboardDisabledPreview() {
+    ShieldraTheme(darkTheme = true) {
+        DashboardScreen(
+            model = DemoData.dashboardDisabled(),
             callbacks = DashboardCallbacks({}, {}, {}, {}),
         )
     }

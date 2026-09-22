@@ -35,6 +35,24 @@ object DemoData {
     )
 
     @Composable
+    fun dashboardEmpty(): DashboardUiModel = dashboard().copy(recentEvents = emptyList())
+
+    @Composable
+    fun dashboardSuspicious(): DashboardUiModel = dashboard().copy(
+        protectionState = ProtectionVisualState.Suspicious,
+        lastCheckSeconds = 4L,
+    )
+
+    @Composable
+    fun dashboardDisabled(): DashboardUiModel {
+        val model = dashboard()
+        return model.copy(
+            protectionState = ProtectionVisualState.Disabled,
+            guards = model.guards.map { it.copy(status = GuardStatus.Disabled) },
+        )
+    }
+
+    @Composable
     fun eventDetail(): EventDetailUiModel = EventDetailUiModel(
         id = "evt_8a3f...d92",
         type = EventType.FailedUnlock,
@@ -48,6 +66,18 @@ object DemoData {
             ChannelReceiptUiModel(ChannelId.Email, DeliveryStatus.Delivered, stringResource(R.string.demo_receipt_time)),
             ChannelReceiptUiModel(ChannelId.WhatsApp, DeliveryStatus.Failed, stringResource(R.string.demo_invalid_recipient)),
             ChannelReceiptUiModel(ChannelId.Telegram, DeliveryStatus.Delivered, stringResource(R.string.demo_receipt_time)),
+        ),
+    )
+
+    @Composable
+    fun eventDetailLastKnown(): EventDetailUiModel = eventDetail().copy(
+        location = LocationUiModel(
+            LocationKind.LastKnown,
+            36.7538,
+            3.0588,
+            45,
+            7200,
+            stringResource(R.string.location_source_fused),
         ),
     )
 

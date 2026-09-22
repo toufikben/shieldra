@@ -32,7 +32,7 @@ import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.presentation.model.SettingsRowUiModel
 import com.shieldra.app.presentation.model.SettingsSection
-import com.shieldra.app.presentation.preview.PreviewData
+import com.shieldra.app.presentation.demo.DemoData
 
 @Composable
 fun SettingsScreen(
@@ -159,7 +159,7 @@ private fun SettingsRow(row: SettingsRowUiModel, onClick: () -> Unit) {
 private fun SettingsDarkPreview() {
     ShieldraTheme(darkTheme = true) {
         SettingsScreen(
-            rows = PreviewData.settingsRows,
+            rows = DemoData.settingsRows(),
             callbacks = SettingsCallbacks { _, _ -> },
         )
     }
@@ -170,7 +170,7 @@ private fun SettingsDarkPreview() {
 private fun SettingsLightPreview() {
     ShieldraTheme(darkTheme = false) {
         SettingsScreen(
-            rows = PreviewData.settingsRows,
+            rows = DemoData.settingsRows(),
             callbacks = SettingsCallbacks { _, _ -> },
         )
     }

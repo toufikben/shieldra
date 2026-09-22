@@ -26,6 +26,12 @@ else
   printf 'PASS: runtime navigation does not import preview data\n'
 fi
 
+if grep -RInE 'PreviewData|presentation\.preview' app/src/main/kotlin; then
+  printf 'FAIL: retired PreviewData source or preview-package import remains\n'; fail=1
+else
+  printf 'PASS: runtime and preview sources use localized DemoData only\n'
+fi
+
 if grep -RInE 'CameraX|ImageCapture|FusedLocationProvider|LocationManager|BillingClient|Firebase|Retrofit|OkHttp|SafeZone|Geofenc|RoomDatabase|Cipher\.getInstance|KeyStore\.getInstance' app/src/main/kotlin/com/shieldra/app; then
   printf 'FAIL: forbidden Phase 3 implementation dependency/pattern found\n'; fail=1
 else

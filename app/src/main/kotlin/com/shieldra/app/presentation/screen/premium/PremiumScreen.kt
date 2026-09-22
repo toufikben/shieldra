@@ -26,7 +26,7 @@ import com.shieldra.app.design.components.foundation.ShieldraButtonVariant
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.presentation.model.PremiumFeatureUiModel
 import com.shieldra.app.presentation.model.PremiumUiModel
-import com.shieldra.app.presentation.preview.PreviewData
+import com.shieldra.app.presentation.demo.DemoData
 
 @Composable
 fun PremiumScreen(
@@ -112,7 +112,7 @@ private fun FeatureRow(feature: PremiumFeatureUiModel) {
 private fun PremiumDarkPreview() {
     ShieldraTheme(darkTheme = true) {
         PremiumScreen(
-            model = PreviewData.premium,
+            model = DemoData.premium(),
             callbacks = PremiumCallbacks({}, {}),
         )
     }

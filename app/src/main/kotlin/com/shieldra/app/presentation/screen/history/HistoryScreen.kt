@@ -27,7 +27,7 @@ import com.shieldra.app.presentation.model.EventUiModel
 import com.shieldra.app.presentation.model.HistoryFilterState
 import com.shieldra.app.presentation.model.HistoryStatusFilter
 import com.shieldra.app.presentation.model.HistoryTypeFilter
-import com.shieldra.app.presentation.preview.PreviewData
+import com.shieldra.app.presentation.demo.DemoData
 
 @Composable
 fun HistoryScreen(
@@ -161,7 +161,7 @@ private fun HistoryStatusFilter.displayLabel(): String = stringResource(when (th
 private fun HistoryDarkPreview() {
     ShieldraTheme(darkTheme = true) {
         HistoryScreen(
-            events = PreviewData.recentEvents,
+            events = DemoData.recentEvents(),
             filterState = HistoryFilterState(),
             callbacks = HistoryCallbacks({}, {}),
         )
@@ -175,6 +175,18 @@ private fun HistoryEmptyPreview() {
         HistoryScreen(
             events = emptyList(),
             filterState = HistoryFilterState(),
+            callbacks = HistoryCallbacks({}, {}),
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HistoryNoMatchesPreview() {
+    ShieldraTheme(darkTheme = true) {
+        HistoryScreen(
+            events = DemoData.recentEvents(),
+            filterState = HistoryFilterState(HistoryTypeFilter.Panic, HistoryStatusFilter.All),
             callbacks = HistoryCallbacks({}, {}),
         )
     }

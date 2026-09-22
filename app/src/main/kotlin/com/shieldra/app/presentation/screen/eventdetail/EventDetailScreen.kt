@@ -40,7 +40,7 @@ import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.design.tokens.ShieldraTextStyles
 import com.shieldra.app.presentation.model.EventDetailUiModel
 import com.shieldra.app.presentation.model.LocationKind
-import com.shieldra.app.presentation.preview.PreviewData
+import com.shieldra.app.presentation.demo.DemoData
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,7 +223,18 @@ private fun DestructiveActions(
 private fun EventDetailDarkPreview() {
     ShieldraTheme(darkTheme = true) {
         EventDetailScreen(
-            model = PreviewData.eventDetail,
+            model = DemoData.eventDetail(),
+            callbacks = EventDetailCallbacks({}, { _, _ -> }, {}, {}),
+        )
+    }
+}
+
+@Preview(name = "Event Detail Last Known", showBackground = true)
+@Composable
+private fun EventDetailLastKnownPreview() {
+    ShieldraTheme(darkTheme = true) {
+        EventDetailScreen(
+            model = DemoData.eventDetailLastKnown(),
             callbacks = EventDetailCallbacks({}, { _, _ -> }, {}, {}),
         )
     }
