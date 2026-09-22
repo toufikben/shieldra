@@ -2,9 +2,11 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `ddc001ebf71ae595cc905e5450814679522714d8`
+**Current HEAD:** `7f8399fc8dbf619cb5a2cd6e4dbac1b10d37aaf8`
 **Last known remote CI:** run `35575159609`, successful
 **Project mode:** controlled implementation; Phase 3 presentation shell delivered; Phase 4 not started
+
+The user-supplied 38-section audit and controlled implementation protocol is preserved in [`authority/shieldra-master-audit-controlled-protocol.md`](authority/shieldra-master-audit-controlled-protocol.md). It is process authority only and does not replace missing Product Freeze v5 or Phase 1 requirements.
 
 ## Purpose
 

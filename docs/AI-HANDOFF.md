@@ -4,7 +4,7 @@ This file is written for a new AI agent that must continue Shieldra without repe
 
 ## Immediate facts
 
-The repository is `toufikben/shieldra`, branch `main`, and the latest audited source commit is `dc1fccb78760ad88b87a0c3958a2eb22c0603bca`. The working tree must be checked before editing. The repository is a private, independent clean-slate project. The original handoff repository was `toufikben/Ai_super_cleaner`; it was inspected read-only and is not the destination.
+The repository is `toufikben/shieldra`, branch `main`, and the latest audited source commit before this controlled documentation batch is `7f8399fc8dbf619cb5a2cd6e4dbac1b10d37aaf8`. The working tree must be checked before editing. The repository is a private, independent clean-slate project. The original handoff repository was `toufikben/Ai_super_cleaner`; it was inspected read-only and is not the destination.
 
 The latest completed remote workflow is [run 35575159609](https://github.com/toufikben/shieldra/actions/runs/35575159609), which succeeded on the report-evidence commit. The workflow's actual log recorded Ubuntu 24.04.5, x86_64/amd64, Temurin JDK 17.0.20.1, Gradle 9.7.1, and Android SDK paths. The run passed Group A diagnostics, Group B/Group C build, Group C boundary scan, Phase 3 static review, Job Summary publication, and artifact upload. The Checks API returned 403 for the available token; this is a permission limitation, not a workflow failure.
 

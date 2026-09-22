@@ -21,4 +21,4 @@ The local validation suite uses JDK 17 and a temporary Android SDK 35 installati
 bash .github/scripts/phase3-review-check.sh
 ```
 
-The current local result is a successful debug build, successful unit tests, zero lint errors, and a passing static review. Runtime visual verification on an emulator/device remains UNKNOWN in this sandbox because no emulator or connected device is available.
+The local JDK 17 validation baseline is successful: debug build, unit tests, lint, and static review pass. Runtime visual verification on an emulator/device remains UNKNOWN because no emulator or connected device is available. Remote GitHub Actions validation for the current commit is successful.
