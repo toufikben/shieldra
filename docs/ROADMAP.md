@@ -2,8 +2,8 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `ef66c9458da6e4db69894333607b22074fef3472`
-**Last observed remote CI:** `35769603650` (`in_progress` at the last audit)
+**Current HEAD:** `d50e62611b58f243de521f4a297c37e59781fcee`
+**Last observed remote CI:** `35777863380` (`in_progress` at the last audit)
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities are not yet implemented.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
@@ -98,7 +98,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 | Batch | Scope | Dependencies | Status |
 |---|---|---|---|
-| 0 | Reconciled decisions, gate register, Guard rules, Android/evidence/storage matrices, roadmap | Unified prompts | IN PROGRESS |
+| 0 | Reconciled decisions, gate register, Guard rules, Android/evidence/storage matrices, roadmap | Unified prompts | DONE — `d50e626` |
 | 1 | Pure contract closure: approved Guard outputs, result/error types, event identity and lifecycle contracts, repository/pipeline boundaries, deterministic tests | Batch 0; no Android APIs or persistence engine | READY NEXT |
 | 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1 | BLOCKED UNTIL BATCH 1 |
 | 3 | Pure `EventPipeline` coordinator: stage ownership, idempotency, deferred/resume/failure semantics over abstractions | Batch 2 plus unresolved stage decisions | BLOCKED / NEEDS DECISION CLOSURE |
@@ -111,4 +111,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Batch 1 — Pure contract closure** is the next safe implementation batch after this documentation batch. It must first re-read and trace the existing contracts, then add only framework-free types and deterministic tests. It must not add Room, DataStore, Keystore, sensors, camera, location, notifications, workers, services, network, billing, or provider SDKs.
+**Batch 1 — Pure contract closure** is the next safe implementation batch. It must first re-read and trace the existing contracts, then add only framework-free types and deterministic tests. It must not add Room, DataStore, Keystore, sensors, camera, location, notifications, workers, services, network, billing, or provider SDKs.
