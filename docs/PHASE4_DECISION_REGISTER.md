@@ -78,3 +78,9 @@ This amendment opens only the pure/local EventPipeline architecture. Android API
 Batch 4a research is **COMPLETE AS DOCUMENTATION ONLY**. Official Android sources were reviewed for motion sensors, SIM/subscription APIs, background execution, Doze, WorkManager, foreground services, notifications, camera, and location. The results are recorded in [`PHASE4_ANDROID_CAPABILITY_MATRIX.md`](PHASE4_ANDROID_CAPABILITY_MATRIX.md) and [`reports/batch-4a-android-capability-research.md`](reports/batch-4a-android-capability-research.md).
 
 The device/API test plan is recorded in [`PHASE4_DEVICE_TEST_MATRIX.md`](PHASE4_DEVICE_TEST_MATRIX.md). This completion does not authorize Android permissions, services, sensors, telephony, notifications, camera, location, Room, or monitoring code. Device execution evidence and capability-specific approval remain required before any platform adapter.
+
+## Batch 4b device-execution preflight — 2026-09-22
+
+Batch 4b is **BLOCKED at preflight**. The active environment has no `adb`, no Android Emulator binary, no enumerated AVD, and no attached physical Android device. Therefore no device capability result is marked as passed. The exact checks, observations, and unblock requirements are recorded in [`reports/batch-4b-device-execution-preflight.md`](reports/batch-4b-device-execution-preflight.md).
+
+The storage adapter remains a separate Batch 4c and is still blocked by G4 schema, migration, crypto, Keystore, and backup decisions. No renumbering of this gate authorizes storage or platform implementation.

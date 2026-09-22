@@ -4,6 +4,10 @@
 **Status:** Test plan prepared; execution requires physical devices/emulators and must remain separate from production adapters.
 **Target project SDK:** compile/target SDK 35; minimum SDK 26.
 
+## Current execution status
+
+**Batch 4b preflight: BLOCKED.** The active environment has no `adb`, no `emulator` binary, no enumerated AVD, and no attached physical Android device. The exact check and required unblock input are recorded in [`reports/batch-4b-device-execution-preflight.md`](reports/batch-4b-device-execution-preflight.md). No runtime capability result is marked as passed until a device or AVD is actually available.
+
 ## Required platform coverage
 
 | Profile | API / OS | Environment | Primary purpose | Required evidence |

@@ -2,7 +2,7 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `113074f92b9469897f0200bd900a73660337774f`
+**Current HEAD:** `7deff0e65f56873c60fe38cf879fc5e8c5f30564`
 **Last observed remote CI:** `35784803191` (`success`)
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities remain gated while Batch 4a research is documented.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
@@ -58,7 +58,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 **Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices.
 
-**Remaining:** device execution evidence, capability-specific approvals, evidence/privacy details, storage/crypto details, and platform adapters.
+**Remaining:** device execution evidence, capability-specific approvals, evidence/privacy details, storage/crypto details, and platform adapters. Batch 4b preflight is blocked because no ADB, emulator, AVD, or physical device is available in the active environment.
 
 **Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
@@ -103,12 +103,13 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1; pure deterministic implementation only | DONE — `0e02f55` |
 | 3 | Local/in-memory `EventPipeline`: canonical EventId idempotency, EXPIRED lifecycle, coordinator/repository split, persisted-stage resume, per-event expiry, sequential per-event processing | Batch 2; approved Batch 3 decisions | DONE — `f6f637b` |
 | 4a | Android capability research and device matrix | G3 review; no production behavior | RESEARCH COMPLETE — DEVICE EXECUTION PENDING |
-| 4b | Storage adapter | G4 schema/crypto/migration approval | BLOCKED |
-| 4c+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
+| 4b | Execute device/API matrix and collect runtime evidence | Batch 4a; ADB/AVD or physical devices | BLOCKED — NO DEVICE OR AVD AVAILABLE |
+| 4c | Storage adapter | G4 schema/crypto/migration approval | BLOCKED |
+| 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
 | 7 | End-to-end security/release review | All prior batches | BLOCKED |
 
 ## Required next batch
 
-**Batch 4a — Android capability research and device matrix** is documented from official Android sources. The next step is executing the matrix on AOSP emulators and representative physical devices. No production Android behavior may be added until a capability-specific decision package and device evidence are complete.
+**Batch 4b — Device execution evidence** is blocked at preflight: the active environment has no `adb`, emulator binary, AVD, or attached physical device. No runtime capability result is claimed. Once a device environment is available, execute one capability at a time using [`docs/PHASE4_DEVICE_TEST_MATRIX.md`](PHASE4_DEVICE_TEST_MATRIX.md) and record evidence before opening any platform adapter.
