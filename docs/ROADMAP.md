@@ -121,7 +121,7 @@ After each batch:
 
 Stop immediately and report if a batch reveals missing authority that changes product intent, a regression that cannot be fixed within the batch, a need for production behavior outside Phase 3, a protected external action, or a conflict between the supplied command and the committed architecture. Do not guess through a material ambiguity.
 
-**Current gate:** Batches 0–9 and the three safe remediation batches passed their source/build/static gates. Phase 3 is closed for the audited scope; runtime Arabic layout, accessibility behavior, and visual behavior remain UNKNOWN without an emulator/device. Phase 4 remains BLOCKED pending the approved decision register inputs.
+**Current gate:** Batches 0–9 and the three safe remediation batches passed their source/build/static gates. Phase 3 is closed for the audited scope; runtime Arabic layout, accessibility behavior, and visual behavior remain UNKNOWN without an emulator/device. Phase 4 contract-readiness preflight documentation is complete, while production implementation remains BLOCKED pending the approved decision register inputs. See [`reports/phase-4-contract-readiness-preflight.md`](reports/phase-4-contract-readiness-preflight.md).
 
 ## References
 
