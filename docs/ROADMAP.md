@@ -2,8 +2,8 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `30068955f56d874fd00cad1b1066ad17af6e7d84`
-**Last observed remote CI:** `35778563536` (`in_progress` at the last audit)
+**Current HEAD:** `f6f637b6d5933493d5bc2d9d20a069af3dc67864`
+**Last observed remote CI:** `35781595250` (`in_progress` at the last audit)
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities are not yet implemented.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
@@ -101,8 +101,8 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 0 | Reconciled decisions, gate register, Guard rules, Android/evidence/storage matrices, roadmap | Unified prompts | DONE — `d50e626` |
 | 1 | Pure Guard contract closure: typed observations, approved rule values, confirmation results, deterministic tests | Batch 0; no Android APIs or persistence engine | DONE — `6dc8396` |
 | 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1; pure deterministic implementation only | DONE — `0e02f55` |
-| 3 | Local/in-memory `EventPipeline`: canonical EventId idempotency, EXPIRED lifecycle, coordinator/repository split, persisted-stage resume, per-event expiry, sequential per-event processing | Batch 2; approved Batch 3 decisions | DONE — implementation pending verification |
-| 4a | Android capability research and device matrix | G3 review; no production behavior | READY AS INVESTIGATION |
+| 3 | Local/in-memory `EventPipeline`: canonical EventId idempotency, EXPIRED lifecycle, coordinator/repository split, persisted-stage resume, per-event expiry, sequential per-event processing | Batch 2; approved Batch 3 decisions | DONE — `f6f637b` |
+| 4a | Android capability research and device matrix | G3 review; no production behavior | NEXT SAFE BATCH |
 | 4b | Storage adapter | G4 schema/crypto/migration approval | BLOCKED |
 | 4c+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
@@ -111,4 +111,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Batch 3 — Local/in-memory `EventPipeline`** is implemented under the approved decisions. The next step is deterministic tests and re-audit. No Room persistence engine, worker, network, provider, evidence capture, encryption, or Android API may be added in this batch.
+**Batch 3 — Local/in-memory `EventPipeline`** is implemented and locally verified under the approved decisions. The next safe batch is **4a — Android capability research and device matrix**, documentation/investigation only; no production Android behavior may be added until capability-specific decisions are closed.
