@@ -134,6 +134,7 @@
     <string name="error_something_wrong">Something went wrong</string>
     <string name="error_unable_to_load">Unable to load</string>
     <string name="delivery_label">Delivery: %1$s.</string>
+    <string name="event_accessibility">%1$s. %2$s. %3$s</string>
     <string name="event_photo">Photo</string>
     <string name="event_location">Location</string>
     <string name="channel_invalid_recipient">Invalid recipient</string>

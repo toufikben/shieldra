@@ -92,8 +92,8 @@ private fun PermissionsPreview() {
             step = 2,
             totalSteps = 4,
             icon = Icons.Filled.Lock,
-            title = "Notifications",
-            reason = "When Shieldra detects a security event, you'll get a notification.",
+            title = stringResource(R.string.notifications),
+            reason = stringResource(R.string.permission_notification_reason),
             onAllow = {},
             onNotNow = {},
         )

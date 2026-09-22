@@ -54,4 +54,41 @@ class PresentationModelTest {
             ),
         )
     }
+
+    @Test
+    fun history_filters_cover_each_declared_type_and_status() {
+        val events = listOf(
+            EventUiModel("lock", EventType.FailedUnlock, "", "", "", DeliveryStatus.Delivered, false, false),
+            EventUiModel("motion", EventType.Motion, "", "", "", DeliveryStatus.Deferred, false, false),
+            EventUiModel("sim", EventType.SimChange, "", "", "", DeliveryStatus.Failed, false, false),
+            EventUiModel("panic", EventType.Panic, "", "", "", DeliveryStatus.Ready, false, false),
+            EventUiModel("battery", EventType.Battery, "", "", "", DeliveryStatus.Skipped, false, false),
+        )
+
+        val expectedByType = mapOf(
+            HistoryTypeFilter.Lock to "lock",
+            HistoryTypeFilter.Motion to "motion",
+            HistoryTypeFilter.Sim to "sim",
+            HistoryTypeFilter.Panic to "panic",
+            HistoryTypeFilter.Battery to "battery",
+        )
+        expectedByType.forEach { (type, id) ->
+            assertEquals(
+                listOf(id),
+                filterHistoryEvents(events, HistoryFilterState(type, HistoryStatusFilter.All)).map { it.id },
+            )
+        }
+
+        val expectedByStatus = mapOf(
+            HistoryStatusFilter.Delivered to "lock",
+            HistoryStatusFilter.Deferred to "motion",
+            HistoryStatusFilter.Failed to "sim",
+        )
+        expectedByStatus.forEach { (status, id) ->
+            assertEquals(
+                listOf(id),
+                filterHistoryEvents(events, HistoryFilterState(HistoryTypeFilter.All, status)).map { it.id },
+            )
+        }
+    }
 }

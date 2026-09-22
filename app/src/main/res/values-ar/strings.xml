@@ -134,6 +134,7 @@
     <string name="error_something_wrong">حدث خطأ ما</string>
     <string name="error_unable_to_load">تعذر التحميل</string>
     <string name="delivery_label">التسليم: %1$s.</string>
+    <string name="event_accessibility">%1$s. %2$s. %3$s</string>
     <string name="event_photo">صورة</string>
     <string name="event_location">موقع</string>
     <string name="channel_invalid_recipient">المستلم غير صالح</string>

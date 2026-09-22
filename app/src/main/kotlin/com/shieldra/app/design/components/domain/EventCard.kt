@@ -32,6 +32,7 @@ import com.shieldra.app.design.icons.icon
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.design.tokens.ShieldraPillShape
+import com.shieldra.app.presentation.demo.DemoData
 import com.shieldra.app.presentation.model.DeliveryStatus
 import com.shieldra.app.presentation.model.EventType
 import com.shieldra.app.presentation.model.EventUiModel
@@ -70,6 +71,12 @@ fun EventCard(
         R.string.delivery_label,
         deliveryLabel(event.deliveryStatus),
     )
+    val accessibilityDescription = stringResource(
+        R.string.event_accessibility,
+        event.title,
+        event.timestampLabel,
+        deliveryDescription,
+    )
 
     Row(
         modifier = modifier
@@ -79,9 +86,7 @@ fun EventCard(
             .clickable(role = Role.Button, onClick = onClick)
             .padding(spacing.l)
             .semantics(mergeDescendants = true) {
-                contentDescription =
-                    "${event.title}. ${event.timestampLabel}. " +
-                    deliveryDescription
+                contentDescription = accessibilityDescription
             },
         verticalAlignment = Alignment.Top,
     ) {
@@ -151,16 +156,7 @@ private fun Pill(text: String, bg: Color, fg: Color) {
 private fun EventCardPreview() {
     ShieldraTheme(darkTheme = true) {
         EventCard(
-            event = EventUiModel(
-                id = "evt_1",
-                type = EventType.FailedUnlock,
-                title = "Failed unlock attempt",
-                subtitle = "Attempt 2",
-                timestampLabel = "Today · 14:32",
-                deliveryStatus = DeliveryStatus.Delivered,
-                hasPhoto = true,
-                hasLocation = true,
-            ),
+            event = DemoData.recentEvents().first(),
             onClick = {},
             modifier = Modifier.padding(16.dp),
         )

@@ -100,7 +100,7 @@ fun ErrorStateFullScreen(
 private fun ErrorStateInlinePreview() {
     ShieldraTheme(darkTheme = true) {
         ErrorStateInline(
-            message = "Could not load events.",
+            message = stringResource(R.string.could_not_load_events),
             onRetry = {},
             modifier = Modifier.padding(16.dp),
         )

@@ -32,7 +32,7 @@ import com.shieldra.app.R
 import com.shieldra.app.design.icons.icon
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
-import com.shieldra.app.presentation.model.GuardKind
+import com.shieldra.app.presentation.demo.DemoData
 import com.shieldra.app.presentation.model.GuardStatus
 import com.shieldra.app.presentation.model.GuardUiModel
 
@@ -145,12 +145,7 @@ fun GuardTile(
 private fun GuardTilePreview() {
     ShieldraTheme(darkTheme = true) {
         GuardTile(
-            GuardUiModel(
-                kind = GuardKind.Lock,
-                title = "Lock Guard",
-                subtitle = "Active · 2 attempts",
-                status = GuardStatus.Active,
-            ),
+            guard = DemoData.guards().first(),
             onClick = {},
             modifier = Modifier.padding(16.dp).width(180.dp),
         )
