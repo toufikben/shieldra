@@ -62,4 +62,17 @@ class SecurityEvent private constructor(
             metadata = metadata.toMap(),
         )
     }
+
+    internal fun withState(
+        next: EventState,
+        nextMetadata: Map<String, String> = metadata,
+    ): SecurityEvent = create(
+        eventId = id,
+        createdAt = createdAt,
+        state = next,
+        severity = severity,
+        evidenceReferences = evidenceReferences,
+        deliveryInformation = deliveryInformation,
+        metadata = nextMetadata,
+    )
 }

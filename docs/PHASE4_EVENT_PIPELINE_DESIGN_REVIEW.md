@@ -44,3 +44,9 @@ This review does not add Room, DataStore, Keystore, evidence capture, camera, lo
 6. Add deterministic contract tests for every approved decision.
 
 Until these criteria are met, EventPipeline remains **READY FOR DESIGN** rather than **READY FOR IMPLEMENTATION**.
+
+## Approved Batch 3 amendment — 2026-09-22
+
+The seven decisions in the supplied Batch 3 update are approved and implemented in the first local architecture: canonical `EventId` idempotency, explicit `EXPIRED`, coordinator/repository ownership split, persisted-stage resume, per-event expiration policy, sequential per-event processing with duplicate prevention, and an In-Memory repository that can later be replaced by Room.
+
+The implementation remains deliberately local and framework-free. Evidence and delivery are injected stages with deterministic outcomes; no real capture, encryption, network, provider, or Android behavior is claimed.

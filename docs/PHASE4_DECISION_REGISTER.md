@@ -56,3 +56,19 @@ The first implementation path is device-first and framework-free where possible.
 | 5 | Local response/evidence/monitoring in separate batches | Capability-specific approval and evidence | **BLOCKED** |
 | 6 | External providers | G5 decision change | **DEFERRED** |
 | 7 | End-to-end security/release review | All implementation batches | **BLOCKED** |
+
+## Batch 3 EventPipeline approval amendment — 2026-09-22
+
+The following seven decisions are now **APPROVED** for the local/in-memory Batch 3 implementation:
+
+| Decision | Approved rule |
+|---|---|
+| Event identity/idempotency | `EventId` is canonical; same-ID processing is idempotent; retries/resume continue the existing event. |
+| Lifecycle | Add explicit `EXPIRED`; it is distinct from `FAILED_FINAL`; valid transitions are documented in `EventState.kt`. |
+| Stage ownership | Coordinator orchestrates Confirmed → Evidence → Delivery → Completed; repository owns persistence and atomic updates. |
+| Resume | Resume from the last successfully persisted stage/state; do not restart automatically from the beginning. |
+| Expiration | Per-event/per-Guard policy; exact durations remain configurable and are not invented here. |
+| Concurrency | Sequential processing per `EventId`; duplicate concurrent processing is prevented; independent events may proceed independently. |
+| Initial implementation | Local/in-memory repository and coordinator first; Room remains a future adapter with no coordinator redesign. DataStore remains for lightweight preferences and encrypted files remain the evidence direction. |
+
+This amendment opens only the pure/local EventPipeline architecture. Android APIs, Room, evidence capture, encryption, network delivery, external providers, billing, ads, and production monitoring remain gated.

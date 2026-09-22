@@ -2,8 +2,8 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `0e02f550363016e6575b262fb00fc9f2a8c82b3b`
-**Last observed remote CI:** `35778481683` (`in_progress` at the last audit)
+**Current HEAD:** `30068955f56d874fd00cad1b1066ad17af6e7d84`
+**Last observed remote CI:** `35778563536` (`in_progress` at the last audit)
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities are not yet implemented.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
@@ -23,7 +23,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | Batch 2 screen states and PreviewData isolation | DONE | Commit `ef66c94` |
 | Runtime device visual/RTL/accessibility verification | UNKNOWN | No emulator or connected device available |
 | Phase 4 authority register | UPDATED | `docs/PHASE4_DECISION_REGISTER.md` |
-| Phase 4 production behavior | BLOCKED / CONTROLLED | No Android security capability implemented |
+| Phase 4 production behavior | BLOCKED / CONTROLLED | Pure local EventPipeline is implemented; no Android security capability implemented |
 
 ## Gate status
 
@@ -36,7 +36,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Define pure repository contracts and storage proposal | Schema, migrations, crypto, Keystore, backup, auth |
 | G5 — External services | DEFERRED | Keep provider interfaces only where already justified | Cloud, delivery, billing, ads, analytics, backend |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit |
-| G7 — Implementation | READY FOR CONTROLLED PURE BATCHES | Batch 1 pure Guard contract closure is active | Sequential engine, pipeline, then isolated platform capabilities |
+| G7 — Implementation | READY FOR CONTROLLED PURE BATCHES | Batch 3 local EventPipeline is authorized and implemented | Sequential platform capabilities remain gated |
 
 ## Phases and batches
 
@@ -54,15 +54,15 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ### Phase 4 — Protection Architecture
 
-**Status:** IN PROGRESS — documentation and contract preparation only.
+**Status:** IN PROGRESS — pure/local architecture implemented; platform production behavior remains gated.
 
 **Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices.
 
-**Remaining:** pure contract closure, event identity/idempotency representation, result/error semantics, lifecycle/expiry decision closure, and technical Android capability reports.
+**Remaining:** technical Android capability reports, evidence/privacy details, storage/crypto details, and platform adapters.
 
 **Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
-**Approval requirements:** do not implement Android security behavior, capture, monitoring, persistence engine, encryption, or providers until their open decisions are approved.
+**Approval requirements:** do not implement Android security behavior, capture, monitoring, Room persistence, encryption, or providers until their open decisions are approved. Batch 3 is limited to the verified local/in-memory architecture.
 
 ### Phase 5 — Guard Implementation
 
@@ -101,7 +101,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 0 | Reconciled decisions, gate register, Guard rules, Android/evidence/storage matrices, roadmap | Unified prompts | DONE — `d50e626` |
 | 1 | Pure Guard contract closure: typed observations, approved rule values, confirmation results, deterministic tests | Batch 0; no Android APIs or persistence engine | DONE — `6dc8396` |
 | 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1; pure deterministic implementation only | DONE — `0e02f55` |
-| 3 | EventPipeline design review: identity, lifecycle, stage ownership, idempotency, deferred/resume/failure semantics | Batch 2; decision closure required before code | IN PROGRESS — DESIGN ONLY |
+| 3 | Local/in-memory `EventPipeline`: canonical EventId idempotency, EXPIRED lifecycle, coordinator/repository split, persisted-stage resume, per-event expiry, sequential per-event processing | Batch 2; approved Batch 3 decisions | DONE — implementation pending verification |
 | 4a | Android capability research and device matrix | G3 review; no production behavior | READY AS INVESTIGATION |
 | 4b | Storage adapter | G4 schema/crypto/migration approval | BLOCKED |
 | 4c+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
@@ -111,4 +111,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Batch 3 — Pure `EventPipeline` design review** is active as documentation only. It must resolve and document stage ownership, idempotency, deferred/resume/failure semantics, and lifecycle boundaries before implementation. No persistence engine, worker, network, provider, evidence capture, or Android API may be added.
+**Batch 3 — Local/in-memory `EventPipeline`** is implemented under the approved decisions. The next step is deterministic tests and re-audit. No Room persistence engine, worker, network, provider, evidence capture, encryption, or Android API may be added in this batch.

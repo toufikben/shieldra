@@ -41,3 +41,17 @@ The following must not be silently selected or implemented: exact camera trigger
 ## Operating rule
 
 Engineer approved behavior, propose unresolved behavior without implementing it, verify actual Android limits, and keep the roadmap synchronized after every meaningful batch.
+
+## Batch 3 approved EventPipeline decisions — 2026-09-22
+
+The following seven decisions are **APPROVED** for the first local/in-memory EventPipeline implementation. They supersede the earlier Batch 3 design-review entries that marked these points as proposals.
+
+1. **Event identity and idempotency:** `EventId` is the canonical identity. No second sequence identity is introduced unless the code genuinely requires it. Reprocessing the same `EventId` must not create a duplicate event or duplicate final delivery; retries and resume continue the existing event.
+2. **Lifecycle:** Add explicit `EXPIRED`. Expiration is not `FAILED_FINAL`. Valid transitions remain documented in the domain state contract.
+3. **Stage ownership:** The coordinator owns `Confirmed → Evidence → Delivery → Completed` orchestration and chooses the next stage. The repository owns persistence and atomic state updates. The coordinator must not depend on storage implementation details.
+4. **Interruption/resume:** Resume from the last successfully persisted stage/state. Do not restart from the beginning unless the persisted state requires it.
+5. **Expiration policy:** Support a per-event/per-Guard expiration policy. Exact durations remain configurable and policy-driven; no new product/security threshold is invented.
+6. **Concurrency:** Process stages sequentially per `EventId` and prevent duplicate concurrent processing of the same event. Independent events may proceed independently where safe.
+7. **Initial implementation:** Implement the first pipeline locally/in-memory behind clean repository interfaces. Room remains the planned future repository for events, history, pipeline state, metadata, and idempotency tracking; DataStore remains for lightweight preferences; sensitive evidence remains intended for encrypted files rather than raw Room blobs.
+
+These approvals authorize the pure/local Batch 3 architecture only. They do not authorize Room, Android services, evidence capture, encryption implementation, network delivery, providers, billing, ads, or production monitoring claims.

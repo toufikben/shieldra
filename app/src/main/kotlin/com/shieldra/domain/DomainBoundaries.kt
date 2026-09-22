@@ -14,4 +14,9 @@ data class GuardEvaluation(
     val event: SecurityEvent? = null,
 )
 
-interface EventPipeline
+interface EventPipeline {
+    fun process(
+        eventId: EventId,
+        expiration: EventExpirationPolicy = EventExpirationPolicy(),
+    ): PipelineResult
+}
