@@ -36,7 +36,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Define pure repository contracts and storage proposal | Schema, migrations, crypto, Keystore, backup, auth |
 | G5 — External services | DEFERRED | Keep provider interfaces only where already justified | Cloud, delivery, billing, ads, analytics, backend |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit |
-| G7 — Implementation | READY FOR CONTROLLED PURE BATCHES | Batch 1 contract closure after this documentation batch | Sequential engine, pipeline, then isolated platform capabilities |
+| G7 — Implementation | READY FOR CONTROLLED PURE BATCHES | Batch 1 pure Guard contract closure is active | Sequential engine, pipeline, then isolated platform capabilities |
 
 ## Phases and batches
 
@@ -99,7 +99,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | Batch | Scope | Dependencies | Status |
 |---|---|---|---|
 | 0 | Reconciled decisions, gate register, Guard rules, Android/evidence/storage matrices, roadmap | Unified prompts | DONE — `d50e626` |
-| 1 | Pure contract closure: approved Guard outputs, result/error types, event identity and lifecycle contracts, repository/pipeline boundaries, deterministic tests | Batch 0; no Android APIs or persistence engine | READY NEXT |
+| 1 | Pure Guard contract closure: typed observations, approved rule values, confirmation results, deterministic tests | Batch 0; no Android APIs or persistence engine | IN PROGRESS |
 | 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1 | BLOCKED UNTIL BATCH 1 |
 | 3 | Pure `EventPipeline` coordinator: stage ownership, idempotency, deferred/resume/failure semantics over abstractions | Batch 2 plus unresolved stage decisions | BLOCKED / NEEDS DECISION CLOSURE |
 | 4a | Android capability research and device matrix | G3 review; no production behavior | READY AS INVESTIGATION |
@@ -111,4 +111,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Batch 1 — Pure contract closure** is the next safe implementation batch. It must first re-read and trace the existing contracts, then add only framework-free types and deterministic tests. It must not add Room, DataStore, Keystore, sensors, camera, location, notifications, workers, services, network, billing, or provider SDKs.
+**Batch 1 — Pure Guard contract closure** is the active safe implementation batch. It adds only framework-free types and deterministic tests. It must not add Room, DataStore, Keystore, sensors, camera, location, notifications, workers, services, network, billing, or provider SDKs. Event identity/lifecycle and EventPipeline stage decisions remain separate follow-up work.
