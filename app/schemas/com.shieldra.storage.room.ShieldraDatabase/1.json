@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "5ae2b7a6797713a631b0c987be86de10",
+    "identityHash": "3ac10fcc2c57347a21200ef4d7754906",
     "entities": [
       {
         "tableName": "security_events",
@@ -83,7 +83,7 @@
       },
       {
         "tableName": "event_evidence_refs",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`evidence_id` TEXT NOT NULL, `event_id` TEXT NOT NULL, `kind` TEXT NOT NULL, `content_reference` TEXT, `captured_at_epoch_ms` INTEGER, PRIMARY KEY(`evidence_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`evidence_id` TEXT NOT NULL, `event_id` TEXT NOT NULL, `kind` TEXT NOT NULL, `content_reference` TEXT, `captured_at_epoch_ms` INTEGER, PRIMARY KEY(`evidence_id`), FOREIGN KEY(`event_id`) REFERENCES `security_events`(`event_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "evidenceId",
@@ -130,11 +130,24 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_event_evidence_refs_event_id` ON `${TABLE_NAME}` (`event_id`)"
           }
+        ],
+        "foreignKeys": [
+          {
+            "table": "security_events",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "event_id"
+            ],
+            "referencedColumns": [
+              "event_id"
+            ]
+          }
         ]
       },
       {
         "tableName": "event_delivery_attempts",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`attempt_id` TEXT NOT NULL, `event_id` TEXT NOT NULL, `channel` TEXT NOT NULL, `status` TEXT NOT NULL, `occurred_at_epoch_ms` INTEGER, `failure_reason` TEXT, PRIMARY KEY(`attempt_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`attempt_id` TEXT NOT NULL, `event_id` TEXT NOT NULL, `channel` TEXT NOT NULL, `status` TEXT NOT NULL, `occurred_at_epoch_ms` INTEGER, `failure_reason` TEXT, PRIMARY KEY(`attempt_id`), FOREIGN KEY(`event_id`) REFERENCES `security_events`(`event_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "attemptId",
@@ -187,12 +200,25 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_event_delivery_attempts_event_id` ON `${TABLE_NAME}` (`event_id`)"
           }
+        ],
+        "foreignKeys": [
+          {
+            "table": "security_events",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "event_id"
+            ],
+            "referencedColumns": [
+              "event_id"
+            ]
+          }
         ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5ae2b7a6797713a631b0c987be86de10')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3ac10fcc2c57347a21200ef4d7754906')"
     ]
   }
 }

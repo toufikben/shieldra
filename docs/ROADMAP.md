@@ -107,7 +107,8 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4c | Versioned schema and Keystore candidate; no production wiring | G4 review; no silent crypto or retention decisions | CANDIDATE COMPLETE — BUILD/TEST PASS; G4 STILL OPEN |
 | 4d-1 | Room foundation: version catalog, entities, DAOs, exported schema, database shell | Owner G4-B authorization; Batch 4c schema candidate | COMPLETE — BUILD/TEST/LINT/STATIC PASS; NOT WIRED TO APP |
 | 4d-2 | Local Room repository boundary, encrypted evidence-file adapter, atomic file handling, deterministic file recovery tests | 4d-1; approved initial local policy | COMPLETE — BUILD/TEST/LINT/STATIC PASS; ANDROID KEYSTORE UNVERIFIED |
-| 4d-3 | Room repository integration tests, foreign-key enforcement, idempotent persistence, resume/cleanup recovery tests | 4d-2; local Android test database | NEXT — CONTROLLED IMPLEMENTATION |
+| 4d-3 | Room instrumented integration tests: reopen persistence, duplicate EventId, atomic expected-state updates, persisted delivery resume, foreign-key enforcement | 4d-2; Android test database | COMPLETE — `assembleDebugAndroidTest` PASS; DEVICE EXECUTION PENDING |
+| 4d-4 | Run Room tests on owner device/AVD, add cleanup/orphan reconciliation and migration-failure evidence | 4d-3; owner device/AVD | NEXT — REQUIRES ANDROID RUNTIME |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
@@ -115,4 +116,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**G4-B — Local Storage Implementation** is authorized by the owner’s initial conservative implementation authorization. Sub-batches 4d-1 and 4d-2 now provide the Room foundation, repository boundary, encrypted evidence-file adapter, atomic replacement, and deterministic file failure tests. Next is 4d-3: Room integration and lifecycle/recovery tests. Keep G4 as **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**; do not claim Android runtime verification or production storage approval.
+**G4-B — Local Storage Implementation** is authorized by the owner’s initial conservative implementation authorization. Sub-batch 4d-3 now adds Room instrumented coverage for persistence, idempotency, atomic state conflicts, pipeline resume, and foreign-key enforcement. The Android test APK compiles, but no device/AVD is available in this environment, so runtime execution remains pending for the owner. Next is 4d-4: run the tests on the owner device/AVD and collect runtime evidence. Keep G4 as **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**; do not claim Android runtime verification or production storage approval.

@@ -2,6 +2,7 @@ package com.shieldra.storage.room
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -32,6 +33,14 @@ data class SecurityEventEntity(
 
 @Entity(
     tableName = "event_evidence_refs",
+    foreignKeys = [
+        ForeignKey(
+            entity = SecurityEventEntity::class,
+            parentColumns = ["event_id"],
+            childColumns = ["event_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
     indices = [Index(value = ["event_id"], name = "index_event_evidence_refs_event_id")],
 )
 data class EvidenceReferenceEntity(
@@ -49,6 +58,14 @@ data class EvidenceReferenceEntity(
 
 @Entity(
     tableName = "event_delivery_attempts",
+    foreignKeys = [
+        ForeignKey(
+            entity = SecurityEventEntity::class,
+            parentColumns = ["event_id"],
+            childColumns = ["event_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
     indices = [Index(value = ["event_id"], name = "index_event_delivery_attempts_event_id")],
 )
 data class DeliveryAttemptEntity(
