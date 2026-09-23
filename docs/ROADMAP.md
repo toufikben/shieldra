@@ -106,7 +106,8 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4b | Execute device/API matrix and collect runtime evidence | Batch 4a; ADB/AVD or physical devices | BLOCKED — NO DEVICE OR AVD AVAILABLE |
 | 4c | Versioned schema and Keystore candidate; no production wiring | G4 review; no silent crypto or retention decisions | CANDIDATE COMPLETE — BUILD/TEST PASS; G4 STILL OPEN |
 | 4d-1 | Room foundation: version catalog, entities, DAOs, exported schema, database shell | Owner G4-B authorization; Batch 4c schema candidate | COMPLETE — BUILD/TEST/LINT/STATIC PASS; NOT WIRED TO APP |
-| 4d-2 | Local Room repository, encrypted evidence-file adapter, persistence/recovery tests | 4d-1; approved initial local policy | NEXT — CONTROLLED IMPLEMENTATION |
+| 4d-2 | Local Room repository boundary, encrypted evidence-file adapter, atomic file handling, deterministic file recovery tests | 4d-1; approved initial local policy | COMPLETE — BUILD/TEST/LINT/STATIC PASS; ANDROID KEYSTORE UNVERIFIED |
+| 4d-3 | Room repository integration tests, foreign-key enforcement, idempotent persistence, resume/cleanup recovery tests | 4d-2; local Android test database | NEXT — CONTROLLED IMPLEMENTATION |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
@@ -114,4 +115,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**G4-B — Local Storage Implementation** is authorized by the owner’s initial conservative implementation authorization. Sub-batch 4d-1 completed the Room foundation and exported schema. Next is 4d-2: implement the local repository and encrypted evidence-file adapter with deterministic recovery tests. Keep G4 as **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**; do not claim Android runtime verification or production storage approval.
+**G4-B — Local Storage Implementation** is authorized by the owner’s initial conservative implementation authorization. Sub-batches 4d-1 and 4d-2 now provide the Room foundation, repository boundary, encrypted evidence-file adapter, atomic replacement, and deterministic file failure tests. Next is 4d-3: Room integration and lifecycle/recovery tests. Keep G4 as **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**; do not claim Android runtime verification or production storage approval.

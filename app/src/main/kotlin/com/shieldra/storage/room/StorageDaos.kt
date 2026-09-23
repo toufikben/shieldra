@@ -8,10 +8,10 @@ import androidx.room.Query
 @Dao
 interface SecurityEventDao {
     @Query("SELECT * FROM security_events WHERE event_id = :eventId LIMIT 1")
-    suspend fun find(eventId: String): SecurityEventEntity?
+    fun find(eventId: String): SecurityEventEntity?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(event: SecurityEventEntity): Long
+    fun insert(event: SecurityEventEntity): Long
 
     @Query(
         """
@@ -23,7 +23,7 @@ interface SecurityEventDao {
         WHERE event_id = :eventId AND state = :expectedState
         """,
     )
-    suspend fun updateStateIfExpected(
+    fun updateStateIfExpected(
         eventId: String,
         expectedState: String,
         nextState: String,
@@ -36,17 +36,17 @@ interface SecurityEventDao {
 @Dao
 interface EvidenceReferenceDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(reference: EvidenceReferenceEntity): Long
+    fun insert(reference: EvidenceReferenceEntity): Long
 
     @Query("SELECT * FROM event_evidence_refs WHERE event_id = :eventId")
-    suspend fun findForEvent(eventId: String): List<EvidenceReferenceEntity>
+    fun findForEvent(eventId: String): List<EvidenceReferenceEntity>
 }
 
 @Dao
 interface DeliveryAttemptDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(attempt: DeliveryAttemptEntity): Long
+    fun insert(attempt: DeliveryAttemptEntity): Long
 
     @Query("SELECT * FROM event_delivery_attempts WHERE event_id = :eventId")
-    suspend fun findForEvent(eventId: String): List<DeliveryAttemptEntity>
+    fun findForEvent(eventId: String): List<DeliveryAttemptEntity>
 }
