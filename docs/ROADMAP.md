@@ -109,6 +109,8 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-2 | Local Room repository boundary, encrypted evidence-file adapter, atomic file handling, deterministic file recovery tests | 4d-1; approved initial local policy | COMPLETE — BUILD/TEST/LINT/STATIC PASS; ANDROID KEYSTORE UNVERIFIED |
 | 4d-3 | Room instrumented integration tests: reopen persistence, duplicate EventId, atomic expected-state updates, persisted delivery resume, foreign-key enforcement | 4d-2; Android test database | COMPLETE — `assembleDebugAndroidTest` PASS; DEVICE EXECUTION PENDING |
 | 4d-4 | Cleanup/orphan reconciliation, quarantine foundations, migration-failure guards, and Room runtime execution | 4d-3; owner device/AVD | LOCAL PORTION COMPLETE — DEVICE EXECUTION PENDING |
+| 4d-5 | Explicit local storage factory, no-backup evidence directory, non-destructive Room configuration, lifecycle reconciliation entry point | 4d-4; approved local policy | LOCAL COMPLETE — BUILD/TEST PASS; RUNTIME VERIFICATION PENDING |
+| 4d-6 | Owner-device execution of Room/Keystore tests and runtime evidence package | 4d-5; owner device/AVD | BLOCKED HERE — OWNER DEVICE REQUIRED |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
@@ -116,4 +118,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**G4-B — Local Storage Implementation** is authorized by the owner’s initial conservative implementation authorization. Sub-batch 4d-4 now adds deterministic orphan reconciliation, quarantine handling, temporary-file cleanup, unsupported-schema rejection, and a no-destructive-migration guard; the full build, unit tests, lint, static review, and Android test APK compilation pass. Room/Keystore runtime execution remains pending on the owner device/AVD. Keep G4 as **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**; do not claim Android runtime verification or production storage approval.
+**G4-B — Local Storage Implementation** is authorized by the owner’s initial conservative implementation authorization. Sub-batch 4d-5 is locally complete: an explicit storage factory uses `noBackupFilesDir` for evidence, Room remains non-destructive by configuration, and lifecycle reconciliation is exposed without automatic application wiring. Build, unit tests, lint, static review, and Android test APK compilation pass. Next is 4d-6: execute Room/Keystore tests on the owner device/AVD and collect runtime evidence. Keep G4 as **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**; do not claim Android runtime verification or production storage approval.

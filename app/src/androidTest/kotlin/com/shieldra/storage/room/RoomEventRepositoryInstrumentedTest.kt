@@ -12,6 +12,8 @@ import com.shieldra.domain.PipelineResult
 import com.shieldra.domain.RepositoryResult
 import com.shieldra.domain.SecurityEvent
 import com.shieldra.domain.StageOutcome
+import com.shieldra.storage.EvidenceCipher
+import com.shieldra.storage.LocalShieldraStorage
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -133,6 +135,16 @@ class RoomEventRepositoryInstrumentedTest {
         delete(name)
     }
 
+    @Test
+    fun local_storage_factory_uses_no_backup_directory_and_closes_cleanly() {
+        val name = databaseName()
+        val storage = LocalShieldraStorage.create(context, PrefixCipher, databaseName = name)
+
+        assertEquals(context.noBackupFilesDir, storage.evidenceFilesRoot().parentFile)
+        storage.close()
+        delete(name)
+    }
+
     private fun open(name: String): ShieldraDatabase = Room.databaseBuilder(
         context,
         ShieldraDatabase::class.java,
@@ -150,6 +162,9 @@ class RoomEventRepositoryInstrumentedTest {
         context.deleteDatabase(name)
     }
 
+    private fun LocalShieldraStorage.evidenceFilesRoot() =
+        java.io.File(context.noBackupFilesDir, "shieldra-evidence")
+
     private fun assertFailsWithForeignKey(block: () -> Unit) {
         try {
             block()
@@ -159,6 +174,15 @@ class RoomEventRepositoryInstrumentedTest {
             check("FOREIGN KEY" in message.uppercase()) {
                 "Expected a foreign-key failure, got ${error::class.simpleName}: $message"
             }
+        }
+    }
+
+    private object PrefixCipher : EvidenceCipher {
+        override fun encrypt(plaintext: ByteArray): ByteArray = byteArrayOf(0x01) + plaintext
+
+        override fun decrypt(ciphertext: ByteArray): ByteArray {
+            require(ciphertext.firstOrNull() == 0x01.toByte())
+            return ciphertext.copyOfRange(1, ciphertext.size)
         }
     }
 }
