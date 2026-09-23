@@ -31,3 +31,9 @@
 8. Process-death and crash recovery for pipeline stages.
 
 No cryptographic algorithm, key size, migration, backup policy, or authentication behavior is silently selected by this document. A future implementation batch must include a threat-model and technical review before adding dependencies or production storage.
+
+## Batch 4c candidate amendment — 2026-09-23
+
+A reviewable candidate has been added under `com.shieldra.storage`: `StorageSchema` defines version 1 SQL contracts and an empty explicit migration registry; `EncryptionPolicy` requires explicit cryptographic and authentication values; and `AndroidKeystoreEncryptor` uses Android Keystore with AES-GCM and no software fallback. The candidate is intentionally not wired into Room, DataStore, EventPipeline, evidence capture, or the application graph.
+
+This amendment does **not** approve the unresolved G4 decisions. Retention, deletion, export, reset, backup restoration, corruption recovery, key rotation, biometric enrollment behavior, credential changes, hardware-backed requirements, authentication UX, and final crypto/security sign-off remain open. The implementation and verification result is recorded in [`reports/batch-4c-storage-keystore-schema.md`](reports/batch-4c-storage-keystore-schema.md).

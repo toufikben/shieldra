@@ -84,3 +84,9 @@ The device/API test plan is recorded in [`PHASE4_DEVICE_TEST_MATRIX.md`](PHASE4_
 Batch 4b is **BLOCKED at preflight**. The active environment has no `adb`, no Android Emulator binary, no enumerated AVD, and no attached physical Android device. Therefore no device capability result is marked as passed. The exact checks, observations, and unblock requirements are recorded in [`reports/batch-4b-device-execution-preflight.md`](reports/batch-4b-device-execution-preflight.md).
 
 The storage adapter remains a separate Batch 4c and is still blocked by G4 schema, migration, crypto, Keystore, and backup decisions. No renumbering of this gate authorizes storage or platform implementation.
+
+## Batch 4c storage and Keystore candidate — 2026-09-23
+
+Batch 4c is **CANDIDATE IMPLEMENTATION COMPLETE / G4 STILL OPEN**. The repository now contains a versioned schema contract, explicit migration boundary, explicit encryption policy, and an Android Keystore-backed AES-GCM candidate with no software-key fallback. Deterministic schema/policy tests and the full local build, unit tests, lint, and debug assembly passed.
+
+The candidate is not wired into Room, DataStore, EventPipeline, evidence capture, or the application graph. No retention, deletion, export, key rotation, recovery, biometric policy, authentication UX, or backup restoration policy was invented. Production storage integration remains blocked until G4 approves the open schema, migration, corruption recovery, crypto, Keystore lifecycle, authentication binding, and backup decisions. See [`reports/batch-4c-storage-keystore-schema.md`](reports/batch-4c-storage-keystore-schema.md).

@@ -4,7 +4,7 @@
 **Branch:** `main`
 **Current HEAD:** `7deff0e65f56873c60fe38cf879fc5e8c5f30564`
 **Last observed remote CI:** `35784803191` (`success`)
-**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities remain gated while Batch 4a research is documented.
+**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities remain gated while Batch 4b device execution and G4 approvals are pending.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
 ## Operating rule
@@ -23,7 +23,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | Batch 2 screen states and PreviewData isolation | DONE | Commit `ef66c94` |
 | Runtime device visual/RTL/accessibility verification | UNKNOWN | No emulator or connected device available |
 | Phase 4 authority register | UPDATED | `docs/PHASE4_DECISION_REGISTER.md` |
-| Phase 4 production behavior | BLOCKED / CONTROLLED | Pure local EventPipeline is implemented; Batch 4a has research only; no Android security capability implemented |
+| Phase 4 production behavior | BLOCKED / CONTROLLED | Pure local EventPipeline and Batch 4c storage/Keystore candidate are present; no production storage integration or Android security capability is enabled |
 
 ## Gate status
 
@@ -33,7 +33,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | G1 — Protection rules | APPROVED FOR PURE CONTRACT CLOSURE | Encode approved Guard semantics in framework-free contracts/tests | Android feasibility, response, evidence, and API limitations |
 | G2 — Evidence/privacy | APPROVED PRINCIPLE / DETAILS BLOCKED | Maintain minimum post-confirmation evidence contracts and matrices | Capture, consent, retention, deletion, export, redaction, crypto |
 | G3 — Android monitoring | APPROVED PRINCIPLE / DETAILS BLOCKED | Batch 4a research and device matrix only | Service, permissions, device evidence, Doze/OEM/recovery |
-| G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Define pure repository contracts and storage proposal | Schema, migrations, crypto, Keystore, backup, auth |
+| G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Reviewable schema and Keystore candidate exists; no production wiring | Schema/migration approval, corruption recovery, crypto/Keystore lifecycle, backup, auth |
 | G5 — External services | DEFERRED | Keep provider interfaces only where already justified | Cloud, delivery, billing, ads, analytics, backend |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit |
 | G7 — Implementation | READY FOR CONTROLLED PURE BATCHES | Batch 3 local EventPipeline is authorized and implemented | Sequential platform capabilities remain gated |
@@ -54,11 +54,11 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ### Phase 4 — Protection Architecture
 
-**Status:** IN PROGRESS — pure/local architecture implemented; Batch 4a research complete; platform production behavior remains gated.
+**Status:** IN PROGRESS — pure/local architecture and Batch 4c storage/Keystore candidate implemented; platform and production storage behavior remain gated.
 
 **Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices.
 
-**Remaining:** device execution evidence, capability-specific approvals, evidence/privacy details, storage/crypto details, and platform adapters. Batch 4b preflight is blocked because no ADB, emulator, AVD, or physical device is available in the active environment.
+**Remaining:** device execution evidence, G4 approval details, capability-specific approvals, evidence/privacy details, and platform adapters. Batch 4b preflight is blocked because no ADB, emulator, AVD, or physical device is available in the active environment.
 
 **Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
@@ -104,7 +104,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 3 | Local/in-memory `EventPipeline`: canonical EventId idempotency, EXPIRED lifecycle, coordinator/repository split, persisted-stage resume, per-event expiry, sequential per-event processing | Batch 2; approved Batch 3 decisions | DONE — `f6f637b` |
 | 4a | Android capability research and device matrix | G3 review; no production behavior | RESEARCH COMPLETE — DEVICE EXECUTION PENDING |
 | 4b | Execute device/API matrix and collect runtime evidence | Batch 4a; ADB/AVD or physical devices | BLOCKED — NO DEVICE OR AVD AVAILABLE |
-| 4c | Storage adapter | G4 schema/crypto/migration approval | BLOCKED |
+| 4c | Versioned schema and Keystore candidate; no production wiring | G4 review; no silent crypto or retention decisions | CANDIDATE COMPLETE — BUILD/TEST PASS; G4 STILL OPEN |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
@@ -112,4 +112,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Batch 4b — Device execution evidence** is blocked at preflight: the active environment has no `adb`, emulator binary, AVD, or attached physical device. No runtime capability result is claimed. Once a device environment is available, execute one capability at a time using [`docs/PHASE4_DEVICE_TEST_MATRIX.md`](PHASE4_DEVICE_TEST_MATRIX.md) and record evidence before opening any platform adapter.
+**Batch 4c — Storage and Keystore candidate** is locally verified with `clean testDebugUnitTest lintDebug assembleDebug`. It remains a reviewable candidate, not production storage: no Room/DataStore wiring, retention policy, key lifecycle, or authentication policy was invented. Batch 4b device execution remains blocked until a device environment is available.
