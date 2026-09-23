@@ -86,6 +86,12 @@ This is a pure contract only. It does not provision a device administrator,
 observe Android callbacks, infer callbacks from lifecycle events, or claim
 that any device capability is available.
 
+Pure integration coverage is also recorded in
+`app/src/test/kotlin/com/shieldra/detection/LockGuardBoundaryIntegrationTest.kt`.
+It verifies that two verified callbacks within the approved window produce one
+HIGH event through `DefaultProtectionStateEngine`, while an unavailable
+capability stops before the engine.
+
 ## Exit criteria for implementation
 
 Lock Guard may move from preparation to a platform implementation batch only after:
