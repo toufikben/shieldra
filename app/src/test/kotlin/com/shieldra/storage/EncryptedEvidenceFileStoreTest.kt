@@ -31,6 +31,20 @@ class EncryptedEvidenceFileStoreTest {
     }
 
     @Test
+    fun symlink_payload_is_not_read_as_evidence() {
+        val directory = Files.createTempDirectory("shieldra-evidence").toFile()
+        val outside = Files.createTempFile("shieldra-outside", ".payload")
+        outside.toFile().writeBytes(byteArrayOf(0x01, 0x73))
+        val store = EncryptedEvidenceFileStore(directory, PrefixCipher)
+        Files.createSymbolicLink(
+            directory.resolve("evidence-1.shieldra").toPath(),
+            outside,
+        )
+
+        assertFailsWith<EvidenceUnavailableException> { store.read("evidence-1") }
+    }
+
+    @Test
     fun missing_payload_is_unavailable_and_path_traversal_is_rejected() {
         val directory = Files.createTempDirectory("shieldra-evidence").toFile()
         val store = EncryptedEvidenceFileStore(directory, PrefixCipher)

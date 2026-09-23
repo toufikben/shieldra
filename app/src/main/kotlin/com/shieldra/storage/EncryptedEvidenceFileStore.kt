@@ -7,6 +7,7 @@ import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import java.nio.file.LinkOption.NOFOLLOW_LINKS
 
 interface EvidenceCipher {
     fun encrypt(plaintext: ByteArray): ByteArray
@@ -45,9 +46,11 @@ data class EvidenceReconciliationReport(
  * returned as evidence and any decode/authentication failure is unavailable.
  */
 class EncryptedEvidenceFileStore(
-    private val rootDirectory: File,
+    rootDirectory: File,
     private val cipher: EvidenceCipher,
 ) {
+    private val rootDirectory: File = rootDirectory.canonicalFile
+
     init {
         require(rootDirectory.exists() || rootDirectory.mkdirs()) {
             "Unable to create evidence directory"
@@ -81,7 +84,9 @@ class EncryptedEvidenceFileStore(
     fun read(evidenceId: String): ByteArray {
         validateEvidenceId(evidenceId)
         val file = fileFor(evidenceId)
-        if (!file.isFile) throw EvidenceUnavailableException("Evidence file is missing: $evidenceId")
+        if (!Files.isRegularFile(file.toPath(), NOFOLLOW_LINKS)) {
+            throw EvidenceUnavailableException("Evidence file is missing or is a symlink: $evidenceId")
+        }
         return try {
             cipher.decrypt(file.readBytes())
         } catch (error: Exception) {
@@ -97,7 +102,7 @@ class EncryptedEvidenceFileStore(
     fun orphanedEvidence(referencedIds: Set<String>): Set<String> = rootDirectory
         .listFiles()
         .orEmpty()
-        .filter { it.isFile && it.name.endsWith(FILE_SUFFIX) }
+        .filter { Files.isRegularFile(it.toPath(), NOFOLLOW_LINKS) && it.name.endsWith(FILE_SUFFIX) }
         .map { it.name.removeSuffix(FILE_SUFFIX) }
         .filterNot(referencedIds::contains)
         .toSet()
@@ -106,7 +111,7 @@ class EncryptedEvidenceFileStore(
         referencedIds.forEach(::validateEvidenceId)
         val existingIds = rootDirectory.listFiles()
             .orEmpty()
-            .filter { it.isFile && it.name.endsWith(FILE_SUFFIX) }
+            .filter { Files.isRegularFile(it.toPath(), NOFOLLOW_LINKS) && it.name.endsWith(FILE_SUFFIX) }
             .map { it.name.removeSuffix(FILE_SUFFIX) }
             .toSet()
         val orphaned = existingIds - referencedIds

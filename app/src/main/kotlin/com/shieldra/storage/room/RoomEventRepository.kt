@@ -29,24 +29,32 @@ class RoomEventRepository(
     override fun save(event: SecurityEvent): RepositoryResult {
         val entity = event.toEntity(now = clock.instant())
         var inserted = false
-        database.runInTransaction {
-            inserted = events.insert(entity) != -1L
-            if (inserted) {
-                event.evidenceReferences.forEach { reference ->
-                    evidence.insert(
-                        EvidenceReferenceEntity(
-                            evidenceId = reference.id,
-                            eventId = event.id.value.toString(),
-                            kind = "UNSPECIFIED",
-                            contentReference = null,
-                            capturedAtEpochMs = null,
-                        ),
-                    )
-                }
-                event.deliveryInformation.forEachIndexed { index, information ->
-                    delivery.insert(information.toEntity(event.id.value.toString(), index))
+        try {
+            database.runInTransaction {
+                inserted = events.insert(entity) != -1L
+                if (inserted) {
+                    event.evidenceReferences.forEach { reference ->
+                        check(
+                            evidence.insert(
+                                EvidenceReferenceEntity(
+                                    evidenceId = reference.id,
+                                    eventId = event.id.value.toString(),
+                                    kind = "UNSPECIFIED",
+                                    contentReference = null,
+                                    capturedAtEpochMs = null,
+                                ),
+                            ) != -1L,
+                        ) { "Evidence reference collision: ${reference.id}" }
+                    }
+                    event.deliveryInformation.forEachIndexed { index, information ->
+                        check(
+                            delivery.insert(information.toEntity(event.id.value.toString(), index)) != -1L,
+                        ) { "Delivery attempt collision: ${event.id.value}:$index" }
+                    }
                 }
             }
+        } catch (error: IllegalStateException) {
+            return RepositoryResult.Rejected(error.message ?: "Child row persistence failed")
         }
         return if (inserted) RepositoryResult.Applied else RepositoryResult.AlreadyExists
     }
