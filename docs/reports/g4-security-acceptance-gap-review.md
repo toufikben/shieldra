@@ -89,3 +89,7 @@ The owner does **not** need to approve the existence of the current candidate co
 - [`PHASE4_DEVICE_TEST_MATRIX.md`](../PHASE4_DEVICE_TEST_MATRIX.md)
 - [`ROADMAP.md`](../ROADMAP.md)
 - [`SHIELDRA_DECISIONS.md`](../../SHIELDRA_DECISIONS.md)
+
+## G4-A response
+
+The supplied G4 Security Storage Decision Freeze is now represented by a conservative decision package under [`../security/`](../security/). The package includes the data inventory, consolidated schema/migration/lifecycle/backup/crypto/key/authentication/corruption proposals, Android verification checklist, focused threat model, and final acceptance checklist. The package converts the gaps into reviewable decisions but intentionally leaves all concrete policies **PROPOSED — REQUIRES APPROVAL**. G4 remains closed until implementation, device evidence, and owner/security/privacy sign-off are complete.

@@ -94,3 +94,9 @@ The candidate is not wired into Room, DataStore, EventPipeline, evidence capture
 ## G4 security acceptance gap review — 2026-09-23
 
 The G4 acceptance review is **COMPLETE AS GAP ANALYSIS / NOT ACCEPTED FOR CLOSURE**. The review records 18 closure requirements. Batch 4c provides a locally verified schema and Keystore candidate, but production integration remains blocked by unresolved data lifecycle, migration, corruption recovery, key lifecycle, authentication binding, hardware-backed, runtime-device, threat-model, and security/privacy sign-off requirements. The full checklist is in [`reports/g4-security-acceptance-gap-review.md`](reports/g4-security-acceptance-gap-review.md).
+
+## G4-A conservative decision set — 2026-09-23
+
+The supplied G4 Security Storage Decision Freeze is now recorded as the controlling instruction for the next decision/documentation stage. The data inventory, consolidated schema/migration/lifecycle/backup/crypto/key/authentication/corruption decision set, Android verification checklist, threat model, and acceptance checklist are available under `docs/security/`.
+
+All concrete values remain **PROPOSED — REQUIRES APPROVAL**. Items marked implementation or device verification required remain open. This package makes the next safe implementation batches concrete but does not authorize production Room, file storage, key lifecycle, authentication behavior, or security claims. G4 remains **APPROVED DIRECTION / DETAILS BLOCKED**.

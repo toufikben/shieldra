@@ -55,3 +55,15 @@ The following seven decisions are **APPROVED** for the first local/in-memory Eve
 7. **Initial implementation:** Implement the first pipeline locally/in-memory behind clean repository interfaces. Room remains the planned future repository for events, history, pipeline state, metadata, and idempotency tracking; DataStore remains for lightweight preferences; sensitive evidence remains intended for encrypted files rather than raw Room blobs.
 
 These approvals authorize the pure/local Batch 3 architecture only. They do not authorize Room, Android services, evidence capture, encryption implementation, network delivery, providers, billing, ads, or production monitoring claims.
+
+## G4-A conservative decision set — 2026-09-23
+
+The supplied G4 Security Storage Decision Freeze is accepted as the current process authority for converting gaps into explicit proposals. The following documents are now available for review:
+
+- [`docs/security/g4-data-inventory.md`](docs/security/g4-data-inventory.md)
+- [`docs/security/g4-a-decision-set.md`](docs/security/g4-a-decision-set.md)
+- [`docs/security/g4-android-verification-checklist.md`](docs/security/g4-android-verification-checklist.md)
+- [`docs/security/g4-threat-model.md`](docs/security/g4-threat-model.md)
+- [`docs/security/g4-acceptance-checklist.md`](docs/security/g4-acceptance-checklist.md)
+
+These documents are **PROPOSED — REQUIRES APPROVAL**. They do not approve Room wiring, production storage, retention durations, export, key lifecycle, authentication binding, or Android runtime behavior. Any item requiring implementation or device verification remains explicitly open. G4 remains **APPROVED DIRECTION / DETAILS BLOCKED**.

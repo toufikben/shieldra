@@ -4,7 +4,7 @@
 **Branch:** `main`
 **Current HEAD:** `d58f3cf78ed2085f1840c8033c4d17714640fa6f`
 **Last observed remote CI:** `35816089777` (`in_progress` at the last audit)
-**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities remain gated while Batch 4b device execution and G4 approvals are pending. G4 gap analysis is now recorded.
+**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities remain gated while Batch 4b device execution and G4 approvals are pending. G4 gap analysis and the G4-A conservative decision set are now recorded.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
 ## Operating rule
@@ -33,7 +33,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | G1 — Protection rules | APPROVED FOR PURE CONTRACT CLOSURE | Encode approved Guard semantics in framework-free contracts/tests | Android feasibility, response, evidence, and API limitations |
 | G2 — Evidence/privacy | APPROVED PRINCIPLE / DETAILS BLOCKED | Maintain minimum post-confirmation evidence contracts and matrices | Capture, consent, retention, deletion, export, redaction, crypto |
 | G3 — Android monitoring | APPROVED PRINCIPLE / DETAILS BLOCKED | Batch 4a research and device matrix only | Service, permissions, device evidence, Doze/OEM/recovery |
-| G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Reviewable schema and Keystore candidate plus 18-point gap review | Schema/migration approval, data/key lifecycle, corruption recovery, runtime evidence, threat model, sign-off |
+| G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Reviewable schema/Keystore candidate, 18-point gap review, and G4-A proposals | Owner/security approval, implementation evidence, data/key lifecycle, recovery, runtime evidence, threat model, sign-off |
 | G5 — External services | DEFERRED | Keep provider interfaces only where already justified | Cloud, delivery, billing, ads, analytics, backend |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit |
 | G7 — Implementation | READY FOR CONTROLLED PURE BATCHES | Batch 3 local EventPipeline is authorized and implemented | Sequential platform capabilities remain gated |
@@ -112,4 +112,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**G4 security acceptance gap review** is complete and recorded in [`docs/reports/g4-security-acceptance-gap-review.md`](reports/g4-security-acceptance-gap-review.md). It identifies 18 closure requirements. Batch 4c remains locally verified but is not production storage; Batch 4b device execution and G4 policy/sign-off remain blocked.
+**G4-A — Conservative decision set** is now documented under [`docs/security/`](security/). It converts the remaining gaps into proposed, reviewable policies without opening G4. Batch 4c remains locally verified but is not production storage; Batch 4b device execution, owner/security approval, and implementation evidence remain blocked.
