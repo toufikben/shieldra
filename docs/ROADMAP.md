@@ -3,7 +3,7 @@
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
 **Current HEAD:** `origin/main` (the exact commit is the repository’s current remote tip; this self-referential document intentionally avoids recording its own changing hash)
-**Remote CI evidence:** run `35886198586` for implementation commit `b9d56fa` is currently `in_progress`; no success is claimed before completion. The preceding runs for `d73f81d`, `2cf0cb2`, and `3c7b39d` failed during Kotlin compilation because override methods incorrectly declared default parameter values. The latest completed baseline run before that series was `35826925039` (`success`).
+**Remote CI evidence:** run `35886198586` for implementation commit `b9d56fa` completed `success`. Its logs confirm `test`, `lint`, `assembleDebug`, Group C boundary scan, and Phase 3 static review passed; its Gradle output also shows `preDebugAndroidTestBuild SKIPPED`, so it did not compile instrumented tests. CI was corrected in `2760107` to run `assembleDebugAndroidTest`; run `35886254375` for the documentation commit was still `in_progress` at the last verification, and no result is claimed for the newer `2760107` run yet.
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
@@ -11,7 +11,9 @@
 
 **Current audit batch:** expiration is now part of the domain `SecurityEvent` and is preserved by InMemory and Room state persistence, including database reopen coverage. The Phase 3 Lock Guard screen now displays the fixed approved value of two failed attempts within two minutes; unapproved Battery Emergency and seven-day retention demo claims were removed. This batch does not add Android adapters, production evidence capture, retention policy, or G4 approval.
 
-**4d-7 audit correction:** the first remote CI attempt exposed a real Kotlin compilation defect in the two repository overrides. It was fixed in `b9d56fa`. The audit also closed a backup-boundary gap by rejecting caller-provided evidence paths outside `noBackupFilesDir`. CI and instrumented execution remain unconfirmed until run `35886198586` completes.
+**4d-7 audit correction:** the first remote CI attempt exposed a real Kotlin compilation defect in the two repository overrides. It was fixed in `b9d56fa`. The audit also closed a backup-boundary gap by rejecting caller-provided evidence paths outside `noBackupFilesDir`. The implementation CI run passed, but instrumented test compilation and device execution remain unconfirmed until the corrected workflow completes.
+
+**CI coverage correction:** the successful `b9d56fa` run did not compile AndroidTest sources because the workflow invoked `assembleDebug` only. Commit `2760107` adds `assembleDebugAndroidTest`; instrumented test compilation and device execution remain pending until its remote run completes.
 
 ## Operating rule
 
@@ -123,6 +125,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d+-local-hardening | Evidence-file deletion/quarantine failure handling, terminal pipeline idempotency, focused JVM tests | Existing local storage and Batch 3 contracts | COMPLETE LOCALLY — commit `309ac37`; Gradle re-run BLOCKED BY MISSING ANDROID SDK |
 | 4d+-expiration-lock-ui | Domain/Room expiration consistency, fixed Lock Guard presentation, removal of unapproved demo policy claims, focused tests | Existing 4d storage boundary and approved Lock decisions | COMPLETE LOCALLY — implementation `ae52dd9`; G4 remains open |
 | 4d-7-correction | Fix CI-discovered override compilation error and enforce `noBackupFilesDir` evidence boundary | 4d-7 audit; no runtime approval | IMPLEMENTED — `b9d56fa`; CI `35886198586` in progress; G4 remains open |
+| 4d-7-ci-coverage | Compile instrumented AndroidTest sources in the reproducible CI workflow | 4d-7 audit evidence | IMPLEMENTED — `2760107`; CI result pending; device execution remains blocked |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
