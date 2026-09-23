@@ -10,10 +10,12 @@ pass() { echo "PASS: $1"; }
 [ "$(grep -c 'android:allowBackup="false"' app/src/main/AndroidManifest.xml)" -eq 1 ] || fail "application backup is not disabled"
 pass "application-level backup disabled"
 
-grep -q '<exclude domain="database" path="."' app/src/main/res/xml/data_extraction_rules.xml || fail "database cloud-backup exclusion missing"
-grep -q '<exclude domain="file" path="."' app/src/main/res/xml/data_extraction_rules.xml || fail "file cloud-backup exclusion missing"
-grep -q '<exclude domain="database" path="."' app/src/main/res/xml/data_extraction_rules.xml || fail "database device-transfer exclusion missing"
-grep -q '<exclude domain="file" path="."' app/src/main/res/xml/data_extraction_rules.xml || fail "file device-transfer exclusion missing"
+cloud_backup_block="$(sed -n '/<cloud-backup>/,/<\/cloud-backup>/p' app/src/main/res/xml/data_extraction_rules.xml)"
+device_transfer_block="$(sed -n '/<device-transfer>/,/<\/device-transfer>/p' app/src/main/res/xml/data_extraction_rules.xml)"
+grep -q '<exclude domain="database" path="\."' <<<"$cloud_backup_block" || fail "database cloud-backup exclusion missing"
+grep -q '<exclude domain="file" path="\."' <<<"$cloud_backup_block" || fail "file cloud-backup exclusion missing"
+grep -q '<exclude domain="database" path="\."' <<<"$device_transfer_block" || fail "database device-transfer exclusion missing"
+grep -q '<exclude domain="file" path="\."' <<<"$device_transfer_block" || fail "file device-transfer exclusion missing"
 pass "database and file backup/transfer exclusions present"
 
 grep -q 'context.noBackupFilesDir' app/src/main/kotlin/com/shieldra/storage/LocalStorageFactory.kt || fail "evidence directory is not under noBackupFilesDir"
@@ -24,7 +26,9 @@ if rg -n 'LocalShieldraStorage\.create' app/src/main/kotlin/com/shieldra/app app
 fi
 pass "local storage factory is not auto-wired into app graph"
 
-grep -q 'androidx.room.room' gradle/libs.versions.toml || true
+grep -q '^room = ' gradle/libs.versions.toml || fail "Room version is not declared"
+grep -q '^androidx-room-runtime' gradle/libs.versions.toml || fail "Room runtime catalog entry is missing"
+grep -q '^androidx-room-compiler' gradle/libs.versions.toml || fail "Room compiler catalog entry is missing"
 [ -s app/schemas/com.shieldra.storage.room.ShieldraDatabase/1.json ] || fail "Room schema export missing"
 grep -q '"foreignKeys"' app/schemas/com.shieldra.storage.room.ShieldraDatabase/1.json || fail "Room schema foreign-key evidence missing"
 pass "Room schema export and foreign-key evidence present"
