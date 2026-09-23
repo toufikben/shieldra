@@ -3,17 +3,19 @@
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
 **Current HEAD:** `origin/main` (the exact commit is the repository’s current remote tip; this self-referential document intentionally avoids recording its own changing hash)
-**Remote CI evidence:** run `35886198586` for implementation commit `b9d56fa` completed `success`. Its logs confirm `test`, `lint`, `assembleDebug`, Group C boundary scan, and Phase 3 static review passed; its Gradle output also shows `preDebugAndroidTestBuild SKIPPED`, so it did not compile instrumented tests. CI was corrected in `2760107` to run `assembleDebugAndroidTest`; run `35886254375` for the documentation commit was still `in_progress` at the last verification, and no result is claimed for the newer `2760107` run yet.
+**Remote CI evidence:** runs `35886198586` (`b9d56fa`), `35886895480` (`2760107`), and `35886951932` (`1519701`) completed `success`. The corrected workflow now compiles `assembleDebugAndroidTest`; no run executes connected device tests. Domain batch `191b049` has run `35888768082`, currently `queued`.
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
-**Latest local implementation batch:** `b9d56fa` corrects the Kotlin override compilation error and enforces that the evidence directory remains inside `Context.noBackupFilesDir`, with instrumented coverage. Gradle verification is delegated to run `35886198586`; no Android runtime or device claim is made.
+**Latest local implementation batch:** `191b049` hardens approved pure-domain semantics: Motion repetition now requires an explicit ten-second window, Lock ignores future/out-of-order observations, the pure engine serializes evaluation, and EventPipeline validates deferred stages, rechecks expiration before commits, and reports failed persistence instead of claiming terminal failure. Local Gradle tests are blocked by missing Android SDK; remote run `35888768082` is authoritative and pending.
 
 **Current audit batch:** expiration is now part of the domain `SecurityEvent` and is preserved by InMemory and Room state persistence, including database reopen coverage. The Phase 3 Lock Guard screen now displays the fixed approved value of two failed attempts within two minutes; unapproved Battery Emergency and seven-day retention demo claims were removed. This batch does not add Android adapters, production evidence capture, retention policy, or G4 approval.
 
-**4d-7 audit correction:** the first remote CI attempt exposed a real Kotlin compilation defect in the two repository overrides. It was fixed in `b9d56fa`. The audit also closed a backup-boundary gap by rejecting caller-provided evidence paths outside `noBackupFilesDir`. The implementation CI run passed, but instrumented test compilation and device execution remain unconfirmed until the corrected workflow completes.
+**4d-7 audit correction:** the first remote CI attempt exposed a real Kotlin compilation defect in the two repository overrides. It was fixed in `b9d56fa`. The audit also closed a backup-boundary gap by rejecting caller-provided evidence paths outside `noBackupFilesDir`. Implementation and instrumented-test compilation runs passed; device execution remains unconfirmed.
 
-**CI coverage correction:** the successful `b9d56fa` run did not compile AndroidTest sources because the workflow invoked `assembleDebug` only. Commit `2760107` adds `assembleDebugAndroidTest`; instrumented test compilation and device execution remain pending until its remote run completes.
+**CI coverage correction:** the successful `b9d56fa` run did not compile AndroidTest sources because the workflow invoked `assembleDebug` only. Commit `2760107` adds `assembleDebugAndroidTest`, and run `35886895480` passed. Instrumented compilation is now verified; device execution remains blocked.
+
+**Pure-domain correction:** commit `191b049` fixes four verified logic gaps found by adversarial review: unbounded Motion repetition counts, out-of-order Lock timestamps, unsynchronized pure-engine state, and unsafe Pipeline resume/expiry/failure persistence behavior. Android adapters and runtime behavior remain deliberately deferred.
 
 ## Operating rule
 
@@ -124,8 +126,9 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d+-lock-pure-integration | Verified callback boundary to pure ProtectionStateEngine integration tests | 4d+-lock-prep; no Android APIs | COMPLETE LOCALLY — DEVICE/ADAPTER EVIDENCE PENDING |
 | 4d+-local-hardening | Evidence-file deletion/quarantine failure handling, terminal pipeline idempotency, focused JVM tests | Existing local storage and Batch 3 contracts | COMPLETE LOCALLY — commit `309ac37`; Gradle re-run BLOCKED BY MISSING ANDROID SDK |
 | 4d+-expiration-lock-ui | Domain/Room expiration consistency, fixed Lock Guard presentation, removal of unapproved demo policy claims, focused tests | Existing 4d storage boundary and approved Lock decisions | COMPLETE LOCALLY — implementation `ae52dd9`; G4 remains open |
-| 4d-7-correction | Fix CI-discovered override compilation error and enforce `noBackupFilesDir` evidence boundary | 4d-7 audit; no runtime approval | IMPLEMENTED — `b9d56fa`; CI `35886198586` in progress; G4 remains open |
-| 4d-7-ci-coverage | Compile instrumented AndroidTest sources in the reproducible CI workflow | 4d-7 audit evidence | IMPLEMENTED — `2760107`; CI result pending; device execution remains blocked |
+| 4d-7-correction | Fix CI-discovered override compilation error and enforce `noBackupFilesDir` evidence boundary | 4d-7 audit; no runtime approval | IMPLEMENTED — `b9d56fa`; CI `35886198586` success; G4 remains open |
+| 4d-7-ci-coverage | Compile instrumented AndroidTest sources in the reproducible CI workflow | 4d-7 audit evidence | IMPLEMENTED — `2760107`; CI `35886895480` success; device execution remains blocked |
+| 4d-domain-hardening | Enforce approved Motion/Lock semantics and fail-closed EventPipeline stage persistence | Pure domain authorization; no Android runtime | IMPLEMENTED — `191b049`; CI `35888768082` queued; local SDK unavailable; Android/runtime work deferred |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
