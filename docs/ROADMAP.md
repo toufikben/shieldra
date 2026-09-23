@@ -2,12 +2,12 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `309ac377da63e278ec4db4c3602de316ef1637f1` (`fix: harden local evidence cleanup and pipeline idempotency`, 2026-09-23)
+**Current HEAD:** `ae52dd93724cf91fafa8853ef09715ef829619ca` (`fix: preserve event expiration and align lock demo`, 2026-09-23)
 **Last observed remote CI:** `35822665474` (`Group A diagnostics`, `completed` / `success`, observed 2026-09-23 05:30:11Z–05:36:33Z on `main`; [run](https://github.com/toufikben/shieldra/actions/runs/35822665474))
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
-**Latest local implementation batch:** `309ac37` completed JVM-safe hardening for evidence-file cleanup/quarantine and terminal EventPipeline idempotency. Gradle verification remains **BLOCKED BY MISSING ANDROID SDK** in the current environment; no Android runtime or device claim is made.
+**Latest local implementation batch:** `ae52dd9` preserves event expiration across domain, InMemory, Room, and database reopen paths while aligning the Lock Guard demo with approved semantics. Gradle verification remains **BLOCKED BY MISSING ANDROID SDK** in the current environment; no Android runtime or device claim is made.
 
 **Current audit batch:** expiration is now part of the domain `SecurityEvent` and is preserved by InMemory and Room state persistence, including database reopen coverage. The Phase 3 Lock Guard screen now displays the fixed approved value of two failed attempts within two minutes; unapproved Battery Emergency and seven-day retention demo claims were removed. This batch does not add Android adapters, production evidence capture, retention policy, or G4 approval.
 
