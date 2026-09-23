@@ -1,8 +1,8 @@
 # Batch 4d-7 — G4-B Local Closure Audit
 
 **Date:** 2026-09-23  
-**Commit under review:** generated during this batch  
-**Status:** **LOCAL REVIEW PREPARED — RUNTIME/SECURITY ACCEPTANCE STILL OPEN**
+**Commit under review:** `b9d56fa` (`fix: enforce storage boundary and compile overrides`)  
+**Status:** **IMPLEMENTED — CI/INSTRUMENTED VERIFICATION PENDING; RUNTIME/SECURITY ACCEPTANCE STILL OPEN**
 
 ## Scope
 
@@ -33,6 +33,8 @@ The check ends with `G4-B LOCAL REVIEW PASS` only when all local assertions pass
 | Backup | Manifest disables backup; extraction rules exclude database/file/shared-preference domains | Configuration evidence; runtime verification still required |
 | Key boundary | Android Keystore candidate has no software fallback | Source evidence; device verification still required |
 | Application wiring | `LocalShieldraStorage` is explicit and not auto-installed from `Application` | Scope-control evidence |
+| Backup boundary | Factory now rejects evidence directories outside `Context.noBackupFilesDir` | Local source/test evidence; runtime verification still required |
+| CI correction | Remote CI exposed default parameters on two `override` methods; removed in `b9d56fa` | Code correction; run `35886198586` is pending |
 | Device runtime | No `adb`, emulator, AVD, or device is available | BLOCKED |
 
 ## Non-claims
