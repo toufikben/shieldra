@@ -8,6 +8,7 @@ class DefaultProtectionStateEngine : ProtectionStateEngine {
     private val lockFailures = mutableListOf<Instant>()
     private var lastLockConfirmationAt: Instant? = null
 
+    @Synchronized
     override fun evaluate(
         signal: GuardSignal,
         clock: Clock,
@@ -50,7 +51,8 @@ class DefaultProtectionStateEngine : ProtectionStateEngine {
         lockFailures.removeAll { elapsed(now, it) >= ApprovedGuardRules.lockCounterResetWindow }
         lockFailures += signal.observedAt
         val recentFailures = lockFailures.count {
-            elapsed(signal.observedAt, it) <= ApprovedGuardRules.lockConfirmationWindow
+            !it.isAfter(signal.observedAt) &&
+                elapsed(signal.observedAt, it) <= ApprovedGuardRules.lockConfirmationWindow
         }
         if (recentFailures < ApprovedGuardRules.lockAttemptsToConfirm) {
             return GuardEvaluation(GuardConfirmation(GuardConfirmationStatus.SIGNAL_ONLY))
@@ -74,8 +76,10 @@ class DefaultProtectionStateEngine : ProtectionStateEngine {
                 ),
             )
         }
-        val confirmed = motion.duration >= ApprovedGuardRules.motionStrongDuration ||
-            motion.suspiciousOccurrences >= ApprovedGuardRules.motionOccurrencesToConfirm
+        val repeatedWithinWindow = motion.suspiciousOccurrences >= ApprovedGuardRules.motionOccurrencesToConfirm &&
+            motion.suspiciousOccurrencesWithin != null &&
+            motion.suspiciousOccurrencesWithin <= ApprovedGuardRules.motionRepetitionWindow
+        val confirmed = motion.duration >= ApprovedGuardRules.motionStrongDuration || repeatedWithinWindow
         return if (confirmed) {
             confirmed(signal, GuardSeverity.HIGH, identityProvider)
         } else {

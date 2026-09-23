@@ -85,6 +85,17 @@ class ProtectionStateEngineTest {
     }
 
     @Test
+    fun out_of_order_lock_observation_does_not_confirm_against_a_future_failure() {
+        val engine = DefaultProtectionStateEngine()
+        engine.evaluate(lockSignal(start.plusSeconds(60)), clock, identities)
+
+        val result = engine.evaluate(lockSignal(start), clock, identities)
+
+        assertEquals(GuardConfirmationStatus.SIGNAL_ONLY, result.confirmation.status)
+        assertNull(result.event)
+    }
+
+    @Test
     fun lock_guard_rejects_wrong_observation_shape_without_creating_an_event() {
         val engine = DefaultProtectionStateEngine()
         val result = engine.evaluate(
@@ -108,7 +119,11 @@ class ProtectionStateEngineTest {
             GuardSignal(
                 GuardKind.MOTION,
                 start,
-                GuardObservation.Motion(Duration.ofSeconds(5), 1, SensorQuality.NOISY),
+                GuardObservation.Motion(
+                    duration = Duration.ofSeconds(5),
+                    suspiciousOccurrences = 1,
+                    sensorQuality = SensorQuality.NOISY,
+                ),
             ),
             clock,
             identities,
@@ -119,12 +134,52 @@ class ProtectionStateEngineTest {
             GuardSignal(
                 GuardKind.MOTION,
                 start,
-                GuardObservation.Motion(ApprovedGuardRules.motionStrongDuration, 0, SensorQuality.VALID),
+                GuardObservation.Motion(
+                    duration = ApprovedGuardRules.motionStrongDuration,
+                    suspiciousOccurrences = 0,
+                    sensorQuality = SensorQuality.VALID,
+                ),
             ),
             clock,
             identities,
         )
         assertEquals(GuardConfirmationStatus.CONFIRMED, persistent.confirmation.status)
+    }
+
+    @Test
+    fun motion_repetition_requires_two_valid_occurrences_within_ten_seconds() {
+        val engine = DefaultProtectionStateEngine()
+        val confirmed = engine.evaluate(
+            GuardSignal(
+                GuardKind.MOTION,
+                start,
+                GuardObservation.Motion(
+                    duration = Duration.ZERO,
+                    suspiciousOccurrences = 2,
+                    suspiciousOccurrencesWithin = ApprovedGuardRules.motionRepetitionWindow,
+                    sensorQuality = SensorQuality.VALID,
+                ),
+            ),
+            clock,
+            identities,
+        )
+        val outsideWindow = engine.evaluate(
+            GuardSignal(
+                GuardKind.MOTION,
+                start,
+                GuardObservation.Motion(
+                    duration = Duration.ZERO,
+                    suspiciousOccurrences = 2,
+                    suspiciousOccurrencesWithin = ApprovedGuardRules.motionRepetitionWindow.plusNanos(1),
+                    sensorQuality = SensorQuality.VALID,
+                ),
+            ),
+            clock,
+            identities,
+        )
+
+        assertEquals(GuardConfirmationStatus.CONFIRMED, confirmed.confirmation.status)
+        assertEquals(GuardConfirmationStatus.SIGNAL_ONLY, outsideWindow.confirmation.status)
     }
 
     @Test

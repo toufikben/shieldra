@@ -32,10 +32,14 @@ sealed interface GuardObservation {
         val duration: Duration,
         val suspiciousOccurrences: Int,
         val sensorQuality: SensorQuality,
+        val suspiciousOccurrencesWithin: Duration? = null,
     ) : GuardObservation {
         init {
             require(!duration.isNegative) { "Motion duration cannot be negative" }
             require(suspiciousOccurrences >= 0) { "Motion occurrences cannot be negative" }
+            require(suspiciousOccurrencesWithin?.isNegative != true) {
+                "Motion occurrence window cannot be negative"
+            }
         }
     }
 

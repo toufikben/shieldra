@@ -111,6 +111,76 @@ class InMemoryEventPipelineTest {
     }
 
     @Test
+    fun deferred_event_with_unknown_stage_is_rejected_without_guessing_evidence() {
+        val repository = InMemoryEventRepository()
+        val event = event().withState(
+            EventState.DEFERRED,
+            mapOf("deferredStage" to "UNKNOWN"),
+        )
+        repository.save(event)
+
+        val result = InMemoryEventPipeline(repository).process(event.id)
+
+        val rejected = assertIs<PipelineResult.Rejected>(result)
+        assertEquals(PipelineFailureKind.INVALID_STATE, rejected.failure.kind)
+        assertEquals(EventState.DEFERRED, repository.find(event.id)?.state)
+    }
+
+    @Test
+    fun event_expiring_during_evidence_does_not_advance_to_ready() {
+        val repository = InMemoryEventRepository()
+        val event = event()
+        repository.save(event)
+        var now = createdAt
+        val expiration = createdAt.plusSeconds(30)
+        val pipeline = InMemoryEventPipeline(
+            repository = repository,
+            evidence = EvidenceStage {
+                now = expiration.plusSeconds(1)
+                StageOutcome.Completed
+            },
+            now = { now },
+        )
+
+        pipeline.process(event.id, EventExpirationPolicy(expiration))
+        val result = pipeline.process(event.id, EventExpirationPolicy(expiration))
+
+        assertIs<PipelineResult.Expired>(result)
+        assertEquals(EventState.EXPIRED, repository.find(event.id)?.state)
+    }
+
+    @Test
+    fun failed_stage_is_rejected_when_terminal_failure_cannot_be_persisted() {
+        val base = InMemoryEventRepository()
+        val repository = object : EventRepository by base {
+            override fun updateState(
+                eventId: EventId,
+                expected: EventState,
+                next: EventState,
+                metadata: Map<String, String>?,
+                expiresAt: Instant?,
+            ): RepositoryResult = if (next == EventState.FAILED_FINAL) {
+                RepositoryResult.Rejected("injected persistence failure")
+            } else {
+                base.updateState(eventId, expected, next, metadata, expiresAt)
+            }
+        }
+        val event = event()
+        repository.save(event)
+        val pipeline = InMemoryEventPipeline(
+            repository = repository,
+            evidence = EvidenceStage { StageOutcome.Failed("invalid evidence") },
+        )
+
+        pipeline.process(event.id)
+        val result = pipeline.process(event.id)
+
+        val rejected = assertIs<PipelineResult.Rejected>(result)
+        assertEquals(PipelineFailureKind.INVALID_STATE, rejected.failure.kind)
+        assertEquals(EventState.COLLECTING, repository.find(event.id)?.state)
+    }
+
+    @Test
     fun evidence_failure_becomes_terminal_failure_not_expiration() {
         val repository = InMemoryEventRepository()
         val event = event()

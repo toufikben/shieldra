@@ -84,13 +84,17 @@ class InMemoryEventPipeline(
     }
 
     private fun resume(event: SecurityEvent, expiresAt: Instant?): PipelineResult = when {
+        event.metadata["deferredStage"] == PipelineStage.EVIDENCE.name -> runEvidence(event, expiresAt)
         event.metadata["deferredStage"] == PipelineStage.DELIVERY.name -> runDelivery(event, expiresAt)
-        else -> runEvidence(event, expiresAt)
+        else -> PipelineResult.Rejected(
+            PipelineFailure(PipelineFailureKind.INVALID_STATE, "Deferred event has no recognized stage"),
+        )
     }
 
     private fun runEvidence(event: SecurityEvent, expiresAt: Instant? = null): PipelineResult {
         return when (val outcome = evidence.execute(event)) {
             StageOutcome.Completed -> {
+                expiredIfNeeded(repository.find(event.id) ?: event, expiresAt)?.let { return it }
                 val updated = transitionAndRead(event, EventState.READY, expiresAt)
                 updated?.let { PipelineResult.Advanced(it, PipelineStage.EVIDENCE) }
                     ?: PipelineResult.Rejected(PipelineFailure(PipelineFailureKind.INVALID_STATE, "Evidence state update conflicted"))
@@ -105,6 +109,7 @@ class InMemoryEventPipeline(
             ?: return PipelineResult.Rejected(PipelineFailure(PipelineFailureKind.INVALID_STATE, "Delivery state update conflicted"))
         return when (val outcome = delivery.execute(delivering)) {
             StageOutcome.Completed -> {
+                expiredIfNeeded(repository.find(delivering.id) ?: delivering, expiresAt)?.let { return it }
                 val completed = transitionAndRead(delivering, EventState.DELIVERED, expiresAt)
                 completed?.let { PipelineResult.Advanced(it, PipelineStage.COMPLETED) }
                     ?: PipelineResult.Rejected(PipelineFailure(PipelineFailureKind.INVALID_STATE, "Completion state update conflicted"))
@@ -143,8 +148,26 @@ class InMemoryEventPipeline(
     }
 
     private fun fail(event: SecurityEvent, failure: PipelineFailure): PipelineResult {
-        repository.updateState(event.id, event.state, EventState.FAILED_FINAL, expiresAt = event.expiresAt)
+        val result = repository.updateState(event.id, event.state, EventState.FAILED_FINAL, expiresAt = event.expiresAt)
+        if (result !is RepositoryResult.Applied) {
+            return PipelineResult.Rejected(
+                PipelineFailure(PipelineFailureKind.INVALID_STATE, "Failed state update was not persisted"),
+            )
+        }
         return PipelineResult.Failed(repository.find(event.id) ?: event, failure)
+    }
+
+    private fun expiredIfNeeded(event: SecurityEvent, expiresAt: Instant?): PipelineResult? {
+        val effectiveExpiresAt = event.expiresAt ?: expiresAt
+        return if (event.state != EventState.DELIVERED &&
+            event.state != EventState.FAILED_FINAL &&
+            event.state != EventState.EXPIRED &&
+            effectiveExpiresAt != null && !now().isBefore(effectiveExpiresAt)
+        ) {
+            expire(event, effectiveExpiresAt)
+        } else {
+            null
+        }
     }
 
     private fun expire(event: SecurityEvent, expiresAt: Instant?): PipelineResult {
