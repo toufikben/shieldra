@@ -4,7 +4,7 @@
 **Branch:** `main`
 **Current HEAD:** `78db1eeea3e790377736e428bc52be8d46f08ef6`
 **Last observed remote CI:** `35816855075` (`success`, 2026-09-23)
-**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities remain gated while Batch 4b device execution and G4 approvals are pending. G4 gap analysis and the G4-A conservative decision set are now recorded.
+**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
 ## Operating rule
@@ -23,7 +23,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | Batch 2 screen states and PreviewData isolation | DONE | Commit `ef66c94` |
 | Runtime device visual/RTL/accessibility verification | UNKNOWN | No emulator or connected device available |
 | Phase 4 authority register | UPDATED | `docs/PHASE4_DECISION_REGISTER.md` |
-| Phase 4 production behavior | BLOCKED / CONTROLLED | Pure local EventPipeline and Batch 4c storage/Keystore candidate are present; no production storage integration or Android security capability is enabled |
+| Phase 4 production behavior | CONTROLLED / G4-B IN PROGRESS | Approved initial local storage policy; Room/file adapter and persistence tests are authorized; Android runtime verification and production security approval remain disabled |
 
 ## Gate status
 
@@ -54,15 +54,15 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ### Phase 4 — Protection Architecture
 
-**Status:** IN PROGRESS — pure/local architecture and Batch 4c storage/Keystore candidate implemented; platform and production storage behavior remain gated.
+**Status:** IN PROGRESS — G4-B local storage implementation authorized under the initial conservative policy; platform/runtime and production behavior remain gated.
 
 **Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices.
 
-**Remaining:** device execution evidence, G4 approval details, capability-specific approvals, evidence/privacy details, and platform adapters. Batch 4b preflight is blocked because no ADB, emulator, AVD, or physical device is available in the active environment. The G4 gap review identifies 18 closure requirements; production storage remains prohibited.
+**Remaining:** Room/file implementation evidence, device execution evidence, capability-specific approvals, evidence/privacy details, and final security sign-off. Batch 4b preflight is intentionally deferred to owner download/device testing; Android runtime behavior remains unverified. The G4 gap review identifies 18 closure requirements; production storage approval remains prohibited.
 
 **Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
-**Approval requirements:** do not implement Android security behavior, capture, monitoring, Room persistence, encryption, or providers until their open decisions are approved. Batch 3 is limited to the verified local/in-memory architecture.
+**Approval requirements:** implement only the locally authorized G4-B storage policy; do not claim Android runtime behavior, production readiness, or security certification. Capture, monitoring, providers, and external services remain gated.
 
 ### Phase 5 — Guard Implementation
 
@@ -112,4 +112,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**G4-A — Conservative decision set** is now documented under [`docs/security/`](security/). It converts the remaining gaps into proposed, reviewable policies without opening G4. Batch 4c remains locally verified but is not production storage; Batch 4b device execution, owner/security approval, and implementation evidence remain blocked.
+**G4-B — Local Storage Implementation** is authorized by the owner’s initial conservative implementation authorization. Implement Room metadata persistence, encrypted evidence files, Keystore-backed encryption, idempotency, resume state, corruption handling, and lifecycle cleanup foundations in controlled sub-batches. Keep G4 as **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**; do not claim Android runtime verification or production storage approval.
