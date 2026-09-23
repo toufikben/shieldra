@@ -30,6 +30,9 @@ class LocalShieldraStorage private constructor(
             databaseName: String = DEFAULT_DATABASE_NAME,
             evidenceDirectory: File = File(context.noBackupFilesDir, EVIDENCE_DIRECTORY),
         ): LocalShieldraStorage {
+            require(evidenceDirectory.canonicalFile.toPath().startsWith(context.noBackupFilesDir.canonicalFile.toPath())) {
+                "Evidence directory must remain inside Context.noBackupFilesDir"
+            }
             val database = Room.databaseBuilder(
                 context.applicationContext,
                 ShieldraDatabase::class.java,

@@ -56,7 +56,7 @@ class RoomEventRepository(
         expected: EventState,
         next: EventState,
         metadata: Map<String, String>?,
-        expiresAt: Instant? = null,
+        expiresAt: Instant?,
     ): RepositoryResult {
         val current = events.find(eventId.value.toString()) ?: return RepositoryResult.NotFound
         if (current.state != expected.name) return RepositoryResult.Conflict(EventState.valueOf(current.state))

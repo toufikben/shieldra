@@ -166,6 +166,23 @@ class RoomEventRepositoryInstrumentedTest {
         delete(name)
     }
 
+    @Test
+    fun local_storage_factory_rejects_evidence_directory_outside_no_backup_directory() {
+        val name = databaseName()
+        try {
+            org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+                LocalShieldraStorage.create(
+                    context,
+                    PrefixCipher,
+                    databaseName = name,
+                    evidenceDirectory = context.filesDir,
+                )
+            }
+        } finally {
+            delete(name)
+        }
+    }
+
     private fun open(name: String): ShieldraDatabase = Room.databaseBuilder(
         context,
         ShieldraDatabase::class.java,

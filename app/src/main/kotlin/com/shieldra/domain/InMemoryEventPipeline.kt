@@ -24,7 +24,7 @@ class InMemoryEventRepository : EventRepository {
         expected: EventState,
         next: EventState,
         metadata: Map<String, String>?,
-        expiresAt: Instant? = null,
+        expiresAt: Instant?,
     ): RepositoryResult {
         val current = events[eventId] ?: return RepositoryResult.NotFound
         if (current.state != expected) return RepositoryResult.Conflict(current.state)
