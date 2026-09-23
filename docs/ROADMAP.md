@@ -2,7 +2,7 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `3c7b39d0677cff5ade5791285b83982e29792a42` (`docs: correct roadmap head and CI status`, 2026-09-23)
+**Current HEAD:** `origin/main` (the exact commit is the repository’s current remote tip; this self-referential document intentionally avoids recording its own changing hash)
 **Remote CI evidence:** the preceding implementation/documentation run `35883932062` for `69b4d8f` was observed `in_progress`; no result is claimed here for the newer `3c7b39d` documentation commit. The latest completed baseline run was `35826925039` (`success`).
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
