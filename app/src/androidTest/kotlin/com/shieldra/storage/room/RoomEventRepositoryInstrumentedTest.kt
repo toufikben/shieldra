@@ -52,6 +52,27 @@ class RoomEventRepositoryInstrumentedTest {
     }
 
     @Test
+    fun expiration_is_preserved_by_room_mapping_and_database_reopen() {
+        val name = databaseName()
+        val expiration = Instant.parse("2026-09-23T20:00:00Z")
+        var database = open(name)
+        val original = event()
+        val expiringEvent = SecurityEvent.create(
+            eventId = original.id,
+            createdAt = original.createdAt,
+            expiresAt = expiration,
+        )
+        RoomEventRepository(database, fixedClock).save(expiringEvent)
+        database.close()
+
+        database = open(name)
+        val reopened = RoomEventRepository(database, fixedClock).find(expiringEvent.id)
+        assertEquals(expiration, reopened?.expiresAt)
+        database.close()
+        delete(name)
+    }
+
+    @Test
     fun state_update_is_atomic_and_wrong_expected_state_conflicts() {
         val name = databaseName()
         val database = open(name)

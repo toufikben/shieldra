@@ -104,7 +104,6 @@ fun ShieldraNavHost(
             }
             composable(ShieldraRoutes.ONBOARDING_PROTECTION) {
                 ProtectionSetupScreen(
-                    initialThreshold = 2,
                     onContinue = {
                         navController.navigate(ShieldraRoutes.DASHBOARD) {
                             popUpTo(ShieldraRoutes.ONBOARDING_WELCOME) { inclusive = true }

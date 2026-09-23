@@ -9,6 +9,8 @@
 
 **Latest local implementation batch:** `309ac37` completed JVM-safe hardening for evidence-file cleanup/quarantine and terminal EventPipeline idempotency. Gradle verification remains **BLOCKED BY MISSING ANDROID SDK** in the current environment; no Android runtime or device claim is made.
 
+**Current audit batch:** expiration is now part of the domain `SecurityEvent` and is preserved by InMemory and Room state persistence, including database reopen coverage. The Phase 3 Lock Guard screen now displays the fixed approved value of two failed attempts within two minutes; unapproved Battery Emergency and seven-day retention demo claims were removed. This batch does not add Android adapters, production evidence capture, retention policy, or G4 approval.
+
 ## Operating rule
 
 Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST → RE-AUDIT → COMMIT → PUSH → VERIFY**. Dependent security areas are sequential. Only independent documentation, localization, UI, design-system, and test work may be parallelized when file ownership cannot conflict.
@@ -117,6 +119,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d+-lock-prep | Lock Guard domain boundary tests, Android feasibility notes, and device test plan | G1-01; 4d-6 runtime evidence pending | PURE BOUNDARY COMPLETE LOCALLY — ADAPTER NOT IMPLEMENTED; DEVICE EVIDENCE PENDING |
 | 4d+-lock-pure-integration | Verified callback boundary to pure ProtectionStateEngine integration tests | 4d+-lock-prep; no Android APIs | COMPLETE LOCALLY — DEVICE/ADAPTER EVIDENCE PENDING |
 | 4d+-local-hardening | Evidence-file deletion/quarantine failure handling, terminal pipeline idempotency, focused JVM tests | Existing local storage and Batch 3 contracts | COMPLETE LOCALLY — commit `309ac37`; Gradle re-run BLOCKED BY MISSING ANDROID SDK |
+| 4d+-expiration-lock-ui | Domain/Room expiration consistency, fixed Lock Guard presentation, removal of unapproved demo policy claims, focused tests | Existing 4d storage boundary and approved Lock decisions | IMPLEMENTED LOCALLY — build verification BLOCKED BY MISSING ANDROID SDK; G4 remains open |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |

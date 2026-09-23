@@ -67,10 +67,10 @@
     <string name="notifications">الإشعارات</string>
     <string name="permission_notification_reason">يعرض هذا النموذج في المرحلة الثالثة مكان إعداد الإشعارات؛ ولا يطلب أي صلاحية من أندرويد.</string>
     <string name="lock_guard">حارس القفل</string>
-    <string name="protection_setup_question">كم محاولة فتح فاشلة قبل أن يسجل شيلدرا حدثًا؟</string>
-    <string name="failed_attempts_threshold">حد المحاولات الفاشلة</string>
-    <string name="recommended_threshold">الموصى به: 2 لمعظم المستخدمين.</string>
-    <string name="attempt_recording_note">يتم تجاهل المحاولة الأولى. تُسجل كل محاولة بعدها.</string>
+    <string name="protection_setup_question">يستخدم حارس القفل قاعدة الحماية المعتمدة.</string>
+    <string name="lock_guard_threshold">تؤكد %1$d محاولتان فاشلتان حدثًا أمنيًا</string>
+    <string name="lock_guard_window">يجب أن تحدث المحاولتان خلال دقيقتين. تُسجل المحاولة الفاشلة الأولى كإشارة، لكنها لا تنشئ حدثًا أمنيًا مؤكدًا.</string>
+    <string name="attempt_recording_note">تُسجل المحاولة الفاشلة الأولى كإشارة، لكنها لا تنشئ حدثًا أمنيًا مؤكدًا.</string>
     <string name="silent_panic">الذعر الصامت</string>
     <string name="trigger_emergency_event">تفعيل حدث طوارئ</string>
     <string name="details">التفاصيل</string>
@@ -175,8 +175,6 @@
     <string name="demo_invalid_recipient">المستلم غير صالح</string>
     <string name="premium_feature_channels">قنوات تسليم متعددة</string>
     <string name="premium_feature_channels_detail">البريد الإلكتروني · واتساب · تيليجرام</string>
-    <string name="premium_feature_battery">طوارئ البطارية</string>
-    <string name="premium_feature_battery_detail">وضع الأدلة في قائمة الانتظار عند انخفاض البطارية</string>
     <string name="premium_feature_history">سجل موسع</string>
     <string name="premium_feature_history_detail">90 يومًا · 500 حدث</string>
     <string name="premium_feature_receipts">إيصالات تسليم متقدمة</string>
@@ -193,7 +191,7 @@
     <string name="settings_storage">التخزين</string>
     <string name="settings_storage_summary">12 حدثًا · 3.2 ميجابايت</string>
     <string name="settings_retention">سياسة الاحتفاظ</string>
-    <string name="settings_seven_days">7 أيام</string>
+    <string name="settings_retention_pending">السياسة قيد التحديد</string>
     <string name="settings_about_shieldra">حول شيلدرا</string>
     <string name="settings_help">المساعدة</string>
     <string name="demo_delivery_channels">البريد الإلكتروني · واتساب · تيليجرام</string>

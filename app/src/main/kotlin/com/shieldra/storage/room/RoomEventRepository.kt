@@ -56,6 +56,7 @@ class RoomEventRepository(
         expected: EventState,
         next: EventState,
         metadata: Map<String, String>?,
+        expiresAt: Instant? = null,
     ): RepositoryResult {
         val current = events.find(eventId.value.toString()) ?: return RepositoryResult.NotFound
         if (current.state != expected.name) return RepositoryResult.Conflict(EventState.valueOf(current.state))
@@ -70,7 +71,7 @@ class RoomEventRepository(
             nextState = next.name,
             updatedAtEpochMs = clock.millis(),
             resumeStage = resumeStage,
-            expiresAtEpochMs = current.expiresAtEpochMs,
+            expiresAtEpochMs = expiresAt?.toEpochMilli() ?: current.expiresAtEpochMs,
         )
         return if (changed == 1) RepositoryResult.Applied
         else events.find(eventId.value.toString())?.let { RepositoryResult.Conflict(EventState.valueOf(it.state)) }
@@ -80,6 +81,7 @@ class RoomEventRepository(
     private fun toDomain(entity: SecurityEventEntity): SecurityEvent = SecurityEvent.create(
         eventId = EventId.from(UUID.fromString(entity.eventId)),
         createdAt = Instant.ofEpochMilli(entity.createdAtEpochMs),
+        expiresAt = entity.expiresAtEpochMs?.let(Instant::ofEpochMilli),
         state = EventState.valueOf(entity.state),
         severity = entity.severity?.let(GuardSeverity::valueOf),
         evidenceReferences = evidence.findForEvent(entity.eventId).map { com.shieldra.domain.EvidenceReference(it.evidenceId) },
@@ -102,7 +104,7 @@ class RoomEventRepository(
         createdAtEpochMs = createdAt.toEpochMilli(),
         updatedAtEpochMs = now.toEpochMilli(),
         resumeStage = metadata["deferredStage"],
-        expiresAtEpochMs = null,
+        expiresAtEpochMs = expiresAt?.toEpochMilli(),
     )
 
     private fun DeliveryInformation.toEntity(eventId: String, index: Int): DeliveryAttemptEntity =

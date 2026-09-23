@@ -102,7 +102,6 @@ object DemoData {
         priceLabel = stringResource(R.string.demo_premium_price),
         features = listOf(
             PremiumFeatureUiModel(stringResource(R.string.premium_feature_channels), stringResource(R.string.premium_feature_channels_detail)),
-            PremiumFeatureUiModel(stringResource(R.string.premium_feature_battery), stringResource(R.string.premium_feature_battery_detail)),
             PremiumFeatureUiModel(stringResource(R.string.premium_feature_history), stringResource(R.string.premium_feature_history_detail)),
             PremiumFeatureUiModel(stringResource(R.string.premium_feature_receipts)),
             PremiumFeatureUiModel(stringResource(R.string.premium_feature_no_ads)),
@@ -118,7 +117,7 @@ object DemoData {
         SettingsRowUiModel("theme", stringResource(R.string.settings_theme), stringResource(R.string.settings_match_system), SettingsIcon.Theme, section = SettingsSection.Appearance),
         SettingsRowUiModel("language", stringResource(R.string.settings_language), icon = SettingsIcon.Language, section = SettingsSection.Appearance),
         SettingsRowUiModel("storage", stringResource(R.string.settings_storage), stringResource(R.string.settings_storage_summary), SettingsIcon.Storage, section = SettingsSection.PrivacyData),
-        SettingsRowUiModel("retention", stringResource(R.string.settings_retention), stringResource(R.string.settings_seven_days), SettingsIcon.Retention, true, SettingsSection.PrivacyData),
+        SettingsRowUiModel("retention", stringResource(R.string.settings_retention), stringResource(R.string.settings_retention_pending), SettingsIcon.Retention, true, SettingsSection.PrivacyData),
         SettingsRowUiModel("about", stringResource(R.string.settings_about_shieldra), icon = SettingsIcon.Info, section = SettingsSection.About),
         SettingsRowUiModel("help", stringResource(R.string.settings_help), icon = SettingsIcon.Help, section = SettingsSection.About),
     )

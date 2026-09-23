@@ -10,6 +10,7 @@ interface EventRepository {
         expected: EventState,
         next: EventState,
         metadata: Map<String, String>? = null,
+        expiresAt: Instant? = null,
     ): RepositoryResult
 }
 

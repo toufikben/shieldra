@@ -29,6 +29,21 @@ class InMemoryEventPipelineTest {
     }
 
     @Test
+    fun expiration_is_persisted_on_first_state_update_and_survives_resume() {
+        val repository = InMemoryEventRepository()
+        val event = event()
+        val expiration = Instant.parse("2026-09-23T20:00:00Z")
+        repository.save(event)
+        val pipeline = InMemoryEventPipeline(repository)
+
+        pipeline.process(event.id, EventExpirationPolicy(expiration))
+
+        assertEquals(expiration, repository.find(event.id)?.expiresAt)
+        val resumed = repository.find(event.id)!!.withState(EventState.DEFERRED)
+        assertEquals(expiration, resumed.expiresAt)
+    }
+
+    @Test
     fun delivered_event_with_expired_policy_remains_idempotently_final() {
         val repository = InMemoryEventRepository()
         val event = event()

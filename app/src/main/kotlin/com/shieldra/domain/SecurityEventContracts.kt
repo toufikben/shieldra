@@ -36,6 +36,7 @@ class SecurityEvent private constructor(
     val id: EventId,
     val type: SecurityEventType,
     val createdAt: Instant,
+    val expiresAt: Instant? = null,
     val state: EventState,
     val severity: GuardSeverity? = null,
     val evidenceReferences: List<EvidenceReference> = emptyList(),
@@ -46,6 +47,7 @@ class SecurityEvent private constructor(
         internal fun create(
             eventId: EventId,
             createdAt: Instant,
+            expiresAt: Instant? = null,
             state: EventState = EventState.INITIATED,
             severity: GuardSeverity? = null,
             evidenceReferences: List<EvidenceReference> = emptyList(),
@@ -55,6 +57,7 @@ class SecurityEvent private constructor(
             id = eventId,
             type = SecurityEventType.CONFIRMED_SECURITY_EVENT,
             createdAt = createdAt,
+            expiresAt = expiresAt,
             state = state,
             severity = severity,
             evidenceReferences = evidenceReferences.toList(),
@@ -66,9 +69,11 @@ class SecurityEvent private constructor(
     internal fun withState(
         next: EventState,
         nextMetadata: Map<String, String> = metadata,
+        nextExpiresAt: Instant? = expiresAt,
     ): SecurityEvent = create(
         eventId = id,
         createdAt = createdAt,
+        expiresAt = nextExpiresAt,
         state = next,
         severity = severity,
         evidenceReferences = evidenceReferences,
