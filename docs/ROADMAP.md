@@ -3,11 +3,11 @@
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
 **Current HEAD:** `origin/main` (the exact commit is the repository’s current remote tip; this self-referential document intentionally avoids recording its own changing hash)
-**Remote CI evidence:** runs `35886198586` (`b9d56fa`), `35886895480` (`2760107`), and `35886951932` (`1519701`) completed `success`. The corrected workflow now compiles `assembleDebugAndroidTest`; no run executes connected device tests. Domain batch `191b049` has run `35888768082` (`in_progress` at last check). CI hardening batch `abed3c4` has run `35888896037` (`queued` at last check); documentation batch `c423a47` has run `35888837174` (`in_progress` at last check).
+**Remote CI evidence:** runs `35886198586` (`b9d56fa`), `35886895480` (`2760107`), and `35886951932` (`1519701`) completed `success`. The corrected workflow now compiles `assembleDebugAndroidTest`; no run executes connected device tests. Domain batch `191b049` has run `35888768082`; CI hardening batch `abed3c4` has run `35888896037`; documentation batch `c423a47` has run `35888837174`; storage batch `1335a8b` has run `35889049875`. All four were `in_progress` at the last check; no success is claimed for them yet.
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
-**Latest local implementation batch:** `191b049` hardens approved pure-domain semantics: Motion repetition now requires an explicit ten-second window, Lock ignores future/out-of-order observations, the pure engine serializes evaluation, and EventPipeline validates deferred stages, rechecks expiration before commits, and reports failed persistence instead of claiming terminal failure. Local Gradle tests are blocked by missing Android SDK; remote run `35888768082` is authoritative and pending.
+**Latest local implementation batch:** `1335a8b` hardens the locally authorized storage boundary: evidence reads and reconciliation reject symlink files, and Room save rejects child-row collisions instead of reporting a partial Applied result. AAD binding, Keystore lifecycle, migration policy, and orphan-deletion lifecycle remain intentionally deferred for G4 decisions. Local Gradle tests are blocked by missing Android SDK; remote run `35889049875` is authoritative and pending.
 
 **Current audit batch:** expiration is now part of the domain `SecurityEvent` and is preserved by InMemory and Room state persistence, including database reopen coverage. The Phase 3 Lock Guard screen now displays the fixed approved value of two failed attempts within two minutes; unapproved Battery Emergency and seven-day retention demo claims were removed. This batch does not add Android adapters, production evidence capture, retention policy, or G4 approval.
 
@@ -18,6 +18,8 @@
 **Pure-domain correction:** commit `191b049` fixes four verified logic gaps found by adversarial review: unbounded Motion repetition counts, out-of-order Lock timestamps, unsynchronized pure-engine state, and unsafe Pipeline resume/expiry/failure persistence behavior. Android adapters and runtime behavior remain deliberately deferred.
 
 **G4-B CI enforcement:** commit `abed3c4` makes the G4-B review script fail on independently missing cloud-backup/device-transfer exclusions and missing Room catalog entries, and runs it in GitHub Actions. Negative fixture tests passed locally; runtime/device claims remain blocked.
+
+**Storage hardening:** commit `1335a8b` prevents symlink payload reads and filters symlinks from reconciliation, and checks every evidence/delivery child insert inside the Room transaction. It does not claim atomic multi-process ownership, AAD identity binding, migration recovery, or Keystore runtime behavior.
 
 ## Operating rule
 
@@ -132,6 +134,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-7-ci-coverage | Compile instrumented AndroidTest sources in the reproducible CI workflow | 4d-7 audit evidence | IMPLEMENTED — `2760107`; CI `35886895480` success; device execution remains blocked |
 | 4d-domain-hardening | Enforce approved Motion/Lock semantics and fail-closed EventPipeline stage persistence | Pure domain authorization; no Android runtime | IMPLEMENTED — `191b049`; CI `35888768082` queued; local SDK unavailable; Android/runtime work deferred |
 | 4d-ci-hardening | Enforce G4-B review script in CI and remove weak/no-op assertions | Existing G4-B local review scope | IMPLEMENTED — `abed3c4`; CI `35888896037` queued; device/runtime work deferred |
+| 4d-storage-hardening | Reject symlink evidence payloads and fail closed on Room child-row collisions | Existing local storage implementation; no new security policy | IMPLEMENTED — `1335a8b`; CI `35889049875` in progress; runtime/device work deferred |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |

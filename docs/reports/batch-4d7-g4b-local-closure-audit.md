@@ -38,6 +38,8 @@ The check ends with `G4-B LOCAL REVIEW PASS` only when all local assertions pass
 | Backup boundary | Factory now rejects evidence directories outside `Context.noBackupFilesDir` | Local source/test evidence; runtime verification still required |
 | CI correction | Remote CI exposed default parameters on two `override` methods; removed in `b9d56fa` | Code correction; run `35886198586` succeeded |
 | CI coverage | Workflow now compiles `assembleDebugAndroidTest` and invokes the G4-B review script | Static/compile CI evidence; connected device execution remains blocked |
+| Storage hardening | Evidence reads/reconciliation reject symlinks; Room child inserts are checked inside the transaction | Local source/test evidence; CI run `35889049875` pending |
+| Deferred security decisions | AAD identity binding, Keystore lifecycle/rotation, migration recovery, and orphan deletion lifecycle remain unimplemented | BLOCKED pending G4 decision/owner approval |
 | Device runtime | No `adb`, emulator, AVD, or device is available | BLOCKED |
 
 ## Non-claims
