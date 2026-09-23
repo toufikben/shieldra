@@ -3,6 +3,7 @@ package com.shieldra.storage
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
@@ -67,7 +68,12 @@ class EncryptedEvidenceFileStore(
             atomicReplace(temporary, target)
             return target
         } catch (error: Exception) {
-            temporary.delete()
+            try {
+                deleteIfExists(temporary, "Temporary evidence cleanup failed")
+            } catch (cleanupError: EvidenceUnavailableException) {
+                cleanupError.addSuppressed(error)
+                throw cleanupError
+            }
             throw EvidenceUnavailableException("Evidence write failed", error)
         }
     }
@@ -85,7 +91,7 @@ class EncryptedEvidenceFileStore(
 
     fun delete(evidenceId: String) {
         validateEvidenceId(evidenceId)
-        fileFor(evidenceId).delete()
+        deleteIfExists(fileFor(evidenceId), "Evidence delete failed")
     }
 
     fun orphanedEvidence(referencedIds: Set<String>): Set<String> = rootDirectory
@@ -111,8 +117,14 @@ class EncryptedEvidenceFileStore(
         }
         val deletedTemporary = rootDirectory.listFiles()
             .orEmpty()
-            .filter { it.isFile && it.name.endsWith(TEMP_SUFFIX) && it.delete() }
-            .map { it.name }
+            .filter { it.isFile && it.name.endsWith(TEMP_SUFFIX) }
+            .mapNotNull { temporary ->
+                if (deleteIfExists(temporary, "Temporary evidence cleanup failed")) {
+                    temporary.name
+                } else {
+                    null
+                }
+            }
             .toSet()
         return EvidenceReconciliationReport(
             missingReferencedIds = referencedIds - existingIds,
@@ -129,12 +141,40 @@ class EncryptedEvidenceFileStore(
         if (!quarantineDirectory.exists() && !quarantineDirectory.mkdirs()) return false
         val source = fileFor(evidenceId)
         val target = File(quarantineDirectory, "$evidenceId$FILE_SUFFIX")
+        if (target.exists()) {
+            throw EvidenceUnavailableException(
+                "Quarantine target already exists and will not be replaced: ${target.name}",
+            )
+        }
         return try {
-            Files.move(source.toPath(), target.toPath(), ATOMIC_MOVE, REPLACE_EXISTING)
+            Files.move(source.toPath(), target.toPath(), ATOMIC_MOVE)
             true
         } catch (_: AtomicMoveNotSupportedException) {
-            source.renameTo(target)
+            try {
+                Files.move(source.toPath(), target.toPath())
+                true
+            } catch (error: FileAlreadyExistsException) {
+                throw EvidenceUnavailableException(
+                    "Quarantine target already exists and will not be replaced: ${target.name}",
+                    error,
+                )
+            } catch (error: Exception) {
+                throw EvidenceUnavailableException("Evidence quarantine failed: $evidenceId", error)
+            }
+        } catch (error: FileAlreadyExistsException) {
+            throw EvidenceUnavailableException(
+                "Quarantine target already exists and will not be replaced: ${target.name}",
+                error,
+            )
+        } catch (error: Exception) {
+            throw EvidenceUnavailableException("Evidence quarantine failed: $evidenceId", error)
         }
+    }
+
+    private fun deleteIfExists(file: File, operation: String): Boolean = try {
+        Files.deleteIfExists(file.toPath())
+    } catch (error: Exception) {
+        throw EvidenceUnavailableException("$operation: ${file.name}", error)
     }
 
     private fun atomicReplace(temporary: File, target: File) {

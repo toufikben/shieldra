@@ -53,7 +53,11 @@ class InMemoryEventPipeline(
                     PipelineFailure(PipelineFailureKind.INVALID_STATE, "Event does not exist"),
                 )
 
-            if (expiration.expiresAt != null && !now().isBefore(expiration.expiresAt)) {
+            if (event.state != EventState.DELIVERED &&
+                event.state != EventState.FAILED_FINAL &&
+                event.state != EventState.EXPIRED &&
+                expiration.expiresAt != null && !now().isBefore(expiration.expiresAt)
+            ) {
                 return@synchronized expire(event)
             }
 

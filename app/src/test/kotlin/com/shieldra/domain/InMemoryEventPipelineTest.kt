@@ -29,6 +29,28 @@ class InMemoryEventPipelineTest {
     }
 
     @Test
+    fun delivered_event_with_expired_policy_remains_idempotently_final() {
+        val repository = InMemoryEventRepository()
+        val event = event()
+        repository.save(event)
+        val pipeline = InMemoryEventPipeline(
+            repository = repository,
+            now = { Instant.parse("2026-09-22T21:00:00Z") },
+        )
+
+        repeat(4) { pipeline.process(event.id) }
+        val result = pipeline.process(
+            event.id,
+            EventExpirationPolicy(Instant.parse("2026-09-22T20:30:00Z")),
+        )
+
+        val alreadyProcessed = assertIs<PipelineResult.AlreadyProcessed>(result)
+        assertEquals(PipelineStage.COMPLETED, alreadyProcessed.stage)
+        assertEquals(EventState.DELIVERED, alreadyProcessed.event.state)
+        assertEquals(EventState.DELIVERED, repository.find(event.id)?.state)
+    }
+
+    @Test
     fun expired_event_is_distinct_from_failed_final() {
         val repository = InMemoryEventRepository()
         val event = event()
