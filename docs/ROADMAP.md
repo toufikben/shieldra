@@ -2,10 +2,12 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `78db1eeea3e790377736e428bc52be8d46f08ef6`
-**Last observed remote CI:** `35816855075` (`success`, 2026-09-23)
+**Current HEAD:** `309ac377da63e278ec4db4c3602de316ef1637f1` (`fix: harden local evidence cleanup and pipeline idempotency`, 2026-09-23)
+**Last observed remote CI:** `35822665474` (`Group A diagnostics`, `completed` / `success`, observed 2026-09-23 05:30:11Z–05:36:33Z on `main`; [run](https://github.com/toufikben/shieldra/actions/runs/35822665474))
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
+
+**Latest local implementation batch:** `309ac37` completed JVM-safe hardening for evidence-file cleanup/quarantine and terminal EventPipeline idempotency. Gradle verification remains **BLOCKED BY MISSING ANDROID SDK** in the current environment; no Android runtime or device claim is made.
 
 ## Operating rule
 
@@ -113,6 +115,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-6 | Owner-device execution of Room/Keystore tests and runtime evidence package | 4d-5; owner device/AVD | PREPARED — BLOCKED HERE; `adb`/AVD REQUIRED |
 | 4d-7 | Offline G4-B local closure audit: backup boundaries, schema evidence, wiring scope, no-fallback/no-destructive checks, reproducible review script | 4d-6; local implementation complete | IN PROGRESS — RUNTIME/SECURITY ACCEPTANCE OPEN |
 | 4d+-lock-prep | Lock Guard domain boundary tests, Android feasibility notes, and device test plan | G1-01; 4d-6 runtime evidence pending | PREPARED — ADAPTER NOT IMPLEMENTED |
+| 4d+-local-hardening | Evidence-file deletion/quarantine failure handling, terminal pipeline idempotency, focused JVM tests | Existing local storage and Batch 3 contracts | COMPLETE LOCALLY — commit `309ac37`; Gradle re-run BLOCKED BY MISSING ANDROID SDK |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
