@@ -21,6 +21,8 @@
 
 **Storage hardening:** commit `1335a8b` prevents symlink payload reads and filters symlinks from reconciliation, and checks every evidence/delivery child insert inside the Room transaction. It does not claim atomic multi-process ownership, AAD identity binding, migration recovery, or Keystore runtime behavior.
 
+**Acceptance evidence:** [`docs/reports/g4-acceptance-matrix.md`](reports/g4-acceptance-matrix.md) now records Code/Test/CI/Device evidence separately. Android runtime work, AAD/Keystore lifecycle, migration/recovery policy, evidence retention/deletion, and production wiring are explicitly deferred rather than marked complete.
+
 ## Operating rule
 
 Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST → RE-AUDIT → COMMIT → PUSH → VERIFY**. Dependent security areas are sequential. Only independent documentation, localization, UI, design-system, and test work may be parallelized when file ownership cannot conflict.
@@ -135,6 +137,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-domain-hardening | Enforce approved Motion/Lock semantics and fail-closed EventPipeline stage persistence | Pure domain authorization; no Android runtime | IMPLEMENTED — `191b049`; CI `35888768082` queued; local SDK unavailable; Android/runtime work deferred |
 | 4d-ci-hardening | Enforce G4-B review script in CI and remove weak/no-op assertions | Existing G4-B local review scope | IMPLEMENTED — `abed3c4`; CI `35888896037` queued; device/runtime work deferred |
 | 4d-storage-hardening | Reject symlink evidence payloads and fail closed on Room child-row collisions | Existing local storage implementation; no new security policy | IMPLEMENTED — `1335a8b`; CI `35889049875` in progress; runtime/device work deferred |
+| 4d-acceptance-matrix | Separate implementation evidence from CI/device/security acceptance and record deferred Android work | All preceding local batches | DOCUMENTED — `bf4ccca` lineage; runtime/security acceptance remains blocked |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
