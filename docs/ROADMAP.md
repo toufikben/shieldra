@@ -4,7 +4,7 @@
 **Branch:** `main`
 **Current HEAD:** `0af6d40d92f02c5dc73541ef58d55742ad8f8463`
 **Last observed remote CI:** `35815706691` (`in_progress` at the last audit)
-**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities remain gated while Batch 4b device execution and G4 approvals are pending.
+**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities remain gated while Batch 4b device execution and G4 approvals are pending. G4 gap analysis is now recorded.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
 ## Operating rule
@@ -33,7 +33,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | G1 — Protection rules | APPROVED FOR PURE CONTRACT CLOSURE | Encode approved Guard semantics in framework-free contracts/tests | Android feasibility, response, evidence, and API limitations |
 | G2 — Evidence/privacy | APPROVED PRINCIPLE / DETAILS BLOCKED | Maintain minimum post-confirmation evidence contracts and matrices | Capture, consent, retention, deletion, export, redaction, crypto |
 | G3 — Android monitoring | APPROVED PRINCIPLE / DETAILS BLOCKED | Batch 4a research and device matrix only | Service, permissions, device evidence, Doze/OEM/recovery |
-| G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Reviewable schema and Keystore candidate exists; no production wiring | Schema/migration approval, corruption recovery, crypto/Keystore lifecycle, backup, auth |
+| G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Reviewable schema and Keystore candidate plus 18-point gap review | Schema/migration approval, data/key lifecycle, corruption recovery, runtime evidence, threat model, sign-off |
 | G5 — External services | DEFERRED | Keep provider interfaces only where already justified | Cloud, delivery, billing, ads, analytics, backend |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit |
 | G7 — Implementation | READY FOR CONTROLLED PURE BATCHES | Batch 3 local EventPipeline is authorized and implemented | Sequential platform capabilities remain gated |
@@ -58,7 +58,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 **Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices.
 
-**Remaining:** device execution evidence, G4 approval details, capability-specific approvals, evidence/privacy details, and platform adapters. Batch 4b preflight is blocked because no ADB, emulator, AVD, or physical device is available in the active environment.
+**Remaining:** device execution evidence, G4 approval details, capability-specific approvals, evidence/privacy details, and platform adapters. Batch 4b preflight is blocked because no ADB, emulator, AVD, or physical device is available in the active environment. The G4 gap review identifies 18 closure requirements; production storage remains prohibited.
 
 **Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
@@ -112,4 +112,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Batch 4c — Storage and Keystore candidate** is locally verified with `clean testDebugUnitTest lintDebug assembleDebug`. It remains a reviewable candidate, not production storage: no Room/DataStore wiring, retention policy, key lifecycle, or authentication policy was invented. Batch 4b device execution remains blocked until a device environment is available.
+**G4 security acceptance gap review** is complete and recorded in [`docs/reports/g4-security-acceptance-gap-review.md`](reports/g4-security-acceptance-gap-review.md). It identifies 18 closure requirements. Batch 4c remains locally verified but is not production storage; Batch 4b device execution and G4 policy/sign-off remain blocked.
