@@ -2,8 +2,8 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `ae52dd93724cf91fafa8853ef09715ef829619ca` (`fix: preserve event expiration and align lock demo`, 2026-09-23)
-**Last observed remote CI:** `35822665474` (`Group A diagnostics`, `completed` / `success`, observed 2026-09-23 05:30:11Z–05:36:33Z on `main`; [run](https://github.com/toufikben/shieldra/actions/runs/35822665474))
+**Current HEAD:** `69b4d8f12e8d4b7c2979e5f049356a07d09f4753` (`docs: sync roadmap with current head`, 2026-09-23)
+**Current remote CI:** `35883932062` (`Group A diagnostics`, `in_progress`, observed 2026-09-23 15:45:44Z on `main`; [run](https://github.com/toufikben/shieldra/actions/runs/35883932062)). The latest completed baseline run for the preceding verified commit was `35826925039` (`success`).
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
