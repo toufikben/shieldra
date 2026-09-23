@@ -32,6 +32,13 @@ class KeystoreEvidenceCipher(
 
 class EvidenceUnavailableException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
 
+data class EvidenceReconciliationReport(
+    val missingReferencedIds: Set<String>,
+    val orphanedFileIds: Set<String>,
+    val quarantinedFileIds: Set<String>,
+    val deletedTemporaryFiles: Set<String>,
+)
+
 /**
  * Stores only authenticated ciphertext outside Room. Temporary files are never
  * returned as evidence and any decode/authentication failure is unavailable.
@@ -89,7 +96,46 @@ class EncryptedEvidenceFileStore(
         .filterNot(referencedIds::contains)
         .toSet()
 
+    fun reconcile(referencedIds: Set<String>, quarantineOrphans: Boolean = true): EvidenceReconciliationReport {
+        referencedIds.forEach(::validateEvidenceId)
+        val existingIds = rootDirectory.listFiles()
+            .orEmpty()
+            .filter { it.isFile && it.name.endsWith(FILE_SUFFIX) }
+            .map { it.name.removeSuffix(FILE_SUFFIX) }
+            .toSet()
+        val orphaned = existingIds - referencedIds
+        val quarantined = if (quarantineOrphans) {
+            orphaned.filter { quarantine(it) }.toSet()
+        } else {
+            emptySet()
+        }
+        val deletedTemporary = rootDirectory.listFiles()
+            .orEmpty()
+            .filter { it.isFile && it.name.endsWith(TEMP_SUFFIX) && it.delete() }
+            .map { it.name }
+            .toSet()
+        return EvidenceReconciliationReport(
+            missingReferencedIds = referencedIds - existingIds,
+            orphanedFileIds = orphaned,
+            quarantinedFileIds = quarantined,
+            deletedTemporaryFiles = deletedTemporary,
+        )
+    }
+
     private fun fileFor(evidenceId: String): File = File(rootDirectory, "$evidenceId$FILE_SUFFIX")
+
+    private fun quarantine(evidenceId: String): Boolean {
+        val quarantineDirectory = File(rootDirectory, QUARANTINE_DIRECTORY)
+        if (!quarantineDirectory.exists() && !quarantineDirectory.mkdirs()) return false
+        val source = fileFor(evidenceId)
+        val target = File(quarantineDirectory, "$evidenceId$FILE_SUFFIX")
+        return try {
+            Files.move(source.toPath(), target.toPath(), ATOMIC_MOVE, REPLACE_EXISTING)
+            true
+        } catch (_: AtomicMoveNotSupportedException) {
+            source.renameTo(target)
+        }
+    }
 
     private fun atomicReplace(temporary: File, target: File) {
         try {
@@ -109,6 +155,8 @@ class EncryptedEvidenceFileStore(
 
     companion object {
         private const val FILE_SUFFIX = ".shieldra"
+        private const val TEMP_SUFFIX = ".tmp"
+        private const val QUARANTINE_DIRECTORY = ".quarantine"
         private val EVIDENCE_ID_PATTERN = Regex("[A-Za-z0-9._-]{1,128}")
     }
 }

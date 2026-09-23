@@ -96,3 +96,18 @@ fun requireSupportedSchemaVersion(version: Int) {
         "Unsupported storage schema version: $version"
     }
 }
+
+object StorageMigrationPolicy {
+    fun requireForwardMigration(fromVersion: Int, toVersion: Int) {
+        require(fromVersion >= 1) { "Migration source version must be positive" }
+        require(toVersion > fromVersion) {
+            "Downgrade or same-version migration is unsupported; use an explicit recovery path"
+        }
+    }
+
+    fun requireNoDestructiveFallback(fallbackToDestructiveMigration: Boolean) {
+        check(!fallbackToDestructiveMigration) {
+            "Destructive migration fallback is prohibited for security data"
+        }
+    }
+}

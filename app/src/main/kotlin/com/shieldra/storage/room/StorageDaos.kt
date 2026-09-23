@@ -38,6 +38,9 @@ interface EvidenceReferenceDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(reference: EvidenceReferenceEntity): Long
 
+    @Query("SELECT * FROM event_evidence_refs")
+    fun findAll(): List<EvidenceReferenceEntity>
+
     @Query("SELECT * FROM event_evidence_refs WHERE event_id = :eventId")
     fun findForEvent(eventId: String): List<EvidenceReferenceEntity>
 }
