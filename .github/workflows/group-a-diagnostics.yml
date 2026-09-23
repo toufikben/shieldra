@@ -43,7 +43,7 @@ jobs:
 
       - name: Run Group B and Group C tests and Android build
         shell: bash
-        run: ./gradlew clean test lint assembleDebug --stacktrace
+        run: ./gradlew clean test lint assembleDebug assembleDebugAndroidTest --stacktrace
 
       - name: Run Group C boundary scan
         shell: bash
