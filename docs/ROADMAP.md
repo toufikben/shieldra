@@ -3,7 +3,7 @@
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
 **Current HEAD:** `origin/main` (the exact commit is the repository’s current remote tip; this self-referential document intentionally avoids recording its own changing hash)
-**Remote CI evidence:** runs `35886198586` (`b9d56fa`), `35886895480` (`2760107`), and `35886951932` (`1519701`) completed `success`. The corrected workflow now compiles `assembleDebugAndroidTest`; no run executes connected device tests. Domain batch `191b049` has run `35888768082`, currently `queued`.
+**Remote CI evidence:** runs `35886198586` (`b9d56fa`), `35886895480` (`2760107`), and `35886951932` (`1519701`) completed `success`. The corrected workflow now compiles `assembleDebugAndroidTest`; no run executes connected device tests. Domain batch `191b049` has run `35888768082` (`in_progress` at last check). CI hardening batch `abed3c4` has run `35888896037` (`queued` at last check); documentation batch `c423a47` has run `35888837174` (`in_progress` at last check).
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
@@ -16,6 +16,8 @@
 **CI coverage correction:** the successful `b9d56fa` run did not compile AndroidTest sources because the workflow invoked `assembleDebug` only. Commit `2760107` adds `assembleDebugAndroidTest`, and run `35886895480` passed. Instrumented compilation is now verified; device execution remains blocked.
 
 **Pure-domain correction:** commit `191b049` fixes four verified logic gaps found by adversarial review: unbounded Motion repetition counts, out-of-order Lock timestamps, unsynchronized pure-engine state, and unsafe Pipeline resume/expiry/failure persistence behavior. Android adapters and runtime behavior remain deliberately deferred.
+
+**G4-B CI enforcement:** commit `abed3c4` makes the G4-B review script fail on independently missing cloud-backup/device-transfer exclusions and missing Room catalog entries, and runs it in GitHub Actions. Negative fixture tests passed locally; runtime/device claims remain blocked.
 
 ## Operating rule
 
@@ -129,6 +131,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-7-correction | Fix CI-discovered override compilation error and enforce `noBackupFilesDir` evidence boundary | 4d-7 audit; no runtime approval | IMPLEMENTED — `b9d56fa`; CI `35886198586` success; G4 remains open |
 | 4d-7-ci-coverage | Compile instrumented AndroidTest sources in the reproducible CI workflow | 4d-7 audit evidence | IMPLEMENTED — `2760107`; CI `35886895480` success; device execution remains blocked |
 | 4d-domain-hardening | Enforce approved Motion/Lock semantics and fail-closed EventPipeline stage persistence | Pure domain authorization; no Android runtime | IMPLEMENTED — `191b049`; CI `35888768082` queued; local SDK unavailable; Android/runtime work deferred |
+| 4d-ci-hardening | Enforce G4-B review script in CI and remove weak/no-op assertions | Existing G4-B local review scope | IMPLEMENTED — `abed3c4`; CI `35888896037` queued; device/runtime work deferred |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
