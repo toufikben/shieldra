@@ -1,6 +1,6 @@
 # G4-B / 4d+ — Lock Guard Capability Preparation
 
-**Status:** PREPARED — PLATFORM ADAPTER NOT IMPLEMENTED  
+**Status:** PURE BOUNDARY COMPLETE — PLATFORM ADAPTER NOT IMPLEMENTED
 **Gate:** G4 remains **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**  
 **Rule authority:** G1-01 in `SHIELDRA_DECISIONS.md`
 
@@ -72,6 +72,19 @@ The existing `ProtectionStateEngineTest` covers the core two-attempt confirmatio
 - duplicate callback timestamp and duplicate event identity handling;
 - callback counter unavailable or inconsistent with the event callback;
 - no event creation on `SIGNAL_ONLY` or unsupported capability state.
+
+The framework-free boundary is now implemented in
+`app/src/main/kotlin/com/shieldra/detection/GuardBoundaries.kt`. It models
+`AVAILABLE`, `NOT_DEVICE_ADMIN`, `UNSUPPORTED`,
+`PERMISSION_OR_PROVISIONING_REQUIRED`, and `RUNTIME_ERROR` explicitly. Only
+the `AVAILABLE` path can carry a verified failed-PIN `GuardSignal`; all other
+states return an explicit unavailable result with a non-empty reason. The
+boundary tests are in
+`app/src/test/kotlin/com/shieldra/detection/GuardBoundariesTest.kt`.
+
+This is a pure contract only. It does not provision a device administrator,
+observe Android callbacks, infer callbacks from lifecycle events, or claim
+that any device capability is available.
 
 ## Exit criteria for implementation
 
