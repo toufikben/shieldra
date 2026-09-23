@@ -2,8 +2,8 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `c7825f8df0e8f337a6377e82aadef5ea07171f34`
-**Last observed remote CI:** `35816825585` (`in_progress` at the last audit)
+**Current HEAD:** `78db1eeea3e790377736e428bc52be8d46f08ef6`
+**Last observed remote CI:** `35816855075` (`success`, 2026-09-23)
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; Phase 4 production capabilities remain gated while Batch 4b device execution and G4 approvals are pending. G4 gap analysis and the G4-A conservative decision set are now recorded.
 **Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
