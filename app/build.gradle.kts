@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -32,6 +33,9 @@ kotlin {
 dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
@@ -41,6 +45,11 @@ dependencies {
     implementation(libs.compose.material.icons.extended)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(kotlin("test-junit5"))
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
 }
 
 tasks.withType<Test>().configureEach {

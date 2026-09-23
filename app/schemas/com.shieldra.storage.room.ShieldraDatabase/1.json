@@ -1,0 +1,198 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "5ae2b7a6797713a631b0c987be86de10",
+    "entities": [
+      {
+        "tableName": "security_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`event_id` TEXT NOT NULL, `event_type` TEXT NOT NULL, `state` TEXT NOT NULL, `severity` TEXT, `created_at_epoch_ms` INTEGER NOT NULL, `updated_at_epoch_ms` INTEGER NOT NULL, `resume_stage` TEXT, `expires_at_epoch_ms` INTEGER, PRIMARY KEY(`event_id`))",
+        "fields": [
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventType",
+            "columnName": "event_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "severity",
+            "columnName": "severity",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtEpochMs",
+            "columnName": "created_at_epoch_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMs",
+            "columnName": "updated_at_epoch_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resumeStage",
+            "columnName": "resume_stage",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "expiresAtEpochMs",
+            "columnName": "expires_at_epoch_ms",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "event_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_security_events_state",
+            "unique": false,
+            "columnNames": [
+              "state"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_security_events_state` ON `${TABLE_NAME}` (`state`)"
+          },
+          {
+            "name": "index_security_events_expires_at",
+            "unique": false,
+            "columnNames": [
+              "expires_at_epoch_ms"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_security_events_expires_at` ON `${TABLE_NAME}` (`expires_at_epoch_ms`)"
+          }
+        ]
+      },
+      {
+        "tableName": "event_evidence_refs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`evidence_id` TEXT NOT NULL, `event_id` TEXT NOT NULL, `kind` TEXT NOT NULL, `content_reference` TEXT, `captured_at_epoch_ms` INTEGER, PRIMARY KEY(`evidence_id`))",
+        "fields": [
+          {
+            "fieldPath": "evidenceId",
+            "columnName": "evidence_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentReference",
+            "columnName": "content_reference",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "capturedAtEpochMs",
+            "columnName": "captured_at_epoch_ms",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "evidence_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_event_evidence_refs_event_id",
+            "unique": false,
+            "columnNames": [
+              "event_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_event_evidence_refs_event_id` ON `${TABLE_NAME}` (`event_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "event_delivery_attempts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`attempt_id` TEXT NOT NULL, `event_id` TEXT NOT NULL, `channel` TEXT NOT NULL, `status` TEXT NOT NULL, `occurred_at_epoch_ms` INTEGER, `failure_reason` TEXT, PRIMARY KEY(`attempt_id`))",
+        "fields": [
+          {
+            "fieldPath": "attemptId",
+            "columnName": "attempt_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "channel",
+            "columnName": "channel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurredAtEpochMs",
+            "columnName": "occurred_at_epoch_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "failureReason",
+            "columnName": "failure_reason",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "attempt_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_event_delivery_attempts_event_id",
+            "unique": false,
+            "columnNames": [
+              "event_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_event_delivery_attempts_event_id` ON `${TABLE_NAME}` (`event_id`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5ae2b7a6797713a631b0c987be86de10')"
+    ]
+  }
+}
