@@ -48,6 +48,60 @@ class ProtectionStateEngineTest {
     }
 
     @Test
+    fun lock_attempt_at_exact_two_minute_boundary_confirms() {
+        val engine = DefaultProtectionStateEngine()
+        engine.evaluate(lockSignal(start), clock, identities)
+        now = start.plus(ApprovedGuardRules.lockConfirmationWindow)
+
+        val result = engine.evaluate(lockSignal(now), clock, identities)
+
+        assertEquals(GuardConfirmationStatus.CONFIRMED, result.confirmation.status)
+        assertEquals(GuardSeverity.HIGH, result.confirmation.severity)
+    }
+
+    @Test
+    fun lock_attempt_at_exact_five_minute_boundary_starts_a_new_sequence() {
+        val engine = DefaultProtectionStateEngine()
+        engine.evaluate(lockSignal(start), clock, identities)
+        now = start.plusSeconds(60)
+        engine.evaluate(lockSignal(now), clock, identities)
+        now = start.plusSeconds(60).plus(ApprovedGuardRules.lockCooldown)
+
+        val result = engine.evaluate(lockSignal(now), clock, identities)
+
+        assertEquals(GuardConfirmationStatus.SIGNAL_ONLY, result.confirmation.status)
+    }
+
+    @Test
+    fun lock_attempt_at_exact_ten_minute_boundary_does_not_reuse_old_sequence() {
+        val engine = DefaultProtectionStateEngine()
+        engine.evaluate(lockSignal(start), clock, identities)
+        now = start.plus(ApprovedGuardRules.lockCounterResetWindow)
+
+        val result = engine.evaluate(lockSignal(now), clock, identities)
+
+        assertEquals(GuardConfirmationStatus.SIGNAL_ONLY, result.confirmation.status)
+        assertNull(result.event)
+    }
+
+    @Test
+    fun lock_guard_rejects_wrong_observation_shape_without_creating_an_event() {
+        val engine = DefaultProtectionStateEngine()
+        val result = engine.evaluate(
+            GuardSignal(
+                kind = GuardKind.LOCK,
+                observedAt = start,
+                observation = GuardObservation.PanicActivated,
+            ),
+            clock,
+            identities,
+        )
+
+        assertEquals(GuardConfirmationStatus.NOT_A_SECURITY_EVENT, result.confirmation.status)
+        assertNull(result.event)
+    }
+
+    @Test
     fun motion_requires_valid_quality_and_approved_persistence_or_repetition() {
         val engine = DefaultProtectionStateEngine()
         val noisy = engine.evaluate(

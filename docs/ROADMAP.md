@@ -112,6 +112,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-5 | Explicit local storage factory, no-backup evidence directory, non-destructive Room configuration, lifecycle reconciliation entry point | 4d-4; approved local policy | LOCAL COMPLETE — BUILD/TEST PASS; RUNTIME VERIFICATION PENDING |
 | 4d-6 | Owner-device execution of Room/Keystore tests and runtime evidence package | 4d-5; owner device/AVD | PREPARED — BLOCKED HERE; `adb`/AVD REQUIRED |
 | 4d-7 | Offline G4-B local closure audit: backup boundaries, schema evidence, wiring scope, no-fallback/no-destructive checks, reproducible review script | 4d-6; local implementation complete | IN PROGRESS — RUNTIME/SECURITY ACCEPTANCE OPEN |
+| 4d+-lock-prep | Lock Guard domain boundary tests, Android feasibility notes, and device test plan | G1-01; 4d-6 runtime evidence pending | PREPARED — ADAPTER NOT IMPLEMENTED |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
@@ -119,4 +120,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**G4-B — Local Storage Implementation** is authorized by the owner’s initial conservative implementation authorization. Sub-batch 4d-7 performs an offline closure audit of backup boundaries, exported schema evidence, factory wiring scope, and no-fallback/destructive-migration controls through a reproducible review script and report. It does not replace runtime/device evidence or security/privacy acceptance. The active environment still has no `adb`, emulator, AVD, or attached device. Keep G4 as **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**; do not claim Android runtime verification or production storage approval.
+**G4-B — Local Storage Implementation** is authorized by the owner’s initial conservative implementation authorization. Sub-batch 4d-7 performs an offline closure audit of backup boundaries, exported schema evidence, factory wiring scope, and no-fallback/destructive-migration controls through a reproducible review script and report. In parallel, `4d+-lock-prep` prepares Lock Guard as the first capability with pure boundary tests and an Android feasibility/test plan; the platform adapter remains unimplemented until runtime evidence and capability-specific approval exist. The active environment still has no `adb`, emulator, AVD, or attached device. Keep G4 as **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**; do not claim Android runtime verification or production storage approval.
