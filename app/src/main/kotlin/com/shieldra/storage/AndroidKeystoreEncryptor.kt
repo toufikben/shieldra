@@ -16,11 +16,15 @@ import javax.crypto.spec.GCMParameterSpec
  * It is not wired into the application graph. The caller must provide an
  * explicit policy and an explicit key alias. Software-key fallback is never
  * attempted when Android Keystore is unavailable.
+ *
+ * Marked [open] so that JVM unit test doubles (FakeEncryptor,
+ * AadRecordingEncryptor) can override [encrypt] and [decrypt] without
+ * requiring Android Keystore at test time.
  */
-class AndroidKeystoreEncryptor(
+open class AndroidKeystoreEncryptor(
     private val secureRandom: SecureRandom = SecureRandom(),
 ) {
-    fun encrypt(
+    open fun encrypt(
         plaintext: ByteArray,
         keyAlias: String,
         policy: EncryptionPolicy,
@@ -39,7 +43,7 @@ class AndroidKeystoreEncryptor(
         )
     }
 
-    fun decrypt(
+    open fun decrypt(
         payload: EncryptedPayload,
         keyAlias: String,
         policy: EncryptionPolicy,
