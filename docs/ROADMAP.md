@@ -2,14 +2,16 @@
 
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
-**Current HEAD:** `origin/main` (the exact commit is the repository’s current remote tip; this self-referential document intentionally avoids recording its own changing hash)
-**Remote CI evidence:** runs `35886198586` (`b9d56fa`), `35886895480` (`2760107`), and `35886951932` (`1519701`) completed `success`. The corrected workflow now compiles `assembleDebugAndroidTest`; no run executes connected device tests. Domain batch `191b049` has run `35888768082`; CI hardening batch `abed3c4` has run `35888896037`; documentation batch `c423a47` has run `35888837174`; storage batch `1335a8b` has run `35889049875`. All four were `in_progress` at the last check; no success is claimed for them yet.
+**Current HEAD:** `origin/main` (the exact commit is the repository's current remote tip; this self-referential document intentionally avoids recording its own changing hash)
+**Remote CI evidence:** runs `35886198586` (`b9d56fa`), `35886895480` (`2760107`), and `35886951932` (`1519701`) completed `success`. The corrected workflow now compiles `assembleDebugAndroidTest`; no run executes connected device tests. Domain batch `191b049` has run `35888768082`; CI hardening batch `abed3c4` has run `35888896037`; documentation batch `c423a47` has run `35888837174`; storage batch `1335a8b` has run `35889049875`. All four were `in_progress` at the last check; no success is claimed for them yet. AAD binding batch (`ea6bc7f`+`d317cb2`+`b5d7e9e`+`8f6a3af`) pushed 2026-09-24; CI run pending.
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
-**Decision authority for this cycle:** [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
+**Decision authority for this cycle:** [`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`](authority/FINAL_SECURITY_STORAGE_DECISIONS.md) (binding, owner-supplied 2026-09-24) and [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
-**Latest local implementation batch:** `1335a8b` hardens the locally authorized storage boundary: evidence reads and reconciliation reject symlink files, and Room save rejects child-row collisions instead of reporting a partial Applied result. AAD binding, Keystore lifecycle, migration policy, and orphan-deletion lifecycle remain intentionally deferred for G4 decisions. Local Gradle tests are blocked by missing Android SDK; remote run `35889049875` is authoritative and pending.
+**Latest local implementation batch (4d-aad-binding):** Implements AAD-v1 canonical binary serialization (`EvidenceAadBuilder`), mandatory AAD enforcement (`KeystoreEvidenceCipherWithAad`), versioned per-app key alias policy (`EvidenceKeyPolicy`), and all 10 unit tests required by decision §1.4. `AndroidKeystoreEncryptor` is now `open` for JVM test doubles. No production wiring, no Keystore runtime behavior claimed. CI pending.
 
-**Current audit batch:** expiration is now part of the domain `SecurityEvent` and is preserved by InMemory and Room state persistence, including database reopen coverage. The Phase 3 Lock Guard screen now displays the fixed approved value of two failed attempts within two minutes; unapproved Battery Emergency and seven-day retention demo claims were removed. This batch does not add Android adapters, production evidence capture, retention policy, or G4 approval.
+**Storage hardening:** commit `1335a8b` prevents symlink payload reads and filters symlinks from reconciliation, and checks every evidence/delivery child insert inside the Room transaction. It does not claim atomic multi-process ownership, AAD identity binding, migration recovery, or Keystore runtime behavior.
+
+**Acceptance evidence:** [`docs/reports/g4-acceptance-matrix.md`](reports/g4-acceptance-matrix.md) now records Code/Test/CI/Device evidence separately. Android runtime work, AAD/Keystore lifecycle, migration/recovery policy, evidence retention/deletion, and production wiring are explicitly deferred rather than marked complete.
 
 **4d-7 audit correction:** the first remote CI attempt exposed a real Kotlin compilation defect in the two repository overrides. It was fixed in `b9d56fa`. The audit also closed a backup-boundary gap by rejecting caller-provided evidence paths outside `noBackupFilesDir`. Implementation and instrumented-test compilation runs passed; device execution remains unconfirmed.
 
@@ -18,10 +20,6 @@
 **Pure-domain correction:** commit `191b049` fixes four verified logic gaps found by adversarial review: unbounded Motion repetition counts, out-of-order Lock timestamps, unsynchronized pure-engine state, and unsafe Pipeline resume/expiry/failure persistence behavior. Android adapters and runtime behavior remain deliberately deferred.
 
 **G4-B CI enforcement:** commit `abed3c4` makes the G4-B review script fail on independently missing cloud-backup/device-transfer exclusions and missing Room catalog entries, and runs it in GitHub Actions. Negative fixture tests passed locally; runtime/device claims remain blocked.
-
-**Storage hardening:** commit `1335a8b` prevents symlink payload reads and filters symlinks from reconciliation, and checks every evidence/delivery child insert inside the Room transaction. It does not claim atomic multi-process ownership, AAD identity binding, migration recovery, or Keystore runtime behavior.
-
-**Acceptance evidence:** [`docs/reports/g4-acceptance-matrix.md`](reports/g4-acceptance-matrix.md) now records Code/Test/CI/Device evidence separately. Android runtime work, AAD/Keystore lifecycle, migration/recovery policy, evidence retention/deletion, and production wiring are explicitly deferred rather than marked complete.
 
 ## Operating rule
 
@@ -39,6 +37,8 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | Batch 2 screen states and PreviewData isolation | DONE | Commit `ef66c94` |
 | Runtime device visual/RTL/accessibility verification | UNKNOWN | No emulator or connected device available |
 | Phase 4 authority register | UPDATED | `docs/PHASE4_DECISION_REGISTER.md` |
+| Final Security Storage Decisions | FILED AS SOURCE OF TRUTH | `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` |
+| AAD-v1 binding implementation | IMPLEMENTED — CI PENDING | `EvidenceAadBuilder`, `KeystoreEvidenceCipherWithAad`, `EvidenceKeyPolicy`, 10 unit tests |
 | Phase 4 production behavior | CONTROLLED / G4-B IN PROGRESS | Approved initial local storage policy; Room/file adapter and persistence tests are authorized; Android runtime verification and production security approval remain disabled |
 
 ## Gate status
@@ -49,7 +49,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | G1 — Protection rules | APPROVED FOR PURE CONTRACT CLOSURE | Encode approved Guard semantics in framework-free contracts/tests | Android feasibility, response, evidence, and API limitations |
 | G2 — Evidence/privacy | APPROVED PRINCIPLE / DETAILS BLOCKED | Maintain minimum post-confirmation evidence contracts and matrices | Capture, consent, retention, deletion, export, redaction, crypto |
 | G3 — Android monitoring | APPROVED PRINCIPLE / DETAILS BLOCKED | Batch 4a research and device matrix only | Service, permissions, device evidence, Doze/OEM/recovery |
-| G4 — Storage/security | APPROVED DIRECTION / DETAILS BLOCKED | Reviewable schema/Keystore candidate, 18-point gap review, and G4-A proposals | Owner/security approval, implementation evidence, data/key lifecycle, recovery, runtime evidence, threat model, sign-off |
+| G4 — Storage/security | APPROVED DIRECTION / AAD IMPLEMENTED / DETAILS OPEN | AAD-v1 serialization, mandatory AAD enforcement, key alias policy implemented and tested | Keystore runtime, key rotation, migration/recovery, retention, deletion, export, device verification, threat model, sign-off |
 | G5 — External services | DEFERRED | Keep provider interfaces only where already justified | Cloud, delivery, billing, ads, analytics, backend |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit |
 | G7 — Implementation | READY FOR CONTROLLED PURE BATCHES | Batch 3 local EventPipeline is authorized and implemented | Sequential platform capabilities remain gated |
@@ -72,19 +72,17 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 **Status:** IN PROGRESS — G4-B local storage implementation authorized under the initial conservative policy; platform/runtime and production behavior remain gated.
 
-**Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices.
+**Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices. AAD-v1 canonical serialization and mandatory enforcement implemented (decisions §1.1–§1.4, §2.1–§2.2).
 
-**Remaining:** Room/file implementation evidence, device execution evidence, capability-specific approvals, evidence/privacy details, and final security sign-off. Batch 4b preflight is intentionally deferred to owner download/device testing; Android runtime behavior remains unverified. The G4 gap review identifies 18 closure requirements; production storage approval remains prohibited.
+**Remaining:** Keystore runtime verification on device, key rotation algorithm (§3), Room migration/recovery (§4), evidence lifecycle (§5), retention policy (§5.4), export disabled enforcement (§5.5), security failure semantics enforcement (§6). Final production gate (§15) remains entirely open.
 
 **Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
-**Approval requirements:** implement only the locally authorized G4-B storage policy; do not claim Android runtime behavior, production readiness, or security certification. Capture, monitoring, providers, and external services remain gated.
+**Approval requirements:** implement only the locally authorized G4-B storage policy; do not claim Android runtime behavior, production readiness, or security certification.
 
 ### Phase 5 — Guard Implementation
 
 **Status:** BLOCKED after pure engine contracts until Android feasibility and capability-specific approval exist.
-
-**Order:** Lock, Motion, SIM, Battery only after each rule/API review; Panic is a separate direct-action capability. Battery security anomaly remains undefined and must not be invented.
 
 ### Phase 6 — Evidence & Privacy
 
@@ -104,11 +102,11 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ### Phase 10 — Security/Privacy Audit
 
-**Status:** REQUIRED before production/security claims. It must cover threat model, abuse cases, privacy, permissions, retention, evidence exposure, dependencies, background execution, device/OEM evidence, and recovery.
+**Status:** REQUIRED before production/security claims.
 
 ### Phase 11 — Release Hardening
 
-**Status:** NOT STARTED. Requires all implementation batches, device/provider/migration/recovery evidence, rollback plan, and final release authority.
+**Status:** NOT STARTED.
 
 ## Dependency-aware execution plan
 
@@ -138,6 +136,11 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-ci-hardening | Enforce G4-B review script in CI and remove weak/no-op assertions | Existing G4-B local review scope | IMPLEMENTED — `abed3c4`; CI `35888896037` queued; device/runtime work deferred |
 | 4d-storage-hardening | Reject symlink evidence payloads and fail closed on Room child-row collisions | Existing local storage implementation; no new security policy | IMPLEMENTED — `1335a8b`; CI `35889049875` in progress; runtime/device work deferred |
 | 4d-acceptance-matrix | Separate implementation evidence from CI/device/security acceptance and record deferred Android work | All preceding local batches | DOCUMENTED — `bf4ccca` lineage; runtime/security acceptance remains blocked |
+| 4d-aad-binding | AAD-v1 canonical serialization, mandatory AAD cipher, key alias policy, 10 unit tests (decisions §1.1–§1.4, §2.1–§2.2) | Final Security Storage Decisions (owner-supplied 2026-09-24) | IMPLEMENTED — commits `8f6a3af`+`b5d7e9e`+`d317cb2`+`ea6bc7f`; CI PENDING; Android Keystore runtime NOT VERIFIED |
+| 4d-key-rotation | Key rotation algorithm, resumable rotation, rotation tests (decisions §3.1–§3.5) | 4d-aad-binding; CI pass | NEXT — requires CI pass on 4d-aad-binding |
+| 4d-migration-recovery | Room migration enforcement, unsupported version/downgrade/failure RecoveryRequired, tests (decisions §4.1–§4.6) | 4d-key-rotation or parallel if no conflict | BLOCKED — awaiting 4d-key-rotation |
+| 4d-evidence-lifecycle | UNAVAILABLE/QUARANTINE/tombstone states, retention policy, export disabled, deletion semantics, factory reset (decisions §5.1–§5.7) | 4d-migration-recovery | BLOCKED |
+| 4d-failure-semantics | Security failure semantics table enforcement (decision §6) | 4d-evidence-lifecycle | BLOCKED |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
@@ -145,4 +148,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**G4-B — Local Storage Implementation** is authorized by the owner’s initial conservative implementation authorization. Sub-batch 4d-7 performs an offline closure audit of backup boundaries, exported schema evidence, factory wiring scope, and no-fallback/destructive-migration controls through a reproducible review script and report. The pure `4d+-lock-prep` boundary is now implemented and tested locally; the platform adapter remains unimplemented until runtime evidence and capability-specific approval exist. The active environment still has no `adb`, emulator, AVD, or attached device. Keep G4 as **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**; do not claim Android runtime verification or production storage approval.
+**4d-key-rotation** — after CI confirms the 4d-aad-binding batch passes. Implement the rotation algorithm (§3.3), resumable rotation state (§3.4), and all rotation tests (§3.5). Do not claim Android Keystore runtime behavior until device verification is available.
