@@ -3,11 +3,11 @@
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
 **Current HEAD:** `origin/main` (the exact commit is the repository's current remote tip; this self-referential document intentionally avoids recording its own changing hash)
-**Remote CI evidence:** runs `35886198586` (`b9d56fa`), `35886895480` (`2760107`), and `35886951932` (`1519701`) completed `success`. The corrected workflow now compiles `assembleDebugAndroidTest`; no run executes connected device tests. Domain batch `191b049` has run `35888768082`; CI hardening batch `abed3c4` has run `35888896037`; documentation batch `c423a47` has run `35888837174`; storage batch `1335a8b` has run `35889049875`. All four were `in_progress` at the last check; no success is claimed for them yet. AAD binding batch (`ea6bc7f`+`d317cb2`+`b5d7e9e`+`8f6a3af`) pushed 2026-09-24; CI run pending.
+**Remote CI evidence:** runs `35886198586` (`b9d56fa`), `35886895480` (`2760107`), and `35886951932` (`1519701`) completed `success`. The corrected workflow now compiles `assembleDebugAndroidTest`; no run executes connected device tests. Domain batch `191b049` has run `35888768082`; CI hardening batch `abed3c4` has run `35888896037`; documentation batch `c423a47` has run `35888837174`; storage batch `1335a8b` has run `35889049875`. All four were `in_progress` at the last check; no success is claimed for them yet. AAD binding batch (`ea6bc7f`+`d317cb2`+`b5d7e9e`+`8f6a3af`+`6a13d59`) pushed 2026-09-26; CI run triggered.
 **Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
 **Decision authority for this cycle:** [`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`](authority/FINAL_SECURITY_STORAGE_DECISIONS.md) (binding, owner-supplied 2026-09-24) and [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
-**Latest local implementation batch (4d-aad-binding):** Implements AAD-v1 canonical binary serialization (`EvidenceAadBuilder`), mandatory AAD enforcement (`KeystoreEvidenceCipherWithAad`), versioned per-app key alias policy (`EvidenceKeyPolicy`), and all 10 unit tests required by decision §1.4. `AndroidKeystoreEncryptor` is now `open` for JVM test doubles. No production wiring, no Keystore runtime behavior claimed. CI pending.
+**Latest local implementation batch (4d-aad-binding):** Implements AAD-v1 canonical binary serialization (`EvidenceAadBuilder`), mandatory AAD enforcement (`KeystoreEvidenceCipherWithAad`), versioned per-app key alias policy (`EvidenceKeyPolicy`), StrongBox detection (`AndroidKeystoreEncryptor`), all 10 unit tests required by decision §1.4, canonical vector tests, and device instrumentation test (`RealAesGcmAadTest`). `AndroidKeystoreEncryptor` is `open` for JVM test doubles. No production wiring, no Keystore runtime behavior claimed. CI triggered for commit `6a13d59`.
 
 **Storage hardening:** commit `1335a8b` prevents symlink payload reads and filters symlinks from reconciliation, and checks every evidence/delivery child insert inside the Room transaction. It does not claim atomic multi-process ownership, AAD identity binding, migration recovery, or Keystore runtime behavior.
 
@@ -38,7 +38,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | Runtime device visual/RTL/accessibility verification | UNKNOWN | No emulator or connected device available |
 | Phase 4 authority register | UPDATED | `docs/PHASE4_DECISION_REGISTER.md` |
 | Final Security Storage Decisions | FILED AS SOURCE OF TRUTH | `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` |
-| AAD-v1 binding implementation | IMPLEMENTED — CI PENDING | `EvidenceAadBuilder`, `KeystoreEvidenceCipherWithAad`, `EvidenceKeyPolicy`, 10 unit tests |
+| AAD-v1 binding implementation | CLOSED | `EvidenceAadBuilder`, `KeystoreEvidenceCipherWithAad`, `EvidenceKeyPolicy`, `AndroidKeystoreEncryptor` (StrongBox), 10 unit tests, canonical vector tests, `RealAesGcmAadTest`; commit `6a13d59` |
 | Phase 4 production behavior | CONTROLLED / G4-B IN PROGRESS | Approved initial local storage policy; Room/file adapter and persistence tests are authorized; Android runtime verification and production security approval remain disabled |
 
 ## Gate status
@@ -72,7 +72,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 **Status:** IN PROGRESS — G4-B local storage implementation authorized under the initial conservative policy; platform/runtime and production behavior remain gated.
 
-**Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices. AAD-v1 canonical serialization and mandatory enforcement implemented (decisions §1.1–§1.4, §2.1–§2.2).
+**Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices. AAD-v1 canonical serialization and mandatory enforcement implemented (decisions §1.1–§1.4, §2.1–§2.3). **4d-aad-binding CLOSED.**
 
 **Remaining:** Keystore runtime verification on device, key rotation algorithm (§3), Room migration/recovery (§4), evidence lifecycle (§5), retention policy (§5.4), export disabled enforcement (§5.5), security failure semantics enforcement (§6). Final production gate (§15) remains entirely open.
 
@@ -136,7 +136,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-ci-hardening | Enforce G4-B review script in CI and remove weak/no-op assertions | Existing G4-B local review scope | IMPLEMENTED — `abed3c4`; CI `35888896037` queued; device/runtime work deferred |
 | 4d-storage-hardening | Reject symlink evidence payloads and fail closed on Room child-row collisions | Existing local storage implementation; no new security policy | IMPLEMENTED — `1335a8b`; CI `35889049875` in progress; runtime/device work deferred |
 | 4d-acceptance-matrix | Separate implementation evidence from CI/device/security acceptance and record deferred Android work | All preceding local batches | DOCUMENTED — `bf4ccca` lineage; runtime/security acceptance remains blocked |
-| 4d-aad-binding | AAD-v1 canonical serialization, mandatory AAD cipher, key alias policy, 10 unit tests (decisions §1.1–§1.4, §2.1–§2.2) | Final Security Storage Decisions (owner-supplied 2026-09-24) | IMPLEMENTED — commits `8f6a3af`+`b5d7e9e`+`d317cb2`+`ea6bc7f`; CI PENDING; Android Keystore runtime NOT VERIFIED |
+| 4d-aad-binding | AAD-v1 canonical serialization, mandatory AAD cipher, key alias policy, StrongBox detection, 10 unit tests, canonical vector tests, device instrumentation test (decisions §1.1–§1.4, §2.1–§2.3) | Final Security Storage Decisions (owner-supplied 2026-09-24) | **CLOSED** — commit `6a13d59`; all implementation + tests + static review complete; CI triggered |
 | 4d-key-rotation | Key rotation algorithm, resumable rotation, rotation tests (decisions §3.1–§3.5) | 4d-aad-binding; CI pass | NEXT — requires CI pass on 4d-aad-binding |
 | 4d-migration-recovery | Room migration enforcement, unsupported version/downgrade/failure RecoveryRequired, tests (decisions §4.1–§4.6) | 4d-key-rotation or parallel if no conflict | BLOCKED — awaiting 4d-key-rotation |
 | 4d-evidence-lifecycle | UNAVAILABLE/QUARANTINE/tombstone states, retention policy, export disabled, deletion semantics, factory reset (decisions §5.1–§5.7) | 4d-migration-recovery | BLOCKED |
@@ -148,4 +148,4 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**4d-key-rotation** — after CI confirms the 4d-aad-binding batch passes. Implement the rotation algorithm (§3.3), resumable rotation state (§3.4), and all rotation tests (§3.5). Do not claim Android Keystore runtime behavior until device verification is available.
+**4d-key-rotation** — 4d-aad-binding is CLOSED (commit `6a13d59`). Implement the rotation algorithm (§3.3), resumable rotation state (§3.4), and all rotation tests (§3.5). Requires Room schema v2 with keyVersion/aadVersion columns. Do not claim Android Keystore runtime behavior until device verification is available.
