@@ -10,7 +10,8 @@ class StorageRecoveryPolicyTest {
     @Test
     fun reconciliation_reports_missing_and_quarantines_orphaned_files() {
         val directory = Files.createTempDirectory("shieldra-reconcile").toFile()
-        val store = EncryptedEvidenceFileStore(directory, PrefixCipher)
+        val aadProvider: (String) -> ByteArray = { EvidenceAadBuilder.forEvidence(it) }
+        val store = EncryptedEvidenceFileStore(directory, PrefixCipher, aadProvider)
         store.write("referenced", "one".toByteArray())
         store.write("orphan", "two".toByteArray())
         directory.resolve(".interrupted.tmp").writeBytes(byteArrayOf(1))
@@ -48,9 +49,13 @@ class StorageRecoveryPolicyTest {
     }
 
     private object PrefixCipher : EvidenceCipher {
-        override fun encrypt(plaintext: ByteArray): ByteArray = byteArrayOf(0x01) + plaintext
+        override fun encrypt(plaintext: ByteArray, aad: ByteArray): ByteArray {
+            require(aad.isNotEmpty()) { "PrefixCipher: AAD must not be empty" }
+            return byteArrayOf(0x01) + plaintext
+        }
 
-        override fun decrypt(ciphertext: ByteArray): ByteArray {
+        override fun decrypt(ciphertext: ByteArray, aad: ByteArray): ByteArray {
+            require(aad.isNotEmpty()) { "PrefixCipher: AAD must not be empty" }
             require(ciphertext.firstOrNull() == 0x01.toByte())
             return ciphertext.copyOfRange(1, ciphertext.size)
         }

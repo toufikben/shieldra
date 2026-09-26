@@ -9,27 +9,77 @@ import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 
+/**
+ * Evidence-specific cryptographic API.
+ *
+ * AAD is MANDATORY for all evidence operations. No optional or bypass path exists.
+ * This interface structurally prevents omitting AAD.
+ */
 interface EvidenceCipher {
-    fun encrypt(plaintext: ByteArray): ByteArray
-    fun decrypt(ciphertext: ByteArray): ByteArray
+    /**
+     * Encrypts [plaintext] with mandatory AAD bound to the evidence identity.
+     *
+     * @param plaintext The evidence plaintext to encrypt.
+     * @param aad The canonical AAD bytes for this evidence (version || class || id).
+     * @return Encrypted payload envelope.
+     * @throws IllegalArgumentException if AAD is null or empty.
+     */
+    fun encrypt(plaintext: ByteArray, aad: ByteArray): ByteArray
+
+    /**
+     * Decrypts [ciphertext] with mandatory AAD bound to the evidence identity.
+     *
+     * @param ciphertext The encrypted payload envelope.
+     * @param aad The canonical AAD bytes for this evidence (version || class || id).
+     * @return Decrypted plaintext.
+     * @throws EvidenceUnavailableException if authentication fails (wrong AAD, corruption, etc.).
+     * @throws IllegalArgumentException if AAD is null or empty.
+     */
+    fun decrypt(ciphertext: ByteArray, aad: ByteArray): ByteArray
 }
 
-class KeystoreEvidenceCipher(
+/**
+ * Evidence cipher that binds each operation to the canonical AAD for the supplied evidenceId.
+ *
+ * Rules enforced (decision §1.2, §1.3):
+ * - AAD is ALWAYS required; there is no optional or bypass path.
+ * - An evidenceId mismatch (wrong AAD during decrypt) surfaces as [EvidenceUnavailableException].
+ * - No software-key fallback is attempted (decision §2.5).
+ */
+class KeystoreEvidenceCipherWithAad(
     private val encryptor: AndroidKeystoreEncryptor,
     private val keyAlias: String,
     private val policy: EncryptionPolicy,
-    private val associatedData: ByteArray? = null,
 ) : EvidenceCipher {
-    override fun encrypt(plaintext: ByteArray): ByteArray = encryptor
-        .encrypt(plaintext, keyAlias, policy, associatedData)
-        .toByteArray()
 
-    override fun decrypt(ciphertext: ByteArray): ByteArray = encryptor.decrypt(
-        EncryptedPayload.fromByteArray(ciphertext),
-        keyAlias,
-        policy,
-        associatedData,
-    )
+    override fun encrypt(plaintext: ByteArray, aad: ByteArray): ByteArray {
+        require(aad.isNotEmpty()) { "AAD must not be empty for evidence encryption" }
+        return encryptor
+            .encrypt(plaintext, keyAlias, policy, aad)
+            .toByteArray()
+    }
+
+    override fun decrypt(ciphertext: ByteArray, aad: ByteArray): ByteArray {
+        require(aad.isNotEmpty()) { "AAD must not be empty for evidence decryption" }
+        return try {
+            encryptor.decrypt(
+                EncryptedPayload.fromByteArray(ciphertext),
+                keyAlias,
+                policy,
+                aad,
+            )
+        } catch (error: EvidenceUnavailableException) {
+            throw error
+        } catch (error: Exception) {
+            // Wrap raw crypto failure (including GCM tag mismatch on AAD
+            // mismatch) as EvidenceUnavailableException; do not leak
+            // key state, ciphertext validity, or actual stored evidenceId.
+            throw EvidenceUnavailableException(
+                "Evidence is unavailable: authentication or integrity check failed",
+                error,
+            )
+        }
+    }
 }
 
 class EvidenceUnavailableException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
@@ -48,6 +98,7 @@ data class EvidenceReconciliationReport(
 class EncryptedEvidenceFileStore(
     rootDirectory: File,
     private val cipher: EvidenceCipher,
+    private val evidenceIdProvider: (String) -> ByteArray,
 ) {
     private val rootDirectory: File = rootDirectory.canonicalFile
 
@@ -62,7 +113,8 @@ class EncryptedEvidenceFileStore(
         val target = fileFor(evidenceId)
         val temporary = File(rootDirectory, ".$evidenceId.tmp")
         try {
-            val encrypted = cipher.encrypt(plaintext)
+            val aad = evidenceIdProvider(evidenceId)
+            val encrypted = cipher.encrypt(plaintext, aad)
             FileOutputStream(temporary).use { output ->
                 output.write(encrypted)
                 output.flush()
@@ -87,8 +139,9 @@ class EncryptedEvidenceFileStore(
         if (!Files.isRegularFile(file.toPath(), NOFOLLOW_LINKS)) {
             throw EvidenceUnavailableException("Evidence file is missing or is a symlink: $evidenceId")
         }
+        val aad = evidenceIdProvider(evidenceId)
         return try {
-            cipher.decrypt(file.readBytes())
+            cipher.decrypt(file.readBytes(), aad)
         } catch (error: Exception) {
             throw EvidenceUnavailableException("Evidence is unavailable or corrupted: $evidenceId", error)
         }

@@ -159,7 +159,10 @@ class RoomEventRepositoryInstrumentedTest {
     @Test
     fun local_storage_factory_uses_no_backup_directory_and_closes_cleanly() {
         val name = databaseName()
-        val storage = LocalShieldraStorage.create(context, PrefixCipher, databaseName = name)
+        val storage = LocalShieldraStorage.create(
+            context = context,
+            databaseName = name,
+        )
 
         assertEquals(context.noBackupFilesDir, storage.evidenceFilesRoot().parentFile)
         storage.close()
@@ -172,8 +175,7 @@ class RoomEventRepositoryInstrumentedTest {
         try {
             org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
                 LocalShieldraStorage.create(
-                    context,
-                    PrefixCipher,
+                    context = context,
                     databaseName = name,
                     evidenceDirectory = context.filesDir,
                 )
@@ -212,15 +214,6 @@ class RoomEventRepositoryInstrumentedTest {
             check("FOREIGN KEY" in message.uppercase()) {
                 "Expected a foreign-key failure, got ${error::class.simpleName}: $message"
             }
-        }
-    }
-
-    private object PrefixCipher : EvidenceCipher {
-        override fun encrypt(plaintext: ByteArray): ByteArray = byteArrayOf(0x01) + plaintext
-
-        override fun decrypt(ciphertext: ByteArray): ByteArray {
-            require(ciphertext.firstOrNull() == 0x01.toByte())
-            return ciphertext.copyOfRange(1, ciphertext.size)
         }
     }
 }

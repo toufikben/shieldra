@@ -92,16 +92,18 @@ class EvidenceAadBuilderTest {
             userAuthenticationValiditySeconds = 0,
             invalidateOnBiometricEnrollment = false,
         )
-        val cipherA = KeystoreEvidenceCipherWithAad(encryptor, "shieldra_evidence_v1", policy, "ev-001")
-        val cipherB = KeystoreEvidenceCipherWithAad(encryptor, "shieldra_evidence_v1", policy, "ev-002")
+        val cipher = KeystoreEvidenceCipherWithAad(encryptor, "shieldra_evidence_v1", policy)
 
-        val encrypted = cipherA.encrypt(plaintext)
-        // Decrypting with a different evidenceId must throw EvidenceUnavailableException
+        val aadA = EvidenceAadBuilder.forEvidence("ev-001")
+        val aadB = EvidenceAadBuilder.forEvidence("ev-002")
+
+        val encrypted = cipher.encrypt(plaintext, aadA)
+        // Decrypting with a different evidenceId (different AAD) must throw EvidenceUnavailableException
         assertThrows(
             "Case 4: evidenceId mismatch must throw EvidenceUnavailableException",
             EvidenceUnavailableException::class.java,
         ) {
-            cipherB.decrypt(encrypted)
+            cipher.decrypt(encrypted, aadB)
         }
     }
 
@@ -235,8 +237,9 @@ class EvidenceAadBuilderTest {
             userAuthenticationValiditySeconds = 0,
             invalidateOnBiometricEnrollment = false,
         )
-        val cipher = KeystoreEvidenceCipherWithAad(recorder, "shieldra_evidence_v1", policy, "ev-001")
-        cipher.encrypt(byteArrayOf(1, 2, 3))
+        val cipher = KeystoreEvidenceCipherWithAad(recorder, "shieldra_evidence_v1", policy)
+        val aad = EvidenceAadBuilder.forEvidence("ev-001")
+        cipher.encrypt(byteArrayOf(1, 2, 3), aad)
         val usedAad = recorder.lastAad
         assertTrue(
             "Case 9: AAD must be non-null and non-empty on encrypt",
@@ -257,11 +260,12 @@ class EvidenceAadBuilderTest {
             userAuthenticationValiditySeconds = 0,
             invalidateOnBiometricEnrollment = false,
         )
-        val cipher = KeystoreEvidenceCipherWithAad(recorder, "shieldra_evidence_v1", policy, "ev-001")
+        val cipher = KeystoreEvidenceCipherWithAad(recorder, "shieldra_evidence_v1", policy)
+        val aad = EvidenceAadBuilder.forEvidence("ev-001")
         // First encrypt to produce a valid payload structure
-        val encrypted = cipher.encrypt(byteArrayOf(4, 5, 6))
+        val encrypted = cipher.encrypt(byteArrayOf(4, 5, 6), aad)
         recorder.lastAad = null // reset to detect re-use
-        cipher.decrypt(encrypted)
+        cipher.decrypt(encrypted, aad)
         val usedAad = recorder.lastAad
         assertTrue(
             "Case 10: AAD must be non-null and non-empty on decrypt",
@@ -287,6 +291,43 @@ class EvidenceAadBuilderTest {
         val idBytes = ByteArray(idLen).also(buf::get)
         assertEquals("evidenceId", evidenceId, String(idBytes, StandardCharsets.UTF_8))
         assertEquals("no trailing bytes", 0, buf.remaining())
+    }
+
+    // -----------------------------------------------------------------------
+    // Canonical vector test (explicit known bytes)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `canonical vector for evidence class with evidenceId ev-001`() {
+        // Canonical AAD-v1 for objectClass="evidence", evidenceId="ev-001"
+        // versionByte(0x01)
+        // || UInt32BE(8)  -- "evidence".length
+        // || UTF-8("evidence")
+        // || UInt32BE(6)  -- "ev-001".length
+        // || UTF-8("ev-001")
+        val expected = byteArrayOf(
+            0x01,                              // version byte
+            0x00, 0x00, 0x00, 0x08,           // class length = 8 (UInt32BE)
+            0x65, 0x76, 0x69, 0x64, 0x65, 0x6E, 0x63, 0x65, // "evidence" UTF-8
+            0x00, 0x00, 0x00, 0x06,           // id length = 6 (UInt32BE)
+            0x65, 0x76, 0x2D, 0x30, 0x30, 0x31  // "ev-001" UTF-8
+        )
+        val actual = EvidenceAadBuilder.forEvidence("ev-001")
+        assertArrayEquals("Canonical vector must match exactly", expected, actual)
+    }
+
+    @Test
+    fun `canonical vector for photo class with evidenceId photo-123`() {
+        // Canonical AAD-v1 for objectClass="photo", evidenceId="photo-123"
+        val expected = byteArrayOf(
+            0x01,                              // version byte
+            0x00, 0x00, 0x00, 0x05,           // class length = 5
+            0x70, 0x68, 0x6F, 0x74, 0x6F,     // "photo" UTF-8
+            0x00, 0x00, 0x00, 0x09,           // id length = 9
+            0x70, 0x68, 0x6F, 0x74, 0x6F, 0x2D, 0x31, 0x32, 0x33  // "photo-123" UTF-8
+        )
+        val actual = EvidenceAadBuilder.build("photo", "photo-123")
+        assertArrayEquals("Canonical vector for photo must match exactly", expected, actual)
     }
 }
 

@@ -1,50 +1,50 @@
 package com.shieldra.storage
 
 /**
- * Evidence cipher that binds each encrypt/decrypt operation to the
- * canonical AAD for the supplied evidenceId (decision §1.2, §1.3).
+ * Evidence cipher that performs AES-GCM encryption/decryption with mandatory AAD.
  *
- * Rules enforced:
- * - AAD is ALWAYS provided; there is no optional or bypass path.
- * - An evidenceId mismatch (wrong AAD during decrypt) surfaces as
- *   [EvidenceUnavailableException], not a raw cryptographic exception.
+ * Rules enforced (decision §1.2, §1.3):
+ * - AAD is ALWAYS required; there is no optional or bypass path.
+ * - An AAD mismatch (wrong AAD during decrypt) surfaces as [EvidenceUnavailableException].
  * - No software-key fallback is attempted (decision §2.5).
+ *
+ * This class does NOT build AAD internally; the caller must provide the canonical AAD.
+ * Use [EvidenceAadBuilder] to construct canonical AAD from evidenceId.
  */
 class KeystoreEvidenceCipherWithAad(
     private val encryptor: AndroidKeystoreEncryptor,
     private val keyAlias: String,
     private val policy: EncryptionPolicy,
-    private val evidenceId: String,
 ) : EvidenceCipher {
 
     init {
-        require(evidenceId.isNotBlank()) { "evidenceId must not be blank" }
         require(keyAlias.isNotBlank()) { "keyAlias must not be blank" }
     }
 
     /**
-     * Encrypts [plaintext] using the canonical AAD for [evidenceId].
+     * Encrypts [plaintext] using the provided canonical AAD.
      *
-     * AAD is always built and passed; encrypt() will never be called
-     * without valid AAD (decision §1.2 — fail closed if AAD cannot be built).
+     * @param plaintext The evidence plaintext to encrypt.
+     * @param aad Canonical AAD bytes (version || class || evidenceId).
+     * @throws IllegalArgumentException if AAD is null or empty.
      */
-    override fun encrypt(plaintext: ByteArray): ByteArray {
-        val aad = buildAad()
+    override fun encrypt(plaintext: ByteArray, aad: ByteArray): ByteArray {
+        require(aad.isNotEmpty()) { "AAD must not be empty for evidence encryption" }
         return encryptor
             .encrypt(plaintext, keyAlias, policy, aad)
             .toByteArray()
     }
 
     /**
-     * Decrypts [ciphertext] using the canonical AAD for [evidenceId].
+     * Decrypts [ciphertext] using the provided canonical AAD.
      *
-     * If the ciphertext was encrypted with a different evidenceId (AAD
-     * mismatch), GCM authentication will fail and the exception is wrapped
-     * as [EvidenceUnavailableException] without exposing internal state
-     * (decision §1.3).
+     * @param ciphertext The encrypted payload envelope.
+     * @param aad Canonical AAD bytes (version || class || evidenceId).
+     * @throws EvidenceUnavailableException if authentication fails (wrong AAD, corruption, etc.).
+     * @throws IllegalArgumentException if AAD is null or empty.
      */
-    override fun decrypt(ciphertext: ByteArray): ByteArray {
-        val aad = buildAad()
+    override fun decrypt(ciphertext: ByteArray, aad: ByteArray): ByteArray {
+        require(aad.isNotEmpty()) { "AAD must not be empty for evidence decryption" }
         return try {
             encryptor.decrypt(
                 EncryptedPayload.fromByteArray(ciphertext),
@@ -64,15 +64,4 @@ class KeystoreEvidenceCipherWithAad(
             )
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Private helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Builds the canonical AAD; fails closed (throws) if construction fails.
-     * Never returns null and never falls back to an empty byte array.
-     */
-    private fun buildAad(): ByteArray =
-        EvidenceAadBuilder.forEvidence(evidenceId)
 }

@@ -26,7 +26,9 @@ class LocalShieldraStorage private constructor(
     companion object {
         fun create(
             context: Context,
-            evidenceCipher: EvidenceCipher,
+            encryptor: AndroidKeystoreEncryptor = AndroidKeystoreEncryptor(),
+            keyAlias: String = EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS,
+            policy: EncryptionPolicy = EvidenceKeyPolicy.EVIDENCE_POLICY,
             databaseName: String = DEFAULT_DATABASE_NAME,
             evidenceDirectory: File = File(context.noBackupFilesDir, EVIDENCE_DIRECTORY),
         ): LocalShieldraStorage {
@@ -38,10 +40,19 @@ class LocalShieldraStorage private constructor(
                 ShieldraDatabase::class.java,
                 databaseName,
             ).build()
+
+            // Evidence-specific cipher with mandatory AAD binding
+            val evidenceCipher = KeystoreEvidenceCipherWithAad(encryptor, keyAlias, policy)
+
+            // AAD provider: canonical AAD-v1 for each evidenceId
+            val evidenceIdProvider: (String) -> ByteArray = { evidenceId ->
+                EvidenceAadBuilder.forEvidence(evidenceId)
+            }
+
             return LocalShieldraStorage(
                 database = database,
                 eventRepository = RoomEventRepository(database),
-                evidenceFiles = EncryptedEvidenceFileStore(evidenceDirectory, evidenceCipher),
+                evidenceFiles = EncryptedEvidenceFileStore(evidenceDirectory, evidenceCipher, evidenceIdProvider),
             )
         }
 

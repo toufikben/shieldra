@@ -1,5 +1,6 @@
 package com.shieldra.storage
 
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.nio.ByteBuffer
@@ -20,6 +21,12 @@ import javax.crypto.spec.GCMParameterSpec
  * Marked [open] so that JVM unit test doubles (FakeEncryptor,
  * AadRecordingEncryptor) can override [encrypt] and [decrypt] without
  * requiring Android Keystore at test time.
+ *
+ * StrongBox policy (decision §2.3):
+ * - StrongBox is preferred when available
+ * - Fallback to normal Android Keystore if StrongBox not available
+ * - Never fail installation because StrongBox is not present
+ * - Must detect capability at runtime
  */
 open class AndroidKeystoreEncryptor(
     private val secureRandom: SecureRandom = SecureRandom(),
@@ -63,24 +70,77 @@ open class AndroidKeystoreEncryptor(
         return cipher.doFinal(payload.ciphertext)
     }
 
+    /**
+     * Checks if StrongBox is available on this device.
+     * StrongBox requires Android 9 (API 28) + hardware support.
+     */
+    fun isStrongBoxAvailable(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+    }
+
+    /**
+     * Attempts to create a StrongBox-backed key spec.
+     * Returns null if StrongBox is not available or not supported.
+     */
+    private fun buildStrongBoxSpec(alias: String, policy: EncryptionPolicy): KeyGenParameterSpec? {
+        return if (isStrongBoxAvailable()) {
+            try {
+                KeyGenParameterSpec.Builder(
+                    alias,
+                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+                )
+                    .setKeySize(policy.keySizeBits)
+                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                    .setUserAuthenticationRequired(policy.requireUserAuthentication)
+                    .setUserAuthenticationValidityDurationSeconds(policy.userAuthenticationValiditySeconds)
+                    .setInvalidatedByBiometricEnrollment(policy.invalidateOnBiometricEnrollment)
+                    .setIsStrongBoxBacked(true)
+                    .build()
+            } catch (e: Exception) {
+                // StrongBox not supported on this device/hardware
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    private fun buildStandardSpec(alias: String, policy: EncryptionPolicy): KeyGenParameterSpec {
+        return KeyGenParameterSpec.Builder(
+            alias,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+        )
+            .setKeySize(policy.keySizeBits)
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            .setUserAuthenticationRequired(policy.requireUserAuthentication)
+            .setUserAuthenticationValidityDurationSeconds(policy.userAuthenticationValiditySeconds)
+            .setInvalidatedByBiometricEnrollment(policy.invalidateOnBiometricEnrollment)
+            .build()
+    }
+
     private fun loadOrCreateKey(alias: String, policy: EncryptionPolicy): SecretKey {
         val existing = loadExistingKeyOrNull(alias)
         if (existing != null) return existing
 
         return try {
             val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, EncryptionPolicy.PROVIDER)
-            val spec = KeyGenParameterSpec.Builder(
-                alias,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-            )
-                .setKeySize(policy.keySizeBits)
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .setUserAuthenticationRequired(policy.requireUserAuthentication)
-                .setUserAuthenticationValidityDurationSeconds(policy.userAuthenticationValiditySeconds)
-                .setInvalidatedByBiometricEnrollment(policy.invalidateOnBiometricEnrollment)
-                .build()
-            generator.init(spec)
+
+            // Try StrongBox first (decision §2.3: preferred when available)
+            val strongBoxSpec = buildStrongBoxSpec(alias, policy)
+            if (strongBoxSpec != null) {
+                try {
+                    generator.init(strongBoxSpec)
+                    return generator.generateKey()
+                } catch (e: Exception) {
+                    // StrongBox generation failed, fall back to standard Keystore
+                }
+            }
+
+            // Fallback to standard Android Keystore (decision §2.3)
+            val standardSpec = buildStandardSpec(alias, policy)
+            generator.init(standardSpec)
             generator.generateKey()
         } catch (error: Exception) {
             throw KeyMaterialUnavailableException(
