@@ -39,14 +39,22 @@ open class AndroidKeystoreEncryptor(
     ): EncryptedPayload {
         validateAlias(keyAlias)
         val key = loadOrCreateKey(keyAlias, policy)
-        val iv = ByteArray(EncryptionPolicy.GCM_IV_BYTES).also(secureRandom::nextBytes)
         val cipher = Cipher.getInstance(EncryptionPolicy.TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(EncryptionPolicy.GCM_TAG_BITS, iv))
+        // Android Keystore generates the GCM IV internally on encrypt.
+        // A caller-provided IV is rejected on real devices with
+        // InvalidAlgorithmParameterException ("Caller-provided IV not permitted").
+        cipher.init(Cipher.ENCRYPT_MODE, key)
         associatedData?.let(cipher::updateAAD)
+        val ciphertext = cipher.doFinal(plaintext)
+        val iv = cipher.iv
+            ?: throw KeyMaterialUnavailableException("Android Keystore did not generate a GCM IV")
+        require(iv.size == EncryptionPolicy.GCM_IV_BYTES) {
+            "Invalid Keystore-generated AES-GCM IV length"
+        }
         return EncryptedPayload(
             version = EncryptionPolicy.PAYLOAD_VERSION,
             iv = iv,
-            ciphertext = cipher.doFinal(plaintext),
+            ciphertext = ciphertext,
         )
     }
 
