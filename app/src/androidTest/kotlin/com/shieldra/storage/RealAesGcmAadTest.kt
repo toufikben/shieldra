@@ -1,5 +1,6 @@
 package com.shieldra.storage
 
+import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.test.core.app.ApplicationProvider
@@ -28,7 +29,7 @@ import javax.crypto.spec.GCMParameterSpec
 @RunWith(AndroidJUnit4::class)
 class RealAesGcmAadTest {
 
-    private val context = ApplicationProvider.getApplicationContext()
+    private val context: Context = ApplicationProvider.getApplicationContext()
     private val testAlias = "shieldra_aad_test_key"
     private val testPolicy = EncryptionPolicy(
         keySizeBits = 256,
@@ -38,7 +39,7 @@ class RealAesGcmAadTest {
     )
 
     @Test
-    fun `real AES-GCM: correct AAD encrypt/decrypt succeeds`() {
+    fun real_aes_gcm_correct_aad_encrypt_decrypt_succeeds() {
         val encryptor = AndroidKeystoreEncryptor()
         val plaintext = "test evidence data".toByteArray(StandardCharsets.UTF_8)
         val aad = EvidenceAadBuilder.forEvidence("ev-test-001")
@@ -50,7 +51,7 @@ class RealAesGcmAadTest {
     }
 
     @Test
-    fun `real AES-GCM: modified AAD version causes authentication failure`() {
+    fun real_aes_gcm_modified_aad_version_causes_authentication_failure() {
         val encryptor = AndroidKeystoreEncryptor()
         val plaintext = "test evidence data".toByteArray(StandardCharsets.UTF_8)
         val correctAad = EvidenceAadBuilder.forEvidence("ev-test-002")
@@ -68,7 +69,7 @@ class RealAesGcmAadTest {
     }
 
     @Test
-    fun `real AES-GCM: modified evidenceId causes authentication failure`() {
+    fun real_aes_gcm_modified_evidence_id_causes_authentication_failure() {
         val encryptor = AndroidKeystoreEncryptor()
         val plaintext = "test evidence data".toByteArray(StandardCharsets.UTF_8)
         val correctAad = EvidenceAadBuilder.forEvidence("ev-test-003")
@@ -86,7 +87,7 @@ class RealAesGcmAadTest {
     }
 
     @Test
-    fun `real AES-GCM: modified evidence class causes authentication failure`() {
+    fun real_aes_gcm_modified_evidence_class_causes_authentication_failure() {
         val encryptor = AndroidKeystoreEncryptor()
         val plaintext = "test evidence data".toByteArray(StandardCharsets.UTF_8)
         val correctAad = EvidenceAadBuilder.build("evidence", "ev-test-004")
@@ -104,7 +105,7 @@ class RealAesGcmAadTest {
     }
 
     @Test
-    fun `real AES-GCM: tampered AAD length field causes authentication failure`() {
+    fun real_aes_gcm_tampered_aad_length_field_causes_authentication_failure() {
         val encryptor = AndroidKeystoreEncryptor()
         val plaintext = "test evidence data".toByteArray(StandardCharsets.UTF_8)
         val correctAad = EvidenceAadBuilder.forEvidence("ev-test-005")
@@ -125,7 +126,7 @@ class RealAesGcmAadTest {
     }
 
     @Test
-    fun `real AES-GCM: truncated AAD causes authentication failure`() {
+    fun real_aes_gcm_truncated_aad_causes_authentication_failure() {
         val encryptor = AndroidKeystoreEncryptor()
         val plaintext = "test evidence data".toByteArray(StandardCharsets.UTF_8)
         val correctAad = EvidenceAadBuilder.forEvidence("ev-test-006")
@@ -143,7 +144,7 @@ class RealAesGcmAadTest {
     }
 
     @Test
-    fun `real AES-GCM: empty AAD causes authentication failure`() {
+    fun real_aes_gcm_empty_aad_causes_authentication_failure() {
         val encryptor = AndroidKeystoreEncryptor()
         val plaintext = "test evidence data".toByteArray(StandardCharsets.UTF_8)
         val correctAad = EvidenceAadBuilder.forEvidence("ev-test-007")
@@ -160,7 +161,7 @@ class RealAesGcmAadTest {
     }
 
     @Test
-    fun `real AES-GCM: KeystoreEvidenceCipherWithAad rejects empty AAD on encrypt`() {
+    fun real_aes_gcm_cipher_rejects_empty_aad_on_encrypt() {
         val encryptor = AndroidKeystoreEncryptor()
         val cipher = KeystoreEvidenceCipherWithAad(encryptor, testAlias, testPolicy)
         val plaintext = "test".toByteArray()
@@ -175,7 +176,7 @@ class RealAesGcmAadTest {
     }
 
     @Test
-    fun `real AES-GCM: KeystoreEvidenceCipherWithAad encrypt/decrypt round-trip`() {
+    fun real_aes_gcm_cipher_encrypt_decrypt_round_trip() {
         val encryptor = AndroidKeystoreEncryptor()
         val cipher = KeystoreEvidenceCipherWithAad(encryptor, testAlias, testPolicy)
         val plaintext = "full round-trip test".toByteArray(StandardCharsets.UTF_8)
@@ -188,7 +189,7 @@ class RealAesGcmAadTest {
     }
 
     @Test
-    fun `real AES-GCM: KeystoreEvidenceCipherWithAad wrong AAD rejected`() {
+    fun real_aes_gcm_cipher_wrong_aad_rejected() {
         val encryptor = AndroidKeystoreEncryptor()
         val cipher = KeystoreEvidenceCipherWithAad(encryptor, testAlias, testPolicy)
         val plaintext = "wrong AAD test".toByteArray(StandardCharsets.UTF_8)
@@ -207,7 +208,7 @@ class RealAesGcmAadTest {
     }
 
     @Test
-    fun `real AES-GCM: StrongBox capability detection`() {
+    fun real_aes_gcm_strongbox_capability_detection() {
         val encryptor = AndroidKeystoreEncryptor()
         val isStrongBoxAvailable = encryptor.isStrongBoxAvailable()
 

@@ -1,11 +1,11 @@
 package com.shieldra.storage
 
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
@@ -23,10 +23,10 @@ class EvidenceAadBuilderTest {
     fun `case1 same objectClass and evidenceId produce identical bytes`() {
         val first = EvidenceAadBuilder.build("evidence", "ev-001")
         val second = EvidenceAadBuilder.build("evidence", "ev-001")
-        assertArrayEquals(
-            "Case 1: identical inputs must produce identical AAD bytes",
+        assertContentEquals(
             first,
             second,
+            "Case 1: identical inputs must produce identical AAD bytes",
         )
     }
 
@@ -40,13 +40,13 @@ class EvidenceAadBuilderTest {
         val mutated = original.copyOf()
         mutated[0] = 0x02 // change version byte
         val msg = "Case 2: mutating the version byte must change the AAD"
-        assertTrue(msg, !original.contentEquals(mutated))
+        assertTrue(!original.contentEquals(mutated), msg)
     }
 
     @Test
     fun `case2 version byte is 0x01`() {
         val aad = EvidenceAadBuilder.build("evidence", "ev-001")
-        assertEquals("Case 2: version byte must be 0x01", 0x01.toByte(), aad[0])
+        assertEquals(0x01.toByte(), aad[0], "Case 2: version byte must be 0x01")
     }
 
     // -----------------------------------------------------------------------
@@ -58,9 +58,9 @@ class EvidenceAadBuilderTest {
         val original = EvidenceAadBuilder.build("evidence", "ev-001")
         val other = EvidenceAadBuilder.build("photo", "ev-001")
         assertNotEquals(
-            "Case 3: different objectClass must produce different AAD",
             original.toList(),
             other.toList(),
+            "Case 3: different objectClass must produce different AAD",
         )
     }
 
@@ -76,9 +76,9 @@ class EvidenceAadBuilderTest {
         val aadA = EvidenceAadBuilder.build("evidence", "ev-001")
         val aadB = EvidenceAadBuilder.build("evidence", "ev-002")
         assertNotEquals(
-            "Case 4: different evidenceId must produce different AAD bytes",
             aadA.toList(),
             aadB.toList(),
+            "Case 4: different evidenceId must produce different AAD bytes",
         )
     }
 
@@ -99,9 +99,8 @@ class EvidenceAadBuilderTest {
 
         val encrypted = cipher.encrypt(plaintext, aadA)
         // Decrypting with a different evidenceId (different AAD) must throw EvidenceUnavailableException
-        assertThrows(
+        assertFailsWith<EvidenceUnavailableException>(
             "Case 4: evidenceId mismatch must throw EvidenceUnavailableException",
-            EvidenceUnavailableException::class.java,
         ) {
             cipher.decrypt(encrypted, aadB)
         }
@@ -118,7 +117,7 @@ class EvidenceAadBuilderTest {
         // bytes 1..4 hold the objectClass length (Big Endian Int)
         tampered[1] = (tampered[1] + 1).toByte()
         val msg = "Case 5: tampered length field must produce a different byte sequence"
-        assertTrue(msg, !original.contentEquals(tampered))
+        assertTrue(!original.contentEquals(tampered), msg)
     }
 
     @Test
@@ -130,8 +129,8 @@ class EvidenceAadBuilderTest {
         val tampered = original.copyOf()
         tampered[idLenOffset] = (tampered[idLenOffset] + 1).toByte()
         assertTrue(
-            "Case 5: tampered evidenceId length must produce a different byte sequence",
             !original.contentEquals(tampered),
+            "Case 5: tampered evidenceId length must produce a different byte sequence",
         )
     }
 
@@ -153,9 +152,9 @@ class EvidenceAadBuilderTest {
             .put(classBytes)
             .array()
         assertNotEquals(
-            "Case 6: swapped field order must differ from canonical AAD",
             normal.toList(),
             swapped.toList(),
+            "Case 6: swapped field order must differ from canonical AAD",
         )
     }
 
@@ -168,7 +167,7 @@ class EvidenceAadBuilderTest {
         repeat(10) { i ->
             val a = EvidenceAadBuilder.build("evidence", "ev-$i")
             val b = EvidenceAadBuilder.build("evidence", "ev-$i")
-            assertArrayEquals("Case 7: call $i must be deterministic", a, b)
+            assertContentEquals(a, b, "Case 7: call $i must be deterministic")
         }
     }
 
@@ -177,7 +176,7 @@ class EvidenceAadBuilderTest {
         val id = "الدليل-001" // Arabic characters
         val a = EvidenceAadBuilder.build("evidence", id)
         val b = EvidenceAadBuilder.build("evidence", id)
-        assertArrayEquals("Case 7: UTF-8 non-ASCII must be deterministic", a, b)
+        assertContentEquals(a, b, "Case 7: UTF-8 non-ASCII must be deterministic")
     }
 
     // -----------------------------------------------------------------------
@@ -186,9 +185,8 @@ class EvidenceAadBuilderTest {
 
     @Test
     fun `case8 blank objectClass throws IllegalArgumentException`() {
-        assertThrows(
+        assertFailsWith<IllegalArgumentException>(
             "Case 8: blank objectClass must throw",
-            IllegalArgumentException::class.java,
         ) {
             EvidenceAadBuilder.build("", "ev-001")
         }
@@ -196,9 +194,8 @@ class EvidenceAadBuilderTest {
 
     @Test
     fun `case8 whitespace-only objectClass throws IllegalArgumentException`() {
-        assertThrows(
+        assertFailsWith<IllegalArgumentException>(
             "Case 8: whitespace objectClass must throw",
-            IllegalArgumentException::class.java,
         ) {
             EvidenceAadBuilder.build("   ", "ev-001")
         }
@@ -206,9 +203,8 @@ class EvidenceAadBuilderTest {
 
     @Test
     fun `case8 blank evidenceId throws IllegalArgumentException`() {
-        assertThrows(
+        assertFailsWith<IllegalArgumentException>(
             "Case 8: blank evidenceId must throw",
-            IllegalArgumentException::class.java,
         ) {
             EvidenceAadBuilder.build("evidence", "")
         }
@@ -216,9 +212,8 @@ class EvidenceAadBuilderTest {
 
     @Test
     fun `case8 uppercase objectClass throws IllegalArgumentException`() {
-        assertThrows(
+        assertFailsWith<IllegalArgumentException>(
             "Case 8: non-lowercase objectClass must throw",
-            IllegalArgumentException::class.java,
         ) {
             EvidenceAadBuilder.build("Evidence", "ev-001")
         }
@@ -242,8 +237,8 @@ class EvidenceAadBuilderTest {
         cipher.encrypt(byteArrayOf(1, 2, 3), aad)
         val usedAad = recorder.lastAad
         assertTrue(
-            "Case 9: AAD must be non-null and non-empty on encrypt",
             usedAad != null && usedAad.isNotEmpty(),
+            "Case 9: AAD must be non-null and non-empty on encrypt",
         )
     }
 
@@ -268,8 +263,8 @@ class EvidenceAadBuilderTest {
         cipher.decrypt(encrypted, aad)
         val usedAad = recorder.lastAad
         assertTrue(
-            "Case 10: AAD must be non-null and non-empty on decrypt",
             usedAad != null && usedAad.isNotEmpty(),
+            "Case 10: AAD must be non-null and non-empty on decrypt",
         )
     }
 
@@ -283,14 +278,14 @@ class EvidenceAadBuilderTest {
         val evidenceId = "ev-abc"
         val aad = EvidenceAadBuilder.build(objectClass, evidenceId)
         val buf = ByteBuffer.wrap(aad)
-        assertEquals("version byte", 0x01.toByte(), buf.get())
+        assertEquals(0x01.toByte(), buf.get(), "version byte")
         val classLen = buf.int
         val classBytes = ByteArray(classLen).also(buf::get)
-        assertEquals("objectClass", objectClass, String(classBytes, StandardCharsets.UTF_8))
+        assertEquals(objectClass, String(classBytes, StandardCharsets.UTF_8), "objectClass")
         val idLen = buf.int
         val idBytes = ByteArray(idLen).also(buf::get)
-        assertEquals("evidenceId", evidenceId, String(idBytes, StandardCharsets.UTF_8))
-        assertEquals("no trailing bytes", 0, buf.remaining())
+        assertEquals(evidenceId, String(idBytes, StandardCharsets.UTF_8), "evidenceId")
+        assertEquals(0, buf.remaining(), "no trailing bytes")
     }
 
     // -----------------------------------------------------------------------
@@ -313,7 +308,7 @@ class EvidenceAadBuilderTest {
             0x65, 0x76, 0x2D, 0x30, 0x30, 0x31  // "ev-001" UTF-8
         )
         val actual = EvidenceAadBuilder.forEvidence("ev-001")
-        assertArrayEquals("Canonical vector must match exactly", expected, actual)
+        assertContentEquals(expected, actual, "Canonical vector must match exactly")
     }
 
     @Test
@@ -327,7 +322,7 @@ class EvidenceAadBuilderTest {
             0x70, 0x68, 0x6F, 0x74, 0x6F, 0x2D, 0x31, 0x32, 0x33  // "photo-123" UTF-8
         )
         val actual = EvidenceAadBuilder.build("photo", "photo-123")
-        assertArrayEquals("Canonical vector for photo must match exactly", expected, actual)
+        assertContentEquals(expected, actual, "Canonical vector for photo must match exactly")
     }
 }
 

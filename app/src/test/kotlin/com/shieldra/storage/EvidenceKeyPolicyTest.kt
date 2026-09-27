@@ -1,8 +1,8 @@
 package com.shieldra.storage
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 /**
  * Verifies that [EvidenceKeyPolicy] matches the values required by
@@ -13,34 +13,34 @@ class EvidenceKeyPolicyTest {
     @Test
     fun `alias is versioned and matches decision 2-1`() {
         assertEquals(
-            "Decision §2.1: key alias must be shieldra_evidence_v1",
             "shieldra_evidence_v1",
             EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS,
+            "Decision §2.1: key alias must be shieldra_evidence_v1",
         )
     }
 
     @Test
     fun `policy uses AES-256`() {
         assertEquals(
-            "Decision §2.2: key size must be 256 bits",
             256,
             EvidenceKeyPolicy.EVIDENCE_POLICY.keySizeBits,
+            "Decision §2.2: key size must be 256 bits",
         )
     }
 
     @Test
     fun `policy does not require user authentication (decision 2-2)`() {
         assertFalse(
-            "Decision §2.2: requireUserAuthentication must be false for background protection",
             EvidenceKeyPolicy.EVIDENCE_POLICY.requireUserAuthentication,
+            "Decision §2.2: requireUserAuthentication must be false for background protection",
         )
     }
 
     @Test
     fun `policy does not invalidate on biometric enrollment (decision 2-2)`() {
         assertFalse(
-            "Decision §2.2: invalidateOnBiometricEnrollment must be false",
             EvidenceKeyPolicy.EVIDENCE_POLICY.invalidateOnBiometricEnrollment,
+            "Decision §2.2: invalidateOnBiometricEnrollment must be false",
         )
     }
 }
