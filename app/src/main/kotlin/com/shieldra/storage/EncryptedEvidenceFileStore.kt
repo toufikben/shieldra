@@ -38,50 +38,6 @@ interface EvidenceCipher {
     fun decrypt(ciphertext: ByteArray, aad: ByteArray): ByteArray
 }
 
-/**
- * Evidence cipher that binds each operation to the canonical AAD for the supplied evidenceId.
- *
- * Rules enforced (decision §1.2, §1.3):
- * - AAD is ALWAYS required; there is no optional or bypass path.
- * - An evidenceId mismatch (wrong AAD during decrypt) surfaces as [EvidenceUnavailableException].
- * - No software-key fallback is attempted (decision §2.5).
- */
-class KeystoreEvidenceCipherWithAad(
-    private val encryptor: AndroidKeystoreEncryptor,
-    private val keyAlias: String,
-    private val policy: EncryptionPolicy,
-) : EvidenceCipher {
-
-    override fun encrypt(plaintext: ByteArray, aad: ByteArray): ByteArray {
-        require(aad.isNotEmpty()) { "AAD must not be empty for evidence encryption" }
-        return encryptor
-            .encrypt(plaintext, keyAlias, policy, aad)
-            .toByteArray()
-    }
-
-    override fun decrypt(ciphertext: ByteArray, aad: ByteArray): ByteArray {
-        require(aad.isNotEmpty()) { "AAD must not be empty for evidence decryption" }
-        return try {
-            encryptor.decrypt(
-                EncryptedPayload.fromByteArray(ciphertext),
-                keyAlias,
-                policy,
-                aad,
-            )
-        } catch (error: EvidenceUnavailableException) {
-            throw error
-        } catch (error: Exception) {
-            // Wrap raw crypto failure (including GCM tag mismatch on AAD
-            // mismatch) as EvidenceUnavailableException; do not leak
-            // key state, ciphertext validity, or actual stored evidenceId.
-            throw EvidenceUnavailableException(
-                "Evidence is unavailable: authentication or integrity check failed",
-                error,
-            )
-        }
-    }
-}
-
 class EvidenceUnavailableException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
 
 data class EvidenceReconciliationReport(
