@@ -6,7 +6,6 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,12 +58,13 @@ class RealAesGcmAadTest {
 
         val encrypted = encryptor.encrypt(plaintext, testAlias, testPolicy, correctAad)
 
-        assertThrows(
-            "Modified AAD version must cause AEADBadTagException",
-            javax.crypto.AEADBadTagException::class.java,
-        ) {
+        var caught = false
+        try {
             encryptor.decrypt(encrypted, testAlias, testPolicy, wrongAad)
+        } catch (e: javax.crypto.AEADBadTagException) {
+            caught = true
         }
+        assertTrue("Modified AAD version must cause AEADBadTagException", caught)
     }
 
     @Test
@@ -76,12 +76,13 @@ class RealAesGcmAadTest {
 
         val encrypted = encryptor.encrypt(plaintext, testAlias, testPolicy, correctAad)
 
-        assertThrows(
-            "Modified evidenceId must cause AEADBadTagException",
-            javax.crypto.AEADBadTagException::class.java,
-        ) {
+        var caught = false
+        try {
             encryptor.decrypt(encrypted, testAlias, testPolicy, wrongAad)
+        } catch (e: javax.crypto.AEADBadTagException) {
+            caught = true
         }
+        assertTrue("Modified evidenceId must cause AEADBadTagException", caught)
     }
 
     @Test
@@ -93,12 +94,13 @@ class RealAesGcmAadTest {
 
         val encrypted = encryptor.encrypt(plaintext, testAlias, testPolicy, correctAad)
 
-        assertThrows(
-            "Modified evidence class must cause AEADBadTagException",
-            javax.crypto.AEADBadTagException::class.java,
-        ) {
+        var caught = false
+        try {
             encryptor.decrypt(encrypted, testAlias, testPolicy, wrongAad)
+        } catch (e: javax.crypto.AEADBadTagException) {
+            caught = true
         }
+        assertTrue("Modified evidence class must cause AEADBadTagException", caught)
     }
 
     @Test
@@ -113,12 +115,13 @@ class RealAesGcmAadTest {
 
         val encrypted = encryptor.encrypt(plaintext, testAlias, testPolicy, correctAad)
 
-        assertThrows(
-            "Tampered length field must cause AEADBadTagException",
-            javax.crypto.AEADBadTagException::class.java,
-        ) {
+        var caught = false
+        try {
             encryptor.decrypt(encrypted, testAlias, testPolicy, tamperedAad)
+        } catch (e: javax.crypto.AEADBadTagException) {
+            caught = true
         }
+        assertTrue("Tampered length field must cause AEADBadTagException", caught)
     }
 
     @Test
@@ -130,12 +133,13 @@ class RealAesGcmAadTest {
 
         val encrypted = encryptor.encrypt(plaintext, testAlias, testPolicy, correctAad)
 
-        assertThrows(
-            "Truncated AAD must cause authentication failure",
-            Exception::class.java, // Could be AEADBadTagException or IllegalArgumentException
-        ) {
+        var caught = false
+        try {
             encryptor.decrypt(encrypted, testAlias, testPolicy, truncatedAad)
+        } catch (e: Exception) {
+            caught = true
         }
+        assertTrue("Truncated AAD must cause authentication failure", caught)
     }
 
     @Test
@@ -146,27 +150,28 @@ class RealAesGcmAadTest {
 
         val encrypted = encryptor.encrypt(plaintext, testAlias, testPolicy, correctAad)
 
-        assertThrows(
-            "Empty AAD must cause authentication failure",
-            Exception::class.java,
-        ) {
+        var caught = false
+        try {
             encryptor.decrypt(encrypted, testAlias, testPolicy, ByteArray(0))
+        } catch (e: Exception) {
+            caught = true
         }
+        assertTrue("Empty AAD must cause authentication failure", caught)
     }
 
     @Test
-    fun `real AES-GCM: null AAD on encrypt throws IllegalArgumentException`() {
+    fun `real AES-GCM: KeystoreEvidenceCipherWithAad rejects empty AAD on encrypt`() {
         val encryptor = AndroidKeystoreEncryptor()
+        val cipher = KeystoreEvidenceCipherWithAad(encryptor, testAlias, testPolicy)
         val plaintext = "test".toByteArray()
 
-        assertThrows(
-            "Null AAD on encrypt must throw IllegalArgumentException",
-            IllegalArgumentException::class.java,
-        ) {
-            // This tests the KeystoreEvidenceCipherWithAad wrapper which validates AAD
-            val cipher = KeystoreEvidenceCipherWithAad(encryptor, testAlias, testPolicy)
+        var caught = false
+        try {
             cipher.encrypt(plaintext, ByteArray(0)) // empty AAD should be rejected by wrapper
+        } catch (e: IllegalArgumentException) {
+            caught = true
         }
+        assertTrue("Empty AAD on encrypt must throw IllegalArgumentException", caught)
     }
 
     @Test
@@ -192,12 +197,13 @@ class RealAesGcmAadTest {
 
         val encrypted = cipher.encrypt(plaintext, correctAad)
 
-        assertThrows(
-            "KeystoreEvidenceCipherWithAad must reject wrong AAD",
-            EvidenceUnavailableException::class.java,
-        ) {
+        var caught = false
+        try {
             cipher.decrypt(encrypted, wrongAad)
+        } catch (e: EvidenceUnavailableException) {
+            caught = true
         }
+        assertTrue("KeystoreEvidenceCipherWithAad must reject wrong AAD", caught)
     }
 
     @Test
