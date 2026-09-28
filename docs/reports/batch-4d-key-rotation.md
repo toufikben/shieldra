@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-28
 **Depends on:** `4d-aad-binding` (closed, commit `6a13d59`)
-**Status:** **IMPLEMENTED — CI GREEN (run `36419607669`, commit `e23b908`); DEVICE/KEYSTORE RUNTIME ACCEPTANCE STILL OPEN**
+**Status:** **IMPLEMENTED — CI GREEN (runs `36419607669` + `36420875440`: 99/99 JVM tests, lint, both APK builds, all review scripts); DEVICE/KEYSTORE RUNTIME ACCEPTANCE STILL OPEN**
 
 ## Batch
 
@@ -114,12 +114,14 @@ Two additional guards beyond the required list:
   **EXECUTED AND GREEN ON CI.** GitHub Actions run
   [`36419607669`](https://github.com/toufikben/shieldra/actions/runs/36419607669)
   on commit `e23b908` ran `./gradlew clean test lint assembleDebug
-  assembleDebugAndroidTest` to `BUILD SUCCESSFUL in 4m 11s`, with
-  `:app:testDebugUnitTest` and `:app:lintDebug` both succeeding. Local
-  execution was intentionally not used: the owner directed verification to
-  GitHub, and this machine cannot build Android reliably (2 cores / 4 GB).
-  A test-count artifact is not published by the workflow, so the exact per
-  class counts are recorded from the source files, not from CI output.
+  assembleDebugAndroidTest` to `BUILD SUCCESSFUL`, with
+  `:app:testDebugUnitTest` and `:app:lintDebug` both succeeding. Run
+  [`36420875440`](https://github.com/toufikben/shieldra/actions/runs/36420875440)
+  (commit `3d8784c`, which adds the CI test-count step) measured the whole
+  JVM suite: **99 tests, 99 passed, 0 failures, 0 errors, 0 skipped**,
+  `BUILD SUCCESSFUL in 4m 31s`. Local execution was intentionally not used:
+  the owner directed verification to GitHub, and this machine cannot build
+  Android reliably (2 cores / 4 GB).
 - Previous local evidence in this working tree (before the rotation tests
   existed): full `testDebugUnitTest` BUILD SUCCESSFUL with the rotation
   production code in place. That run did not include these new tests.
@@ -139,17 +141,18 @@ Two additional guards beyond the required list:
 
 ## Build
 
-**BUILD VERIFIED ON CI.** Run `36419607669` (commit `e23b908`) completed
-`clean test lint assembleDebug assembleDebugAndroidTest` with
-`BUILD SUCCESSFUL in 4m 11s`, including the debug APK and the instrumented
-test APK. Not built locally — see **Tests** for why.
+**BUILD VERIFIED ON CI.** Runs `36419607669` (commit `e23b908`) and
+`36420875440` (commit `3d8784c`) both completed
+`clean test lint assembleDebug assembleDebugAndroidTest` successfully —
+`BUILD SUCCESSFUL in 4m 31s` on the latter, including the debug APK and the
+instrumented test APK. Not built locally — see **Tests** for why.
 
 ## Static audit
 
 CI enforces the existing gates: `.github/scripts/group-a-diagnostics.sh`,
 `group-c-contract-check.sh`, `g4b-review-check.sh` (extended in this batch to
 require the exported v2 schema and the explicit `addMigrations` wiring), and
-`phase3-review-check.sh`. All four passed on run `36419607669`:
+`phase3-review-check.sh`. All four passed on both runs:
 `Group C boundary scan passed.`, `G4-B LOCAL REVIEW PASS — runtime/device
 evidence still required`, `PHASE 3 STATIC REVIEW PASS`.
 
