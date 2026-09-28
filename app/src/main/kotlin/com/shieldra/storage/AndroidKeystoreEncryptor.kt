@@ -101,25 +101,25 @@ open class AndroidKeystoreEncryptor(
      * Returns null if StrongBox is not available or not supported.
      */
     private fun buildStrongBoxSpec(alias: String, policy: EncryptionPolicy): KeyGenParameterSpec? {
-        return if (isStrongBoxAvailable()) {
-            try {
-                KeyGenParameterSpec.Builder(
-                    alias,
-                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-                )
-                    .setKeySize(policy.keySizeBits)
-                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                    .setUserAuthenticationRequired(policy.requireUserAuthentication)
-                    .setUserAuthenticationValidityDurationSeconds(policy.userAuthenticationValiditySeconds)
-                    .setInvalidatedByBiometricEnrollment(policy.invalidateOnBiometricEnrollment)
-                    .setIsStrongBoxBacked(true)
-                    .build()
-            } catch (e: Exception) {
-                // StrongBox not supported on this device/hardware
-                null
-            }
-        } else {
+        if (!isStrongBoxAvailable()) return null
+        // setIsStrongBoxBacked is an API 28 call surface, so the level check is
+        // repeated here where the builder is actually reachable.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+        return try {
+            KeyGenParameterSpec.Builder(
+                alias,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+            )
+                .setKeySize(policy.keySizeBits)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setUserAuthenticationRequired(policy.requireUserAuthentication)
+                .setUserAuthenticationValidityDurationSeconds(policy.userAuthenticationValiditySeconds)
+                .setInvalidatedByBiometricEnrollment(policy.invalidateOnBiometricEnrollment)
+                .setIsStrongBoxBacked(true)
+                .build()
+        } catch (e: Exception) {
+            // StrongBox not supported on this device/hardware
             null
         }
     }
