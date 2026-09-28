@@ -196,6 +196,38 @@ open class AndroidKeystoreEncryptor(
         }
     }
 
+    /**
+     * Irreversibly deletes the Keystore key for [alias] (decision §5.7 step 6,
+     * amendment A-2).
+     *
+     * This is the ONLY method in SHIELDRA that removes a Keystore key.
+     * Rotation never deletes keys (§3), and no other path reaches this one.
+     * Every ciphertext ever sealed under the alias becomes permanently
+     * unreadable afterwards; no software key is ever substituted (§2.5), so
+     * that unreadability is final rather than a recoverable failure.
+     *
+     * Deleting an absent alias is not an error: factory reset must stay
+     * idempotent (§5.2).
+     *
+     * @return true when a key existed and was removed, false when it was
+     *   already absent.
+     * @throws KeyMaterialUnavailableException if the Keystore is unreachable.
+     */
+    fun deleteEvidenceKeyIrreversibly(alias: String): Boolean {
+        validateAlias(alias)
+        val keyStore = try {
+            KeyStore.getInstance(EncryptionPolicy.PROVIDER).apply { load(null) }
+        } catch (error: Exception) {
+            throw KeyMaterialUnavailableException(
+                "Android Keystore is unavailable; key deletion cannot be confirmed",
+                error,
+            )
+        }
+        if (!keyStore.containsAlias(alias)) return false
+        keyStore.deleteEntry(alias)
+        return true
+    }
+
     companion object {
         private val ALIAS_PATTERN = Regex("[A-Za-z0-9._-]{3,128}")
     }
