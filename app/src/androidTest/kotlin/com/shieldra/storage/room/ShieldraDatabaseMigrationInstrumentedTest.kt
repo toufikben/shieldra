@@ -3,7 +3,6 @@ package com.shieldra.storage.room
 import android.content.Context
 import android.database.Cursor
 import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.SimpleQuery
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -65,11 +64,9 @@ class ShieldraDatabaseMigrationInstrumentedTest {
         )
 
         migrated.query(
-            SimpleQuery(
-                "SELECT event_id, kind, content_reference, captured_at_epoch_ms, " +
-                    "key_version, aad_version FROM event_evidence_refs " +
-                    "WHERE evidence_id = 'ev-mig-1'",
-            ),
+            "SELECT event_id, kind, content_reference, captured_at_epoch_ms, " +
+                "key_version, aad_version FROM event_evidence_refs " +
+                "WHERE evidence_id = 'ev-mig-1'",
         ).use { cursor ->
             assertTrue("v1 evidence row must survive the migration", cursor.moveToFirst())
             assertEquals("evt-mig-1", cursor.stringColumn("event_id"))
@@ -89,7 +86,7 @@ class ShieldraDatabaseMigrationInstrumentedTest {
         }
 
         migrated.query(
-            SimpleQuery("SELECT state, severity FROM security_events WHERE event_id = 'evt-mig-1'"),
+            "SELECT state, severity FROM security_events WHERE event_id = 'evt-mig-1'",
         ).use { cursor ->
             assertTrue("v1 event row must survive the migration", cursor.moveToFirst())
             assertEquals("INITIATED", cursor.stringColumn("state"))
