@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-28
 **Depends on:** `4d-aad-binding` (closed, commit `6a13d59`)
-**Status:** **IMPLEMENTED — CI VERIFICATION PENDING; DEVICE/KEYSTORE RUNTIME ACCEPTANCE STILL OPEN**
+**Status:** **IMPLEMENTED — CI GREEN (run `36419607669`, commit `e23b908`); DEVICE/KEYSTORE RUNTIME ACCEPTANCE STILL OPEN**
 
 ## Batch
 
@@ -111,10 +111,15 @@ Two additional guards beyond the required list:
 ## Tests
 
 - 14 new JVM rotation tests plus the updated policy and schema tests:
-  **WRITTEN — EXECUTION NOT COMPLETED LOCALLY.** A local
-  `:app:testDebugUnitTest` run was started and interrupted; the owner
-  directed verification to GitHub Actions. CI runs `test`, which executes
-  this suite. No pass claim is made until the CI run is green.
+  **EXECUTED AND GREEN ON CI.** GitHub Actions run
+  [`36419607669`](https://github.com/toufikben/shieldra/actions/runs/36419607669)
+  on commit `e23b908` ran `./gradlew clean test lint assembleDebug
+  assembleDebugAndroidTest` to `BUILD SUCCESSFUL in 4m 11s`, with
+  `:app:testDebugUnitTest` and `:app:lintDebug` both succeeding. Local
+  execution was intentionally not used: the owner directed verification to
+  GitHub, and this machine cannot build Android reliably (2 cores / 4 GB).
+  A test-count artifact is not published by the workflow, so the exact per
+  class counts are recorded from the source files, not from CI output.
 - Previous local evidence in this working tree (before the rotation tests
   existed): full `testDebugUnitTest` BUILD SUCCESSFUL with the rotation
   production code in place. That run did not include these new tests.
@@ -134,16 +139,19 @@ Two additional guards beyond the required list:
 
 ## Build
 
-**NOT RUN locally for this final state.** CI runs
-`clean test lint assembleDebug assembleDebugAndroidTest`.
+**BUILD VERIFIED ON CI.** Run `36419607669` (commit `e23b908`) completed
+`clean test lint assembleDebug assembleDebugAndroidTest` with
+`BUILD SUCCESSFUL in 4m 11s`, including the debug APK and the instrumented
+test APK. Not built locally — see **Tests** for why.
 
 ## Static audit
 
 CI enforces the existing gates: `.github/scripts/group-a-diagnostics.sh`,
 `group-c-contract-check.sh`, `g4b-review-check.sh` (extended in this batch to
 require the exported v2 schema and the explicit `addMigrations` wiring), and
-`phase3-review-check.sh`. Locally only `git diff --check` style review of the
-new files was performed by reading them.
+`phase3-review-check.sh`. All four passed on run `36419607669`:
+`Group C boundary scan passed.`, `G4-B LOCAL REVIEW PASS — runtime/device
+evidence still required`, `PHASE 3 STATIC REVIEW PASS`.
 
 ## Security audit
 
@@ -180,11 +188,18 @@ new files was performed by reading them.
 5. **Missing predecessor report.** `4d-aad-binding` was closed without a
    §16-format batch report; this report and the roadmap row carry the
    missing audit trail for its StrongBox item.
+6. **StrongBox fix broke lint.** Moving the `SDK_INT >= P` check into
+   `isStrongBoxAvailable()` left `setIsStrongBoxBacked(true)` unguarded at its
+   call site, so `:app:lintDebug` failed run `36418678611` with `NewApi`
+   (requires API 28, min is 26). Fixed in `e23b908` by re-checking the API
+   level immediately before the StrongBox `KeyGenParameterSpec` builder, which
+   is also what makes the call provably unreachable on API 26/27. Found only
+   because CI ran lint — a local-only workflow would have shipped it.
 
 ## Roadmap
 
-- `4d-key-rotation`: implementation and tests complete in this commit; CI
-  verification pending.
+- `4d-key-rotation`: implementation and tests complete and green on CI run
+  `36419607669`; runtime Keystore rotation on device still not verified.
 - `4d-migration-recovery`: partially advanced — schema v2, the explicit
   `Migration(1, 2)`, and its instrumented test now exist. Downgrade,
   unsupported-version, and migration-failure → `RecoveryRequired` behavior
