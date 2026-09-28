@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-28
 **Depends on:** `4d-key-rotation` (CI green, runs `36419607669` / `36420875440`)
-**Status:** **IMPLEMENTED — CI GREEN (RED `36422292927` → run `36423376061`: 111/111 JVM tests, lint clean, both APKs built, all review gates pass); DEVICE VERIFICATION OF REAL ROOM WORDING STILL OPEN**
+**Status:** **IMPLEMENTED AND DEVICE-EXECUTED — CI GREEN (run `36428989303`: 112/112 JVM tests, lint clean, both APKs built, all review gates) and `OK (22 tests)` on the owner RMX3910; REAL KEYSTORE ROTATION STILL NOT EXERCISED**
 
 ## Batch
 
@@ -70,9 +70,11 @@ CI:
 | Migration failure | `missing or failed migration is classified as migration failure`, `sql exception raised while migrating is classified as migration failure` | yes (JVM) |
 | No destructive fallback | `open failure returns RecoveryRequired and keeps the database file intact` | yes (JVM, file preserved byte-for-byte) |
 | Unknown state fails closed | `an unexplained failure fails closed as unreadable state`, `a message-less failure fails closed instead of crashing the classifier`, `a non-exception throwable in the open path still fails closed` | yes (JVM) |
-| Opening a v1 database | `ShieldraDatabaseMigrationInstrumentedTest` (previous batch) | instrumented — NOT RUN |
-| Supported schema | same instrumented suite | NOT RUN |
-| Foreign keys / event-evidence integrity | same instrumented suite | NOT RUN |
+| Opening a v1 database | `ShieldraDatabaseMigrationInstrumentedTest` (previous batch) | yes — device, `OK (22 tests)` |
+| Supported schema | same instrumented suite | yes — device |
+| Foreign keys / event-evidence integrity | `RoomEventRepositoryInstrumentedTest` | yes — device |
+| Real Room wording for downgrade | `real_room_downgrade_fails_closed_and_preserves_the_database` | yes — device |
+| Real Room wording for migration failure | `real_room_migration_failure_fails_closed_and_preserves_the_database` | yes — device (failed first, markers corrected from the measured text) |
 
 ## Tests
 
@@ -90,12 +92,19 @@ suite is proven to exercise code that did not previously exist.
 
 ## Android tests
 
-**NOT RUN.** No new instrumented test was added in this batch: expressing a
-real Room downgrade or missing-migration failure needs a database declared at
-a different version than `ShieldraDatabase`, which requires an androidTest
-Room schema and its own KSP wiring. The earlier
-`ShieldraDatabaseMigrationInstrumentedTest` is still compiled by CI and still
-unexecuted.
+**EXECUTED ON THE OWNER DEVICE — `OK (22 tests)`, 0 failures** on the Realme
+RMX3910, using APKs downloaded from CI runs `36425331428` and `36428989303`.
+Full record: `docs/reports/device-evidence-2026-09-28.md`.
+
+The device run is what made this batch correct rather than merely green:
+`StorageRecoveryInstrumentedTest` failed on the first pass because Room surfaces
+a failed migration as the raw `SQLiteException` text
+(`duplicate column name: key_version ... while compiling: ALTER TABLE ...`),
+which the invented markers degraded to `UNREADABLE_STATE`. The markers were
+replaced with the measured wording in `a26335d`, pinned by a JVM test, and the
+suite then passed 22/22.
+
+No instrumented test yet exercises rotation against a real Keystore key.
 
 ## Build
 
@@ -125,11 +134,13 @@ REVIEW PASS`.
 
 ## Self-adversarial findings
 
-1. **Marker strings are not a stable API.** The classifier matches observed
-   English wording from Room and the framework SQLite layer. Room can reword
-   these; the outcome would then degrade to `UNREADABLE_STATE`, which is
-   still safe but less informative. Verified against real Room wording only
-   on a device — recorded as open.
+1. **Marker strings are not a stable API.** The classifier matches English
+   wording from Room and the framework SQLite layer. Two of the three reasons
+   are now measured on the owner device — and the migration-failure markers
+   were **wrong before that run**, which is why they are pinned by a JVM test
+   carrying the captured text. Room can still reword these on another
+   device/Room version; the outcome would then degrade to
+   `UNREADABLE_STATE`, still safe but less informative.
 2. **Room does not open the database inside `openOrRecovery`.** The first
    real §4.2–§4.4 failure happens on first query, so today the guard covers
    synchronous composition failures only. Stated in the KDoc and here instead
@@ -141,9 +152,11 @@ REVIEW PASS`.
 4. **Precedence was chosen, not derived.** `DOWNGRADE` before
    `MIGRATION_FAILURE` because Room's downgrade text mentions migrations;
    a future wording change could flip that and the tests would catch it.
-5. **No instrumented test for the recovery reasons** even though §4.6 lists
-   these scenarios; this batch delivers the JVM half and leaves the device
-   half explicitly open.
+5. **The instrumented recovery test was added in a follow-up commit, not in
+   the first pass of this batch**, and it immediately found a real defect
+   (wrong markers). A batch that had stopped at "111 JVM tests green" would
+   have shipped a recovery classifier that never recognised the failure it
+   exists to classify.
 6. **One intermediate CI run failed on test syntax** (`assertTrue` argument
    order in `kotlin.test`, commit `47ad17d`). Fixed in `8fbf3b9`. Recorded
    because "CI was green" alone would hide that the first green attempt
@@ -157,17 +170,14 @@ REVIEW PASS`.
 
 ## Blockers
 
-- Device execution of the instrumented suites on the owner RMX3910 (Room,
-  AES-GCM/AAD, migration, StrongBox detection) — still NOT RUN.
-- An androidTest-side Room schema to drive genuine downgrade and
-  missing-migration failures.
+- Real Keystore rotation (`shieldra_evidence_v1` → `v2`) has no instrumented
+  test yet, so decision §3 runtime re-encryption remains unproven on device.
 - Security acceptance (G4) requires owner approval.
 
 ## Next batch
 
-Add the instrumented recovery test: a test-owned Room database at a lower
-declared version to force Room's real downgrade and missing-migration
-exceptions, asserting `RecoveryRequired` and that the database file survives
-on device. Then run all accumulated instrumented suites on the RMX3910 and
-record the measured wording so the classifier markers can be replaced by
-verified ones.
+Either an instrumented rotation test against real Android Keystore keys (the
+last unproven claim of §3), or `4d-evidence-lifecycle` (§5.1–§5.7 states,
+retention, deletion). The lifecycle batch is blocked behind owner approval of
+the retention decision, so the instrumented rotation test is the unblocked
+path.

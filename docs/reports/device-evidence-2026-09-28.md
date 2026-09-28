@@ -10,6 +10,26 @@ No local Gradle build was used.
 **StrongBox feature flag on this device:** `android.hardware.strongbox_keystore` = false
 (measured 2026-09-27, still the recorded device fact).
 
+## Measured result — second run, after the classifier fix
+
+APKs from CI run `36428989303` (commit `a26335d`, 112/112 JVM tests green):
+
+```
+Time: 8.305
+
+OK (22 tests)
+```
+
+| Suite | Result |
+| --- | --- |
+| `RealAesGcmAadTest` (real AES-GCM + AAD binding + StrongBox detection) | passed |
+| `RoomEventRepositoryInstrumentedTest` | passed |
+| `ShieldraDatabaseMigrationInstrumentedTest` (v1 → v2 + factory wiring) | passed |
+| `StorageRecoveryInstrumentedTest` (real Room downgrade and migration-failure wording) | passed |
+
+See **Operational note for future device runs** below for the signing
+constraint that decides which APK pair can be installed together.
+
 ## Measured result — first run
 
 ```
@@ -71,10 +91,18 @@ likely source). `testInstrumentationRunner` remains unset in
 `app/build.gradle.kts`, which is still worth adding for
 `./gradlew connectedDebugAndroidTest`, but nothing about it is broken today.
 
+## Operational note for future device runs
+
+CI regenerates the Gradle debug keystore on each runner, so APKs from two
+different runs are signed with different keys and `am instrument` then fails with
+`SecurityException: ... does not have a signature matching the target`. Install
+the app APK and the androidTest APK **from the same run**, after uninstalling any
+build from an earlier run.
+
 ## Still open after this run
 
-- Re-execute the full instrumented suite against the CI build containing the
-  classifier fix and record the count.
 - Rotation against a real Android Keystore key (`shieldra_evidence_v1` → `v2`)
-  is still not exercised by any instrumented test.
+  is still not exercised by any instrumented test — the 22 passing tests cover
+  storage, AAD, migration, recovery and StrongBox detection, not Keystore
+  re-encryption.
 - G4 remains not accepted.
