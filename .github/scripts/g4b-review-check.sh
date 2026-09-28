@@ -83,6 +83,21 @@ if rg -n 'ACTION_SEND|FileProvider|ClipboardManager|Retrofit|OkHttp|MultipartBod
 fi
 pass "evidence export is disabled by default with no hidden bypass (§5.5)"
 
+# §6 security failure semantics
+SEMANTICS=app/src/main/kotlin/com/shieldra/storage/SecurityFailureSemantics.kt
+[ -s "$SEMANTICS" ] || fail "security failure semantics table (§6) is missing"
+for c in CORRUPTION MISSING_EVIDENCE MISSING_KEY AAD_MISMATCH MIGRATION_ERROR UNSUPPORTED_DB UNKNOWN_STATE; do
+  grep -q "$c" "$SEMANTICS" || fail "§6 condition $c is not represented in the semantics table"
+done
+grep -q 'FAIL_CLOSED' "$SEMANTICS" || fail "§6 unknown-state fail-closed outcome is missing"
+# §6 forbids turning a failure into a silent continuation: the outcome enum must
+# have no ALLOW/SUCCESS/CONTINUE/RETRY value.
+if grep -qE '^\s*(ALLOW|ALLOWED|SUCCESS|CONTINUE|CONTINU|RESUME_OK|RETRY)\b' "$SEMANTICS"; then
+  fail "§6: a non-blocking failure outcome was found (silent continuation is forbidden)"
+fi
+[ -s app/src/test/kotlin/com/shieldra/storage/SecurityFailureSemanticsTest.kt ] || fail "§6 failure semantics tests are missing"
+pass "§6 failure semantics table is exhaustive, fail-closed, and has no silent-continuation outcome"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"
