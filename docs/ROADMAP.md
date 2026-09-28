@@ -141,7 +141,8 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-storage-hardening | Reject symlink evidence payloads and fail closed on Room child-row collisions | Existing local storage implementation; no new security policy | IMPLEMENTED — `1335a8b`; CI `35889049875` in progress; runtime/device work deferred |
 | 4d-acceptance-matrix | Separate implementation evidence from CI/device/security acceptance and record deferred Android work | All preceding local batches | DOCUMENTED — `bf4ccca` lineage; runtime/security acceptance remains blocked |
 | 4d-aad-binding | AAD-v1 canonical serialization, mandatory AAD cipher, key alias policy, StrongBox detection, 10 unit tests, canonical vector tests, device instrumentation test (decisions §1.1–§1.4, §2.1–§2.3) | Final Security Storage Decisions (owner-supplied 2026-09-24) | **CLOSED** — commit `6a13d59`; all implementation + tests + static review complete; CI triggered |
-| 4d-key-rotation | Key rotation algorithm, resumable rotation, rotation tests (decisions §3.1–§3.5) | 4d-aad-binding; CI pass | IMPLEMENTED — CI GREEN (runs `36419607669`/`36420875440`: 99 JVM tests passed, lint clean, both APKs built, all review scripts pass); Keystore runtime rotation on device NOT VERIFIED |
+| 4d-key-rotation | Key rotation algorithm, resumable rotation, rotation tests (decisions §3.1–§3.5) | 4d-aad-binding; CI pass | IMPLEMENTED AND DEVICE-EXECUTED — CI GREEN (run `36433212886`: 112 JVM tests, lint, both APKs, all review scripts) and `OK (2 tests)` on the RMX3910 |
+| 4d-keystore-rotation-runtime | Instrumented rotation against two distinct real Keystore keys, proving re-encryption rather than metadata relabel (decision §3.1–§3.4) | 4d-key-rotation | IMPLEMENTED — CI GREEN (runs `36432257961` failed compile → fixed `d725cd8`) and `OK (2 tests)` on the RMX3910; enforced by a `g4b` gate |
 | 4d-strongbox-correction | StrongBox detection queries `FEATURE_STRONGBOX_KEYSTORE` at runtime instead of inferring from SDK level; placeholder device assertion replaced (decision §2.3) | 4d-aad-binding audit | IMPLEMENTED — CI GREEN + **executed on RMX3910** (`RealAesGcmAadTest` passed in the `OK (22 tests)` run of 2026-09-28); device fact confirmed: this phone reports no StrongBox and the code agrees |
 | 4d-migration-recovery | Room migration enforcement, unsupported version/downgrade/failure RecoveryRequired, tests (decisions §4.1–§4.6) | 4d-key-rotation or parallel if no conflict | IMPLEMENTED — CI GREEN (run `36428989303`: 112 JVM tests) **and device `OK (22 tests)` on RMX3910**; the device run corrected the migration-failure markers to measured Room/SQLite wording (see `docs/reports/device-evidence-2026-09-28.md`) |
 | 4d-evidence-lifecycle | UNAVAILABLE/QUARANTINE/tombstone states, retention policy, export disabled, deletion semantics, factory reset (decisions §5.1–§5.7) | 4d-migration-recovery | BLOCKED |
@@ -153,19 +154,23 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**Instrumented Keystore rotation (§3 runtime half)** — `4d-migration-recovery`
-is now closed on CI and on the owner device (112 JVM tests green in run
-`36428989303`; `OK (22 tests)` on the RMX3910, recorded in
-`docs/reports/device-evidence-2026-09-28.md`). The last unproven claim of
-decision §3 is re-encryption with **real** Android Keystore keys
-(`shieldra_evidence_v1` → `shieldra_evidence_v2`); the 14 rotation tests use
-tag-fenced fakes, so they prove the algorithm, not Keystore behavior. Next
-batch: an instrumented rotation test that creates the v1 key in Keystore,
-writes evidence under it, rotates, and re-reads it — while §2.5 still forbids
-any software-key fallback and §4.3 still forbids destructive migration.
-`4d-evidence-lifecycle` (§5.1–§5.7) stays blocked until the owner decides the
-retention policy. Device runs need the app and androidTest APKs from the **same**
-CI run, because each runner regenerates the debug keystore.
+**`4d-evidence-lifecycle` (decisions §5.1–§5.7) — BLOCKED on an owner
+decision.** The §3 runtime half is now closed: `EvidenceKeyRotationInstrumentedTest`
+(2 tests) runs on the owner RMX3910 and passed (`OK (2 tests)`, run
+`36433212886`), alongside the full instrumented suite `OK (24 tests)`. The last
+unproven claim of decision §3 — re-encryption with **real** Android Keystore
+keys (`shieldra_evidence_v1` → `shieldra_evidence_v2`) — is measured and
+recorded in `docs/reports/device-evidence-2026-09-28.md`.
+
+Nothing on §3 or §4 remains open. The next unblocked work is §5, but it cannot
+start without the owner's answer on one point: **the retention policy** — how
+long tombstoned and quarantined evidence is kept, and what "factory reset"
+deletes. §5.4–§5.7 depend on it. Until that is answered this batch stays BLOCKED
+rather than being implemented on an invented policy (decision §14 forbids
+silent policy changes).
+
+When it does start, device runs need the app and androidTest APKs from the
+**same** CI run, because each runner regenerates the debug keystore.
 
 **Correction recorded against 4d-aad-binding:** that batch closed without a
 §16 batch report and its StrongBox instrumented assertion was a placeholder

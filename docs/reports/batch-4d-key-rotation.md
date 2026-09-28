@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-28
 **Depends on:** `4d-aad-binding` (closed, commit `6a13d59`)
-**Status:** **IMPLEMENTED — CI GREEN (runs `36419607669` + `36420875440`: 99/99 JVM tests, lint, both APK builds, all review scripts); DEVICE/KEYSTORE RUNTIME ACCEPTANCE STILL OPEN**
+**Status:** **IMPLEMENTED AND DEVICE-EXECUTED — CI GREEN (runs `36419607669` + `36420875440` + `36433212886`: 112/112 JVM tests, lint, both APK builds, all review scripts); Keystore runtime rotation VERIFIED ON DEVICE (`OK (2 tests)` in `EvidenceKeyRotationInstrumentedTest`, `OK (24 tests)` full instrumented suite, owner RMX3910, run `36433212886`)**
 
 ## Batch
 
@@ -24,8 +24,9 @@ Room migration instrumented test (decision §4.6).
   feature at runtime instead of inferring availability from the SDK level
   (decision §2.3).
 
-No Android Keystore runtime claim is made in this batch. No production
-wiring into the application graph was added.
+No production wiring into the application graph was added. The Android
+Keystore runtime rotation claim is established separately and on-device — see
+**Android tests** below and `docs/reports/device-evidence-2026-09-28.md`.
 
 ## Files changed
 
@@ -128,12 +129,17 @@ Two additional guards beyond the required list:
 
 ## Android tests
 
-- New `ShieldraDatabaseMigrationInstrumentedTest` (2 tests) and the corrected
-  StrongBox test in `RealAesGcmAadTest`: **NOT RUN**. CI compiles them with
-  `assembleDebugAndroidTest`; execution needs the attached device.
-- Earlier device evidence on the owner Realme RMX3910 (2026-09-27):
-  7/7 Room instrumented tests and 11/11 real AES-GCM/AAD tests passed. That
-  evidence predates this batch and does not cover the new tests.
+- `EvidenceKeyRotationInstrumentedTest` (2 tests) — **RUN ON DEVICE, PASSED.**
+  This is the missing runtime evidence for the whole §3 rotation half: the test
+  commits evidence under the real `shieldra_evidence_v1` Keystore key, rotates
+  to `shieldra_evidence_v2`, and asserts the old key reads the pre-rotation
+  file but rejects the post-rotation file while the new key is the only reader;
+  a second test asserts a re-run is skipped, not redone. Result on the owner
+  RMX3910, from CI run `36433212886` APKs: `OK (2 tests)`, `Time: 0.542`.
+- `ShieldraDatabaseMigrationInstrumentedTest` (2 tests) and the corrected
+  StrongBox test in `RealAesGcmAadTest`: **RUN ON DEVICE, PASSED** (see
+  `docs/reports/device-evidence-2026-09-28.md`; full instrumented suite
+  `OK (24 tests)`).
 - Device fact measured in this batch: `adb shell pm has-feature
   android.hardware.strongbox_keystore` → `false` on the RMX3910. The previous
   implementation reported "available" on that device because it only checked
@@ -141,11 +147,13 @@ Two additional guards beyond the required list:
 
 ## Build
 
-**BUILD VERIFIED ON CI.** Runs `36419607669` (commit `e23b908`) and
-`36420875440` (commit `3d8784c`) both completed
-`clean test lint assembleDebug assembleDebugAndroidTest` successfully —
-`BUILD SUCCESSFUL in 4m 31s` on the latter, including the debug APK and the
-instrumented test APK. Not built locally — see **Tests** for why.
+**BUILD VERIFIED ON CI.** Runs `36419607669` (commit `e23b908`),
+`36420875440` (commit `3d8784c`), and `36433212886` (commit `d725cd8`) all
+completed `clean test lint assembleDebug assembleDebugAndroidTest`
+successfully — `BUILD SUCCESSFUL in 4m 9s` on the latter, including the debug
+APK and the instrumented test APK. Run `36432257961` failed first
+(compile defect, finding #7 below) and was fixed in `d725cd8`. Not built
+locally — see **Tests** for why.
 
 ## Static audit
 
@@ -198,29 +206,33 @@ evidence still required`, `PHASE 3 STATIC REVIEW PASS`.
    level immediately before the StrongBox `KeyGenParameterSpec` builder, which
    is also what makes the call provably unreachable on API 26/27. Found only
    because CI ran lint — a local-only workflow would have shipped it.
+7. **The instrumented rotation test never compiled as first written.** Run
+   `36432257961` failed `:app:compileDebugAndroidTestKotlin` with
+   `Argument type mismatch: actual type is 'String', but 'Boolean' was
+   expected` at two `assertTrue` call sites that were given only a message. The
+   JVM suite was unaffected — it does not compile the androidTest source set —
+   so 112/112 green JVM tests coexisted with a broken instrumented build. Fixed
+   in `d725cd8` by supplying the `Migrated` / `AlreadyMigrated` conditions.
+   This is the direct argument for treating `assembleDebugAndroidTest` as a
+   required gate rather than an optional one.
 
 ## Roadmap
 
-- `4d-key-rotation`: implementation and tests complete and green on CI run
-  `36419607669`; runtime Keystore rotation on device still not verified.
-- `4d-migration-recovery`: partially advanced — schema v2, the explicit
-  `Migration(1, 2)`, and its instrumented test now exist. Downgrade,
-  unsupported-version, and migration-failure → `RecoveryRequired` behavior
-  remains open.
-- G4 remains open; Phase 4 remains open.
+- `4d-key-rotation`: implementation and tests complete; runtime Keystore
+  rotation is now **verified on device** (`OK (2 tests)`, run `36433212886`).
+- `4d-migration-recovery`: closed on CI and on device (run `36433212886`,
+  full instrumented suite `OK (24 tests)`).
+- G4 remains open pending owner approval; Phase 4 remains open.
 
 ## Blockers
 
-- Device execution of the new instrumented tests (owner device available;
-  runs were not performed for this batch on the owner's instruction to use
-  CI).
-- Keystore runtime rotation behavior on a real device (needs the instrumented
-  rotation run, not just the fakes).
-- Security acceptance (G4) remains unapproved.
+- Security acceptance (G4) remains unapproved. It is the only remaining
+  blocker on this batch's scope.
+- Biometric/credential invalidation behavior is still unverified (§2.2
+  background-safety policy); no device run exercises it.
 
 ## Next batch
 
-`4d-migration-recovery` — finish decision §4 scope: unsupported schema
-version, downgrade, and migration-failure paths must produce
-`RecoveryRequired` with tests, then run the accumulated instrumented suites on
-the owner device.
+`4d-evidence-lifecycle` — decision §5.1–§5.7 (UNAVAILABLE/QUARANTINE/tombstone
+states, retention policy, export disabled, deletion semantics, factory reset).
+Blocked until the owner sets the retention policy.

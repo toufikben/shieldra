@@ -99,10 +99,46 @@ different runs are signed with different keys and `am instrument` then fails wit
 the app APK and the androidTest APK **from the same run**, after uninstalling any
 build from an earlier run.
 
+## Second device run — Keystore rotation (2026-09-28, run `36433212886`)
+
+Closed the last item left open below. APKs from run `36433212886` (commit
+`d725cd8`) were installed after uninstalling the previous pair, then:
+
+```
+adb shell am instrument -w -e class \
+  com.shieldra.storage.EvidenceKeyRotationInstrumentedTest \
+  com.shieldra.app.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+```
+com.shieldra.storage.EvidenceKeyRotationInstrumentedTest:..
+Time: 0.542
+OK (2 tests)
+```
+
+Full instrumented suite, same install:
+
+| Suite | Tests |
+| --- | --- |
+| `EvidenceKeyRotationInstrumentedTest` | 2 |
+| `RealAesGcmAadTest` | 11 |
+| `StorageRecoveryInstrumentedTest` | 2 |
+| `RoomEventRepositoryInstrumentedTest` | 7 |
+| `ShieldraDatabaseMigrationInstrumentedTest` | 2 |
+| **Total** | **24 — `OK (24 tests)`, `Time: 2.232`** |
+
+What the two rotation tests actually prove on real hardware: evidence committed
+under `shieldra_evidence_v1` decrypts with the v1 key and is rejected by the v2
+key, so the two aliases are genuinely distinct Keystore keys rather than the
+same key reached twice. After `rotate()`, the committed bytes are readable only
+by the v2 key, and the v1 key rejects them — real re-encryption happened, not a
+metadata relabel. A second `rotate()` returns `AlreadyMigrated` and leaves the
+committed bytes byte-identical, so completed work is never redone (decision
+§3.4). No key was deleted and no fallback path was exercised.
+
 ## Still open after this run
 
-- Rotation against a real Android Keystore key (`shieldra_evidence_v1` → `v2`)
-  is still not exercised by any instrumented test — the 22 passing tests cover
-  storage, AAD, migration, recovery and StrongBox detection, not Keystore
-  re-encryption.
-- G4 remains not accepted.
+- G4 remains not accepted (owner approval).
+- Biometric/credential invalidation is unverified on device.
+- The 2026-09-27 note above ("rotation against a real Android Keystore key is
+  still not exercised") is superseded by the second run in this document.

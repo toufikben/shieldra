@@ -13,7 +13,7 @@ G4 may change to the target decision only when every required row is approved an
 | G4-A-04 | Data lifecycle | Retention, deletion, reset, export, uninstall, cleanup, orphan policy | PROPOSED — REQUIRES APPROVAL |
 | G4-A-05 | Backup/restore | Manifest verification and metadata/file/key mismatch behavior | PROPOSED + DEVICE/AVD VERIFICATION REQUIRED |
 | G4-A-06 | Cryptography profile | Approved AES-GCM profile, AAD, payload, provider, failure behavior | PROPOSED — REQUIRES APPROVAL |
-| G4-A-07 | Key lifecycle | Alias scope, creation, rotation, re-encryption, retirement, loss | ROTATION IMPLEMENTED — CI GREEN (run `36419607669`): versioned aliases, per-evidence `key_version`/`aad_version`, resumable re-encryption, and decision §3.5 JVM tests pass in CI; Keystore runtime re-encryption and key-loss behavior require device evidence; REQUIRES APPROVAL |
+| G4-A-07 | Key lifecycle | Alias scope, creation, rotation, re-encryption, retirement, loss | ROTATION IMPLEMENTED AND DEVICE-EXECUTED — CI GREEN (run `36433212886`: 112 JVM tests, lint, both APKs, all review scripts); versioned aliases, per-evidence `key_version`/`aad_version`, resumable re-encryption, §3.5 JVM tests, and `EvidenceKeyRotationInstrumentedTest` `OK (2 tests)` on the RMX3910 proving re-encryption with two distinct real Keystore keys. Key-loss behavior and biometric/credential invalidation remain unverified; REQUIRES APPROVAL |
 | G4-A-08 | Authentication binding | Credential/biometric/StrongBox policy and invalidation behavior | STRONGBOX DETECTION VERIFIED ON DEVICE — `RealAesGcmAadTest` passed in the `OK (22 tests)` RMX3910 run of 2026-09-28; the runtime `FEATURE_STRONGBOX_KEYSTORE` query reports false on this phone and the code agrees (no over-claim); biometric/credential invalidation behavior still unverified; REQUIRES APPROVAL |
 | G4-A-09 | Corruption and partial writes | Fault injection, fail-closed behavior, quarantine/recovery | IMPLEMENTATION REQUIRED |
 | G4-A-10 | EventPipeline atomicity | Persistent adapter tests for all eight required interruption cases | IMPLEMENTATION REQUIRED |
@@ -29,9 +29,12 @@ Until all rows pass, SHIELDRA must not claim production-ready security, guarante
 ## Current decision
 
 The checklist is **NOT ACCEPTED**. Batch 4c remains a locally verified candidate.
-Since 2026-09-27 an owner device (Realme RMX3910) is attached and has executed
-the Room and real AES-GCM/AAD instrumented suites, so the earlier "no device
-available" blocker no longer applies; the outstanding device work is the
-rotation, StrongBox, and migration instrumented runs. G4 remains closed until
-implementation evidence, CI results, device runs, and named security review
-are all present.
+Since 2026-09-27 an owner device (Realme RMX3910) is attached. As of
+2026-09-28 it has executed **every** accumulated instrumented suite — Room,
+real AES-GCM/AAD, StrongBox detection, Room migration, recovery, and Keystore
+rotation — with the latest full run reporting `OK (24 tests)`. The earlier
+"no device available" and "instrumented runs outstanding" blockers no longer
+apply. G4 remains closed because implementation evidence alone is not
+acceptance: a named security review and explicit owner approval are still
+required, and biometric/credential invalidation (§2.2) and key-loss behavior
+are still unverified.

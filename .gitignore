@@ -5,3 +5,6 @@ local.properties
 .idea/
 *.iml
 .DS_Store
+
+# Locally downloaded CI build artifacts (device test APKs), never committed.
+.dev-artifacts/
