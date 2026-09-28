@@ -30,7 +30,8 @@ to the owner amendments.
 - app/src/test/kotlin/com/shieldra/storage/EvidenceRetentionPolicyTest.kt (12 tests)
 - app/src/test/kotlin/com/shieldra/storage/FactoryResetTest.kt (6 tests)
 - app/src/test/kotlin/com/shieldra/storage/EvidenceExportPolicyTest.kt (5 tests)
-- .github/scripts/g4b-review-check.sh (§5.4/§5.5/§5.7 gates)
+- app/src/androidTest/kotlin/com/shieldra/storage/EvidenceKeyResetInstrumentedTest.kt (new, 2 on-device tests)
+- .github/scripts/g4b-review-check.sh (§5.4/§5.5/§5.7 gates + on-device reset gate)
 
 ## DECISIONS ENFORCED
 §5.4, §5.5, §5.7, §14 (amendment log in §17: A-1/A-2/A-3), §2.5 (no software
@@ -53,12 +54,16 @@ CI `testDebugUnitTest`: 134 tests, 134 passed, 0 failures, 0 errors, 0 skipped
   gate set matches the six §5.5 bullets)
 
 ## ANDROID TESTS
-NOT RUN on the device for this batch. The retention, export and reset logic is
-pure JVM (injected `keyDeletion`, file/temp-dir based) and needs no Android
-runtime; `assembleDebugAndroidTest` still compiles and packages the instrumented
-APK in CI. The real on-device Keystore deletion during a physical reset
-(`deleteEvidenceKeyIrreversibly`) is NOT yet exercised by an instrumented test —
-this is the remaining device gap for §5.7 and is carried as a blocker below.
+RUN on the owner RMX3910 (device `IR7X5DJ7KZGEHMS8`), with app + androidTest
+APKs from the **same** CI run `36495834536` (`fa64c0f`):
+- `EvidenceKeyResetInstrumentedTest` — `OK (2 tests)`: a confirmed reset
+  irreversibly deletes the real Keystore `shieldra_evidence_v1` key and the
+  previously-readable ciphertext then throws `KeyMaterialUnavailableException`
+  (no software fallback, §2.5); deleting the absent key is a no-op; an
+  unconfirmed reset leaves the key and the evidence untouched.
+- Full instrumented suite — `OK (26 tests)` (was 24; +2 reset). Deleting the
+  v1/v2 keys in the reset test did not break `EvidenceKeyRotationInstrumentedTest`
+  because rotation recreates keys on demand — order-independent.
 
 ## BUILD
 CI BUILD SUCCESSFUL — `clean test lint assembleDebug assembleDebugAndroidTest`
@@ -101,29 +106,33 @@ all pass (run 36494249786).
    first CI run of these suites; corrected in an earlier commit in the lineage.
 
 ## COMMIT
-7e3fef0 (fixes in this lineage: 4cfe115 → 9d9c4a2 → 7896ee0 → b4f7833 → 7e3fef0)
+7e3fef0 (storage slice) + fa64c0f (instrumented on-device reset test + g4b gate).
+Lineage: 4cfe115 → 9d9c4a2 → 7896ee0 → b4f7833 → 7e3fef0 → df7da75 → fa64c0f
 
 ## REMOTE
 toufikben/shieldra — main
 
 ## CI
-Run 36494249786 — SUCCESS. 134 JVM tests, lint, both APKs, all review scripts.
+- `36494249786` (7e3fef0) — SUCCESS. 134 JVM tests, lint, both APKs, all review scripts.
+- `36495834536` (fa64c0f) — SUCCESS. Instrumented sources compile, both APKs published.
+
+## DEVICE
+- `EvidenceKeyResetInstrumentedTest` — `OK (2 tests)` on RMX3910 (`IR7X5DJ7KZGEHMS8`), APKs from run `36495834536`.
+- Full instrumented suite — `OK (26 tests)` (was 24; +2 reset). Rotation still passes because it recreates keys on demand.
 
 ## ROADMAP
-4d-evidence-lifecycle updated from BLOCKED to IMPLEMENTED (CI GREEN) for the
-§5.4/§5.5/§5.7 storage slice under owner amendments A-1/A-2/A-3.
+4d-evidence-lifecycle moved from BLOCKED to CLOSED (CI GREEN + DEVICE GREEN) for
+the §5 storage slice under owner amendments A-1/A-2/A-3.
 
 ## STATUS
-Storage slice of §5 CLOSED at the CI/JVM level. G4 (device/security sign-off)
-remains OPEN overall.
+Storage slice of §5 CLOSED at CI and on-device. Overall G4 sign-off and the §15
+production gate remain OPEN.
 
 ## BLOCKERS
-- Device execution of a real factory reset that irreversibly deletes the on-
-  device Keystore evidence key (`deleteEvidenceKeyIrreversibly`) is NOT yet
-  covered by an instrumented test. Needs an androidTest + RMX3910 run.
-- Overall G4 acceptance and the §15 production gate remain open.
+- None open for §5.4/§5.5/§5.7; the §5.7 device gap is closed by the reset test.
+- Overall G4 acceptance (threat model, production wiring, sign-off) and the §15
+  production gate remain open.
 
 ## NEXT BATCH
-Either (a) an instrumented factory-reset/Keystore-key-deletion test executed on
-the RMX3910 to close the §5.7 device gap, or (b) proceed to §6 security failure
-semantics enforcement.
+§6 security failure semantics enforcement, or the final G4 device/security
+sign-off and §15 production gate.
