@@ -19,15 +19,19 @@ class FactoryResetTest {
     private fun evidenceDir(): File = File(System.getProperty("java.io.tmpdir"), "shieldra-reset-test")
         .apply { deleteRecursively(); mkdirs() }
 
-    private fun metadataStore(): File = File(System.getProperty("java.io.tmpdir"), "shieldra-reset-meta")
-        .apply { deleteRecursively(); mkdirs() }
+    // The Room database is a single file, so the reset's metadata target is
+    // the file itself, not a directory — a non-empty directory cannot be
+    // removed by Files.deleteIfExists and would correctly tombstone the reset.
+    private fun metadataStore(): File =
+        File(System.getProperty("java.io.tmpdir"), "shieldra-reset-meta.db")
+            .apply { delete(); parentFile?.mkdirs() }
 
     @Test
     fun reset_removes_files_metadata_and_the_keystore_key() {
         val dir = evidenceDir()
         val meta = metadataStore()
         File(dir, "ev-1.shieldra").writeBytes("evidence".toByteArray())
-        File(meta, "events.db").writeBytes("rows".toByteArray())
+        meta.writeBytes("rows".toByteArray())
         val deletedKeys = mutableListOf<String>()
         val reset = FactoryReset(
             evidenceDirectory = dir,
@@ -47,7 +51,7 @@ class FactoryResetTest {
             "A-2: reset deletes the evidence key, including the rotation target",
         )
         assertFalse(File(dir, "ev-1.shieldra").exists(), "evidence files are removed")
-        assertFalse(File(meta, "events.db").exists(), "room metadata is removed")
+        assertFalse(meta.exists(), "room metadata is removed")
     }
 
     @Test
@@ -77,11 +81,14 @@ class FactoryResetTest {
         )
 
         // A file the reset must account for but structurally cannot reach:
-        // it lives outside the evidence directory, so the removal loop never
-        // sees it and the post-removal absence check fails for a real reason
-        // rather than a simulated one. This is what a caller passes when it
-        // tracks evidence paths from metadata rather than one directory.
-        val unreachable = File(meta, "ev-2.shieldra").apply { writeBytes("evidence".toByteArray()) }
+        // it lives in a scratch directory that is not the evidence directory,
+        // so the removal loop never sees it and the post-removal absence check
+        // fails for a real reason rather than a simulated one. This is what a
+        // caller passes when it tracks evidence paths from metadata rather
+        // than from a single directory.
+        val trackedElsewhere = File(System.getProperty("java.io.tmpdir"), "shieldra-reset-tracked")
+            .apply { deleteRecursively(); mkdirs() }
+        val unreachable = File(trackedElsewhere, "ev-2.shieldra").apply { writeBytes("evidence".toByteArray()) }
         val result = reset.execute(
             aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS),
             confirmed = true,

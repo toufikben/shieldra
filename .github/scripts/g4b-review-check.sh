@@ -58,6 +58,25 @@ grep -q 'KeystoreRotationCipherFactory' "$ROTATION_TEST" || fail "rotation test 
 grep -q 'KEY_VERSION_V1' "$ROTATION_TEST" && grep -q 'KEY_VERSION_V2' "$ROTATION_TEST" || fail "rotation test must exercise both v1 and v2 key aliases"
 pass "Keystore runtime rotation is covered by an instrumented test"
 
+# §5.4 centralized retention policy (owner amendment A-1)
+[ -s app/src/main/kotlin/com/shieldra/storage/EvidenceRetentionPolicy.kt ] || fail "centralized retention policy layer (§5.4) is missing"
+grep -qE 'QUARANTINE_RETENTION_DAYS[^=]*= 30L' app/src/main/kotlin/com/shieldra/storage/EvidenceRetentionPolicy.kt || fail "A-1: quarantine retention must be 30 days"
+pass "retention policy layer is centralized with the A-1 30-day quarantine window"
+
+# §5.7 confirmed factory reset (owner amendments A-2, A-3)
+[ -s app/src/main/kotlin/com/shieldra/storage/FactoryReset.kt ] || fail "confirmed factory reset (§5.7) is missing"
+grep -q 'explicit destructive confirmation' app/src/main/kotlin/com/shieldra/storage/FactoryReset.kt || fail "A-2: reset must require an explicit destructive confirmation"
+grep -q 'deleteEvidenceKeyIrreversibly' app/src/main/kotlin/com/shieldra/storage/AndroidKeystoreEncryptor.kt || fail "A-2: evidence key deletion entrypoint is missing"
+pass "factory reset requires destructive confirmation and deletes the evidence key (A-2/A-3)"
+
+# §5.5 evidence export is disabled by default, with no hidden bypass
+[ -s app/src/main/kotlin/com/shieldra/storage/EvidenceExportPolicy.kt ] || fail "evidence export policy (§5.5) is missing"
+grep -q 'val enabled: Boolean = false' app/src/main/kotlin/com/shieldra/storage/EvidenceExportPolicy.kt || fail "§5.5: export must be disabled by default"
+if rg -n 'ACTION_SEND|FileProvider|ClipboardManager|Retrofit|OkHttp|MultipartBody|UploadManager' app/src/main/kotlin/com/shieldra/storage >/dev/null 2>&1; then
+  fail "§5.5: a hidden evidence-egress path was found in the storage package"
+fi
+pass "evidence export is disabled by default with no hidden bypass (§5.5)"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"
