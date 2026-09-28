@@ -110,7 +110,7 @@ class StorageRecoveryTest {
             }
             val recovery = assertIs<StorageOpenResult.RecoveryRequired<Unit>>(result)
             assertEquals(StorageRecoveryReason.DOWNGRADE, recovery.reason)
-            assertTrue("database must be preserved for recovery", databaseFile.exists())
+            assertTrue(databaseFile.exists(), "database must be preserved for recovery")
             assertContentEquals(byteArrayOf(1, 2, 3, 4), databaseFile.readBytes())
         } finally {
             databaseFile.delete()
