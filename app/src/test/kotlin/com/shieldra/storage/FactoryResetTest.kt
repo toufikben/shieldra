@@ -68,8 +68,6 @@ class FactoryResetTest {
     fun a_failed_cleanup_is_tombstoned_and_never_reported_as_success() {
         val dir = evidenceDir()
         val meta = metadataStore()
-        val doomed = File(dir, "ev-1.shieldra").apply { writeBytes("evidence".toByteArray()) }
-        val missing = File(dir, "no-such-subdir").resolve("nested/ev-2.shieldra")
         val deletedKeys = mutableListOf<String>()
         val reset = FactoryReset(
             evidenceDirectory = dir,
@@ -77,25 +75,24 @@ class FactoryResetTest {
             keyDeletion = { alias -> deletedKeys += alias; true },
         )
 
-        // Removing the evidence directory itself makes every evidence file
-        // underneath unreachable, so step 3 must fail for a real reason rather
-        // than being simulated.
-        assertTrue(doomed.delete())
+        // A file the reset cannot reach: its parent directory does not exist,
+        // so the post-removal absence check has something real to fail on
+        // instead of a simulated error.
+        val unreachable = File(dir, "no-such-dir").resolve("nested/ev-2.shieldra")
         val result = reset.execute(
             aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS),
-            survivingFiles = listOf(missing),
+            survivingFiles = listOf(unreachable),
         )
 
         val tombstoned = assertIs<FactoryResetResult.Tombstoned>(result)
         assertTrue(
-            "A-3: a failure is tombstoned, never reported as success",
-            tombstoned.failures.isNotEmpty(),
+            tombstoned.failures.any { "ev-2.shieldra" in it },
+            "the tombstone names the file that survived: ${tombstoned.failures}",
         )
         assertTrue(
-            "A-3: removal precedes verification, so the key is still deleted",
             EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS in deletedKeys,
+            "A-3: removal precedes verification, so the key is deleted even when cleanup failed",
         )
-        assertFalse(missing.exists(), "the reported failure actually removed something")
     }
 
     @Test
@@ -115,8 +112,8 @@ class FactoryResetTest {
         )
 
         assertIs<FactoryResetResult.Refused>(result)
-        assertTrue("nothing may be deleted without confirmation (§5.7)", File(dir, "ev-1.shieldra").exists())
-        assertTrue("no key may be deleted without confirmation (§5.7)", deletedKeys.isEmpty())
+        assertTrue(File(dir, "ev-1.shieldra").exists(), "nothing may be deleted without confirmation (§5.7)")
+        assertTrue(deletedKeys.isEmpty(), "no key may be deleted without confirmation (§5.7)")
     }
 
     @Test

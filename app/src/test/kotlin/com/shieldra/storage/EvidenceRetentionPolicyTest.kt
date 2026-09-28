@@ -6,7 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Retention policy layer (decision §5.4, amendments A-1).
+ * Retention policy layer (decision §5.4, amendment A-1).
  *
  * These tests pin the owner's amendment A-1: quarantined files are retained
  * for the same 30 days as active evidence, replacing the original "7 days
@@ -18,9 +18,9 @@ class EvidenceRetentionPolicyTest {
     @Test
     fun quarantined_files_are_retained_for_thirty_days() {
         assertEquals(
-            "A-1 replaced the 7-day quarantine ceiling with a uniform 30 days",
-            EvidenceRetentionPolicy.QUARANTINE_RETENTION_DAYS,
             30L,
+            EvidenceRetentionPolicy.QUARANTINE_RETENTION_DAYS,
+            "A-1 replaced the 7-day quarantine ceiling with a uniform 30 days",
         )
     }
 
@@ -36,100 +36,101 @@ class EvidenceRetentionPolicyTest {
 
     @Test
     fun active_evidence_is_not_deleted_before_its_deadline() {
-        val policy = EvidenceRetentionPolicy(
-            quarantineRetentionDays = 30,
-            evidenceRetentionDays = 30,
-            eventMetadataRetentionDays = 90,
-        )
         val storedAtMs = 1_000_000L
 
         assertFalse(
+            policy().isQuarantineExpired(storedAtMs = storedAtMs, nowMs = storedAtMs + 1_000L),
             "evidence one second old is nowhere near its deadline",
-            policy.isQuarantineExpired(storedAtMs = storedAtMs, nowMs = storedAtMs + 1_000L),
         )
-        assertFalse(policy.isEvidenceExpired(storedAtMs = storedAtMs, nowMs = storedAtMs + 1_000L))
+        assertFalse(policy().isEvidenceExpired(storedAtMs = storedAtMs, nowMs = storedAtMs + 1_000L))
     }
 
     @Test
     fun quarantine_is_expired_exactly_at_thirty_days() {
-        val policy = EvidenceRetentionPolicy.default
+        val p = policy()
         val storedAtMs = 0L
 
-        assertFalse(policy.isQuarantineExpired(storedAtMs, day(29)))
-        assertTrue("the boundary is inclusive: day 30 is expired", policy.isQuarantineExpired(storedAtMs, day(30)))
-        assertTrue(policy.isQuarantineExpired(storedAtMs, day(31)))
+        assertFalse(p.isQuarantineExpired(storedAtMs, day(29)))
+        assertTrue(p.isQuarantineExpired(storedAtMs, day(30)), "the boundary is inclusive: day 30 is expired")
+        assertTrue(p.isQuarantineExpired(storedAtMs, day(31)))
     }
 
     @Test
     fun evidence_is_expired_exactly_at_thirty_days() {
-        val policy = EvidenceRetentionPolicy.default
+        val p = policy()
         val storedAtMs = 0L
 
-        assertFalse(policy.isEvidenceExpired(storedAtMs, day(29)))
-        assertTrue(policy.isEvidenceExpired(storedAtMs, day(30)))
+        assertFalse(p.isEvidenceExpired(storedAtMs, day(29)))
+        assertTrue(p.isEvidenceExpired(storedAtMs, day(30)))
     }
 
     @Test
     fun event_metadata_is_expired_exactly_at_ninety_days() {
-        val policy = EvidenceRetentionPolicy.default
+        val p = policy()
         val storedAtMs = 0L
 
-        assertFalse(policy.isEventMetadataExpired(storedAtMs, day(89)))
-        assertTrue(policy.isEventMetadataExpired(storedAtMs, day(90)))
+        assertFalse(p.isEventMetadataExpired(storedAtMs, day(89)))
+        assertTrue(p.isEventMetadataExpired(storedAtMs, day(90)))
     }
 
     @Test
     fun nothing_is_permanently_retained() {
-        val policy = EvidenceRetentionPolicy.default
-        val storedAtMs = 0L
+        val p = policy()
 
         assertTrue(
-            "a finite retention window is required; there is no permanent retention (5.4)",
-            policy.quarantineRetentionDays.isFinite() &&
-                policy.evidenceRetentionDays.isFinite() &&
-                policy.eventMetadataRetentionDays.isFinite(),
+            p.isQuarantineExpired(0L, day(365)) &&
+                p.isEvidenceExpired(0L, day(365)) &&
+                p.isEventMetadataExpired(0L, day(365)),
+            "every window is finite; there is no permanent retention (§5.4)",
         )
-        assertTrue(policy.isQuarantineExpired(storedAtMs, day(365)))
     }
 
     @Test
     fun a_clock_that_moves_backwards_never_expires_anything() {
-        val policy = EvidenceRetentionPolicy.default
+        val p = policy()
         val storedAtMs = day(10)
 
         assertFalse(
+            p.isQuarantineExpired(storedAtMs, day(5)),
             "a backwards clock must not be treated as expiry (deletion is irreversible)",
-            policy.isQuarantineExpired(storedAtMs, day(5)),
         )
-        assertFalse(policy.isEvidenceExpired(storedAtMs, day(5)))
-        assertFalse(policy.isEventMetadataExpired(storedAtMs, day(5)))
+        assertFalse(p.isEvidenceExpired(storedAtMs, day(5)))
+        assertFalse(p.isEventMetadataExpired(storedAtMs, day(5)))
     }
 
     @Test
     fun negative_timestamps_are_rejected() {
-        val policy = EvidenceRetentionPolicy.default
+        val p = policy()
 
         assertTrue(
+            runCatching {
+                EvidenceRetentionPolicy(
+                    quarantineRetentionDays = -1,
+                    evidenceRetentionDays = 30,
+                    eventMetadataRetentionDays = 90,
+                )
+            }.isFailure,
             "a negative retention window is a configuration error, not a policy",
-            runCatching { EvidenceRetentionPolicy(quarantineRetentionDays = -1) }.isFailure,
         )
-        assertTrue(runCatching { policy.isQuarantineExpired(-1L, 0L) }.isFailure)
-        assertTrue(runCatching { policy.isEvidenceExpired(0L, -1L) }.isFailure)
-        assertTrue(runCatching { policy.isEventMetadataExpired(-1L, 0L) }.isFailure)
+        assertTrue(runCatching { p.isQuarantineExpired(-1L, 0L) }.isFailure)
+        assertTrue(runCatching { p.isEvidenceExpired(0L, -1L) }.isFailure)
+        assertTrue(runCatching { p.isEventMetadataExpired(-1L, 0L) }.isFailure)
     }
 
     @Test
     fun a_custom_policy_layer_can_shorten_retention_without_touching_call_sites() {
-        val strict = EvidenceRetentionPolicy(
-            quarantineRetentionDays = 30,
-            evidenceRetentionDays = 30,
-            eventMetadataRetentionDays = 90,
-        )
+        val strict = policy()
         val lenient = strict.copy(evidenceRetentionDays = 60)
 
         assertFalse(lenient.isEvidenceExpired(day(0), day(40)))
         assertTrue(strict.isEvidenceExpired(day(0), day(40)))
     }
+
+    private fun policy() = EvidenceRetentionPolicy(
+        quarantineRetentionDays = 30,
+        evidenceRetentionDays = 30,
+        eventMetadataRetentionDays = 90,
+    )
 
     private fun day(days: Long): Long = days * 24L * 60L * 60L * 1000L
 }
