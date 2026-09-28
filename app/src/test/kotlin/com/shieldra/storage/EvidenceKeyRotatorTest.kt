@@ -72,7 +72,13 @@ class EvidenceKeyRotatorTest {
             }
             var pos = tagBytes.size
             if (ciphertext[pos++].toInt() != 0) throw EvidenceUnavailableException("corrupt payload framing")
-            val aadEnd = ciphertext.indexOf(0.toByte(), pos)
+            var aadEnd = -1
+            for (index in pos until ciphertext.size) {
+                if (ciphertext[index].toInt() == 0) {
+                    aadEnd = index
+                    break
+                }
+            }
             if (aadEnd < 0) throw EvidenceUnavailableException("corrupt payload framing")
             val storedAad = ciphertext.copyOfRange(pos, aadEnd)
             if (!storedAad.contentEquals(aad)) throw EvidenceUnavailableException("AAD mismatch for key '$tag'")
