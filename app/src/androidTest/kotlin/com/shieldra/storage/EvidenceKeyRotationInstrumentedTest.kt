@@ -93,8 +93,10 @@ class EvidenceKeyRotationInstrumentedTest {
                 toAadVersion = EvidenceKeyPolicy.AAD_VERSION_V1,
             ),
         )
-        assertTrue("rotation must succeed on device, got: $result")
-        assertIsMigrated(result)
+        assertTrue(
+            "rotation must succeed on device, got: $result",
+            result is RotationResult.Migrated,
+        )
 
         val rotated = files.readCommitted(id)
         assertArrayEquals(
@@ -139,7 +141,10 @@ class EvidenceKeyRotationInstrumentedTest {
         val bytesAfterFirstRotation = files.readCommitted(id)
 
         val second = rotator.rotate(request)
-        assertTrue("re-running must be a no-op, got: $second")
+        assertTrue(
+            "re-running must be a no-op, got: $second",
+            second is RotationResult.AlreadyMigrated,
+        )
         // Committed bytes are untouched by a skipped rotation (never redone).
         assertArrayEquals(bytesAfterFirstRotation, files.readCommitted(id))
         assertArrayEquals(plaintext, v2Cipher.decrypt(files.readCommitted(id), aad))
