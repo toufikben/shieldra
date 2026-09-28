@@ -37,8 +37,14 @@ object StorageRecovery {
         return when {
             // Checked first: Room's downgrade failure also mentions migrations.
             text.contains("downgrade") -> StorageRecoveryReason.DOWNGRADE
-            text.contains("migrat") || text.contains("validation error whilst opening") ->
-                StorageRecoveryReason.MIGRATION_FAILURE
+            text.contains("migrat") ||
+                text.contains("validation error whilst opening") ||
+                // Measured on the owner RMX3910: Room surfaces a failed
+                // migration as the raw SQLite error, not as a migration word.
+                text.contains("duplicate column name") ||
+                text.contains("while compiling") ||
+                text.contains("no such table") ||
+                text.contains("no such column") -> StorageRecoveryReason.MIGRATION_FAILURE
             text.contains("cannot verify the data integrity") || text.contains("unsupported database version") ->
                 StorageRecoveryReason.UNSUPPORTED_VERSION
             else -> StorageRecoveryReason.UNREADABLE_STATE

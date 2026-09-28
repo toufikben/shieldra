@@ -78,6 +78,23 @@ class StorageRecoveryTest {
     }
 
     @Test
+    fun `device measured sqlite migration wording is classified as migration failure`() {
+        // Captured on the owner RMX3910 (2026-09-28) from a real failed
+        // MIGRATION_1_2: Room surfaces the raw SQLite error, so the marker
+        // must be the measured wording rather than the word "migration".
+        assertEquals(
+            StorageRecoveryReason.MIGRATION_FAILURE,
+            StorageRecovery.classify(
+                RuntimeException(
+                    "android.database.sqlite.SQLiteException: duplicate column name: key_version " +
+                        "(code 1 SQLITE_ERROR): , while compiling: ALTER TABLE event_evidence_refs " +
+                        "ADD COLUMN key_version TEXT NOT NULL DEFAULT 'v1'",
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun `an unexplained failure fails closed as unreadable state`() {
         assertEquals(
             StorageRecoveryReason.UNREADABLE_STATE,
