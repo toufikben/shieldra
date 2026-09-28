@@ -63,6 +63,31 @@ class LocalShieldraStorage private constructor(
             )
         }
 
+        /**
+         * Opens local storage under decisions §4.2–§4.4: any failure returns
+         * RecoveryRequired and leaves the database file on disk. There is no
+         * destructive fallback here, and none may be added by callers.
+         *
+         * Room does not touch the database file until the first query, so the
+         * version and migration failures of §4.2–§4.4 surface on that first
+         * access, not in this call. The classifier and the guard are verified
+         * here; the real Room exception wording is verified only by the
+         * instrumented test on an owner device.
+         */
+        fun openOrRecovery(
+            context: Context,
+            encryptor: AndroidKeystoreEncryptor = AndroidKeystoreEncryptor(
+                applicationContext = context.applicationContext,
+            ),
+            keyAlias: String = EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS,
+            policy: EncryptionPolicy = EvidenceKeyPolicy.EVIDENCE_POLICY,
+            databaseName: String = DEFAULT_DATABASE_NAME,
+            evidenceDirectory: File = File(context.noBackupFilesDir, EVIDENCE_DIRECTORY),
+        ): StorageOpenResult<LocalShieldraStorage> =
+            StorageRecoveryGuard.open(context.getDatabasePath(databaseName)) {
+                create(context, encryptor, keyAlias, policy, databaseName, evidenceDirectory)
+            }
+
         private const val DEFAULT_DATABASE_NAME = "shieldra.db"
         private const val EVIDENCE_DIRECTORY = "shieldra-evidence"
     }
