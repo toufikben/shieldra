@@ -7,7 +7,7 @@ package com.shieldra.storage
  * A Room migration must consume this contract only after G4 schema approval.
  */
 object StorageSchema {
-    const val VERSION: Int = 1
+    const val VERSION: Int = 2
 
     const val EVENTS_TABLE = "security_events"
     const val EVIDENCE_REFS_TABLE = "event_evidence_refs"
@@ -37,12 +37,25 @@ object StorageSchema {
             kind TEXT NOT NULL,
             content_reference TEXT,
             captured_at_epoch_ms INTEGER,
+            key_version TEXT NOT NULL DEFAULT 'v1',
+            aad_version TEXT NOT NULL DEFAULT 'AAD-v1',
             FOREIGN KEY (event_id) REFERENCES security_events(event_id) ON DELETE CASCADE,
             CHECK (length(evidence_id) > 0),
             CHECK (length(event_id) > 0),
             CHECK (length(kind) > 0)
         )
     """.trimIndent()
+
+    /**
+     * First real migration, v1 → v2 (decision §4.5): per-evidence rotation
+     * metadata with NOT NULL defaults that preserve the meaning of existing
+     * rows (encrypted under v1 with AAD-v1). Mirrors
+     * [room.ShieldraDatabaseMigrations.MIGRATION_1_2].
+     */
+    val MIGRATE_1_2_ADD_ROTATION_COLUMNS = listOf(
+        "ALTER TABLE event_evidence_refs ADD COLUMN key_version TEXT NOT NULL DEFAULT 'v1'",
+        "ALTER TABLE event_evidence_refs ADD COLUMN aad_version TEXT NOT NULL DEFAULT 'AAD-v1'",
+    )
 
     val CREATE_DELIVERY_ATTEMPTS = """
         CREATE TABLE event_delivery_attempts (
@@ -88,7 +101,14 @@ interface StorageMigration {
 }
 
 object StorageMigrations {
-    val all: List<StorageMigration> = emptyList()
+    val all: List<StorageMigration> = listOf(
+        object : StorageMigration {
+            override val fromVersion: Int = 1
+            override val toVersion: Int = 2
+            override fun statements(): List<String> =
+                StorageSchema.MIGRATE_1_2_ADD_ROTATION_COLUMNS
+        },
+    )
 }
 
 fun requireSupportedSchemaVersion(version: Int) {

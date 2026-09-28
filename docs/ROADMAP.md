@@ -141,8 +141,9 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-storage-hardening | Reject symlink evidence payloads and fail closed on Room child-row collisions | Existing local storage implementation; no new security policy | IMPLEMENTED — `1335a8b`; CI `35889049875` in progress; runtime/device work deferred |
 | 4d-acceptance-matrix | Separate implementation evidence from CI/device/security acceptance and record deferred Android work | All preceding local batches | DOCUMENTED — `bf4ccca` lineage; runtime/security acceptance remains blocked |
 | 4d-aad-binding | AAD-v1 canonical serialization, mandatory AAD cipher, key alias policy, StrongBox detection, 10 unit tests, canonical vector tests, device instrumentation test (decisions §1.1–§1.4, §2.1–§2.3) | Final Security Storage Decisions (owner-supplied 2026-09-24) | **CLOSED** — commit `6a13d59`; all implementation + tests + static review complete; CI triggered |
-| 4d-key-rotation | Key rotation algorithm, resumable rotation, rotation tests (decisions §3.1–§3.5) | 4d-aad-binding; CI pass | NEXT — requires CI pass on 4d-aad-binding |
-| 4d-migration-recovery | Room migration enforcement, unsupported version/downgrade/failure RecoveryRequired, tests (decisions §4.1–§4.6) | 4d-key-rotation or parallel if no conflict | BLOCKED — awaiting 4d-key-rotation |
+| 4d-key-rotation | Key rotation algorithm, resumable rotation, rotation tests (decisions §3.1–§3.5) | 4d-aad-binding; CI pass | IMPLEMENTED — 14 §3.5 JVM rotation tests + schema v2 written; CI VERIFICATION PENDING; Keystore runtime rotation NOT VERIFIED |
+| 4d-strongbox-correction | StrongBox detection queries `FEATURE_STRONGBOX_KEYSTORE` at runtime instead of inferring from SDK level; placeholder device assertion replaced (decision §2.3) | 4d-aad-binding audit | IMPLEMENTED — device fact recorded: RMX3910 `has-feature` = false; instrumented execution pending |
+| 4d-migration-recovery | Room migration enforcement, unsupported version/downgrade/failure RecoveryRequired, tests (decisions §4.1–§4.6) | 4d-key-rotation or parallel if no conflict | PARTIALLY ADVANCED — schema v2, explicit `Migration(1, 2)`, and its instrumented test exist; downgrade/unsupported-version/failure → RecoveryRequired still open |
 | 4d-evidence-lifecycle | UNAVAILABLE/QUARANTINE/tombstone states, retention policy, export disabled, deletion semantics, factory reset (decisions §5.1–§5.7) | 4d-migration-recovery | BLOCKED |
 | 4d-failure-semantics | Security failure semantics table enforcement (decision §6) | 4d-evidence-lifecycle | BLOCKED |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
@@ -152,4 +153,18 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**4d-key-rotation** — 4d-aad-binding is CLOSED (commit `6a13d59`). Implement the rotation algorithm (§3.3), resumable rotation state (§3.4), and all rotation tests (§3.5). Requires Room schema v2 with keyVersion/aadVersion columns. Do not claim Android Keystore runtime behavior until device verification is available.
+**4d-migration-recovery (remaining scope)** — 4d-key-rotation is implemented
+and awaiting CI verification; the StrongBox detection defect from
+4d-aad-binding is corrected. Next: enforce decision §4 failure paths —
+unsupported schema version, downgrade, and migration failure must produce
+`RecoveryRequired` with tests, and no destructive fallback may ever be
+reached. Then execute the accumulated instrumented suites (Room, real
+AES-GCM/AAD, StrongBox detection, migration) on the owner device and record
+the evidence. Do not claim Android Keystore runtime rotation behavior until a
+device run proves it.
+
+**Correction recorded against 4d-aad-binding:** that batch closed without a
+§16 batch report and its StrongBox instrumented assertion was a placeholder
+(`assertTrue(true)`), which masked an SDK-level-only capability check. Both
+were fixed in this batch and documented in
+`docs/reports/batch-4d-key-rotation.md`.

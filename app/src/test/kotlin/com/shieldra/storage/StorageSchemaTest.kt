@@ -8,16 +8,23 @@ import kotlin.test.assertTrue
 class StorageSchemaTest {
     @Test
     fun schemaIsVersionedAndHasNoDestructiveDefaultMigration() {
-        assertEquals(1, StorageSchema.VERSION)
+        assertEquals(2, StorageSchema.VERSION)
         assertTrue(StorageSchema.CREATE_STATEMENTS.any { it.contains("CREATE TABLE security_events") })
         assertTrue(StorageSchema.CREATE_STATEMENTS.any { it.contains("FOREIGN KEY (event_id)") })
-        assertTrue(StorageMigrations.all.isEmpty())
+        assertTrue(StorageSchema.CREATE_STATEMENTS.any { it.contains("key_version") })
+        assertTrue(StorageSchema.CREATE_STATEMENTS.any { it.contains("aad_version") })
+        val migration = StorageMigrations.all.single()
+        assertEquals(1, migration.fromVersion)
+        assertEquals(2, migration.toVersion)
+        assertTrue(migration.statements().size == 2)
     }
 
     @Test
     fun invalidSchemaVersionsAreRejected() {
         assertFailsWith<IllegalArgumentException> { requireSupportedSchemaVersion(0) }
-        assertFailsWith<IllegalArgumentException> { requireSupportedSchemaVersion(2) }
+        assertFailsWith<IllegalArgumentException> { requireSupportedSchemaVersion(3) }
+        requireSupportedSchemaVersion(1)
+        requireSupportedSchemaVersion(2)
     }
 }
 

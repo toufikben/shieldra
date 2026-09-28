@@ -43,6 +43,28 @@ interface EvidenceReferenceDao {
 
     @Query("SELECT * FROM event_evidence_refs WHERE event_id = :eventId")
     fun findForEvent(eventId: String): List<EvidenceReferenceEntity>
+
+    @Query("SELECT * FROM event_evidence_refs WHERE evidence_id = :evidenceId LIMIT 1")
+    fun findById(evidenceId: String): EvidenceReferenceEntity?
+
+    /**
+     * Marks one evidence row migrated to a new key/AAD version (decision §3.3).
+     * Called only after the rotated file was written, verified, and committed;
+     * the old key is never deleted by this update (decision §3.3).
+     */
+    @Query(
+        """
+        UPDATE event_evidence_refs
+        SET key_version = :keyVersion,
+            aad_version = :aadVersion
+        WHERE evidence_id = :evidenceId
+        """,
+    )
+    fun updateKeyVersion(
+        evidenceId: String,
+        keyVersion: String,
+        aadVersion: String,
+    ): Int
 }
 
 @Dao

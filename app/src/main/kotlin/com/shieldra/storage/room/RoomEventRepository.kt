@@ -8,6 +8,7 @@ import com.shieldra.domain.GuardSeverity
 import com.shieldra.domain.RepositoryResult
 import com.shieldra.domain.SecurityEvent
 import com.shieldra.domain.SecurityEventType
+import com.shieldra.storage.EvidenceKeyPolicy
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
@@ -42,6 +43,8 @@ class RoomEventRepository(
                                     kind = "UNSPECIFIED",
                                     contentReference = null,
                                     capturedAtEpochMs = null,
+                                    keyVersion = EvidenceKeyPolicy.KEY_VERSION_V1,
+                                    aadVersion = EvidenceKeyPolicy.AAD_VERSION_V1,
                                 ),
                             ) != -1L,
                         ) { "Evidence reference collision: ${reference.id}" }

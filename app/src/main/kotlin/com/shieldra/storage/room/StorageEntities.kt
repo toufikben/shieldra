@@ -54,6 +54,18 @@ data class EvidenceReferenceEntity(
     val contentReference: String?,
     @ColumnInfo(name = "captured_at_epoch_ms")
     val capturedAtEpochMs: Long?,
+    /**
+     * Key version that decrypts this evidence (decision §3.2).
+     * Pre-rotation rows created by schema v1 default to "v1" via Migration(1, 2).
+     */
+    @ColumnInfo(name = "key_version", defaultValue = "'v1'")
+    val keyVersion: String = "v1",
+    /**
+     * AAD version bound to this evidence (decision §3.2).
+     * Pre-rotation rows created by schema v1 default to "AAD-v1" via Migration(1, 2).
+     */
+    @ColumnInfo(name = "aad_version", defaultValue = "'AAD-v1'")
+    val aadVersion: String = "AAD-v1",
 )
 
 @Entity(

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.shieldra.storage.room.RoomEventRepository
 import com.shieldra.storage.room.ShieldraDatabase
+import com.shieldra.storage.room.ShieldraDatabaseMigrations
 import java.io.File
 
 /**
@@ -26,7 +27,9 @@ class LocalShieldraStorage private constructor(
     companion object {
         fun create(
             context: Context,
-            encryptor: AndroidKeystoreEncryptor = AndroidKeystoreEncryptor(),
+            encryptor: AndroidKeystoreEncryptor = AndroidKeystoreEncryptor(
+                applicationContext = context.applicationContext,
+            ),
             keyAlias: String = EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS,
             policy: EncryptionPolicy = EvidenceKeyPolicy.EVIDENCE_POLICY,
             databaseName: String = DEFAULT_DATABASE_NAME,
@@ -39,7 +42,11 @@ class LocalShieldraStorage private constructor(
                 context.applicationContext,
                 ShieldraDatabase::class.java,
                 databaseName,
-            ).build()
+            )
+                // Explicit forward migrations only; destructive fallback is
+                // prohibited for security data (decision §4.3).
+                .addMigrations(*ShieldraDatabaseMigrations.all.toTypedArray())
+                .build()
 
             // Evidence-specific cipher with mandatory AAD binding
             val evidenceCipher = KeystoreEvidenceCipherWithAad(encryptor, keyAlias, policy)

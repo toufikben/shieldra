@@ -9,7 +9,7 @@ import androidx.room.RoomDatabase
         EvidenceReferenceEntity::class,
         DeliveryAttemptEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class ShieldraDatabase : RoomDatabase() {
