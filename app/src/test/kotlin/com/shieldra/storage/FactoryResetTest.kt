@@ -37,6 +37,7 @@ class FactoryResetTest {
 
         val result = reset.execute(
             aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS, EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS_V2),
+            confirmed = true,
         )
 
         assertIs<FactoryResetResult.Completed>(result)
@@ -57,8 +58,8 @@ class FactoryResetTest {
             keyDeletion = { true },
         )
 
-        val first = reset.execute(aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS))
-        val second = reset.execute(aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS))
+        val first = reset.execute(aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS), confirmed = true)
+        val second = reset.execute(aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS), confirmed = true)
 
         assertIs<FactoryResetResult.Completed>(first)
         assertIs<FactoryResetResult.Completed>(second)
@@ -75,12 +76,15 @@ class FactoryResetTest {
             keyDeletion = { alias -> deletedKeys += alias; true },
         )
 
-        // A file the reset cannot reach: its parent directory does not exist,
-        // so the post-removal absence check has something real to fail on
-        // instead of a simulated error.
-        val unreachable = File(dir, "no-such-dir").resolve("nested/ev-2.shieldra")
+        // A file the reset must account for but structurally cannot reach:
+        // it lives outside the evidence directory, so the removal loop never
+        // sees it and the post-removal absence check fails for a real reason
+        // rather than a simulated one. This is what a caller passes when it
+        // tracks evidence paths from metadata rather than one directory.
+        val unreachable = File(meta, "ev-2.shieldra").apply { writeBytes("evidence".toByteArray()) }
         val result = reset.execute(
             aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS),
+            confirmed = true,
             survivingFiles = listOf(unreachable),
         )
 
