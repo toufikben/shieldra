@@ -9,7 +9,7 @@ G4 may change to the target decision only when every required row is approved an
 |---|---|---|---|
 | G4-A-01 | Data inventory and minimization | Approved allowlist and prohibited-data list | PROPOSED — REQUIRES APPROVAL |
 | G4-A-02 | Room schema and entity mapping | Approved schema, entities, constraints, indexes, and EventPipeline consistency | PROPOSED — REQUIRES APPROVAL |
-| G4-A-03 | Non-destructive migrations | Explicit migrations, tests, interrupted-startup behavior, downgrade decision | PARTIALLY IMPLEMENTED — schema v2, explicit `Migration(1, 2)`, and an instrumented migration test exist; interrupted-startup and downgrade decisions still open; REQUIRES APPROVAL |
+| G4-A-03 | Non-destructive migrations | Explicit migrations, tests, interrupted-startup behavior, downgrade decision | PARTIALLY IMPLEMENTED — CI GREEN for the JVM half (run `36423376061`): schema v2, explicit `Migration(1, 2)`, and `RecoveryRequired` for unsupported version / downgrade / migration failure with the database file preserved and no destructive path; interrupted-startup behavior and the on-device Room wording still require evidence; REQUIRES APPROVAL |
 | G4-A-04 | Data lifecycle | Retention, deletion, reset, export, uninstall, cleanup, orphan policy | PROPOSED — REQUIRES APPROVAL |
 | G4-A-05 | Backup/restore | Manifest verification and metadata/file/key mismatch behavior | PROPOSED + DEVICE/AVD VERIFICATION REQUIRED |
 | G4-A-06 | Cryptography profile | Approved AES-GCM profile, AAD, payload, provider, failure behavior | PROPOSED — REQUIRES APPROVAL |

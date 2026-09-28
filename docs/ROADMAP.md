@@ -143,7 +143,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-aad-binding | AAD-v1 canonical serialization, mandatory AAD cipher, key alias policy, StrongBox detection, 10 unit tests, canonical vector tests, device instrumentation test (decisions §1.1–§1.4, §2.1–§2.3) | Final Security Storage Decisions (owner-supplied 2026-09-24) | **CLOSED** — commit `6a13d59`; all implementation + tests + static review complete; CI triggered |
 | 4d-key-rotation | Key rotation algorithm, resumable rotation, rotation tests (decisions §3.1–§3.5) | 4d-aad-binding; CI pass | IMPLEMENTED — CI GREEN (runs `36419607669`/`36420875440`: 99 JVM tests passed, lint clean, both APKs built, all review scripts pass); Keystore runtime rotation on device NOT VERIFIED |
 | 4d-strongbox-correction | StrongBox detection queries `FEATURE_STRONGBOX_KEYSTORE` at runtime instead of inferring from SDK level; placeholder device assertion replaced (decision §2.3) | 4d-aad-binding audit | IMPLEMENTED — CI GREEN (lint `NewApi` guard restored in `e23b908`); device fact recorded: RMX3910 `has-feature` = false; instrumented execution pending |
-| 4d-migration-recovery | Room migration enforcement, unsupported version/downgrade/failure RecoveryRequired, tests (decisions §4.1–§4.6) | 4d-key-rotation or parallel if no conflict | PARTIALLY ADVANCED — schema v2, explicit `Migration(1, 2)`, and its instrumented test exist; downgrade/unsupported-version/failure → RecoveryRequired still open |
+| 4d-migration-recovery | Room migration enforcement, unsupported version/downgrade/failure RecoveryRequired, tests (decisions §4.1–§4.6) | 4d-key-rotation or parallel if no conflict | PARTIALLY IMPLEMENTED — CI GREEN (run `36423376061`: 111 JVM tests passed): schema v2, explicit `Migration(1, 2)`, and the `RecoveryRequired` outcome for unsupported version/downgrade/migration failure with 12 tests; §4.6 device half (real Room wording, v1 open, FK integrity) NOT RUN |
 | 4d-evidence-lifecycle | UNAVAILABLE/QUARANTINE/tombstone states, retention policy, export disabled, deletion semantics, factory reset (decisions §5.1–§5.7) | 4d-migration-recovery | BLOCKED |
 | 4d-failure-semantics | Security failure semantics table enforcement (decision §6) | 4d-evidence-lifecycle | BLOCKED |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
@@ -153,15 +153,21 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**4d-migration-recovery (remaining scope)** — 4d-key-rotation is implemented
-and awaiting CI verification; the StrongBox detection defect from
-4d-aad-binding is corrected. Next: enforce decision §4 failure paths —
-unsupported schema version, downgrade, and migration failure must produce
-`RecoveryRequired` with tests, and no destructive fallback may ever be
-reached. Then execute the accumulated instrumented suites (Room, real
-AES-GCM/AAD, StrongBox detection, migration) on the owner device and record
-the evidence. Do not claim Android Keystore runtime rotation behavior until a
-device run proves it.
+**4d-migration-recovery — device half** — the JVM outcome model is
+implemented and green (run `36423376061`: unsupported version, downgrade, and
+migration failure all map to `RecoveryRequired`, the database file is
+preserved, and unknown wording fails closed). Remaining: prove the classifier
+against **real Room exception wording** on the owner device, which needs a
+test-owned Room database declared at a lower version than
+`ShieldraDatabase` so a genuine downgrade/missing-migration failure can be
+raised; then execute the accumulated instrumented suites (Room, real
+AES-GCM/AAD, StrongBox detection, migration, recovery) on the RMX3910 and
+record the measured messages so the marker strings in `StorageRecovery` can be
+replaced by verified ones. Note explicitly that Room does not touch the
+database file inside `openOrRecovery` — the §4.2–§4.4 failures surface on the
+first query, so this batch does not claim they are caught at composition time.
+Do not claim Android Keystore runtime rotation behavior until a device run
+proves it.
 
 **Correction recorded against 4d-aad-binding:** that batch closed without a
 §16 batch report and its StrongBox instrumented assertion was a placeholder
