@@ -78,7 +78,11 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 **Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices. AAD-v1 canonical serialization and mandatory enforcement implemented (decisions §1.1–§1.4, §2.1–§2.3). **4d-aad-binding CLOSED.**
 
-**Remaining:** Keystore runtime verification on device, key rotation algorithm (§3), Room migration/recovery (§4), evidence lifecycle (§5), retention policy (§5.4), export disabled enforcement (§5.5), security failure semantics enforcement (§6). Final production gate (§15) remains entirely open.
+**Remaining:** Keystore runtime verification on device, evidence lifecycle §5
+storage slice CLOSED at CI level (retention §5.4, export disabled §5.5, factory
+reset §5.7) under amendments A-1/A-2/A-3, with one §5.7 device gap remaining
+(on-device Keystore key deletion during a real reset). Security failure
+semantics enforcement (§6) and the final production gate (§15) remain open.
 
 **Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
@@ -145,7 +149,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | 4d-keystore-rotation-runtime | Instrumented rotation against two distinct real Keystore keys, proving re-encryption rather than metadata relabel (decision §3.1–§3.4) | 4d-key-rotation | IMPLEMENTED — CI GREEN (runs `36432257961` failed compile → fixed `d725cd8`) and `OK (2 tests)` on the RMX3910; enforced by a `g4b` gate |
 | 4d-strongbox-correction | StrongBox detection queries `FEATURE_STRONGBOX_KEYSTORE` at runtime instead of inferring from SDK level; placeholder device assertion replaced (decision §2.3) | 4d-aad-binding audit | IMPLEMENTED — CI GREEN + **executed on RMX3910** (`RealAesGcmAadTest` passed in the `OK (22 tests)` run of 2026-09-28); device fact confirmed: this phone reports no StrongBox and the code agrees |
 | 4d-migration-recovery | Room migration enforcement, unsupported version/downgrade/failure RecoveryRequired, tests (decisions §4.1–§4.6) | 4d-key-rotation or parallel if no conflict | IMPLEMENTED — CI GREEN (run `36428989303`: 112 JVM tests) **and device `OK (22 tests)` on RMX3910**; the device run corrected the migration-failure markers to measured Room/SQLite wording (see `docs/reports/device-evidence-2026-09-28.md`) |
-| 4d-evidence-lifecycle | UNAVAILABLE/QUARANTINE/tombstone states, retention policy, export disabled, deletion semantics, factory reset (decisions §5.1–§5.7) | 4d-migration-recovery | BLOCKED |
+| 4d-evidence-lifecycle | UNAVAILABLE/QUARANTINE/tombstone states, retention policy, export disabled, deletion semantics, factory reset (decisions §5.1–§5.7) | 4d-migration-recovery | §5.4/§5.5/§5.7 storage slice IMPLEMENTED — CI GREEN (run `36494249786`: 134 JVM tests, lint, both APKs, all review scripts) under owner amendments A-1/A-2/A-3; §5.1/§5.2/§5.6 states and §5.3 event deletion already covered by `EncryptedEvidenceFileStore`/Room repo. DEVICE GAP: on-device Keystore key deletion during a real reset is not yet instrumented — see `docs/reports/batch-4d-evidence-lifecycle.md` |
 | 4d-failure-semantics | Security failure semantics table enforcement (decision §6) | 4d-evidence-lifecycle | BLOCKED |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
@@ -154,23 +158,25 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 ## Required next batch
 
-**`4d-evidence-lifecycle` (decisions §5.1–§5.7) — BLOCKED on an owner
-decision.** The §3 runtime half is now closed: `EvidenceKeyRotationInstrumentedTest`
-(2 tests) runs on the owner RMX3910 and passed (`OK (2 tests)`, run
-`36433212886`), alongside the full instrumented suite `OK (24 tests)`. The last
-unproven claim of decision §3 — re-encryption with **real** Android Keystore
-keys (`shieldra_evidence_v1` → `shieldra_evidence_v2`) — is measured and
-recorded in `docs/reports/device-evidence-2026-09-28.md`.
+**`4d-evidence-lifecycle` (decisions §5.1–§5.7) — storage slice IMPLEMENTED,
+CI GREEN.** The owner answered the open §5 point (retention windows and what a
+factory reset deletes) on 2026-09-28, recorded as binding amendments A-1/A-2/A-3
+in decisions §17. `EvidenceRetentionPolicy` (§5.4, 30-day unified quarantine),
+`EvidenceExportPolicy` (§5.5, disabled by default with six mandatory gates and a
+static no-egress gate), and `FactoryReset` + `deleteEvidenceKeyIrreversibly`
+(§5.7, confirmed, key deletion mandatory, removal-before-verification with a
+tombstone on failure) are implemented and covered by 23 new JVM tests. CI run
+`36494249786`: 134 tests, 134 passed, lint, both APKs, all review scripts. See
+`docs/reports/batch-4d-evidence-lifecycle.md`.
 
-Nothing on §3 or §4 remains open. The next unblocked work is §5, but it cannot
-start without the owner's answer on one point: **the retention policy** — how
-long tombstoned and quarantined evidence is kept, and what "factory reset"
-deletes. §5.4–§5.7 depend on it. Until that is answered this batch stays BLOCKED
-rather than being implemented on an invented policy (decision §14 forbids
-silent policy changes).
+One device gap remains inside §5.7: an instrumented test that performs a real
+reset on the RMX3910 and proves the on-device Keystore evidence key is
+irreversibly deleted. That, or moving to §6 security-failure-semantics
+enforcement, is the next batch.
 
-When it does start, device runs need the app and androidTest APKs from the
-**same** CI run, because each runner regenerates the debug keystore.
+Nothing on §3 or §4 remains open. When device runs resume, they need the app and
+androidTest APKs from the **same** CI run, because each runner regenerates the
+debug keystore.
 
 **Correction recorded against 4d-aad-binding:** that batch closed without a
 §16 batch report and its StrongBox instrumented assertion was a placeholder
