@@ -52,6 +52,12 @@ grep -q 'openOrRecovery' app/src/main/kotlin/com/shieldra/storage/LocalStorageFa
 [ -s app/src/test/kotlin/com/shieldra/storage/StorageRecoveryTest.kt ] || fail "recovery decision tests are missing"
 pass "RecoveryRequired open path is guarded and tested"
 
+ROTATION_TEST=app/src/androidTest/kotlin/com/shieldra/storage/EvidenceKeyRotationInstrumentedTest.kt
+[ -s "$ROTATION_TEST" ] || fail "instrumented Keystore rotation test (§3 runtime) is missing"
+grep -q 'KeystoreRotationCipherFactory' "$ROTATION_TEST" || fail "rotation test must use the real Keystore cipher factory, not a fake"
+grep -q 'KEY_VERSION_V1' "$ROTATION_TEST" && grep -q 'KEY_VERSION_V2' "$ROTATION_TEST" || fail "rotation test must exercise both v1 and v2 key aliases"
+pass "Keystore runtime rotation is covered by an instrumented test"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"
