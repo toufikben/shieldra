@@ -1,5 +1,7 @@
 package com.shieldra.storage
 
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -30,6 +32,7 @@ import javax.crypto.spec.GCMParameterSpec
  */
 open class AndroidKeystoreEncryptor(
     private val secureRandom: SecureRandom = SecureRandom(),
+    private val applicationContext: Context? = null,
 ) {
     open fun encrypt(
         plaintext: ByteArray,
@@ -79,11 +82,18 @@ open class AndroidKeystoreEncryptor(
     }
 
     /**
-     * Checks if StrongBox is available on this device.
-     * StrongBox requires Android 9 (API 28) + hardware support.
+     * Runtime StrongBox capability detection (decision §2.3).
+     *
+     * StrongBox requires Android 9 (API 28) AND dedicated hardware, so the
+     * SDK level alone is never treated as evidence. The dedicated system
+     * feature is queried at runtime. Without an application context the
+     * answer fails closed to false rather than guessing from the SDK level.
      */
     fun isStrongBoxAvailable(): Boolean {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
+        return applicationContext
+            ?.packageManager
+            ?.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE) == true
     }
 
     /**

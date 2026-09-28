@@ -1,12 +1,15 @@
 package com.shieldra.storage
 
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -209,10 +212,21 @@ class RealAesGcmAadTest {
 
     @Test
     fun real_aes_gcm_strongbox_capability_detection() {
-        val encryptor = AndroidKeystoreEncryptor()
-        val isStrongBoxAvailable = encryptor.isStrongBoxAvailable()
+        val expected = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&
+            context.packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
 
-        // Just verify the method runs without crash; actual availability depends on device
-        assertTrue("isStrongBoxAvailable() must return boolean", true)
+        val withContext = AndroidKeystoreEncryptor(applicationContext = context)
+
+        assertEquals(
+            "StrongBox detection must query PackageManager.FEATURE_STRONGBOX_KEYSTORE " +
+                "at runtime, never infer availability from SDK level alone (decision 2-3)",
+            expected,
+            withContext.isStrongBoxAvailable(),
+        )
+
+        assertFalse(
+            "without a context, detection must fail closed instead of guessing from SDK level",
+            AndroidKeystoreEncryptor().isStrongBoxAvailable(),
+        )
     }
 }
