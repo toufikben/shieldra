@@ -30,6 +30,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.shieldra.app.presentation.demo.DemoData
+import com.shieldra.app.ShieldraApp
+import com.shieldra.app.presentation.guard.LockGuardDecision
+import com.shieldra.app.presentation.guard.lockGuardDashboard
+import com.shieldra.app.presentation.guard.lockGuardEventDetail
+import androidx.compose.ui.platform.LocalContext
 import com.shieldra.app.design.components.domain.ErrorStateFullScreen
 import com.shieldra.app.presentation.screen.dashboard.DashboardCallbacks
 import com.shieldra.app.presentation.screen.dashboard.DashboardScreen
@@ -60,6 +65,11 @@ fun ShieldraNavHost(
     val scope = rememberCoroutineScope()
     val deferredMessage = stringResource(R.string.phase3_deferred)
     val defer = { scope.launch { snackbarHostState.showSnackbar(deferredMessage) } }
+    // Honest projection: there is no live detection/monitoring yet (phase 5/G3),
+    // so the UI derives from whether the storage gate installed anything, never
+    // from fabricated protection numbers.
+    val storageInstalled = (LocalContext.current.applicationContext as ShieldraApp).installedStorage != null
+    val guardState = LockGuardDecision.decide(storageInstalled)
 
     Scaffold(
         modifier = modifier,
@@ -115,7 +125,7 @@ fun ShieldraNavHost(
             // ===== Main =====
             composable(ShieldraRoutes.DASHBOARD) {
                 DashboardScreen(
-                    model = DemoData.dashboard(),
+                    model = lockGuardDashboard(guardState),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->
                             navController.navigate(ShieldraRoutes.eventDetail(id))
@@ -131,7 +141,7 @@ fun ShieldraNavHost(
             composable(ShieldraRoutes.HISTORY) {
                 var historyFilterState by remember { mutableStateOf(HistoryFilterState()) }
                 HistoryScreen(
-                    events = DemoData.recentEvents(),
+                    events = emptyList(),
                     filterState = historyFilterState,
                     callbacks = HistoryCallbacks(
                         onEventClick = { id ->
@@ -170,7 +180,7 @@ fun ShieldraNavHost(
                 ),
             ) { entry ->
                 val id = entry.arguments?.getString(ShieldraRoutes.EVENT_DETAIL_ARG_ID).orEmpty()
-                val detail = DemoData.eventDetail(id)
+                val detail = lockGuardEventDetail(id)
                 if (detail == null) {
                     ErrorStateFullScreen(
                         title = stringResource(R.string.event_unknown_title),

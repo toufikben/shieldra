@@ -50,6 +50,22 @@ if grep -rn 'LocalShieldraStorage\.create' app/src/main/kotlin/com/shieldra/app 
 fi
 pass "local storage raw factory is not reachable from the app graph"
 
+# Honest guard projection (§15/phase-5 boundary): the runtime UI must never
+# render a fabricated "Protected" dashboard. DemoData may still back @Preview
+# files, but the NavHost production path must go through LockGuardDecision,
+# which cannot claim protection because no detector exists yet.
+NAVHOST=app/src/main/kotlin/com/shieldra/app/navigation/ShieldraNavHost.kt
+if grep -Eq 'DemoData\.(dashboard|recentEvents|eventDetail)[[:space:]]*\(' "$NAVHOST"; then
+  fail "NavHost renders a fabricated protection dashboard/event from DemoData at runtime"
+fi
+grep -q 'lockGuardDashboard(' "$NAVHOST" || fail "NavHost does not use the honest lockGuardDashboard projection"
+grep -q 'LockGuardDecision.decide' "$NAVHOST" || fail "NavHost does not derive the guard state from LockGuardDecision"
+GUARD=app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDecision.kt
+[ -s "$GUARD" ] || fail "honest guard projection (LockGuardDecision) is missing"
+grep -q 'GuardStatus.Disabled' "$GUARD" || fail "guards must not be projected as active without detection"
+grep -q 'ProtectionVisualState.Disabled' "$GUARD" || fail "the not-active state must map to Disabled, never Protected"
+pass "runtime guard projection is honest (no fabricated protection)"
+
 grep -q '^room = ' gradle/libs.versions.toml || fail "Room version is not declared"
 grep -q '^androidx-room-runtime' gradle/libs.versions.toml || fail "Room runtime catalog entry is missing"
 grep -q '^androidx-room-compiler' gradle/libs.versions.toml || fail "Room compiler catalog entry is missing"
