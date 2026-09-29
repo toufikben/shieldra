@@ -43,8 +43,9 @@ grep -q 'storageDecision' "$APP" \
 pass "ShieldraApp install is gated and uses openOrRecovery"
 
 # The raw factory must never be reachable from the app graph: that path skips
-# the approval gate and the RecoveryRequired handling.
-if rg -n 'LocalShieldraStorage\.create' app/src/main/kotlin/com/shieldra/app app/src/main/kotlin/com/shieldra/navigation >/dev/null 2>&1; then
+# the approval gate and the RecoveryRequired handling. grep (not rg, which is
+# absent on the CI runner) so the check actually runs instead of a silent no-op.
+if grep -rn 'LocalShieldraStorage\.create' app/src/main/kotlin/com/shieldra/app app/src/main/kotlin/com/shieldra/navigation >/dev/null 2>&1; then
   fail "local storage raw factory is wired into application/navigation, bypassing the approval gate"
 fi
 pass "local storage raw factory is not reachable from the app graph"
@@ -67,7 +68,7 @@ grep -q 'FEATURE_STRONGBOX_KEYSTORE' app/src/main/kotlin/com/shieldra/storage/An
 pass "StrongBox detection queries the runtime system feature"
 
 grep -q 'no software fallback' app/src/main/kotlin/com/shieldra/storage/AndroidKeystoreEncryptor.kt || fail "Keystore fallback boundary not documented"
-rg -n '\.fallbackToDestructiveMigration\s*\(' app/src/main/kotlin app/src/main/res >/dev/null && fail "destructive migration fallback found in production source"
+grep -rn '\.fallbackToDestructiveMigration[[:space:]]*(' app/src/main/kotlin app/src/main/res >/dev/null 2>&1 && fail "destructive migration fallback found in production source"
 pass "Keystore fallback and destructive migration boundaries pass"
 
 grep -q 'StorageRecoveryReason.UNREADABLE_STATE' app/src/main/kotlin/com/shieldra/storage/StorageRecovery.kt || fail "fail-closed recovery reason is missing"
@@ -101,7 +102,7 @@ pass "factory reset requires destructive confirmation and deletes the evidence k
 # §5.5 evidence export is disabled by default, with no hidden bypass
 [ -s app/src/main/kotlin/com/shieldra/storage/EvidenceExportPolicy.kt ] || fail "evidence export policy (§5.5) is missing"
 grep -q 'val enabled: Boolean = false' app/src/main/kotlin/com/shieldra/storage/EvidenceExportPolicy.kt || fail "§5.5: export must be disabled by default"
-if rg -n 'ACTION_SEND|FileProvider|ClipboardManager|Retrofit|OkHttp|MultipartBody|UploadManager' app/src/main/kotlin/com/shieldra/storage >/dev/null 2>&1; then
+if grep -rEn 'ACTION_SEND|FileProvider|ClipboardManager|Retrofit|OkHttp|MultipartBody|UploadManager' app/src/main/kotlin/com/shieldra/storage >/dev/null 2>&1; then
   fail "§5.5: a hidden evidence-egress path was found in the storage package"
 fi
 pass "evidence export is disabled by default with no hidden bypass (§5.5)"
