@@ -21,10 +21,33 @@ pass "database and file backup/transfer exclusions present"
 grep -q 'context.noBackupFilesDir' app/src/main/kotlin/com/shieldra/storage/LocalStorageFactory.kt || fail "evidence directory is not under noBackupFilesDir"
 pass "evidence factory uses noBackupFilesDir"
 
+# §15 production-wiring gate: local storage may attach to the running app only
+# behind the runtime approval flag, which stays false until the owner flips it
+# in a visible commit (§14). Opening must go through openOrRecovery so a failed
+# open becomes RecoveryRequired, never a destructive recreate (§4.2-§4.4).
+GATE=app/src/main/kotlin/com/shieldra/storage/StorageRuntimeApproval.kt
+APP=app/src/main/kotlin/com/shieldra/app/ShieldraApp.kt
+[ -s "$GATE" ] || fail "storage runtime approval gate is missing"
+grep -Eq 'const val approved:[[:space:]]*Boolean[[:space:]]*=[[:space:]]*false' "$GATE" \
+  || fail "storage runtime approval must default to false until the owner signs off (sec 14/15)"
+pass "storage install gate present and off by default"
+
+grep -q 'StorageRuntimeApproval.approved' "$APP" \
+  || fail "ShieldraApp does not consult the storage runtime approval gate"
+grep -q 'decideStorageInstall' "$APP" \
+  || fail "ShieldraApp does not route the storage install through decideStorageInstall"
+grep -q 'LocalShieldraStorage.openOrRecovery' "$APP" \
+  || fail "ShieldraApp must open storage through openOrRecovery, not the raw factory"
+grep -q 'storageDecision' "$APP" \
+  || fail "ShieldraApp must retain the install decision (RecoveryRequired) as state, not crash"
+pass "ShieldraApp install is gated and uses openOrRecovery"
+
+# The raw factory must never be reachable from the app graph: that path skips
+# the approval gate and the RecoveryRequired handling.
 if rg -n 'LocalShieldraStorage\.create' app/src/main/kotlin/com/shieldra/app app/src/main/kotlin/com/shieldra/navigation >/dev/null 2>&1; then
-  fail "local storage factory is wired into application/navigation without runtime approval"
+  fail "local storage raw factory is wired into application/navigation, bypassing the approval gate"
 fi
-pass "local storage factory is not auto-wired into app graph"
+pass "local storage raw factory is not reachable from the app graph"
 
 grep -q '^room = ' gradle/libs.versions.toml || fail "Room version is not declared"
 grep -q '^androidx-room-runtime' gradle/libs.versions.toml || fail "Room runtime catalog entry is missing"
