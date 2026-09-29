@@ -81,8 +81,9 @@ fun ShieldraNavHost(
     val installedStorage = (LocalContext.current.applicationContext as ShieldraApp).installedStorage
     val storageInstalled = installedStorage != null
     val guardState = LockGuardDecision.decide(storageInstalled)
-    val eventReader = remember(installedStorage) {
-        StorageEventReader.reader(installedStorage, persistedEventLabels())
+    val eventLabels = persistedEventLabels()
+    val eventReader = remember(installedStorage, eventLabels) {
+        StorageEventReader.reader(installedStorage, eventLabels)
     }
     // Room refuses main-thread queries, so the load is dispatched off it and the
     // UI renders empty until the real rows arrive.
@@ -199,9 +200,12 @@ fun ShieldraNavHost(
                 ),
             ) { entry ->
                 val id = entry.arguments?.getString(ShieldraRoutes.EVENT_DETAIL_ARG_ID).orEmpty()
-                val detail by produceState<EventDetailUiModel?>(initialValue = null, id, installedStorage) {
-                    value = withContext(Dispatchers.IO) { eventReader.readOne(id, Instant.now()) }
+                val lookup by produceState(initialValue = DetailLookup.Loading, id, installedStorage) {
+                    value = DetailLookup.Resolved(
+                        withContext(Dispatchers.IO) { eventReader.readOne(id, Instant.now()) },
+                    )
                 }
+                val detail = (lookup as? DetailLookup.Resolved)?.detail
                 if (detail == null) {
                     ErrorStateFullScreen(
                         title = stringResource(R.string.event_unknown_title),
@@ -266,6 +270,12 @@ private fun ageLabelFormatter(): (Instant, Instant) -> String {
 }
 
 private const val RECENT_EVENT_LIMIT = 20
+
+/** Distinguishes "still loading" from "no such event", which are both null. */
+private sealed interface DetailLookup {
+    data object Loading : DetailLookup
+    data class Resolved(val detail: EventDetailUiModel?) : DetailLookup
+}
 
 @Composable
 private fun ShieldraBottomBar(

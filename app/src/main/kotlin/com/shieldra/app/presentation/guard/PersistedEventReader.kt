@@ -76,7 +76,13 @@ data class PersistedEventLabels(
     val title: String = "Security event",
     val stateLabels: Map<EventState, String> = emptyMap(),
     val ageLabel: (now: Instant, createdAt: Instant) -> String = { now, createdAt ->
-        defaultAgeLabel(now, createdAt)
+        val parts = ageParts(now, createdAt)
+        when (parts) {
+            is AgeParts.Days -> "${parts.value}d ago"
+            is AgeParts.Hours -> "${parts.value}h ago"
+            is AgeParts.Minutes -> "${parts.value}m ago"
+            is AgeParts.Seconds -> "${parts.value}s ago"
+        }
     },
 ) {
     fun stateLabel(state: EventState): String = stateLabels[state] ?: state.name
