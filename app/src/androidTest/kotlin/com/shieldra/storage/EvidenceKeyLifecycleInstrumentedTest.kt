@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.shieldra.storage.room.EvidenceReferenceEntity
+import com.shieldra.storage.room.RoomRotationMetadata
 import com.shieldra.storage.room.SecurityEventEntity
 import com.shieldra.storage.room.ShieldraDatabase
 import java.io.File
@@ -74,9 +75,9 @@ class EvidenceKeyLifecycleInstrumentedTest {
         val stored = scope.all()
 
         assertEquals(
+            "the eligibility scan must see every stored evidence row",
             setOf("ev-scope-a", "ev-scope-b"),
             stored.keys,
-            "the eligibility scan must see every stored evidence row",
         )
         assertEquals(EvidenceKeyPolicy.KEY_VERSION_V1, stored.getValue("ev-scope-a").keyVersion)
         assertEquals(EvidenceKeyPolicy.KEY_VERSION_V2, stored.getValue("ev-scope-b").keyVersion)
@@ -103,9 +104,9 @@ class EvidenceKeyLifecycleInstrumentedTest {
         assertEquals(EvidenceKeyPolicy.KEY_VERSION_V2, reopened.activeKeyVersion)
         assertEquals(setOf(EvidenceKeyPolicy.KEY_VERSION_V1), reopened.retiredKeyVersions)
         assertEquals(
+            "a relaunch must not reset the 90-day clock",
             1_700_000_000_000L,
             reopened.lastRotationEpochMs,
-            "a relaunch must not reset the 90-day clock",
         )
     }
 
