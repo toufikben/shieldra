@@ -151,6 +151,7 @@ open, along with overall G4 device/security sign-off.
 | 4d-migration-recovery | Room migration enforcement, unsupported version/downgrade/failure RecoveryRequired, tests (decisions §4.1–§4.6) | 4d-key-rotation or parallel if no conflict | IMPLEMENTED — CI GREEN (run `36428989303`: 112 JVM tests) **and device `OK (22 tests)` on RMX3910**; the device run corrected the migration-failure markers to measured Room/SQLite wording (see `docs/reports/device-evidence-2026-09-28.md`) |
 | 4d-evidence-lifecycle | UNAVAILABLE/QUARANTINE/tombstone states, retention policy, export disabled, deletion semantics, factory reset (decisions §5.1–§5.7) | 4d-migration-recovery | CLOSED (CI + DEVICE) — §5.4/§5.5/§5.7 storage slice under amendments A-1/A-2/A-3. CI GREEN (run `36494249786`: 134 JVM tests) and `EvidenceKeyResetInstrumentedTest` **`OK (2 tests)` on RMX3910** (run `36495834536`), full suite `OK (26 tests)` — proves the on-device Keystore evidence key is irreversibly deleted and prior evidence becomes permanently unreadable. §5.1/§5.2/§5.6 states and §5.3 event deletion already covered by `EncryptedEvidenceFileStore`/Room repo. See `docs/reports/batch-4d-evidence-lifecycle.md` |
 | 4d-failure-semantics | Security failure semantics table enforcement (decision §6) | 4d-evidence-lifecycle | CLOSED (CI + DEVICE) — §6 classifier (`SecurityFailureSemantics`) + §6/A-4 read-path enforcement. A missing Keystore key on read surfaces as `EvidenceKeyRecoveryRequiredException` (never laundered into `EvidenceUnavailableException`); corruption/AAD-mismatch stays UNAVAILABLE; a confirmed factory reset keeps post-reset reads UNAVAILABLE because it removes the files too. CI GREEN (runs `36519322364` → `36521881590`: 151 JVM tests, lint, both APKs, all review scripts incl. the new §6/A-4 gate) and full instrumented suite **`OK (26 tests)`** on the owner RMX3910. Recorded as amendment A-4 in decisions §17. See `docs/reports/batch-4d-failure-semantics.md` |
+| 4d-storage-wiring-gate | Install local storage behind the §15 runtime approval gate (`StorageRuntimeApproval.approved`, off by default) via a pure `decideStorageInstall`; wire `ShieldraApp` through `openOrRecovery`; g4b wiring gate + fix `rg`→`grep` no-op enforcement checks | 4d-failure-semantics | CLOSED (CI + DEVICE) — **gated slice only; §15/G4 stay OPEN.** `ShieldraApp` attaches storage only when the owner flips the flag (§14); default build never opens storage. CI GREEN (`36525682066` RED-compile → `36525983600` → `36537846580`: 154 JVM tests, both APKs, grep-based §15/§4.3/§5.5 gates now genuinely PASS) and on RMX3910 `StorageWiringGateOffInstrumentedTest` `OK (3 tests)` + full suite `OK (29 tests)` (no regressions; default-off creates no `shieldra.db` and no Keystore key). See `docs/reports/batch-4d-storage-wiring-gate.md` |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
@@ -186,11 +187,25 @@ full instrumented suite is `OK (26 tests)` on the RMX3910 — the rotation test
 needed a warm-up so it asserts genuine cross-key rejection rather than a missing
 key. See `docs/reports/batch-4d-failure-semantics.md`.
 
+**`4d-storage-wiring-gate` (decision §15 wiring) — CLOSED (CI + DEVICE), gated
+slice only.** Local storage can now attach to the running app, but only behind
+the compile-time `StorageRuntimeApproval.approved` flag, which stays `false`;
+flipping it is the owner's future visible sign-off (§14). `ShieldraApp` opens
+exclusively through `openOrRecovery` and keeps a failed open as `RecoveryRequired`
+(no destructive recreate). A default build provably never opens storage: on the
+RMX3910 `StorageWiringGateOffInstrumentedTest` is `OK (3 tests)` and the full
+instrumented suite is `OK (29 tests)` with no regressions, and CI is green at 154
+JVM tests (`36537846580`). This batch also turned three silently-skipping `rg`
+gates into real `grep` checks, so the §4.3 destructive-migration and §5.5 no-egress
+prohibitions are now actually enforced in CI. See
+`docs/reports/batch-4d-storage-wiring-gate.md`.
+
 The remaining roadmap items are **owner-decision / policy gates, not pure-code
 tasks**, and require explicit approval before any new design work:
-- overall **G4 device/security sign-off** and the **§15 production gate**
-  (wiring the storage slice into the app graph — currently deliberately not
-  auto-wired per the `g4b` gate);
+- overall **G4 device/security sign-off** and the **§15 production gate** — the
+  storage wiring is now installed behind the approval gate but **not enabled**;
+  §15/G4 close only after the flag is owner-flipped **and** the remaining gates
+  below (Lock Guard adapter, phase 5/6/7, and the full audit set) are done;
 - **phase 5** local response and notifications (blocked on G2/G3 policy);
 - **phase 6** external providers (deferred by G5);
 - **phase 7** end-to-end security/release review (blocked on all prior).
