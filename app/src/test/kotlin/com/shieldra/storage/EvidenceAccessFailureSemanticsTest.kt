@@ -31,7 +31,7 @@ class EvidenceAccessFailureSemanticsTest {
 
         assertFailsWith<EvidenceKeyRecoveryRequiredException>(
             "§6/A-4: a missing evidence key must be RECOVERY_REQUIRED",
-        ) { cipher.decrypt(byteArrayOf(1, 2, 3), aad) }
+        ) { cipher.decrypt(validPayload(), aad) }
     }
 
     @Test
@@ -41,7 +41,7 @@ class EvidenceAccessFailureSemanticsTest {
 
         assertFailsWith<EvidenceUnavailableException>(
             "corruption / AAD mismatch stays UNAVAILABLE (§6), never recovery",
-        ) { cipher.decrypt(byteArrayOf(1, 2, 3), aad) }
+        ) { cipher.decrypt(validPayload(), aad) }
     }
 
     @Test
@@ -85,6 +85,14 @@ class EvidenceAccessFailureSemanticsTest {
     }
 
     // --- test doubles -------------------------------------------------------
+
+    /** A well-formed envelope so decrypt reaches the encryptor instead of failing the decode. */
+    private fun validPayload(): ByteArray =
+        EncryptedPayload(
+            version = 1,
+            iv = ByteArray(12) { (it + 1).toByte() },
+            ciphertext = byteArrayOf(9, 8, 7, 6),
+        ).toByteArray()
 
     private class MissingKeyEncryptor : AndroidKeystoreEncryptor() {
         override fun decrypt(
