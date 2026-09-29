@@ -33,12 +33,24 @@ interface EvidenceCipher {
      * @param aad The canonical AAD bytes for this evidence (version || class || id).
      * @return Decrypted plaintext.
      * @throws EvidenceUnavailableException if authentication fails (wrong AAD, corruption, etc.).
+     * @throws EvidenceKeyRecoveryRequiredException if the ciphertext is present but the
+     * protecting Keystore key is missing (§6 / A-4 — operator recovery, not corrupt evidence).
      * @throws IllegalArgumentException if AAD is null or empty.
      */
     fun decrypt(ciphertext: ByteArray, aad: ByteArray): ByteArray
 }
 
 class EvidenceUnavailableException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
+
+/**
+ * §6 / amendment A-4: the evidence ciphertext is still present but the Keystore
+ * key that protects it is missing through no deliberate action of the owner.
+ * This is a storage/key-state recovery problem, not corrupt evidence, so it is
+ * deliberately NOT a subtype of [EvidenceUnavailableException] — the read path
+ * must not launder it into "unavailable". A confirmed factory reset (§5.7)
+ * removes the files too, so post-reset reads stay [EvidenceUnavailableException].
+ */
+class EvidenceKeyRecoveryRequiredException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
 
 data class EvidenceReconciliationReport(
     val missingReferencedIds: Set<String>,
@@ -98,6 +110,10 @@ class EncryptedEvidenceFileStore(
         val aad = evidenceIdProvider(evidenceId)
         return try {
             cipher.decrypt(file.readBytes(), aad)
+        } catch (error: EvidenceKeyRecoveryRequiredException) {
+            // §6/A-4: do not launder a missing-key recovery signal into "unavailable".
+            // The file is present; only the key is gone, so the operator must act.
+            throw error
         } catch (error: Exception) {
             throw EvidenceUnavailableException("Evidence is unavailable or corrupted: $evidenceId", error)
         }

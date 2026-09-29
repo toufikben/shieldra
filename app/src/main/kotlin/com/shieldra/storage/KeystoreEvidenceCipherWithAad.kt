@@ -41,6 +41,7 @@ class KeystoreEvidenceCipherWithAad(
      * @param ciphertext The encrypted payload envelope.
      * @param aad Canonical AAD bytes (version || class || evidenceId).
      * @throws EvidenceUnavailableException if authentication fails (wrong AAD, corruption, etc.).
+     * @throws EvidenceKeyRecoveryRequiredException if the Keystore key is missing (§6 / A-4).
      * @throws IllegalArgumentException if AAD is null or empty.
      */
     override fun decrypt(ciphertext: ByteArray, aad: ByteArray): ByteArray {
@@ -54,6 +55,14 @@ class KeystoreEvidenceCipherWithAad(
             )
         } catch (error: EvidenceUnavailableException) {
             throw error
+        } catch (error: KeyMaterialUnavailableException) {
+            // §6/A-4: the key is missing but the ciphertext is still present. This
+            // is operator-recoverable storage/key state, NOT corrupt evidence, so it
+            // must not be laundered into EvidenceUnavailableException.
+            throw EvidenceKeyRecoveryRequiredException(
+                "Evidence key '$keyAlias' is unavailable; operator recovery required",
+                error,
+            )
         } catch (error: Exception) {
             // Wrap raw crypto failure (including GCM tag mismatch on AAD
             // mismatch) as EvidenceUnavailableException; do not leak

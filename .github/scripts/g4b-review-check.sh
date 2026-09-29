@@ -98,6 +98,25 @@ fi
 [ -s app/src/test/kotlin/com/shieldra/storage/SecurityFailureSemanticsTest.kt ] || fail "§6 failure semantics tests are missing"
 pass "§6 failure semantics table is exhaustive, fail-closed, and has no silent-continuation outcome"
 
+# §6 / amendment A-4: a missing key on read is RECOVERY_REQUIRED, never laundered
+# into "unavailable". The recovery exception must exist, the cipher must classify
+# a missing Keystore key as recovery, and the store read path must not swallow it.
+CIPHER=app/src/main/kotlin/com/shieldra/storage/KeystoreEvidenceCipherWithAad.kt
+STORE=app/src/main/kotlin/com/shieldra/storage/EncryptedEvidenceFileStore.kt
+grep -q 'class EvidenceKeyRecoveryRequiredException' "$STORE" || fail "A-4: recovery-required exception is missing"
+grep -q 'catch (error: KeyMaterialUnavailableException)' "$CIPHER" || fail "A-4: the cipher must classify a missing key as recovery-required"
+grep -q 'throw EvidenceKeyRecoveryRequiredException' "$CIPHER" || fail "A-4: the cipher must raise EvidenceKeyRecoveryRequiredException on a missing key"
+grep -q 'catch (error: EvidenceKeyRecoveryRequiredException)' "$STORE" || fail "A-4: the store read must rethrow recovery-required, not launder it"
+# Ordering guard: the recovery catch must precede the generic Exception catch that
+# would otherwise swallow it into EvidenceUnavailableException. Scope to the read
+# path by locating the first generic catch AFTER the recovery catch.
+recovery_catch_line="$(grep -n 'catch (error: EvidenceKeyRecoveryRequiredException)' "$STORE" | head -1 | cut -d: -f1)"
+generic_catch_line="$(grep -n 'catch (error: Exception)' "$STORE" | awk -F: -v r="$recovery_catch_line" '$1 > r { print $1; exit }')"
+[ -n "$recovery_catch_line" ] && [ -n "$generic_catch_line" ] \
+  || fail "A-4: recovery-required and generic catches must both be present in the read path"
+[ -s app/src/test/kotlin/com/shieldra/storage/EvidenceAccessFailureSemanticsTest.kt ] || fail "A-4 read-path failure semantics tests are missing"
+pass "§6/A-4: missing key surfaces as recovery-required and is never laundered into unavailable"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"
