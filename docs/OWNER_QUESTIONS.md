@@ -7,6 +7,18 @@ lives in [`SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md) and
 **Purpose:** one file containing every question needed to finish the app — closed, open,
 and future — so work proceeds without stopping, and so any past mistake can be corrected here.
 **Compiled:** 2026-09-29 against commit `b1e0dec` (CI `36554090232` success).
+**Corrected:** 2026-09-29 after re-reading the store-launch decisions — see the CORRECTION
+boxes in Q-C3, Q-C4, Q-C7, Q-D5 and Q-D7. AdMob and IAP are authorized but **not built**.
+
+> **Important context:** Shieldra is one of four apps in a Google Play launch effort
+> (with Pulse, AnimAi, and AI Photo Studio Chat). The store listing is being written in
+> parallel, so **a decision here can invalidate copy already written there.** Two claims are
+> already in tension with the code as it stands today:
+> - the listing says the app ships with **zero Android permissions** — true right now
+>   (verified: no `uses-permission` in the manifest), and it must stay true in spirit, so
+>   permissions should be requested only when a feature genuinely needs them;
+> - the listing describes an **anti-theft** app — true as intent, but the app currently has
+>   no detection, so no shipped feature may be advertised that the code does not do.
 
 ## How to use this file
 
@@ -159,9 +171,10 @@ and never produces a build that claims more than it does.
 
 ## Q-C3 — Permissions and onboarding: real or honest-stub?
 
-**The situation:** the onboarding "Allow notifications" button shows a snackbar saying
-"deferred". No permission is ever requested. Android requires notification permission
-(`POST_NOTIFICATIONS`) for any alert to be visible, so no alert can ever be shown today.
+**The situation, now confirmed by reading the code:** `AndroidManifest.xml` declares
+**zero** `uses-permission` entries, and no `android.permission.*` string appears anywhere
+in `app/src/main/`. The app today ships with no permissions at all. The onboarding "Allow
+notifications" button shows a snackbar saying "deferred" — nothing is ever requested.
 
 **Question:** when a detector exists and needs to alert you, may the app request Android
 permissions for real?
@@ -172,16 +185,31 @@ permissions for real?
 | 2 | No permissions ever; the app only works while open. Simpler, but an anti-theft app that cannot alert you is close to useless. |
 | 3 | Yes, but request everything up front during onboarding. **I do not recommend this** — it is the pattern users reject and delete. |
 
+> **Correction to my earlier recommendation.** I had marked option 2 as a reasonable
+> default. I was wrong: my own store notes record Shieldra's listing as **"it ships with
+> zero Android permissions"** — that is a selling point in the store copy, not a limitation
+> to design around. Option 2 would be self-contradictory with the listing. **Option 1 stands,
+> and the copy needs a matching "no permissions until you need them" promise.**
+
 **Also decide (only if you pick option 1):** is camera capture allowed at all, and if so
 **when**? Options: (a) never; (b) only inside a confirmed event, for a fixed short window
 (G2-01 already requires this); (c) continuously. **I recommend (b)** — G2-01 forbids (c),
-and (a) leaves Panic evidence weak.
+and (a) leaves Panic evidence weak. Note this directly changes the store copy: claiming
+"zero permissions" and shipping camera capture are not both true.
 
 **Your answer:** _____________
 
 ---
 
 ## Q-C4 — Is the Lock Guard allowed on the Play Store at all?
+
+> **CORRECTION — this question was already answered by you on 2026-09-29.**
+> You told me: *"أنشئ كلاهما رغم التجميد"* — build **both**, despite the freeze. This is
+> recorded in my memory as the four-app launch effort (Shieldra, Pulse, AnimAi, AI Photo
+> Studio Chat), and it overrides `SHIELDRA_DECISIONS.md` G0-05. **Per §14 I am not treating
+> that as silent; it is written here, and the repository freeze will need a visible owner
+> amendment to match.** Until you confirm, this row stays as written below and Lock Guard
+> remains unbuilt — the store answer is still what decides the design.
 
 **Why this must be decided before any Lock Guard work:** the answer changes the entire
 design, so building first and discovering the answer afterwards wastes the batch.
@@ -260,10 +288,10 @@ explicit consent step before collecting.
 
 | Item | Recommendation |
 |---|---|
-| Privacy policy | Required. Must state: on-device only, no cloud, no analytics, no ads, what is collected and when. |
-| Consent screen | Required, before any permission or capture. Plain language, Arabic + English. |
+| Privacy policy | Required. Must state: on-device only, no cloud, no analytics, what is collected and when. ~~no ads~~ — **removed: AdMob was authorized on 2026-09-29 (Q-D7), so the policy must disclose ad tracking honestly instead of denying it.** Publishing to your own GitHub is pre-authorized. |
+| Consent screen | Required, before any permission or capture. Plain language, Arabic + English. Must come **before** the AdMob consent flow, not after. |
 | Location permission text | Must say *why* and *when*, not just "for functionality". |
-| Analytics/crash reporting | **None.** Adding them would be a §14 policy change. |
+| Analytics/crash reporting | **None.** Adding them would be a §14 policy change. (AdMob is ads, not analytics — but say so plainly in the policy.) |
 
 **Your answer:** _____________
 
@@ -288,9 +316,16 @@ Note: G5 defers all external providers. Q-D2 requires un-deferring G5 first.
 
 | ID | Question | Default |
 |---|---|---|
-| Q-D5 | Is billing implemented? (Premium screen is a stub with two dead buttons) | **No billing** — Premium stays a non-functional screen |
+| Q-D5 | Is billing implemented? (Premium screen is a stub with two dead buttons) | ~~No billing~~ — **ANSWERED 2026-09-29: build both AdMob and IAP**, despite the G0-05 freeze. Not yet built. |
 | Q-D6 | Is a cloud backup / account ever wanted? | **No** — local-only app |
-| Q-D7 | Ads / analytics | **No** — permanently off unless you change §14 |
+| Q-D7 | Ads / analytics | ~~No~~ — **ANSWERED 2026-09-29: AdMob yes.** Analytics still not decided; I recommend still no. |
+
+> **Warning on Q-D5/Q-D7.** Verified just now: `app/build.gradle.kts` and
+> `gradle/libs.versions.toml` contain **no** AdMob or Play Billing dependencies, and the
+> Premium screen's two buttons are still wired to the deferred snackbar. So this is
+> authorized-but-unbuilt, not done. Adding AdMob also collides with Q-C3: ads plus a
+> "zero permissions" privacy promise needs the permission story settled first, and a
+> data-safety disclosure will have to name ad tracking honestly.
 
 ## D.3 Phase 7 — release
 
