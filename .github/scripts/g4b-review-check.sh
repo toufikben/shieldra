@@ -169,6 +169,54 @@ generic_catch_line="$(grep -n 'catch (error: Exception)' "$STORE" | awk -F: -v r
 [ -s app/src/test/kotlin/com/shieldra/storage/EvidenceAccessFailureSemanticsTest.kt ] || fail "A-4 read-path failure semantics tests are missing"
 pass "§6/A-4: missing key surfaces as recovery-required and is never laundered into unavailable"
 
+# Protocol §9/§10 rotation trigger and retirement gates. grep, never rg: the CI
+# runner has no rg, and `rg … && fail` under set -e silently evaluates false.
+ROTATION_LIFECYCLE=app/src/main/kotlin/com/shieldra/storage/EvidenceKeyLifecycle.kt
+DURABLE_LIFECYCLE=app/src/main/kotlin/com/shieldra/storage/FileBackedKeyLifecycle.kt
+ROTATOR=app/src/main/kotlin/com/shieldra/storage/EvidenceKeyRotator.kt
+ROOM_METADATA=app/src/main/kotlin/com/shieldra/storage/room/RoomRotationMetadata.kt
+for rotation_file in "$ROTATION_LIFECYCLE" "$DURABLE_LIFECYCLE" "$ROTATOR" "$ROOM_METADATA"; do
+  [ -s "$rotation_file" ] || fail "rotation/lifecycle source is missing: $rotation_file"
+done
+
+# §10 retirement is a state transition. Nothing on the rotation path may destroy
+# Keystore material: the temporary-file cleanup in FileSystemRotationGateway
+# deletes evidence temps, never a key, so the gate names key-destruction verbs.
+if grep -Eq 'deleteKey|destroyKey|removeKey|deleteAlias|deleteEntries|unloadKey' \
+  "$ROTATION_LIFECYCLE" "$DURABLE_LIFECYCLE" "$ROTATOR" "$ROOM_METADATA"; then
+  fail "§10: the rotation/retirement path must never destroy a key (destruction is open decision Q-C8)"
+fi
+pass "§10: retirement marks a version and never destroys a key"
+
+# The trigger policy is exactly the approved one: 90 days OR an explicit manual
+# request, and the interval comes from the approved constant, not a literal.
+grep -q 'EvidenceKeyPolicy.rotationDue' "$ROTATION_LIFECYCLE" \
+  || fail "§3.1: the rotation trigger must use the approved 90-day policy"
+grep -q 'RotationTrigger.MANUAL' "$ROTATION_LIFECYCLE" \
+  || fail "§3.1: the explicit manual trigger must be a first-class trigger"
+pass "§3.1: rotation triggers are the approved interval or an explicit manual request"
+
+# §10 ordering: retirement may only happen after the references have been
+# re-scanned. The re-scan must therefore come before lifecycle.completeRotation.
+first_scan_line="$(grep -n 'scope.all()' "$ROTATION_LIFECYCLE" | head -1 | cut -d: -f1)"
+rescan_line="$(grep -n 'scope.all()' "$ROTATION_LIFECYCLE" | awk -F: -v f="$first_scan_line" '$1 > f { print $1; exit }')"
+retire_line="$(grep -n 'lifecycle.completeRotation' "$ROTATION_LIFECYCLE" | head -1 | cut -d: -f1)"
+[ -n "$rescan_line" ] && [ -n "$retire_line" ] && [ "$rescan_line" -lt "$retire_line" ] \
+  || fail "§10: a key version may only be retired after a surviving-reference re-scan"
+pass "§10: retirement is gated behind a surviving-reference re-scan"
+
+# A damaged key lifecycle record must not be papered over: the durable record
+# fails closed and the app keeps the failure instead of guessing a version.
+grep -q 'check(lines.firstOrNull() == SCHEMA)' "$DURABLE_LIFECYCLE" \
+  || fail "the key lifecycle record must reject an unknown schema instead of assuming v1"
+grep -q 'lastRotationFailure' "$APP" \
+  || fail "ShieldraApp must retain a failed rotation check, not swallow it (§6)"
+grep -q 'rotateEvidenceIfNeeded' "$APP" \
+  || fail "§9: the approved rotation trigger is not wired into the running app"
+grep -q 'checkEvidenceRotation' "$APP" \
+  || fail "§9: the rotation check must run from the installed-storage branch only"
+pass "§9: the rotation trigger is wired behind the §15 install gate and keeps its failures"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"

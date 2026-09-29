@@ -3,6 +3,7 @@ package com.shieldra.storage
 import android.content.Context
 import androidx.room.Room
 import com.shieldra.storage.room.RoomEventRepository
+import com.shieldra.storage.room.RoomRotationMetadata
 import com.shieldra.storage.room.ShieldraDatabase
 import com.shieldra.storage.room.ShieldraDatabaseMigrations
 import java.io.File
@@ -16,9 +17,20 @@ class LocalShieldraStorage private constructor(
     val database: ShieldraDatabase,
     val eventRepository: RoomEventRepository,
     val evidenceFiles: EncryptedEvidenceFileStore,
+    private val rotation: EvidenceRotationOrchestrator,
 ) : AutoCloseable {
     fun reconcileEvidence(): EvidenceReconciliationReport =
         evidenceFiles.reconcile(database.evidenceReferenceDao().findAll().map { it.evidenceId }.toSet())
+
+    /**
+     * Runs the approved rotation for the whole evidence set (owner protocol §9/§10).
+     *
+     * Callers must be off the main thread: the eligibility scan and the migration
+     * marks are Room reads and writes. A damaged lifecycle record or a failed
+     * migration throws/fails closed here and is the caller's to classify; nothing
+     * in this path deletes a key.
+     */
+    fun rotateEvidenceIfNeeded(manual: Boolean): RotationRunReport = rotation.run(manual)
 
     override fun close() {
         database.close()
@@ -56,10 +68,29 @@ class LocalShieldraStorage private constructor(
                 EvidenceAadBuilder.forEvidence(evidenceId)
             }
 
+            // Rotation composition (protocol §9/§10): the rotator migrates one entry,
+            // the orchestrator decides whether the set is due and when a superseded
+            // generation may be marked retired. Room remains the reference authority.
+            val rotationMetadata = RoomRotationMetadata(database)
+            val rotation = EvidenceRotationOrchestrator(
+                rotator = EvidenceKeyRotator(
+                    files = FileSystemRotationGateway(evidenceDirectory),
+                    metadata = rotationMetadata,
+                    ciphers = KeystoreRotationCipherFactory(encryptor, policy),
+                    aad = RotationAadVersions,
+                ),
+                scope = rotationMetadata,
+                lifecycle = FileBackedKeyLifecycle(FileBackedKeyLifecycle.fileIn(context.noBackupFilesDir)) {
+                    System.currentTimeMillis()
+                },
+                nowMillis = { System.currentTimeMillis() },
+            )
+
             return LocalShieldraStorage(
                 database = database,
                 eventRepository = RoomEventRepository(database),
                 evidenceFiles = EncryptedEvidenceFileStore(evidenceDirectory, evidenceCipher, evidenceIdProvider),
+                rotation = rotation,
             )
         }
 

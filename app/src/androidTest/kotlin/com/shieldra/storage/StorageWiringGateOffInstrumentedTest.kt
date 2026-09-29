@@ -50,6 +50,21 @@ class StorageWiringGateOffInstrumentedTest {
     }
 
     @Test
+    fun default_off_writes_no_key_lifecycle_record() {
+        val record = FileBackedKeyLifecycle.fileIn(context.noBackupFilesDir)
+        record.delete()
+
+        decideStorageInstall(approved = StorageRuntimeApproval.approved) {
+            LocalShieldraStorage.openOrRecovery(context)
+        }
+
+        assertFalse(
+            "protocol 9: the rotation record may only appear after a real, approved storage open",
+            record.exists(),
+        )
+    }
+
+    @Test
     fun default_off_adds_no_keystore_key() {
         val before = evidenceAliasesPresent()
         decideStorageInstall(approved = StorageRuntimeApproval.approved) {
