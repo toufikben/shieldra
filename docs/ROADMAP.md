@@ -150,7 +150,7 @@ open, along with overall G4 device/security sign-off.
 | 4d-strongbox-correction | StrongBox detection queries `FEATURE_STRONGBOX_KEYSTORE` at runtime instead of inferring from SDK level; placeholder device assertion replaced (decision §2.3) | 4d-aad-binding audit | IMPLEMENTED — CI GREEN + **executed on RMX3910** (`RealAesGcmAadTest` passed in the `OK (22 tests)` run of 2026-09-28); device fact confirmed: this phone reports no StrongBox and the code agrees |
 | 4d-migration-recovery | Room migration enforcement, unsupported version/downgrade/failure RecoveryRequired, tests (decisions §4.1–§4.6) | 4d-key-rotation or parallel if no conflict | IMPLEMENTED — CI GREEN (run `36428989303`: 112 JVM tests) **and device `OK (22 tests)` on RMX3910**; the device run corrected the migration-failure markers to measured Room/SQLite wording (see `docs/reports/device-evidence-2026-09-28.md`) |
 | 4d-evidence-lifecycle | UNAVAILABLE/QUARANTINE/tombstone states, retention policy, export disabled, deletion semantics, factory reset (decisions §5.1–§5.7) | 4d-migration-recovery | CLOSED (CI + DEVICE) — §5.4/§5.5/§5.7 storage slice under amendments A-1/A-2/A-3. CI GREEN (run `36494249786`: 134 JVM tests) and `EvidenceKeyResetInstrumentedTest` **`OK (2 tests)` on RMX3910** (run `36495834536`), full suite `OK (26 tests)` — proves the on-device Keystore evidence key is irreversibly deleted and prior evidence becomes permanently unreadable. §5.1/§5.2/§5.6 states and §5.3 event deletion already covered by `EncryptedEvidenceFileStore`/Room repo. See `docs/reports/batch-4d-evidence-lifecycle.md` |
-| 4d-failure-semantics | Security failure semantics table enforcement (decision §6) | 4d-evidence-lifecycle | BLOCKED |
+| 4d-failure-semantics | Security failure semantics table enforcement (decision §6) | 4d-evidence-lifecycle | CLOSED (CI + DEVICE) — §6 classifier (`SecurityFailureSemantics`) + §6/A-4 read-path enforcement. A missing Keystore key on read surfaces as `EvidenceKeyRecoveryRequiredException` (never laundered into `EvidenceUnavailableException`); corruption/AAD-mismatch stays UNAVAILABLE; a confirmed factory reset keeps post-reset reads UNAVAILABLE because it removes the files too. CI GREEN (runs `36519322364` → `36521881590`: 151 JVM tests, lint, both APKs, all review scripts incl. the new §6/A-4 gate) and full instrumented suite **`OK (26 tests)`** on the owner RMX3910. Recorded as amendment A-4 in decisions §17. See `docs/reports/batch-4d-failure-semantics.md` |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
 | 5 | Local response and notifications | G2/G3 policy | BLOCKED |
 | 6 | External providers | G5 change from deferred | DEFERRED |
@@ -173,9 +173,27 @@ passed `OK (2 tests)` on the owner RMX3910 with the full instrumented suite at
 deleted and prior evidence becomes permanently unreadable with no software
 fallback (§2.5). See `docs/reports/batch-4d-evidence-lifecycle.md`.
 
-The next unblocked batch is **§6 security failure semantics enforcement**
-(`4d-failure-semantics`), after which the overall G4 device/security sign-off and
-the §15 production gate remain.
+**`4d-failure-semantics` (decision §6) — CLOSED (CI + DEVICE).** The §6 failure
+classifier and the §6/A-4 read-path enforcement are implemented and green. A
+missing Keystore key on read now raises `EvidenceKeyRecoveryRequiredException`
+instead of being laundered into `EvidenceUnavailableException`; corruption and
+AAD-mismatch stay UNAVAILABLE; a confirmed factory reset (§5.7/A-2) keeps
+post-reset reads UNAVAILABLE because it deletes the ciphertext files too. The
+owner decision "استرجاع عند غياب غير متعمّد" is recorded as binding amendment
+A-4 in decisions §17. CI runs `36519322364`/`36520224847`/`36521881590` are green
+(151 JVM tests, lint, both APKs, and a new §6/A-4 static gate in `g4b`), and the
+full instrumented suite is `OK (26 tests)` on the RMX3910 — the rotation test
+needed a warm-up so it asserts genuine cross-key rejection rather than a missing
+key. See `docs/reports/batch-4d-failure-semantics.md`.
+
+The remaining roadmap items are **owner-decision / policy gates, not pure-code
+tasks**, and require explicit approval before any new design work:
+- overall **G4 device/security sign-off** and the **§15 production gate**
+  (wiring the storage slice into the app graph — currently deliberately not
+  auto-wired per the `g4b` gate);
+- **phase 5** local response and notifications (blocked on G2/G3 policy);
+- **phase 6** external providers (deferred by G5);
+- **phase 7** end-to-end security/release review (blocked on all prior).
 
 Nothing on §3, §4 or the §5 storage slice remains open. When device runs are
 needed, use the app and androidTest APKs from the **same** CI run, because each
