@@ -111,7 +111,14 @@ class EvidenceRotationOrchestratorTest {
     private class FakeLifecycle : KeyLifecycleGateway {
         var active: String = EvidenceKeyPolicy.KEY_VERSION_V1
         val retired = mutableListOf<String>()
-        var lastRotationEpochMs: Long = 0L
+
+        /**
+         * The 90-day clock starts when the key generation is created, not at the
+         * unix epoch (decision §3.1). A never-rotated installation therefore models
+         * "created at install time", so the interval trigger cannot fire on first
+         * launch.
+         */
+        var lastRotationEpochMs: Long = Clock.START
         var successor: String? = EvidenceKeyPolicy.KEY_VERSION_V2
         var failComplete: Boolean = false
 
