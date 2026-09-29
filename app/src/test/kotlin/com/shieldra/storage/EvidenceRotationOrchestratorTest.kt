@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 class EvidenceRotationOrchestratorTest {
 
     private class Clock(var now: Long = START) {
-        operator fun invoke(): Long = now
+        val millis: () -> Long get() = { now }
 
         fun advance(days: Long) {
             now += days * MILLIS_PER_DAY
@@ -158,7 +158,7 @@ class EvidenceRotationOrchestratorTest {
             rotator = EvidenceKeyRotator(files, store, ciphers, aad),
             scope = store,
             lifecycle = lifecycle,
-            nowMillis = clock,
+            nowMillis = clock.millis,
         )
         val evidenceIds = evidenceIds
 
