@@ -77,6 +77,12 @@ class EvidenceKeyRotationInstrumentedTest {
 
         // Pre-rotation: the v1 key reads it, the v2 key rejects it.
         // This is the device proof that v1 and v2 are distinct Keystore keys.
+        // Warm the v2 key into existence first: this assertion must prove that an
+        // *existing but different* key rejects v1-sealed evidence (a GCM tag
+        // mismatch -> EvidenceUnavailableException). A genuinely absent key is now
+        // a §6/A-4 recovery-required signal, covered by the failure-semantics tests,
+        // so the warm-up keeps this test asserting the property it was built for.
+        v2Cipher.encrypt("warm-up".toByteArray(StandardCharsets.UTF_8), aadFactory.aadFor("$id-warmup", EvidenceKeyPolicy.AAD_VERSION_V1))
         val original = files.readCommitted(id)
         assertArrayEquals(plaintext, v1Cipher.decrypt(original, aad))
         assertThrows(
