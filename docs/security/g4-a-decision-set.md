@@ -1,10 +1,49 @@
 # SHIELDRA G4-A Conservative Decision Set
 
-**Status:** PROPOSED — REQUIRES OWNER AND SECURITY/PRIVACY APPROVAL
-**Gate:** G4 = APPROVED DIRECTION / DETAILS BLOCKED
-**Date:** 2026-09-23
+**Status:** SUPERSEDED ON STATUS, STILL VALID AS SPECIFICATION — see the reconciliation below
+**Gate:** G4 = SUBSTANTIALLY DEVICE-VERIFIED / NOT PRODUCTION-APPROVED
+**Date:** 2026-09-23 · **Reconciled:** 2026-09-29 against `fcfcd96`
 
-This document converts the remaining G4 gaps into a conservative implementation decision set. It does not close G4 and does not authorize production storage until the acceptance checklist is approved.
+This document converts the remaining G4 gaps into a conservative implementation decision set. It
+does not close G4 and does not authorize production storage until the acceptance checklist is
+approved.
+
+> ## Reconciliation — why every row below still says "PROPOSED"
+>
+> Written on 2026-09-23, this file marked every item `PROPOSED — REQUIRES APPROVAL`. The owner
+> then approved most of them **in a different document** —
+> [`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`](../authority/FINAL_SECURITY_STORAGE_DECISIONS.md)
+> and [`SHIELDRA_DECISIONS.md`](../../SHIELDRA_DECISIONS.md) — and the code plus CI plus the
+> RMX3910 device then verified them. The inline labels were never updated, so reading this file
+> alone now understates the repository's real state. Per the owner protocol §4 ("Do NOT simply
+> append another paragraph" — reconcile) and §5 (the seven status levels are not
+> interchangeable), here is the mapping. **Where this table says APPROVED, the inline row below
+> is approved; where it still says PROPOSED, it genuinely is.**
+>
+> | § | Proposal | Owner decision | Evidence today |
+> |---|---|---|---|
+> | 1 | Room schema, entities, constraints, idempotent `EventId`, `EXPIRED ≠ FAILED_FINAL` | **APPROVED** | IMPLEMENTED, CI VERIFIED, DEVICE VERIFIED (`RoomEventRepositoryInstrumentedTest`, `PersistedEventReadingInstrumentedTest`) |
+> | 2 | Non-destructive migrations, `fallbackToDestructiveMigration` prohibited, fail closed | **APPROVED** (authority §4.2 "لا destructive fallback" and §4.3, plus the owner's standing instruction against destructive migration) | IMPLEMENTED, DEVICE VERIFIED for the 1→2 upgrade path. **Downgrade is not implemented and not tested** — unsupported by policy (§4.4), which is the fail-closed behaviour this § asks for |
+> | 3 | Lifecycle: shortest retention, orphan reconciliation, export off by default, audited reset | **PARTLY APPROVED** — retention is now fixed at evidence 30 d / event metadata 90 d / quarantine 30 d (§5.4, amendment A-1); export DISABLED by default (§5.5); factory reset deletes the evidence key irreversibly (§5.7, A-2/A-3) | IMPLEMENTED, CI VERIFIED. Cleanup **cadence** on a real device is still NOT RUN |
+> | 4 | Backup/restore exclusion, "unavailable unless key restored" | **APPROVED as direction** | Manifest/XML + enforced CI review gate: STATIC + CI VERIFIED. **Real-device backup/restore/reinstall: NOT RUN** (Q-D17) |
+> | 5 | Crypto profile: AES-256-GCM, Keystore key, 12-byte IV, 128-bit tag, versioned envelope, AAD canonical, no plaintext fallback | **APPROVED** — AAD-v1 is authoritative; §2.5 forbids software-key fallback | IMPLEMENTED, DEVICE VERIFIED including every negative AAD case (`RealAesGcmAadTest`) |
+> | 6 | Key alias ownership, lazy creation, never silently replaced, rotation, retirement | **ROTATION APPROVED** (90 days or manual, §9 of the protocol); **RETIREMENT APPROVED as a state machine**; **destruction of a retired version is NOT APPROVED** — open owner decision Q-C8 | Rotation algorithm IMPLEMENTED + DEVICE VERIFIED. **Trigger NOT IMPLEMENTED** (`rotationDue()` has zero production callers). **Retirement NOT IMPLEMENTED** (no code) |
+> | 7+ | Authentication binding, corruption classification, acceptance checklist rows | See `g4-acceptance-checklist.md` | Corruption/recovery semantics are implemented and device-verified per §6 failure semantics; independent **security review (G6) has not happened**, so nothing here is SECURITY REVIEWED |
+>
+> **The single most important correction:** this file's own conclusion — "does not authorize
+> production storage" — is now enforced by code rather than by prose. `StorageRuntimeApproval`
+> is `false` and the wiring gate refuses to open the database or create a Keystore alias, which
+> `StorageWiringGateOffInstrumentedTest` proves on the device. Storage stays closed until the
+> first real detector is verified in the same batch (protocol §11, §14).
+>
+> **One staleness found in the authority document itself, reported rather than edited:**
+> [`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`](../authority/FINAL_SECURITY_STORAGE_DECISIONS.md)
+> §4.1 still says "Room version = **1** currently" and §4.5 says "no migration is required now
+> from v1 → v2". Both were true when written; the database is now at version 2 with an explicit
+> `Migration(1, 2)` that is registered and device-tested. That is a factual drift, not a policy
+> conflict — §4.5 says exactly what to do "عند أول تغيير حقيقي في schema" and that is what was
+> done. I am not editing a binding authority file on my own initiative; the owner can amend the
+> two sentences, and until then read them as history.
 
 ## 1. Room schema proposal
 

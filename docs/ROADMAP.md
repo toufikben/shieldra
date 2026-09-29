@@ -3,31 +3,122 @@
 **Repository:** `toufikben/shieldra`
 **Branch:** `main`
 **Current HEAD:** `origin/main` (the exact commit is the repository's current remote tip; this self-referential document intentionally avoids recording its own changing hash)
-**Remote CI evidence:** runs `35886198586` (`b9d56fa`), `35886895480` (`2760107`), and `35886951932` (`1519701`) completed `success`. The corrected workflow now compiles `assembleDebugAndroidTest`; no run executes connected device tests. Domain batch `191b049` has run `35888768082`; CI hardening batch `abed3c4` has run `35888896037`; documentation batch `c423a47` has run `35888837174`; storage batch `1335a8b` has run `35889049875`. All four were `in_progress` at the last check; no success is claimed for them yet. AAD binding batch (`ea6bc7f`+`d317cb2`+`b5d7e9e`+`8f6a3af`+`6a13d59`) pushed 2026-09-26; CI run triggered.
-**Project mode:** controlled sequential implementation; Phase 3 source/build/static scope complete; G4-B local storage implementation is in progress under the approved initial conservative policy. Android runtime verification and production approval remain pending.
-**Decision authority for this cycle:** [`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`](authority/FINAL_SECURITY_STORAGE_DECISIONS.md) (binding, owner-supplied 2026-09-24) and [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
 
-**Latest local implementation batch (4d-aad-binding):** Implements AAD-v1 canonical binary serialization (`EvidenceAadBuilder`), mandatory AAD enforcement (`KeystoreEvidenceCipherWithAad`), versioned per-app key alias policy (`EvidenceKeyPolicy`), StrongBox detection (`AndroidKeystoreEncryptor`), all 10 unit tests required by decision §1.4, canonical vector tests, and device instrumentation test (`RealAesGcmAadTest`). `AndroidKeystoreEncryptor` is `open` for JVM test doubles. No production wiring.
+**Remote CI evidence (reconciled 2026-09-29):** the latest verified green run is
+`36559760906` (`fcfcd96`): `BUILD SUCCESSFUL`, `CI TEST SUMMARY: 171 tests, 171 passed,
+0 failures, 0 errors, 0 skipped`, lint, `assembleDebug` + `assembleDebugAndroidTest`, both
+APKs uploaded as `apks-<run-id>`, and every static review gate reporting `PASS`. CI never
+executes instrumented tests; those are run on the owner's physical device (see the Device
+verification rule below). Historical runs `35886198586`, `35886895480`, `36552909429`,
+`36537846580`, `36521881590`, `36494249786`, `36433212886` are cited in individual batch
+rows below.
 
-**Build-fix lineage after `6a13d59`:** `3b07583` removes a duplicate `KeystoreEvidenceCipherWithAad` declaration; `e1e66fd` makes `RealAesGcmAadTest` JUnit4-compatible; `cc0a603` converts unit tests to `kotlin.test` (matching `testImplementation(kotlin("test-junit5"))`) and renames androidTest methods to `snake_case` (D8 rejects spaces pre-DEX-040); `31d53e2` lets Android Keystore generate the GCM IV on encrypt (real devices reject caller-provided IVs). Local JDK 17 validation: `testDebugUnitTest` 83/83 pass, `lintDebug` pass, `assembleDebug` + `assembleDebugAndroidTest` pass.
+**Device verification rule:** connected tests ARE executed, on the owner's physical
+RMX3910 (Android 16 / API 36) using the app and androidTest APKs from the **same** CI run
+id — each GitHub runner regenerates its debug keystore, so cross-run APKs cannot both
+install. The full instrumented suite currently stands at **`OK (34 tests)`**. The earlier
+"No device or AVD available" statements in this file were stale and are corrected below.
 
-**Device evidence (owner device RMX3910, Android 16/API 36, 2026-09-27):** `connectedDebugAndroidTest` — 7/7 `RoomEventRepositoryInstrumentedTest` pass, 11/11 `RealAesGcmAadTest` pass (real AES-GCM + Android Keystore authentication, including wrong-AAD rejection). APK installed on device via `adb install`. This closes the prior UNKNOWN for Keystore/Room runtime behavior on at least one physical device; OEM matrix and background behavior remain open.
+**Project mode:** controlled sequential implementation. Phase 3 presentation shell is
+closed for source/build/static scope and honest on device. The G4 local storage/security
+slice is implemented and device-verified, but **the app has no detection at all**: no code
+path creates a `SecurityEvent`, and `StorageRuntimeApproval.approved` is `false`. Production
+readiness is not claimed anywhere in this roadmap.
 
-**Storage hardening:** commit `1335a8b` prevents symlink payload reads and filters symlinks from reconciliation, and checks every evidence/delivery child insert inside the Room transaction. It does not claim atomic multi-process ownership, AAD identity binding, migration recovery, or Keystore runtime behavior.
+**Decision authority for this cycle:**
+1. [`../SHIELDRA_DECISIONS.md`](../SHIELDRA_DECISIONS.md)
+2. [`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`](authority/FINAL_SECURITY_STORAGE_DECISIONS.md) (binding, owner-supplied 2026-09-24, amendments A-1…A-4 in §17)
+3. **`docs/OWNER_QUESTIONS.md`** — the question register; owner answers recorded there are binding for the question they answer
+4. **The owner Final Master Execution Protocol (received 2026-09-29)** — supersedes the
+   registers on scope and sequencing. Its material rulings are recorded in
+   [`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`](authority/FINAL_SECURITY_STORAGE_DECISIONS.md)
+   and are what the batch table below now reflects. Where it conflicts with an older
+   roadmap sentence, **the protocol wins**; older sentences are being corrected, not
+   silently obeyed.
 
-**Acceptance evidence:** [`docs/reports/g4-acceptance-matrix.md`](reports/g4-acceptance-matrix.md) now records Code/Test/CI/Device evidence separately. Android runtime work, AAD/Keystore lifecycle, migration/recovery policy, evidence retention/deletion, and production wiring are explicitly deferred rather than marked complete.
+## Status model
 
-**4d-7 audit correction:** the first remote CI attempt exposed a real Kotlin compilation defect in the two repository overrides. It was fixed in `b9d56fa`. The audit also closed a backup-boundary gap by rejecting caller-provided evidence paths outside `noBackupFilesDir`. Implementation and instrumented-test compilation runs passed; device execution remains unconfirmed.
+Per the owner protocol, these seven levels are **not interchangeable**. Every batch row
+below uses exactly these words.
 
-**CI coverage correction:** the successful `b9d56fa` run did not compile AndroidTest sources because the workflow invoked `assembleDebug` only. Commit `2760107` adds `assembleDebugAndroidTest`, and run `35886895480` passed. Instrumented compilation is now verified; device execution remains blocked.
+| Level | Means | Never claimed from |
+|---|---|---|
+| `IMPLEMENTED` | the code exists | — |
+| `TESTED` | a JVM or instrumented test exercises it | compile success |
+| `CI VERIFIED` | a specific green run id proves build + tests + gates | local run, `gh run watch` exit code |
+| `DEVICE VERIFIED` | executed on the owner RMX3910 with named test counts | CI |
+| `SECURITY REVIEWED` | a threat-model/privacy review signed it off | device tests |
+| `CLOSED` | all applicable levels above, plus a §16 batch report | any single level |
+| `PRODUCTION APPROVED` | §15 satisfied end to end | everything short of it |
+
+`Implemented ≠ Tested ≠ CI Verified ≠ Device Verified ≠ Security Approved ≠ Production Released.`
+
+**Current tip (reconciled 2026-09-29):** the newest closed batch is
+`4d-persisted-event-reader` — real persisted events now reach the UI through
+`PersistedEventReader` on `Dispatchers.IO`, with `listRecent` on the repository contract
+and a newest-first Room query. It is CLOSED (CI + DEVICE). Nothing after it has started.
+The previously-named "latest" batch (`4d-aad-binding`) and every storage batch before it
+are history, not the frontier; the batch table below is the authority on ordering.
+
+**What the app genuinely does today:** it can store and read encrypted evidence and
+persisted events, and it can project them honestly — but **no code path creates a
+`SecurityEvent`**. `ShieldraNavHost` wires nine user actions to a "deferred" snackbar
+(`onPanic`, `onGuardClick`, `onDelete`, `onExport`, `onOpenInMaps`, `onBuy`, `onRestore`,
+`onAllow`, settings rows), and `StorageRuntimeApproval.approved` is `false`, so a default
+build never opens the database. The dashboard renders `DISABLED`. This is the honest state,
+and it is what Batch C of the owner protocol exists to change.
+
+**Durable toolchain constraints (learned the hard way; do not re-learn them):**
+- Real Android Keystore rejects a caller-provided GCM IV — the cipher must let the Keystore
+  generate it (`31d53e2`).
+- D8 rejects spaces in androidTest method names (`snake_case` there), while `app/src/test`
+  uses `kotlin.test`.
+- `app/src/test` (JVM, kotlin.test) takes the message **last**; `app/src/androidTest`
+  (JUnit4 `org.junit.Assert`) takes the message **first**. Swapping them compiles but
+  asserts the wrong thing.
+- CI runs `test` then `assembleDebugAndroidTest`; only the latter compiles instrumented
+  sources. A green `test` says nothing about androidTest compilation.
+- GitHub runners have no `rg`. A review gate written with `rg … && fail` silently
+  evaluates false under `set -e`; gates must use `grep` (`0901c5c` fixed three such
+  no-op gates).
+- Room throws if queried on the main thread.
+- A fresh install's Keystore alias does not exist until the first encrypt — warm a key up
+  before asserting "wrong key rejects", or the test hits missing-key → recovery-required.
+
+**Device evidence (owner RMX3910, Android 16/API 36):** instrumented execution is real and
+repeated, not blocked. Current full suite **`OK (34 tests)`** covering
+`RoomEventRepositoryInstrumentedTest`, `ShieldraDatabaseMigrationInstrumentedTest`,
+`RealAesGcmAadTest` (AES-GCM + Keystore authentication incl. wrong-AAD rejection),
+`EvidenceKeyRotationInstrumentedTest`, `EvidenceKeyResetInstrumentedTest`,
+`StorageRecoveryInstrumentedTest`, `StorageWiringGateOffInstrumentedTest`, and
+`PersistedEventReadingInstrumentedTest`. The device reports **no StrongBox**, which is why
+no code or doc may claim hardware backing. OEM matrix, background execution, reboot, and
+process-death behavior beyond these tests remain **NOT RUN**.
+
+**Storage hardening:** commit `1335a8b` prevents symlink payload reads and filters symlinks
+from reconciliation, and checks every evidence/delivery child insert inside the Room
+transaction.
+
+**Acceptance evidence:** [`docs/reports/g4-acceptance-matrix.md`](reports/g4-acceptance-matrix.md)
+was reconciled in Batch A (2026-09-29). It had claimed Keystore/AAD/migration/instrumented
+execution were `BLOCKED` "for lack of a device"; those rows now carry the measured result, each
+pointing at the named instrumented test, and the file keeps the several rows that really are
+still `NOT RUN` (backup/restore, concurrency/crash, symlink, downgrade, StrongBox).
 
 **Pure-domain correction:** commit `191b049` fixes four verified logic gaps found by adversarial review: unbounded Motion repetition counts, out-of-order Lock timestamps, unsynchronized pure-engine state, and unsafe Pipeline resume/expiry/failure persistence behavior. Android adapters and runtime behavior remain deliberately deferred.
 
-**G4-B CI enforcement:** commit `abed3c4` makes the G4-B review script fail on independently missing cloud-backup/device-transfer exclusions and missing Room catalog entries, and runs it in GitHub Actions. Negative fixture tests passed locally; runtime/device claims remain blocked.
+**G4-B CI enforcement:** commit `abed3c4` makes the G4-B review script fail on independently missing cloud-backup/device-transfer exclusions and missing Room catalog entries, and runs it in GitHub Actions. Superseded on `rg`→`grep` enforcement by `0901c5c`.
 
 ## Operating rule
 
-Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST → RE-AUDIT → COMMIT → PUSH → VERIFY**. Dependent security areas are sequential. Only independent documentation, localization, UI, design-system, and test work may be parallelized when file ownership cannot conflict.
+Every meaningful batch follows the owner protocol's full sequence: **READ → TRACE →
+TEST DESIGN → IMPLEMENT → STATIC REVIEW → JVM TEST → LINT → `assembleDebug` →
+`assembleDebugAndroidTest` → DEVICE TEST → RE-READ → ADVERSARIAL REVIEW → REGRESSION →
+DIFF REVIEW → COMMIT → PUSH → VERIFY REMOTE → VERIFY CI → UPDATE ROADMAP → FINAL
+REPORT.** Dependent security areas are sequential. Only independent documentation,
+localization, UI, design-system, and test work may be parallelized when file ownership
+cannot conflict. A green workflow in which a required security gate is skipped is **not**
+a PASS.
 
 ## Current state summary
 
@@ -39,7 +130,7 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 | Phase 3 presentation shell | DONE for source/build/static scope | Batches 0–9 and remediation reports |
 | Batch 1 foundation fixes | DONE | Commit `bf5e77c` |
 | Batch 2 screen states and PreviewData isolation | DONE | Commit `ef66c94` |
-| Runtime device visual/RTL/accessibility verification | UNKNOWN | No emulator or connected device available |
+| Runtime device visual/RTL/accessibility verification | **NOT RUN** | Instrumented tests DO execute on the owner RMX3910 (`OK (34 tests)`), but no visual/RTL/accessibility pass has been performed on device. The old "no device available" claim was false. |
 | Phase 4 authority register | UPDATED | `docs/PHASE4_DECISION_REGISTER.md` |
 | Final Security Storage Decisions | FILED AS SOURCE OF TRUTH | `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` |
 | AAD-v1 binding implementation | CLOSED | `EvidenceAadBuilder`, `KeystoreEvidenceCipherWithAad`, `EvidenceKeyPolicy`, `AndroidKeystoreEncryptor` (StrongBox), 10 unit tests, canonical vector tests, `RealAesGcmAadTest`; commit `6a13d59` |
@@ -51,12 +142,12 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 |---|---|---|---|
 | G0 — Authority | APPROVED FOR INTERNAL DEVELOPMENT | Continue without historical Product Freeze dependency; internal register is authoritative for this cycle | Later product/release authority may supersede it |
 | G1 — Protection rules | APPROVED FOR PURE CONTRACT CLOSURE | Encode approved Guard semantics in framework-free contracts/tests | Android feasibility, response, evidence, and API limitations |
-| G2 — Evidence/privacy | APPROVED PRINCIPLE / DETAILS BLOCKED | Maintain minimum post-confirmation evidence contracts and matrices | Capture, consent, retention, deletion, export, redaction, crypto |
-| G3 — Android monitoring | APPROVED PRINCIPLE / DETAILS BLOCKED | Batch 4a research and device matrix only | Service, permissions, device evidence, Doze/OEM/recovery |
-| G4 — Storage/security | APPROVED DIRECTION / AAD IMPLEMENTED / DETAILS OPEN | AAD-v1 serialization, mandatory AAD enforcement, key alias policy implemented and tested | Keystore runtime, key rotation, migration/recovery, retention, deletion, export, device verification, threat model, sign-off |
-| G5 — External services | DEFERRED | Keep provider interfaces only where already justified | Cloud, delivery, billing, ads, analytics, backend |
-| G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit |
-| G7 — Implementation | READY FOR CONTROLLED PURE BATCHES | Batch 3 local EventPipeline is authorized and implemented | Sequential platform capabilities remain gated |
+| G2 — Evidence/privacy | **ANSWERED / UNBLOCKED for the Panic batch** | Minimum post-confirmation evidence only. Owner protocol §21–§23: **no camera in the Panic batch**, no audio ever approved, no continuous location, no location in the Panic batch unless actually required; permissions requested **incrementally and only for the feature that needs them** | Camera policy, location precision/freshness, redaction, and the consent/privacy text remain for Batch H |
+| G3 — Android monitoring | **ANSWERED / UNBLOCKED in order** | §16 real notifications after a real event exists; §17 a foreground service is acceptable for an active guard; **WorkManager is prohibited as a real-time detector**; no 24/7 guarantee may be claimed; Doze/OEM/Force Stop/process death/reboot limitations must be documented | Background execution is Batch F, after the Panic loop is device-verified |
+| G4 — Storage/security | **SUBSTANTIALLY DEVICE-VERIFIED / NOT PRODUCTION-APPROVED** | AAD-v1, mandatory AAD, alias policy, StrongBox runtime detection, AES-GCM on real Keystore, key rotation algorithm, migration/recovery, evidence lifecycle, failure semantics, storage wiring gate, persisted read path — all IMPLEMENTED, CI VERIFIED, and DEVICE VERIFIED | **Two genuine gaps found by trace (§9/§10): no rotation trigger and no key retirement.** Plus threat model, OEM matrix beyond one device, and sign-off. See "Real remaining G4 gaps" |
+| G5 — External services | **DEFERRED — REAFFIRMED 2026-09-29** | Keep provider interfaces only where already justified | §30 of the owner protocol explicitly prohibits adding **Firebase, cloud backend, accounts, analytics, ads, WhatsApp, Telegram, SMS, email** during these core batches. This overrides the earlier note that AdMob/IAP were "authorized" — see the correction in `docs/OWNER_QUESTIONS.md` |
+| G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit (protocol Batch K) |
+| G7 — Implementation | **READY FOR PLATFORM BATCHES** | The pure-engine and storage foundations are closed; Panic Guard end-to-end is authorized as the next product batch (protocol §12–§15) | Each subsequent guard remains capability-gated in protocol order |
 
 ## Phases and batches
 
@@ -78,11 +169,11 @@ Every meaningful batch follows: **READ → TRACE → IMPLEMENT → BUILD/TEST �
 
 **Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices. AAD-v1 canonical serialization and mandatory enforcement implemented (decisions §1.1–§1.4, §2.1–§2.3). **4d-aad-binding CLOSED.**
 
-**Remaining:** evidence lifecycle §5 storage slice CLOSED on CI and device
-(retention §5.4, export disabled §5.5, factory reset §5.7) under amendments
-A-1/A-2/A-3 — the on-device Keystore key deletion is now instrumented. Security
-failure semantics enforcement (§6) and the final production gate (§15) remain
-open, along with overall G4 device/security sign-off.
+**Remaining:** the §5 storage slice and §6 failure semantics are **CLOSED (CI + DEVICE)** —
+see their batch rows. What actually remains in G4 is narrower than it used to be and is
+enumerated in "Real remaining G4 gaps": the absent rotation trigger, the absent old-key
+retirement lifecycle, the threat-model/privacy sign-off, and an OEM device matrix beyond
+the single RMX3910. Overall G4 is **not** production-approved.
 
 **Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
@@ -90,31 +181,54 @@ open, along with overall G4 device/security sign-off.
 
 ### Phase 5 — Guard Implementation
 
-**Status:** BLOCKED after pure engine contracts until Android feasibility and capability-specific approval exist.
+**Status:** **UNBLOCKED IN SEQUENCE.** The pure engine already maps
+`GuardKind.PANIC` → immediate `confirmed(..., GuardSeverity.CRITICAL, ...)` in
+`ProtectionStateEngine.kt:32`, and `GuardObservation.PanicActivated` exists, so G1-05 is
+expressed in the domain. What is missing is the platform path: nothing connects a UI
+action to that engine and persists the result. Protocol Batch C implements exactly that.
+Motion is Batch G, SIM Batch I (feasibility first), Lock Batch J (feasibility **and** the
+current official Play policy, cited, first). Battery stays prohibited (§20, G1-04).
 
 ### Phase 6 — Evidence & Privacy
 
-**Status:** BLOCKED. The minimum-evidence principle is approved, but camera/location policy, permission, retention, deletion, export, redaction, encryption, and backup are unresolved.
+**Status:** **PARTIALLY RESOLVED / Batch H.** Retention (§5.4/A-1 30 days), deletion
+(§5.6), export (§5.5 disabled), factory reset (§5.7/A-2/A-3), and encryption (§1–§3) are
+settled and device-verified. Protocol §21–§23 now also settle the shape: **no camera and
+no location in the Panic batch**, no audio ever approved, and permissions requested only
+incrementally for the feature that needs them. Unresolved and deferred to Batch H: camera
+trigger and duration, location precision/freshness, redaction, and the consent/privacy copy.
 
 ### Phase 7 — Continuous Monitoring
 
-**Status:** BLOCKED. The principle is maximum technically feasible legitimate monitoring without guarantees; service type, lifecycle, restart, Doze, OEM, Force Stop, notification, and device matrix are unresolved.
+**Status:** **RESOLVED IN PRINCIPLE / Batch F.** §17 authorizes a foreground service for
+an active guard and **prohibits WorkManager as a real-time detector**. The Android
+limitations (Doze, OEM battery management, Force Stop, process death, reboot, user
+restrictions) must be documented, and **no 24/7 guarantee may be claimed** — the app must
+never present a guarantee it cannot prove.
 
 ### Phase 8 — Local Alerts/Response
 
-**Status:** BLOCKED. Panic severity is approved; local response, notifications, lock-screen disclosure, deduplication, and failure semantics remain open.
+**Status:** **UNBLOCKED / Batch E, after Batch C is device-verified.** §16 requires real
+notifications with `POST_NOTIFICATIONS` requested only when the feature genuinely needs it,
+and granted/denied/disabled-in-Settings handled honestly: **the app must never display
+"alert sent" when notification permission is unavailable** (§31).
 
 ### Phase 9 — External Services
 
-**Status:** DEFERRED. Device-first scope excludes cloud, email, SMS, messaging providers, billing, ads, analytics, and backend services until a new approval changes G5.
+**Status:** **DEFERRED — REAFFIRMED BY THE OWNER 2026-09-29 (§30).** Device-first scope
+excludes cloud, email, SMS, messaging providers, billing, **ads**, analytics, Firebase,
+accounts, and backend services during these core batches. This explicitly supersedes the
+earlier note that AdMob and IAP had been authorized for the launch; see the correction in
+`docs/OWNER_QUESTIONS.md` Q-D5/Q-D7.
 
 ### Phase 10 — Security/Privacy Audit
 
-**Status:** REQUIRED before production/security claims.
+**Status:** REQUIRED before production/security claims. Protocol Batch K.
 
 ### Phase 11 — Release Hardening
 
-**Status:** NOT STARTED.
+**Status:** NOT STARTED. Protocol Batch L. Requires a real release keystore — never a CI
+debug keystore — before any distribution.
 
 ## Dependency-aware execution plan
 
@@ -124,16 +238,16 @@ open, along with overall G4 device/security sign-off.
 | 1 | Pure Guard contract closure: typed observations, approved rule values, confirmation results, deterministic tests | Batch 0; no Android APIs or persistence engine | DONE — `6dc8396` |
 | 2 | Pure `ProtectionStateEngine`: Lock/Motion/SIM/Panic approved semantics; Battery remains non-event until anomaly approval | Batch 1; pure deterministic implementation only | DONE — `0e02f55` |
 | 3 | Local/in-memory `EventPipeline`: canonical EventId idempotency, EXPIRED lifecycle, coordinator/repository split, persisted-stage resume, per-event expiry, sequential per-event processing | Batch 2; approved Batch 3 decisions | DONE — `f6f637b` |
-| 4a | Android capability research and device matrix | G3 review; no production behavior | RESEARCH COMPLETE — DEVICE EXECUTION PENDING |
-| 4b | Execute device/API matrix and collect runtime evidence | Batch 4a; ADB/AVD or physical devices | BLOCKED — NO DEVICE OR AVD AVAILABLE |
+| 4a | Android capability research and device matrix | G3 review; no production behavior | RESEARCH COMPLETE — **and the matrix is now executed on the owner RMX3910** for storage/crypto; OEM breadth still NOT RUN |
+| 4b | Execute device/API matrix and collect runtime evidence | Batch 4a; ADB/AVD or physical devices | **PARTIALLY DEVICE VERIFIED — the old "BLOCKED, no device" status was false.** `adb` is available and `connectedDebugAndroidTest` runs on the RMX3910 (`OK (34 tests)`). Sensors, notifications, background execution, reboot and process death remain NOT RUN because the features do not exist yet |
 | 4c | Versioned schema and Keystore candidate; no production wiring | G4 review; no silent crypto or retention decisions | CANDIDATE COMPLETE — BUILD/TEST PASS; G4 STILL OPEN |
 | 4d-1 | Room foundation: version catalog, entities, DAOs, exported schema, database shell | Owner G4-B authorization; Batch 4c schema candidate | COMPLETE — BUILD/TEST/LINT/STATIC PASS; NOT WIRED TO APP |
 | 4d-2 | Local Room repository boundary, encrypted evidence-file adapter, atomic file handling, deterministic file recovery tests | 4d-1; approved initial local policy | COMPLETE — BUILD/TEST/LINT/STATIC PASS; ANDROID KEYSTORE UNVERIFIED |
 | 4d-3 | Room instrumented integration tests: reopen persistence, duplicate EventId, atomic expected-state updates, persisted delivery resume, foreign-key enforcement | 4d-2; Android test database | COMPLETE — `assembleDebugAndroidTest` PASS; DEVICE EXECUTION PENDING |
 | 4d-4 | Cleanup/orphan reconciliation, quarantine foundations, migration-failure guards, and Room runtime execution | 4d-3; owner device/AVD | LOCAL PORTION COMPLETE — DEVICE EXECUTION PENDING |
 | 4d-5 | Explicit local storage factory, no-backup evidence directory, non-destructive Room configuration, lifecycle reconciliation entry point | 4d-4; approved local policy | LOCAL COMPLETE — BUILD/TEST PASS; RUNTIME VERIFICATION PENDING |
-| 4d-6 | Owner-device execution of Room/Keystore tests and runtime evidence package | 4d-5; owner device/AVD | PREPARED — BLOCKED HERE; `adb`/AVD REQUIRED |
-| 4d-7 | Offline G4-B local closure audit: backup boundaries, schema evidence, wiring scope, no-fallback/no-destructive checks, reproducible review script | 4d-6; local implementation complete | IN PROGRESS — RUNTIME/SECURITY ACCEPTANCE OPEN |
+| 4d-6 | Owner-device execution of Room/Keystore tests and runtime evidence package | 4d-5; owner device/AVD | **DEVICE VERIFIED** — executed repeatedly on the RMX3910; current full suite `OK (34 tests)`. The "BLOCKED HERE; adb/AVD REQUIRED" status was stale |
+| 4d-7 | Offline G4-B local closure audit: backup boundaries, schema evidence, wiring scope, no-fallback/no-destructive checks, reproducible review script | 4d-6; local implementation complete | **CLOSED (CI + DEVICE)** by `4d-7-correction`, `4d-7-ci-coverage`, `4d-ci-hardening`, `0901c5c` and the later §5/§6 batches. G4 **overall** remains open — see "Real remaining G4 gaps" |
 | 4d+-lock-prep | Lock Guard domain boundary tests, Android feasibility notes, and device test plan | G1-01; 4d-6 runtime evidence pending | PURE BOUNDARY COMPLETE LOCALLY — ADAPTER NOT IMPLEMENTED; DEVICE EVIDENCE PENDING |
 | 4d+-lock-pure-integration | Verified callback boundary to pure ProtectionStateEngine integration tests | 4d+-lock-prep; no Android APIs | COMPLETE LOCALLY — DEVICE/ADAPTER EVIDENCE PENDING |
 | 4d+-local-hardening | Evidence-file deletion/quarantine failure handling, terminal pipeline idempotency, focused JVM tests | Existing local storage and Batch 3 contracts | COMPLETE LOCALLY — commit `309ac37`; Gradle re-run BLOCKED BY MISSING ANDROID SDK |
@@ -153,69 +267,65 @@ open, along with overall G4 device/security sign-off.
 | 4d-failure-semantics | Security failure semantics table enforcement (decision §6) | 4d-evidence-lifecycle | CLOSED (CI + DEVICE) — §6 classifier (`SecurityFailureSemantics`) + §6/A-4 read-path enforcement. A missing Keystore key on read surfaces as `EvidenceKeyRecoveryRequiredException` (never laundered into `EvidenceUnavailableException`); corruption/AAD-mismatch stays UNAVAILABLE; a confirmed factory reset keeps post-reset reads UNAVAILABLE because it removes the files too. CI GREEN (runs `36519322364` → `36521881590`: 151 JVM tests, lint, both APKs, all review scripts incl. the new §6/A-4 gate) and full instrumented suite **`OK (26 tests)`** on the owner RMX3910. Recorded as amendment A-4 in decisions §17. See `docs/reports/batch-4d-failure-semantics.md` |
 | 4d-storage-wiring-gate | Install local storage behind the §15 runtime approval gate (`StorageRuntimeApproval.approved`, off by default) via a pure `decideStorageInstall`; wire `ShieldraApp` through `openOrRecovery`; g4b wiring gate + fix `rg`→`grep` no-op enforcement checks | 4d-failure-semantics | CLOSED (CI + DEVICE) — **gated slice only; §15/G4 stay OPEN.** `ShieldraApp` attaches storage only when the owner flips the flag (§14); default build never opens storage. CI GREEN (`36525682066` RED-compile → `36525983600` → `36537846580`: 154 JVM tests, both APKs, grep-based §15/§4.3/§5.5 gates now genuinely PASS) and on RMX3910 `StorageWiringGateOffInstrumentedTest` `OK (3 tests)` + full suite `OK (29 tests)` (no regressions; default-off creates no `shieldra.db` and no Keystore key). See `docs/reports/batch-4d-storage-wiring-gate.md` |
 | 4d+-lock-guard-adapter | Replace the fabricated runtime demo dashboard with an honest Lock Guard projection (`LockGuardDecision` → `lockGuardDashboard`); drop `DemoData` from the runtime protection path; g4b honest-projection gate | 4d-storage-wiring-gate; no detection policy needed | CLOSED (CI + DEVICE) — **projection slice only; §15/G4 stay OPEN.** Invariant: with no detection the app must never render "Protected" or an "Active" guard. CI GREEN (`bbdffd6` RED-compile → `36542577529` SUCCESS: `BUILD SUCCESSFUL`, both APKs, new gate `PASS: runtime guard projection is honest (no fabricated protection)`); on RMX3910 the same APK renders `DISABLED`, `Not monitoring yet. Status: Disabled.`, battery `—`, network `Offline`, and `StorageWiringGateOffInstrumentedTest` `OK (3 tests)`. Real persisted-event read, detection, services, and alerts are DEFERRED. See `docs/reports/batch-4d-lock-guard-adapter.md` |
-| 4d-persisted-event-reader | Real read path: `listRecent` on the repository contract, newest-first Room query, pure `PersistedEventReader` projection, off-main-thread read in the NavHost; g4b read gate | 4d+-lock-guard-adapter; no detection policy needed | CLOSED (CI + DEVICE) — **read path only; §15/G4 stay OPEN.** Invariants: the projection never invents a photo/location/battery/receipt, and a build without installed storage reads nothing. CI GREEN (`3bb1507` RED-compile → `36551174645`/`36551915935` compile fixes → `36552909429` SUCCESS: `171 tests, 171 passed`, both APKs, new gate `PASS: persisted events are read off the main thread and only when storage is installed`); on RMX3910 `PersistedEventReadingInstrumentedTest` `OK (5 tests)` and the full suite `OK (34 tests)` (no regressions). Producing events at runtime is DEFERRED (needs G2/G3). See `docs/reports/batch-4d-persisted-event-reader.md` |
-| 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | BLOCKED |
-| 5 | Local response and notifications | G2/G3 policy | BLOCKED |
-| 6 | External providers | G5 change from deferred | DEFERRED |
-| 7 | End-to-end security/release review | All prior batches | BLOCKED |
+| 4d-persisted-event-reader | Real read path: `listRecent` on the repository contract, newest-first Room query, pure `PersistedEventReader` projection, off-main-thread read in the NavHost; g4b read gate | 4d+-lock-guard-adapter; no detection policy needed | CLOSED (CI + DEVICE) — **read path only; §15/G4 stay OPEN.** Invariants: the projection never invents a photo/location/battery/receipt, and a build without installed storage reads nothing. CI GREEN (`3bb1507` RED-compile → `36551174645`/`36551915935` compile fixes → `36552909429` SUCCESS: `171 tests, 171 passed`, both APKs, new gate `PASS: persisted events are read off the main thread and only when storage is installed`); on RMX3910 `PersistedEventReadingInstrumentedTest` `OK (5 tests)` and the full suite `OK (34 tests)` (no regressions). Producing events at runtime was DEFERRED at that time and is now authorized as protocol Batch C (Panic Guard). See `docs/reports/batch-4d-persisted-event-reader.md` |
+| 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | **UNBLOCKED IN ORDER** — the owner protocol §38 authorizes the sequence Panic (C) → notifications (E) → background (F) → Motion (G) → evidence/permissions (H) → SIM (I) → Lock (J). Not one batch of everything |
+| 5 | Local response and notifications | G2/G3 policy | **UNBLOCKED — sequenced after Panic.** §16 real notifications; §17 foreground service acceptable; WorkManager prohibited as a real-time detector; no 24/7 guarantee may be claimed |
+| 6 | External providers | G5 change from deferred | **DEFERRED — REAFFIRMED.** §30 explicitly bars Firebase, cloud, accounts, analytics, **ads**, WhatsApp, Telegram, SMS and email during the core batches |
+| 7 | End-to-end security/release review | All prior batches | BLOCKED on batches B–I; protocol Batch K/L |
+
+## Real remaining G4 gaps (found by trace, 2026-09-29)
+
+Two lifecycle requirements in the owner protocol are **genuinely unmet**. Both were
+found by tracing call sites, not assumed.
+
+| Gap | Evidence from trace | Status |
+|---|---|---|
+| **No rotation trigger exists** | `EvidenceKeyPolicy.rotationDue()` (`EvidenceKeyPolicy.kt:52`) is defined and tested, but `grep -rn "rotationDue" app/src/main` returns **only its own definition** — no production caller. `EvidenceKeyRotator` is referenced only from `EvidenceKeyRotator.kt` itself plus its JVM and instrumented tests. Nothing in `ShieldraApp`, the storage factory, or any service invokes rotation. | **IMPLEMENTED + TESTED + CI VERIFIED + DEVICE VERIFIED — but NOT TRIGGERED.** Per protocol §9, `rotationDue()` alone is not evidence that automatic rotation exists, and no claim of automatic rotation may be made |
+| **No old-key retirement lifecycle** | `grep -rni "retir" app/src/main` returns **zero matches**. There is no `RETIRED` state, no "zero remaining references to the old key version" check, and no destruction path distinct from the §5.7 factory reset. Rotation deliberately leaves old keys in place. | **NOT IMPLEMENTED.** Per protocol §10, implement the retirement **state** without inventing a destruction policy; the final destruction decision stays an explicit owner question |
+
+Everything else the protocol listed as possible G4 residue was checked and is already
+closed: AAD-v1 (§8 — canonical format intact, mandatory on the evidence path, real AES-GCM
+authentication failure proven on device), StrongBox runtime detection (§7 —
+`FEATURE_STRONGBOX_KEYSTORE`, not SDK inference), the rotation algorithm's step order and
+resumability, failure semantics (§27), factory reset (§28), and the retention values
+(`Evidence`/`Quarantine` 30 days per A-1, event metadata 90 days).
 
 ## Required next batch
 
-**`4d-evidence-lifecycle` (decisions §5.1–§5.7) — CLOSED (CI + DEVICE).** The
-owner answered the open §5 point (retention windows and what a factory reset
-deletes) on 2026-09-28, recorded as binding amendments A-1/A-2/A-3 in decisions
-§17. `EvidenceRetentionPolicy` (§5.4, 30-day unified quarantine),
-`EvidenceExportPolicy` (§5.5, disabled by default with six mandatory gates and a
-static no-egress gate), and `FactoryReset` + `deleteEvidenceKeyIrreversibly`
-(§5.7, confirmed, key deletion mandatory, removal-before-verification with a
-tombstone on failure) are implemented and covered by 23 new JVM tests plus a
-real-device reset test. CI runs `36494249786`/`36495834536` are green (134 JVM
-tests, lint, both APKs, all review scripts), and `EvidenceKeyResetInstrumentedTest`
-passed `OK (2 tests)` on the owner RMX3910 with the full instrumented suite at
-`OK (26 tests)` — proving the on-device Keystore evidence key is irreversibly
-deleted and prior evidence becomes permanently unreadable with no software
-fallback (§2.5). See `docs/reports/batch-4d-evidence-lifecycle.md`.
+**Batch B — `4d-rotation-orchestration-and-retirement`** (protocol §9/§10). Close the two
+gaps above: a real production rotation trigger, and an old-key retirement state machine
+that never destroys a key while evidence still references it. TDD, CI green, device
+verified.
 
-**`4d-failure-semantics` (decision §6) — CLOSED (CI + DEVICE).** The §6 failure
-classifier and the §6/A-4 read-path enforcement are implemented and green. A
-missing Keystore key on read now raises `EvidenceKeyRecoveryRequiredException`
-instead of being laundered into `EvidenceUnavailableException`; corruption and
-AAD-mismatch stay UNAVAILABLE; a confirmed factory reset (§5.7/A-2) keeps
-post-reset reads UNAVAILABLE because it deletes the ciphertext files too. The
-owner decision "استرجاع عند غياب غير متعمّد" is recorded as binding amendment
-A-4 in decisions §17. CI runs `36519322364`/`36520224847`/`36521881590` are green
-(151 JVM tests, lint, both APKs, and a new §6/A-4 static gate in `g4b`), and the
-full instrumented suite is `OK (26 tests)` on the RMX3910 — the rotation test
-needed a warm-up so it asserts genuine cross-key rejection rather than a missing
-key. See `docs/reports/batch-4d-failure-semantics.md`.
+This is followed, in the owner-mandated order, by:
 
-**`4d-storage-wiring-gate` (decision §15 wiring) — CLOSED (CI + DEVICE), gated
-slice only.** Local storage can now attach to the running app, but only behind
-the compile-time `StorageRuntimeApproval.approved` flag, which stays `false`;
-flipping it is the owner's future visible sign-off (§14). `ShieldraApp` opens
-exclusively through `openOrRecovery` and keeps a failed open as `RecoveryRequired`
-(no destructive recreate). A default build provably never opens storage: on the
-RMX3910 `StorageWiringGateOffInstrumentedTest` is `OK (3 tests)` and the full
-instrumented suite is `OK (29 tests)` with no regressions, and CI is green at 154
-JVM tests (`36537846580`). This batch also turned three silently-skipping `rg`
-gates into real `grep` checks, so the §4.3 destructive-migration and §5.5 no-egress
-prohibitions are now actually enforced in CI. See
-`docs/reports/batch-4d-storage-wiring-gate.md`.
+| Batch | Work | Protocol |
+|---|---|---|
+| A | Reconcile roadmap / questions / decisions against the actual repository | §3–§5 — **this batch** |
+| B | Rotation trigger + old-key retirement | §9–§10 |
+| C | **Panic Guard end-to-end** — UI action → signal → immediate confirmation → `EventId` → `SecurityEvent` → pipeline → Room → reload → History → Detail, idempotent on repeat | §12–§15 |
+| D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 |
+| E | Real notifications; `POST_NOTIFICATIONS` requested only when needed; granted/denied/disabled handled honestly — never "alert sent" without permission | §16 |
+| F | Background/active-guard execution; foreground service acceptable; **WorkManager prohibited as a real-time detector**; no 24/7 claim | §17 |
+| G | Motion Guard | §18 |
+| H | Evidence / privacy / permission implementation | §21–§23 |
+| I | SIM Guard — feasibility first, then implementation | §19 |
+| J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |
+| K | Full security/privacy/device audit | §33–§34 |
+| L | Release hardening | §38 |
 
-The remaining roadmap items are **owner-decision / policy gates, not pure-code
-tasks**, and require explicit approval before any new design work:
-- overall **G4 device/security sign-off** and the **§15 production gate** — the
-  storage wiring is now installed behind the approval gate but **not enabled**;
-  §15/G4 close only after the flag is owner-flipped **and** the remaining gates
-  below (runtime event production and the actual detection path, phase 5/6/7,
-  and the full audit set) are done;
-- **phase 5** local response and notifications (blocked on G2/G3 policy);
-- **phase 6** external providers (deferred by G5);
-- **phase 7** end-to-end security/release review (blocked on all prior).
+**Standing prohibitions carried forward from the protocol:** no battery-percentage security
+event (§20); no continuous camera or location (§21–§22); no audio recording is approved;
+no external providers, **including ads and analytics**, during these core batches (§30);
+no UI may show `Protected`/`Active`/`Evidence captured`/`Alert sent` unless real state
+proves it (§31); every dead button must work, be honestly disabled, or be removed (§32).
 
-Nothing on §3, §4 or the §5 storage slice remains open. When device runs are
-needed, use the app and androidTest APKs from the **same** CI run, because each
-runner regenerates the debug keystore.
+**Batch D is not a standalone step.** `StorageRuntimeApproval.approved` stays `false`
+until the Panic producer is device-verified, so no intermediate build ever opens storage
+and shows an empty app.
+
+When device runs are needed, use the app and androidTest APKs from the **same** CI run,
+because each runner regenerates the debug keystore.
 
 **Correction recorded against 4d-aad-binding:** that batch closed without a
 §16 batch report and its StrongBox instrumented assertion was a placeholder

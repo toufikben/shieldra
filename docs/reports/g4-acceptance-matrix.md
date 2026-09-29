@@ -1,46 +1,96 @@
 # G4 Acceptance Matrix
 
-**Repository:** `toufikben/shieldra`  
-**Scope:** Local Room/evidence foundation and G4-B closure evidence  
-**Current conclusion:** **PARTIAL — static and compile evidence exists; device/runtime and security-policy acceptance remain blocked.**
+**Repository:** `toufikben/shieldra`
+**Scope:** Local Room/evidence foundation and G4-B closure evidence
+**Reconciled against actual repository state:** 2026-09-29, commit `fcfcd96` (CI `36559760906`
+— `BUILD SUCCESSFUL`, `CI TEST SUMMARY: 171 tests, 171 passed, 0 failures, 0 errors, 0
+skipped`). See the revision note at the bottom for what changed and why.
+**Current conclusion:** **PARTIAL — storage and crypto are DEVICE VERIFIED; the key-lifecycle
+trigger, independent security review, and production-approval sign-off are not.** G4 is
+substantially verified and *not* production-approved.
 
-This matrix deliberately separates implementation from verification. A `YES` in the Code column does not imply runtime security verification.
+This matrix deliberately separates implementation from verification. A `YES` in the Code column
+does not imply runtime security verification, and `DEVICE VERIFIED` never means
+`SECURITY REVIEWED` or `PRODUCTION APPROVED`.
+
+## Status vocabulary used below
+
+| Level | Asserted only from |
+|---|---|
+| IMPLEMENTED | source exists |
+| TESTED | a named test asserts the behaviour |
+| CI VERIFIED | a green run on `main` executed that test |
+| DEVICE VERIFIED | the instrumented test actually ran on RMX3910 (`IR7X5DJ7KZGEHMS8`) using app + androidTest APKs from the **same** run id |
+| SECURITY REVIEWED | an independent reviewer signed off — **nobody has yet** |
+| CLOSED / PRODUCTION APPROVED | owner decision — **not granted** |
+
+## Matrix
 
 | Requirement | Code | Test | CI | Device | Status | Evidence or blocker |
 |---|---:|---:|---:|---:|---|---|
-| Room entities and exported schema exist | YES | PARTIAL | YES | NOT REQUIRED | VERIFIED STATIC | Exported schema and Room build checks pass; runtime database creation is not device-verified. |
-| Foreign keys and indexes are declared | YES | PARTIAL | YES | REQUIRED | PARTIAL | Source/schema evidence exists; instrumented runtime execution is blocked without an AVD/device. |
-| Event state persistence and expected-state update | YES | YES STATIC | YES | REQUIRED | PARTIAL | InMemory and Room paths are covered by source/tests; Room reopen execution is not runtime-verified. |
-| Event ID duplicate protection | YES | YES STATIC | YES | REQUIRED | PARTIAL | Domain and repository paths exist; device database execution remains unverified. |
-| Evidence encrypted-file write/read | YES | YES JVM | YES | REQUIRED | PARTIAL | Deterministic JVM cipher tests pass in CI; Android Keystore behavior is not established. |
-| Temporary-file cleanup and atomic replacement intent | YES | YES JVM | YES | REQUIRED | PARTIAL | Single-writer deterministic tests exist; concurrent writer, crash, and filesystem fallback behavior are not verified. |
-| Symlink evidence payload rejection | YES | YES JVM | PENDING | REQUIRED | PARTIAL | Added in `1335a8b`; CI run `35889049875` was in progress at the last recorded check. |
-| Room child-row collision is fail-closed | YES | PARTIAL | PENDING | REQUIRED | PARTIAL | Added in `1335a8b`; instrumented collision/fault execution is not yet available. |
-| Backup and device-transfer exclusions | YES | YES STATIC | YES | REQUIRED | PARTIAL | Manifest/XML and enforced G4-B script pass; Android backup/restore behavior is not device-verified. |
-| `noBackupFilesDir` evidence boundary | YES | YES SOURCE/STATIC | YES | REQUIRED | PARTIAL | Factory boundary and static review pass; actual Android filesystem behavior is unverified. |
-| G4-B review script is enforced by CI | YES | YES FIXTURE | PENDING | NOT REQUIRED | PARTIAL | Added in `abed3c4`; latest subsequent runs were still active at the last check. |
-| Android Keystore key generation and AES-GCM policy | CANDIDATE ONLY | NO DEVICE TEST | YES COMPILE | REQUIRED | BLOCKED | Requires Android runtime, hardware capability evidence, and approved policy. |
-| AAD binding to evidence identity | NO | NO | YES COMPILE | REQUIRED | BLOCKED | G4-A decision is not approved; do not implement by assumption. |
-| Key ownership, invalidation, rotation, and loss recovery | NO | NO | YES COMPILE | REQUIRED | BLOCKED | Requires explicit security/lifecycle decision and device matrix. |
-| Room migration and downgrade recovery | NO PRODUCTION MIGRATIONS | POLICY TEST ONLY | YES COMPILE | REQUIRED | BLOCKED | `StorageMigrations.all` is empty; migration history and recovery policy require approval. |
-| Corruption classification and recovery state | PARTIAL | PARTIAL STATIC | YES COMPILE | REQUIRED | BLOCKED | Current mapping can throw on invalid enum/UUID data; recovery semantics require a defined policy. |
-| Orphan/reference deletion lifecycle | PARTIAL | PARTIAL JVM | YES COMPILE | REQUIRED | BLOCKED | Missing-reference and parent-delete policy is unresolved; no destructive cleanup is invented. |
-| Connected Android instrumented tests | YES SOURCES | NOT EXECUTED | COMPILE ONLY | REQUIRED | BLOCKED | CI compiles `assembleDebugAndroidTest`; no authorized AVD, emulator, or device is available. |
-| Production wiring into `ShieldraApp` | NO | NOT APPLICABLE | STATIC | REQUIRED | DEFERRED | Explicitly gated until runtime and G4 approval; no automatic wiring is added. |
+| Room entities and exported schema exist | YES | YES | YES | YES | DEVICE VERIFIED | `RoomEventRepositoryInstrumentedTest` executes real Room create/insert/read on the phone. |
+| Foreign keys and indexes are declared | YES | YES | YES | YES | DEVICE VERIFIED | Runtime insert/reopen executes against the declared schema on RMX3910. |
+| Event state persistence and expected-state update | YES | YES | YES | YES | DEVICE VERIFIED | `RoomEventRepositoryInstrumentedTest` + `PersistedEventReadingInstrumentedTest` (read-back of persisted events). |
+| Event ID duplicate protection | YES | YES | YES | YES | DEVICE VERIFIED | Repository idempotency asserted on the device database. |
+| Evidence encrypted-file write/read | YES | YES | YES | YES | DEVICE VERIFIED | `RealAesGcmAadTest` performs real AES-256-GCM through Android Keystore on the phone. |
+| AAD binding to evidence identity | YES | YES | YES | YES | DEVICE VERIFIED | `RealAesGcmAadTest` proves correct AAD succeeds and wrong version / wrong class / wrong evidenceId / modified length fail. AAD-v1 is the approved canonical format. |
+| Android Keystore key generation and AES-GCM policy | YES | YES | YES | YES | DEVICE VERIFIED — **with a capability caveat** | Works on RMX3910. **RMX3910 has NO StrongBox**, so StrongBox-backed keys are *not* device-verified anywhere. Runtime capability detection uses `PackageManager.FEATURE_STRONGBOX_KEYSTORE`; no batch may claim StrongBox support it has not measured. |
+| Key ownership, invalidation, rotation algorithm, loss recovery | YES | YES | YES | YES | DEVICE VERIFIED **for the algorithm only** | `EvidenceKeyRotationInstrumentedTest` + `StorageRecoveryInstrumentedTest`. **The rotation TRIGGER does not exist:** `EvidenceKeyPolicy.rotationDue()` has zero production callers, so "automatic rotation after 90 days" is not implemented and must not be claimed. |
+| Old-key retirement lifecycle | **NO** | NO | NO | NO | **NOT IMPLEMENTED** | `grep -rni "retir"` over `app/src` returns zero matches. Batch B (`4d-rotation-orchestration-and-retirement`) owns this. Destruction policy is a held owner decision (Q-C8). |
+| Room migration and recovery | YES | YES | YES | **PARTIAL** | DEVICE VERIFIED (upgrade only) | `ShieldraDatabaseMigrationInstrumentedTest` has exactly two tests: `migration_1_2_preserves_rows_and_defaults_rotation_versions` and `migration_1_2_is_registered_for_the_storage_factory`. **Downgrade is NOT tested and NOT implemented** — it stays fail-closed by policy (§4.3 forbids destructive migration), and Q-D17 (reinstall/downgrade/backup-restore on a real device) remains `NOT RUN`. |
+| Corruption classification and recovery state | YES | YES | YES | YES | DEVICE VERIFIED | `StorageRecoveryInstrumentedTest`. Approved semantics: corruption / AAD mismatch / missing evidence → `UNAVAILABLE`; unexpected missing key → `RECOVERY_REQUIRED`; migration failure → `RECOVERY_REQUIRED`; unsupported database / unknown state → fail closed. |
+| Orphan/reference deletion lifecycle | YES | YES | YES | PARTIAL | TESTED / CI VERIFIED | Evidence lifecycle exists per §5 with amendments A-1…A-4; missing-reference and parent-delete behaviour beyond what the named tests assert is still not device-verified. |
+| Factory-reset key destruction (§5.7, A-2/A-3) | YES | YES | YES | YES | DEVICE VERIFIED | `EvidenceKeyResetInstrumentedTest` — explicit, auditable, removal precedes verification, failure tombstoned not success. |
+| Temporary-file cleanup and atomic replacement intent | YES | YES JVM | YES | NOT RUN | TESTED (JVM) | Deterministic single-writer JVM tests pass in CI. Concurrent writer, crash and filesystem-fallback behaviour remain **NOT RUN** on device. |
+| Symlink evidence payload rejection | YES | YES JVM | YES | NOT RUN | TESTED (JVM) | `deleteIfExists` behaviour on non-empty directories is a known device-side caveat; no instrumented symlink test exists. |
+| Room child-row collision is fail-closed | YES | PARTIAL | YES | NOT RUN | PARTIAL | No instrumented collision/fault injection test exists. |
+| Backup and device-transfer exclusions | YES | YES STATIC | YES | NOT RUN | STATIC + CI VERIFIED | Manifest/XML and the enforced G4-B review gate pass. Actual Android backup/restore behaviour on a real device is **NOT RUN** (Q-D17). |
+| `noBackupFilesDir` evidence boundary | YES | YES | YES | PARTIAL | DEVICE VERIFIED (partly) | `StorageWiringGateOffInstrumentedTest` proves the default-off path creates no database and no Keystore alias on the device. |
+| G4-B review script is enforced by CI | YES | YES FIXTURE | YES | NOT REQUIRED | CLOSED | Runs on every `main` push and fails the build on regression. |
+| Storage wiring gate (§15) | YES | YES | YES | YES | DEVICE VERIFIED, **CLOSED AS INTENDED** | `StorageRuntimeApproval.approved == false` is the correct state for a shell that has no producer. It flips only in the same verified batch as the first real detector (protocol §11, §14). |
+| Connected Android instrumented tests | YES | **EXECUTED** | COMPILE ONLY in CI | **YES** | DEVICE VERIFIED | Superseded row: earlier revisions said "no authorized device". 34 instrumented tests across 8 classes have been executed on RMX3910. CI still **never runs** them, so device evidence is manual and is not reproducible from a run id. |
+| Production wiring into `ShieldraApp` | YES (behind gate) | YES | YES | YES | IMPLEMENTED, DELIBERATELY INACTIVE | See the row above: the gate is the product decision, not a missing integration. |
+| First real detector (Panic) | **NO** | NO | NO | NO | **NOT IMPLEMENTED** | The pure rule exists (`DefaultProtectionStateEngine` maps `GuardKind.PANIC` → confirmed `CRITICAL`, `ProtectionStateEngine.kt:32`), but neither that class nor `createConfirmedEvent` has **any caller in `app/src/main`** — verified by grep, so no runtime path turns a user action into a `SecurityEvent`. Batch C. |
 
-## Deferred application/runtime work
+## Still genuinely open (do not read the DEVICE VERIFIED rows as "G4 done")
 
-The following items are intentionally **deferred for a later Android programmer or owner decision** and are not represented as completed implementation:
-
-1. Running `connectedDebugAndroidTest` and the supplied device-test script on an authorized AVD or physical device.
-2. Verifying Room reopen, process death, backup/restore, Keystore invalidation, and hardware-backed behavior on Android.
-3. Choosing and implementing AAD identity binding for encrypted evidence.
-4. Defining key alias ownership, authentication binding, rotation, invalidation, and permanent-loss recovery.
-5. Defining and implementing Room migration history, downgrade handling, corruption recovery, and rollback evidence.
-6. Defining the lifecycle for missing evidence references, orphan files, deletion, export, and retention.
-7. Wiring local storage into the production application graph.
-8. Implementing Android Lock, Motion, SIM, Battery, or Panic adapters; the current work only hardens pure domain contracts.
+1. **Rotation trigger / orchestration** — no production caller schedules rotation. Batch B.
+2. **Old-key retirement** — no code at all. Batch B. Destruction policy needs an owner answer
+   (Q-C8), so Batch B stops at `RETIRED`.
+3. **Independent security review (G6)** — nobody has signed the threat model
+   (`docs/security/g4-threat-model.md` is still `PROPOSED — REQUIRES SECURITY/PRIVACY REVIEW`).
+   No amount of green CI substitutes for it.
+4. **Single-device evidence** — every device row above comes from one phone, and one phone that
+   lacks StrongBox. Samsung/Xiaomi/Google background and Keystore behaviour is unmeasured
+   (Q-D14).
+5. **Backup/restore, reinstall, downgrade on a real device** — `NOT RUN` (Q-D17).
+6. **Concurrency / crash / filesystem-fallback** — `NOT RUN` on device.
 
 ## Gate conclusion
 
-G4-B must remain **APPROVED DIRECTION / IMPLEMENTATION IN PROGRESS**. The repository has useful static and compile evidence, but it does not yet have the device, lifecycle, cryptographic-policy, or independent security/privacy evidence required for a production or security-complete claim.
+G4-B is **IMPLEMENTED AND SUBSTANTIALLY DEVICE-VERIFIED**. G4 as a whole remains **OPEN — NOT
+PRODUCTION APPROVED**, because the key-lifecycle trigger, the retirement state, an independent
+security review, and a multi-device matrix are all still missing, and because the app has no
+detection at all. Per the owner protocol §6, "G4 overall is NOT automatically
+production-approved"; per §11, `StorageRuntimeApproval` must not flip until the Panic producer
+exists and is device-verified in the same batch.
+
+## Revision note (2026-09-29)
+
+This file was written when the repository had no device access and no AAD decision, and it
+was never brought forward. Rows corrected here, each against a named instrumented test that
+actually exists in `app/src/androidTest`:
+
+- `Connected Android instrumented tests: BLOCKED — no authorized AVD, emulator, or device is
+  available` → **false today**; 34 tests in 8 classes have run on RMX3910.
+- `Android Keystore … BLOCKED` → device-verified, with the explicit no-StrongBox caveat.
+- `AAD binding: NO … G4-A decision is not approved` → **false**; AAD-v1 is approved,
+  implemented, and device-tested including the negative cases.
+- `Key ownership / rotation: NO` → algorithm implemented and device-verified; the **trigger**
+  is the real gap and is recorded as such rather than folded into a "rotation done" claim.
+- `Room migration: NO PRODUCTION MIGRATIONS / BLOCKED` → superseded; migrations and recovery
+  are implemented and device-tested.
+- `Corruption classification: BLOCKED` → superseded; §6 failure semantics are implemented,
+  tested, and enforced by the CI review gate.
+- `Deferred work` items 1–7 → removed; they were all completed and this file simply went stale.
+  Item 8 (guard adapters) is still true and now names Panic as Batch C.
