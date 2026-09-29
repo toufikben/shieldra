@@ -54,9 +54,11 @@ below uses exactly these words.
 `Implemented ≠ Tested ≠ CI Verified ≠ Device Verified ≠ Security Approved ≠ Production Released.`
 
 **Current tip (reconciled 2026-09-29):** the newest closed batch is
-`4d-persisted-event-reader` — real persisted events now reach the UI through
-`PersistedEventReader` on `Dispatchers.IO`, with `listRecent` on the repository contract
-and a newest-first Room query. It is CLOSED (CI + DEVICE). Nothing after it has started.
+`4d-rotation-orchestration-and-retirement` (protocol **Batch B**) — the §9 rotation trigger
+and the §10 old-key retirement state now exist, are CI green at `194 tests, 194 passed`,
+and are device-verified on the owner RMX3910 (`OK (5 tests)`, full suite `OK (40 tests)`).
+The batch before it, `4d-persisted-event-reader`, remains CLOSED (CI + DEVICE). Nothing
+after Batch B has started; Batch C (Panic Guard) is next.
 The previously-named "latest" batch (`4d-aad-binding`) and every storage batch before it
 are history, not the frontier; the batch table below is the authority on ordering.
 
@@ -144,7 +146,7 @@ a PASS.
 | G1 — Protection rules | APPROVED FOR PURE CONTRACT CLOSURE | Encode approved Guard semantics in framework-free contracts/tests | Android feasibility, response, evidence, and API limitations |
 | G2 — Evidence/privacy | **ANSWERED / UNBLOCKED for the Panic batch** | Minimum post-confirmation evidence only. Owner protocol §21–§23: **no camera in the Panic batch**, no audio ever approved, no continuous location, no location in the Panic batch unless actually required; permissions requested **incrementally and only for the feature that needs them** | Camera policy, location precision/freshness, redaction, and the consent/privacy text remain for Batch H |
 | G3 — Android monitoring | **ANSWERED / UNBLOCKED in order** | §16 real notifications after a real event exists; §17 a foreground service is acceptable for an active guard; **WorkManager is prohibited as a real-time detector**; no 24/7 guarantee may be claimed; Doze/OEM/Force Stop/process death/reboot limitations must be documented | Background execution is Batch F, after the Panic loop is device-verified |
-| G4 — Storage/security | **SUBSTANTIALLY DEVICE-VERIFIED / NOT PRODUCTION-APPROVED** | AAD-v1, mandatory AAD, alias policy, StrongBox runtime detection, AES-GCM on real Keystore, key rotation algorithm, migration/recovery, evidence lifecycle, failure semantics, storage wiring gate, persisted read path — all IMPLEMENTED, CI VERIFIED, and DEVICE VERIFIED | **Two genuine gaps found by trace (§9/§10): no rotation trigger and no key retirement.** Plus threat model, OEM matrix beyond one device, and sign-off. See "Real remaining G4 gaps" |
+| G4 — Storage/security | **SUBSTANTIALLY DEVICE-VERIFIED / NOT PRODUCTION-APPROVED** | AAD-v1, mandatory AAD, alias policy, StrongBox runtime detection, AES-GCM on real Keystore, key rotation algorithm, **rotation trigger and old-key retirement (§9/§10 — Batch B, CI `36612265938` + device `OK (40 tests)`)**, migration/recovery, evidence lifecycle, failure semantics, storage wiring gate, persisted read path — all IMPLEMENTED, CI VERIFIED, and DEVICE VERIFIED | Retirement **destroys nothing**: Q-C8 is still an open owner decision, rotation is reachable only behind the still-off §15 gate, and the approved successor chain stops at v2. What remains for G4: independent security review, threat model, OEM matrix beyond one device, and sign-off |
 | G5 — External services | **DEFERRED — REAFFIRMED 2026-09-29** | Keep provider interfaces only where already justified | §30 of the owner protocol explicitly prohibits adding **Firebase, cloud backend, accounts, analytics, ads, WhatsApp, Telegram, SMS, email** during these core batches. This overrides the earlier note that AdMob/IAP were "authorized" — see the correction in `docs/OWNER_QUESTIONS.md` |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit (protocol Batch K) |
 | G7 — Implementation | **READY FOR PLATFORM BATCHES** | The pure-engine and storage foundations are closed; Panic Guard end-to-end is authorized as the next product batch (protocol §12–§15) | Each subsequent guard remains capability-gated in protocol order |
@@ -170,10 +172,10 @@ a PASS.
 **Completed:** approved Guard decisions, evidence principle, device-first direction, storage direction, external-service deferral, sequential execution rule, capability/evidence/storage matrices. AAD-v1 canonical serialization and mandatory enforcement implemented (decisions §1.1–§1.4, §2.1–§2.3). **4d-aad-binding CLOSED.**
 
 **Remaining:** the §5 storage slice and §6 failure semantics are **CLOSED (CI + DEVICE)** —
-see their batch rows. What actually remains in G4 is narrower than it used to be and is
-enumerated in "Real remaining G4 gaps": the absent rotation trigger, the absent old-key
-retirement lifecycle, the threat-model/privacy sign-off, and an OEM device matrix beyond
-the single RMX3910. Overall G4 is **not** production-approved.
+see their batch rows, as is the §9/§10 rotation trigger and retirement lifecycle (Batch B,
+CLOSED). What actually remains in G4 is narrower still: the threat-model/privacy sign-off,
+an OEM device matrix beyond the single RMX3910, and the independent security review. Overall
+G4 is **not** production-approved.
 
 **Dependencies:** Batch 0 documentation complete; Batch 1 must remain framework-free and deterministic.
 
@@ -247,7 +249,7 @@ debug keystore — before any distribution.
 | 4d-4 | Cleanup/orphan reconciliation, quarantine foundations, migration-failure guards, and Room runtime execution | 4d-3; owner device/AVD | LOCAL PORTION COMPLETE — DEVICE EXECUTION PENDING |
 | 4d-5 | Explicit local storage factory, no-backup evidence directory, non-destructive Room configuration, lifecycle reconciliation entry point | 4d-4; approved local policy | LOCAL COMPLETE — BUILD/TEST PASS; RUNTIME VERIFICATION PENDING |
 | 4d-6 | Owner-device execution of Room/Keystore tests and runtime evidence package | 4d-5; owner device/AVD | **DEVICE VERIFIED** — executed repeatedly on the RMX3910; current full suite `OK (34 tests)`. The "BLOCKED HERE; adb/AVD REQUIRED" status was stale |
-| 4d-7 | Offline G4-B local closure audit: backup boundaries, schema evidence, wiring scope, no-fallback/no-destructive checks, reproducible review script | 4d-6; local implementation complete | **CLOSED (CI + DEVICE)** by `4d-7-correction`, `4d-7-ci-coverage`, `4d-ci-hardening`, `0901c5c` and the later §5/§6 batches. G4 **overall** remains open — see "Real remaining G4 gaps" |
+| 4d-7 | Offline G4-B local closure audit: backup boundaries, schema evidence, wiring scope, no-fallback/no-destructive checks, reproducible review script | 4d-6; local implementation complete | **CLOSED (CI + DEVICE)** by `4d-7-correction`, `4d-7-ci-coverage`, `4d-ci-hardening`, `0901c5c` and the later §5/§6 batches. G4 **overall** remains open — see "G4 gaps found by trace", closed by Batch B |
 | 4d+-lock-prep | Lock Guard domain boundary tests, Android feasibility notes, and device test plan | G1-01; 4d-6 runtime evidence pending | PURE BOUNDARY COMPLETE LOCALLY — ADAPTER NOT IMPLEMENTED; DEVICE EVIDENCE PENDING |
 | 4d+-lock-pure-integration | Verified callback boundary to pure ProtectionStateEngine integration tests | 4d+-lock-prep; no Android APIs | COMPLETE LOCALLY — DEVICE/ADAPTER EVIDENCE PENDING |
 | 4d+-local-hardening | Evidence-file deletion/quarantine failure handling, terminal pipeline idempotency, focused JVM tests | Existing local storage and Batch 3 contracts | COMPLETE LOCALLY — commit `309ac37`; Gradle re-run BLOCKED BY MISSING ANDROID SDK |
@@ -268,20 +270,23 @@ debug keystore — before any distribution.
 | 4d-storage-wiring-gate | Install local storage behind the §15 runtime approval gate (`StorageRuntimeApproval.approved`, off by default) via a pure `decideStorageInstall`; wire `ShieldraApp` through `openOrRecovery`; g4b wiring gate + fix `rg`→`grep` no-op enforcement checks | 4d-failure-semantics | CLOSED (CI + DEVICE) — **gated slice only; §15/G4 stay OPEN.** `ShieldraApp` attaches storage only when the owner flips the flag (§14); default build never opens storage. CI GREEN (`36525682066` RED-compile → `36525983600` → `36537846580`: 154 JVM tests, both APKs, grep-based §15/§4.3/§5.5 gates now genuinely PASS) and on RMX3910 `StorageWiringGateOffInstrumentedTest` `OK (3 tests)` + full suite `OK (29 tests)` (no regressions; default-off creates no `shieldra.db` and no Keystore key). See `docs/reports/batch-4d-storage-wiring-gate.md` |
 | 4d+-lock-guard-adapter | Replace the fabricated runtime demo dashboard with an honest Lock Guard projection (`LockGuardDecision` → `lockGuardDashboard`); drop `DemoData` from the runtime protection path; g4b honest-projection gate | 4d-storage-wiring-gate; no detection policy needed | CLOSED (CI + DEVICE) — **projection slice only; §15/G4 stay OPEN.** Invariant: with no detection the app must never render "Protected" or an "Active" guard. CI GREEN (`bbdffd6` RED-compile → `36542577529` SUCCESS: `BUILD SUCCESSFUL`, both APKs, new gate `PASS: runtime guard projection is honest (no fabricated protection)`); on RMX3910 the same APK renders `DISABLED`, `Not monitoring yet. Status: Disabled.`, battery `—`, network `Offline`, and `StorageWiringGateOffInstrumentedTest` `OK (3 tests)`. Real persisted-event read, detection, services, and alerts are DEFERRED. See `docs/reports/batch-4d-lock-guard-adapter.md` |
 | 4d-persisted-event-reader | Real read path: `listRecent` on the repository contract, newest-first Room query, pure `PersistedEventReader` projection, off-main-thread read in the NavHost; g4b read gate | 4d+-lock-guard-adapter; no detection policy needed | CLOSED (CI + DEVICE) — **read path only; §15/G4 stay OPEN.** Invariants: the projection never invents a photo/location/battery/receipt, and a build without installed storage reads nothing. CI GREEN (`3bb1507` RED-compile → `36551174645`/`36551915935` compile fixes → `36552909429` SUCCESS: `171 tests, 171 passed`, both APKs, new gate `PASS: persisted events are read off the main thread and only when storage is installed`); on RMX3910 `PersistedEventReadingInstrumentedTest` `OK (5 tests)` and the full suite `OK (34 tests)` (no regressions). Producing events at runtime was DEFERRED at that time and is now authorized as protocol Batch C (Panic Guard). See `docs/reports/batch-4d-persisted-event-reader.md` |
+| 4d-rotation-orchestration-and-retirement | **Protocol Batch B** — production rotation trigger (§9) and the old-key retirement state machine (§10): `EvidenceRotationOrchestrator`, durable `FileBackedKeyLifecycle`, whole-set eligibility scan, `rotateEvidenceIfNeeded` composition, interval check in `ShieldraApp`; g4b §9/§10 gates incl. a line-order gate | 4d-persisted-event-reader; decisions §3.1–§3.4; Q-C8 stays unanswered | CLOSED (CI + DEVICE) — **trigger + retirement state only; §15/G4 stay OPEN, and no key is destroyed.** Ordering invariant, enforced mechanically: identify every eligible entry → migrate all → re-scan for surviving references → mark RETIRED; destruction is never implied. CI chain `f88bdb6` RED → `f318752` GREEN (harness-clock compile failure `36601603916`) → `2aefc06` `36603299441` SUCCESS (183) → `b71877e` RED → `663f414` (androidTest compile failure `36605868791`) → `22603d2` **`36612265938` SUCCESS: `194 tests, 194 passed, 0 failures, 0 errors, 0 skipped`**, lint, both APKs, Group C boundary scan, G4-B and Phase 3 review gates green. On RMX3910 (APKs from the same run): `EvidenceKeyLifecycleInstrumentedTest` **`OK (5 tests)`** — including a manual run through production wiring that re-encrypts real Keystore evidence v1→v2, verifies the bytes under v2, proves v1 now rejects them, and marks v1 RETIRED in the durable record; full instrumented suite **`OK (40 tests)`** (was 35, no regressions). Honest limits: the trigger is behind `StorageRuntimeApproval.approved = false` (Batch D), the manual path has no UI affordance, and the approved successor chain stops at v2. See `docs/reports/batch-4d-rotation-orchestration-and-retirement.md` |
 | 4d+ | One platform capability per batch: one Guard, evidence, auth, or monitoring | Capability-specific approval and device evidence | **UNBLOCKED IN ORDER** — the owner protocol §38 authorizes the sequence Panic (C) → notifications (E) → background (F) → Motion (G) → evidence/permissions (H) → SIM (I) → Lock (J). Not one batch of everything |
 | 5 | Local response and notifications | G2/G3 policy | **UNBLOCKED — sequenced after Panic.** §16 real notifications; §17 foreground service acceptable; WorkManager prohibited as a real-time detector; no 24/7 guarantee may be claimed |
 | 6 | External providers | G5 change from deferred | **DEFERRED — REAFFIRMED.** §30 explicitly bars Firebase, cloud, accounts, analytics, **ads**, WhatsApp, Telegram, SMS and email during the core batches |
 | 7 | End-to-end security/release review | All prior batches | BLOCKED on batches B–I; protocol Batch K/L |
 
-## Real remaining G4 gaps (found by trace, 2026-09-29)
+## G4 gaps found by trace (2026-09-29) — closed by Batch B
 
-Two lifecycle requirements in the owner protocol are **genuinely unmet**. Both were
-found by tracing call sites, not assumed.
+Two lifecycle requirements in the owner protocol were **genuinely unmet** at the time of
+the trace. Both were found by tracing call sites, not assumed. **Batch B closed both on
+2026-09-29** (`docs/reports/batch-4d-rotation-orchestration-and-retirement.md`); the rows
+below keep the original evidence so the correction is auditable.
 
 | Gap | Evidence from trace | Status |
 |---|---|---|
-| **No rotation trigger exists** | `EvidenceKeyPolicy.rotationDue()` (`EvidenceKeyPolicy.kt:52`) is defined and tested, but `grep -rn "rotationDue" app/src/main` returns **only its own definition** — no production caller. `EvidenceKeyRotator` is referenced only from `EvidenceKeyRotator.kt` itself plus its JVM and instrumented tests. Nothing in `ShieldraApp`, the storage factory, or any service invokes rotation. | **IMPLEMENTED + TESTED + CI VERIFIED + DEVICE VERIFIED — but NOT TRIGGERED.** Per protocol §9, `rotationDue()` alone is not evidence that automatic rotation exists, and no claim of automatic rotation may be made |
-| **No old-key retirement lifecycle** | `grep -rni "retir" app/src/main` returns **zero matches**. There is no `RETIRED` state, no "zero remaining references to the old key version" check, and no destruction path distinct from the §5.7 factory reset. Rotation deliberately leaves old keys in place. | **NOT IMPLEMENTED.** Per protocol §10, implement the retirement **state** without inventing a destruction policy; the final destruction decision stays an explicit owner question |
+| **No rotation trigger existed** | `EvidenceKeyPolicy.rotationDue()` (`EvidenceKeyPolicy.kt:52`) was defined and tested, but `grep -rn "rotationDue" app/src/main` returned **only its own definition** — no production caller, and nothing in `ShieldraApp` or the storage factory invoked rotation. | **CLOSED — CI VERIFIED + DEVICE VERIFIED.** `EvidenceRotationOrchestrator` (`EvidenceKeyLifecycle.kt`) decides the due state from the approved interval or an explicit manual request and drives `EvidenceKeyRotator` over the whole eligible set; `LocalShieldraStorage.rotateEvidenceIfNeeded()` is the production entry point and `ShieldraApp.onCreate` runs the interval check behind the §15 gate. CI `36612265938` (194/194 JVM) and device `OK (5 tests)` / full suite `OK (40 tests)`. **Honest limits:** the trigger is unreachable while `StorageRuntimeApproval.approved` is `false` (Batch D flips it), the manual path has no UI affordance yet, and no approved successor exists past v2, so a second rotation reports `NO_APPROVED_SUCCESSOR` instead of inventing one. |
+| **No old-key retirement lifecycle** | `grep -rni "retir" app/src/main` returned **zero matches** — no `RETIRED` state, no "zero remaining references" check, and no path distinct from the §5.7 factory reset. | **CLOSED — CI VERIFIED + DEVICE VERIFIED.** `FileBackedKeyLifecycle` is the durable RETIRED state (active generation, retired set, rotation clock) in `noBackupFilesDir`, schema-checked and fail-closed when damaged; the orchestrator marks a generation retired **only** after a whole-set re-scan finds zero surviving references, enforced mechanically by a line-order gate in `g4b-review-check.sh`. **Destruction of a retired key remains an open owner decision (Q-C8) and is not implemented.** |
 
 Everything else the protocol listed as possible G4 residue was checked and is already
 closed: AAD-v1 (§8 — canonical format intact, mandatory on the evidence path, real AES-GCM
@@ -292,17 +297,20 @@ resumability, failure semantics (§27), factory reset (§28), and the retention 
 
 ## Required next batch
 
-**Batch B — `4d-rotation-orchestration-and-retirement`** (protocol §9/§10). Close the two
-gaps above: a real production rotation trigger, and an old-key retirement state machine
-that never destroys a key while evidence still references it. TDD, CI green, device
-verified.
+**Batch B — `4d-rotation-orchestration-and-retirement`** (protocol §9/§10) is **CLOSED**:
+the production rotation trigger and the old-key retirement state machine landed, with the
+retirement ordering enforced (migrate all → re-scan → zero remaining references → mark
+RETIRED) and no key-destruction surface anywhere. See
+`docs/reports/batch-4d-rotation-orchestration-and-retirement.md`.
+
+The next batch is **Batch C — Panic Guard end-to-end**.
 
 This is followed, in the owner-mandated order, by:
 
 | Batch | Work | Protocol |
 |---|---|---|
 | A | Reconcile roadmap / questions / decisions against the actual repository | **CLOSED** — `ba1a224`, CI `36598839725` success, report `docs/reports/batch-A-roadmap-reconciliation.md` |
-| B | Rotation trigger + old-key retirement | §9–§10 |
+| B | Rotation trigger + old-key retirement (§9–§10) | **CLOSED** — `f88bdb6`→`22603d2`, CI `36612265938` success (194/194 JVM), device `OK (5 tests)` + full suite `OK (40 tests)` on RMX3910, report `docs/reports/batch-4d-rotation-orchestration-and-retirement.md` |
 | C | **Panic Guard end-to-end** — UI action → signal → immediate confirmation → `EventId` → `SecurityEvent` → pipeline → Room → reload → History → Detail, idempotent on repeat | §12–§15 |
 | D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 |
 | E | Real notifications; `POST_NOTIFICATIONS` requested only when needed; granted/denied/disabled handled honestly — never "alert sent" without permission | §16 |

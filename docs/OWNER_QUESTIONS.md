@@ -418,6 +418,13 @@ tested, the retirement state gets recorded, and **no delete call exists**. That 
 non-inventive reading of §10, and it is reversible — a later batch can add the trigger once you
 pick.
 
+**Status after Batch B (2026-09-29, `22603d2`):** that prediction is what shipped, verbatim.
+`FileBackedKeyLifecycle` records RETIRED generations, the orchestrator refuses to retire
+anything while a reference still survives (whole-set re-scan, plus a CI gate that checks the
+re-scan line precedes the retirement line), and no delete call exists anywhere in the rotation
+path. Answering this question now adds a Keystore delete behind those preconditions; nothing
+already built has to be revisited.
+
 **Your answer:** _____________
 
 ---
@@ -541,7 +548,7 @@ this reconciliation; it is in progress now.
 | Batch | Name | Gate status |
 |---|---|---|
 | **A** | Reconcile roadmap / questions / decisions against the actual repository | **DONE** — commit `ba1a224`, CI `36598839725` success |
-| **B** | Close real G4 lifecycle gaps: rotation **trigger**, old-key **retirement**, plus any gap found by trace | approved, unblocked |
+| **B** | Close real G4 lifecycle gaps: rotation **trigger**, old-key **retirement**, plus any gap found by trace | **DONE** — commits `f88bdb6`→`22603d2`, CI `36612265938` success (194/194 JVM), device `OK (5 tests)` + full suite `OK (40 tests)` on RMX3910. Report: `docs/reports/batch-4d-rotation-orchestration-and-retirement.md`. **Q-C8 (destroying a retired key) stays unanswered by design** |
 | **C** | **Panic Guard end-to-end** (UI → signal → confirm → EventId → SecurityEvent → pipeline → Room → reload → History → Detail) | approved (§12–§13, §15) |
 | **D** | Flip `StorageRuntimeApproval.approved = true` **inside the same verified Panic batch** | approved (§11, §14) — never a standalone commit |
 | **E** | Real notification path (`POST_NOTIFICATIONS`, granted/denied/disabled handled honestly) | approved (§16) |
