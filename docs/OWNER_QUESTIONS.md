@@ -540,7 +540,7 @@ this reconciliation; it is in progress now.
 
 | Batch | Name | Gate status |
 |---|---|---|
-| **A** | Reconcile roadmap / questions / decisions against the actual repository | in progress — this commit |
+| **A** | Reconcile roadmap / questions / decisions against the actual repository | **DONE** — commit `ba1a224`, CI `36598839725` success |
 | **B** | Close real G4 lifecycle gaps: rotation **trigger**, old-key **retirement**, plus any gap found by trace | approved, unblocked |
 | **C** | **Panic Guard end-to-end** (UI → signal → confirm → EventId → SecurityEvent → pipeline → Room → reload → History → Detail) | approved (§12–§13, §15) |
 | **D** | Flip `StorageRuntimeApproval.approved = true` **inside the same verified Panic batch** | approved (§11, §14) — never a standalone commit |

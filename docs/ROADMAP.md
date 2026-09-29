@@ -301,7 +301,7 @@ This is followed, in the owner-mandated order, by:
 
 | Batch | Work | Protocol |
 |---|---|---|
-| A | Reconcile roadmap / questions / decisions against the actual repository | §3–§5 — **this batch** |
+| A | Reconcile roadmap / questions / decisions against the actual repository | **CLOSED** — `ba1a224`, CI `36598839725` success, report `docs/reports/batch-A-roadmap-reconciliation.md` |
 | B | Rotation trigger + old-key retirement | §9–§10 |
 | C | **Panic Guard end-to-end** — UI action → signal → immediate confirmation → `EventId` → `SecurityEvent` → pipeline → Room → reload → History → Detail, idempotent on repeat | §12–§15 |
 | D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 |
