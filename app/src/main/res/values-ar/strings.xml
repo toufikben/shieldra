@@ -202,6 +202,11 @@
     <string name="guard_status_locked">مقفل</string>
     <string name="guard_accessibility">%1$s. %2$s. الحالة: %3$s.%4$s</string>
     <string name="guard_subtitle_inactive">لم تبدأ المراقبة بعد</string>
+    <string name="event_security_event">حدث أمني</string>
+    <string name="event_age_days">قبل %1$d يوم</string>
+    <string name="event_age_hours">قبل %1$d ساعة</string>
+    <string name="event_age_minutes">قبل %1$d دقيقة</string>
+    <string name="event_age_seconds">قبل %1$d ثانية</string>
     <string name="status_network_unknown">الشبكة غير متاحة</string>
     <string name="location_source_gps">GPS</string>
     <string name="location_source_fused">مُدمج</string>

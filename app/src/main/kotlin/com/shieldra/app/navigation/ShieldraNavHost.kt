@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -31,9 +32,18 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.shieldra.app.presentation.demo.DemoData
 import com.shieldra.app.ShieldraApp
+import com.shieldra.app.presentation.guard.AgeParts
 import com.shieldra.app.presentation.guard.LockGuardDecision
+import com.shieldra.app.presentation.guard.PersistedEventLabels
+import com.shieldra.app.presentation.guard.StorageEventReader
+import com.shieldra.app.presentation.guard.ageParts
 import com.shieldra.app.presentation.guard.lockGuardDashboard
-import com.shieldra.app.presentation.guard.lockGuardEventDetail
+import com.shieldra.app.presentation.model.EventUiModel
+import com.shieldra.app.presentation.model.EventDetailUiModel
+import com.shieldra.domain.EventState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.time.Instant
 import androidx.compose.ui.platform.LocalContext
 import com.shieldra.app.design.components.domain.ErrorStateFullScreen
 import com.shieldra.app.presentation.screen.dashboard.DashboardCallbacks
@@ -68,8 +78,17 @@ fun ShieldraNavHost(
     // Honest projection: there is no live detection/monitoring yet (phase 5/G3),
     // so the UI derives from whether the storage gate installed anything, never
     // from fabricated protection numbers.
-    val storageInstalled = (LocalContext.current.applicationContext as ShieldraApp).installedStorage != null
+    val installedStorage = (LocalContext.current.applicationContext as ShieldraApp).installedStorage
+    val storageInstalled = installedStorage != null
     val guardState = LockGuardDecision.decide(storageInstalled)
+    val eventReader = remember(installedStorage) {
+        StorageEventReader.reader(installedStorage, persistedEventLabels())
+    }
+    // Room refuses main-thread queries, so the load is dispatched off it and the
+    // UI renders empty until the real rows arrive.
+    val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage) {
+        value = withContext(Dispatchers.IO) { eventReader.readRecent(RECENT_EVENT_LIMIT, Instant.now()) }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -125,7 +144,7 @@ fun ShieldraNavHost(
             // ===== Main =====
             composable(ShieldraRoutes.DASHBOARD) {
                 DashboardScreen(
-                    model = lockGuardDashboard(guardState),
+                    model = lockGuardDashboard(guardState, recentEvents.take(RECENT_EVENT_LIMIT)),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->
                             navController.navigate(ShieldraRoutes.eventDetail(id))
@@ -141,7 +160,7 @@ fun ShieldraNavHost(
             composable(ShieldraRoutes.HISTORY) {
                 var historyFilterState by remember { mutableStateOf(HistoryFilterState()) }
                 HistoryScreen(
-                    events = emptyList(),
+                    events = recentEvents,
                     filterState = historyFilterState,
                     callbacks = HistoryCallbacks(
                         onEventClick = { id ->
@@ -180,7 +199,9 @@ fun ShieldraNavHost(
                 ),
             ) { entry ->
                 val id = entry.arguments?.getString(ShieldraRoutes.EVENT_DETAIL_ARG_ID).orEmpty()
-                val detail = lockGuardEventDetail(id)
+                val detail by produceState<EventDetailUiModel?>(initialValue = null, id, installedStorage) {
+                    value = withContext(Dispatchers.IO) { eventReader.readOne(id, Instant.now()) }
+                }
                 if (detail == null) {
                     ErrorStateFullScreen(
                         title = stringResource(R.string.event_unknown_title),
@@ -201,6 +222,50 @@ fun ShieldraNavHost(
         }
     }
 }
+
+@Composable
+private fun persistedEventLabels(): PersistedEventLabels {
+    val stateLabels = mapOf(
+        EventState.DELIVERED to stringResource(R.string.status_delivered),
+        EventState.DELIVERING to stringResource(R.string.status_sending),
+        EventState.DEFERRED to stringResource(R.string.status_retrying),
+        EventState.FAILED_FINAL to stringResource(R.string.status_failed),
+        EventState.EXPIRED to stringResource(R.string.status_expired),
+        EventState.READY to stringResource(R.string.status_ready),
+        EventState.INITIATED to stringResource(R.string.status_sending),
+        EventState.COLLECTING to stringResource(R.string.status_ready),
+    )
+    val ageLabel = ageLabelFormatter()
+    return PersistedEventLabels(
+        title = stringResource(R.string.event_security_event),
+        stateLabels = stateLabels,
+        ageLabel = ageLabel,
+    )
+}
+
+/**
+ * Resolves the localized "x ago" wording. The template strings are captured
+ * here because [stringResource] is composable, while the returned lambda is
+ * called later from a plain projection function.
+ */
+@Composable
+private fun ageLabelFormatter(): (Instant, Instant) -> String {
+    val days = stringResource(R.string.event_age_days)
+    val hours = stringResource(R.string.event_age_hours)
+    val minutes = stringResource(R.string.event_age_minutes)
+    val seconds = stringResource(R.string.event_age_seconds)
+    return { now, createdAt ->
+        val parts = ageParts(now, createdAt)
+        when (parts) {
+            is AgeParts.Days -> days.format(parts.value)
+            is AgeParts.Hours -> hours.format(parts.value)
+            is AgeParts.Minutes -> minutes.format(parts.value)
+            is AgeParts.Seconds -> seconds.format(parts.value)
+        }
+    }
+}
+
+private const val RECENT_EVENT_LIMIT = 20
 
 @Composable
 private fun ShieldraBottomBar(

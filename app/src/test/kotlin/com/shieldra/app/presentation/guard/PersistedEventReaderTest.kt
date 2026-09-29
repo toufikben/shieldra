@@ -97,13 +97,14 @@ class PersistedEventReaderTest {
 
         val projected = reader.readRecent(limit = 20, now = now).single()
 
-        assertEquals("1h 30m ago", projected.timestampLabel)
+        assertEquals("1h ago", projected.timestampLabel)
     }
 
     @Test
     fun a_single_event_can_be_looked_up_by_its_real_id() {
+        val other = event(createdAt = now.minus(Duration.ofMinutes(3)), state = EventState.READY)
         val target = event(createdAt = now.minus(Duration.ofMinutes(1)), state = EventState.DELIVERED)
-        val reader = PersistedEventReader(storageInstalled = true, loadRecent = { listOf(target) })
+        val reader = PersistedEventReader(storageInstalled = true, loadRecent = { listOf(other, target) })
 
         val found = reader.readOne(target.id.value.toString(), now = now)
 
@@ -127,6 +128,36 @@ class PersistedEventReaderTest {
         val projected = reader.readRecent(limit = 20, now = now).single()
 
         assertTrue(projected.id.isNotBlank())
+    }
+
+    @Test
+    fun a_clock_skew_into_the_future_never_projects_a_negative_age() {
+        val future = event(createdAt = now.plus(Duration.ofMinutes(5)), state = EventState.READY)
+        val reader = PersistedEventReader(storageInstalled = true, loadRecent = { listOf(future) })
+
+        val projected = reader.readRecent(limit = 20, now = now).single()
+
+        assertEquals("0s ago", projected.timestampLabel, "A skewed clock must not produce a negative age")
+    }
+
+    @Test
+    fun an_injected_localized_formatter_is_used_verbatim() {
+        val persisted = event(createdAt = now.minus(Duration.ofMinutes(90)), state = EventState.READY)
+        val reader = PersistedEventReader(
+            storageInstalled = true,
+            loadRecent = { listOf(persisted) },
+            labels = PersistedEventLabels(
+                title = "حدث أمني",
+                stateLabels = mapOf(EventState.READY to "جاهز"),
+                ageLabel = { _, _ -> "قبل 1 ساعة" },
+            ),
+        )
+
+        val projected = reader.readRecent(limit = 20, now = now).single()
+
+        assertEquals("حدث أمني", projected.title)
+        assertEquals("جاهز", projected.subtitle)
+        assertEquals("قبل 1 ساعة", projected.timestampLabel)
     }
 
     private fun event(createdAt: Instant, state: EventState): SecurityEvent = SecurityEvent.create(

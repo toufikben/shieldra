@@ -27,6 +27,11 @@ class RoomEventRepository(
 
     override fun find(eventId: EventId): SecurityEvent? = events.find(eventId.value.toString())?.let(::toDomain)
 
+    override fun listRecent(limit: Int): List<SecurityEvent> {
+        require(limit > 0) { "limit must be positive" }
+        return events.findRecent(limit).map(::toDomain)
+    }
+
     override fun save(event: SecurityEvent): RepositoryResult {
         val entity = event.toEntity(now = clock.instant())
         var inserted = false

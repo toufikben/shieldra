@@ -10,6 +10,13 @@ interface SecurityEventDao {
     @Query("SELECT * FROM security_events WHERE event_id = :eventId LIMIT 1")
     fun find(eventId: String): SecurityEventEntity?
 
+    /**
+     * Newest-first page ordered by when the event happened, not by when its
+     * state was last touched, so the list does not reshuffle on delivery.
+     */
+    @Query("SELECT * FROM security_events ORDER BY created_at_epoch_ms DESC LIMIT :limit")
+    fun findRecent(limit: Int): List<SecurityEventEntity>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(event: SecurityEventEntity): Long
 

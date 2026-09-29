@@ -202,6 +202,11 @@
     <string name="guard_status_locked">Locked</string>
     <string name="guard_accessibility">%1$s. %2$s. Status: %3$s.%4$s</string>
     <string name="guard_subtitle_inactive">Not monitoring yet</string>
+    <string name="event_security_event">Security event</string>
+    <string name="event_age_days">%1$d days ago</string>
+    <string name="event_age_hours">%1$d hours ago</string>
+    <string name="event_age_minutes">%1$d minutes ago</string>
+    <string name="event_age_seconds">%1$d seconds ago</string>
     <string name="status_network_unknown">Network unavailable</string>
 
     <string name="location_source_gps">GPS</string>

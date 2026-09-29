@@ -66,6 +66,18 @@ grep -q 'GuardStatus.Disabled' "$GUARD" || fail "guards must not be projected as
 grep -q 'ProtectionVisualState.Disabled' "$GUARD" || fail "the not-active state must map to Disabled, never Protected"
 pass "runtime guard projection is honest (no fabricated protection)"
 
+# Persisted events must reach the UI through the pure reader, and the Room
+# read must be dispatched off the main thread (Room throws if queried there).
+READER=app/src/main/kotlin/com/shieldra/app/presentation/guard/PersistedEventReader.kt
+[ -s "$READER" ] || fail "persisted event reader is missing"
+grep -q 'storageInstalled' "$READER" || fail "the reader must stay inert when storage is not installed"
+grep -Eq 'if \(!storageInstalled\)[[:space:]]+return' "$READER" ||
+  fail "the reader must return nothing when storage is not installed"
+grep -q 'Dispatchers.IO' "$NAVHOST" || fail "persisted event reads must be dispatched off the main thread"
+grep -q 'eventReader.readRecent' "$NAVHOST" || fail "NavHost does not read real persisted events"
+grep -q 'eventReader.readOne' "$NAVHOST" || fail "NavHost does not resolve event detail from real persisted events"
+pass "persisted events are read off the main thread and only when storage is installed"
+
 grep -q '^room = ' gradle/libs.versions.toml || fail "Room version is not declared"
 grep -q '^androidx-room-runtime' gradle/libs.versions.toml || fail "Room runtime catalog entry is missing"
 grep -q '^androidx-room-compiler' gradle/libs.versions.toml || fail "Room compiler catalog entry is missing"

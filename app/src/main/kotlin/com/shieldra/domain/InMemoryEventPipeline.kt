@@ -19,6 +19,12 @@ class InMemoryEventRepository : EventRepository {
         }
 
     @Synchronized
+    override fun listRecent(limit: Int): List<SecurityEvent> {
+        require(limit > 0) { "limit must be positive" }
+        return events.values.sortedByDescending { it.createdAt }.take(limit)
+    }
+
+    @Synchronized
     override fun updateState(
         eventId: EventId,
         expected: EventState,

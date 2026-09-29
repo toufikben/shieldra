@@ -5,6 +5,13 @@ import java.time.Instant
 interface EventRepository {
     fun find(eventId: EventId): SecurityEvent?
     fun save(event: SecurityEvent): RepositoryResult
+
+    /**
+     * Newest-first page of persisted events. Callers must invoke this off the
+     * UI thread; the local Room implementation throws if queried on the main
+     * thread.
+     */
+    fun listRecent(limit: Int): List<SecurityEvent>
     fun updateState(
         eventId: EventId,
         expected: EventState,
