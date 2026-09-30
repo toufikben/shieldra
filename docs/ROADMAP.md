@@ -303,13 +303,21 @@ commit, so local storage opens on first launch and the Panic button starts persi
 (session-only activation count vs. schema v3 metadata table). The rotation trigger and retirement state already
 exist behind this gate (Batch B); flipping it makes them live.
 
+**Batch D — `D-storage-runtime-approval`** is **CLOSED** (2026-09-30): the flip is recorded as amendment
+**A-5** in `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`, CI `36745562314` is green (213/213 JVM),
+and on RMX3910 the running app opens storage, writes `shieldra.db` and the §9 rotation record
+(`shieldra-key-lifecycle.bin`, `active=v1`), and a real Panic press reaches History with its own
+event id while the dashboard stays honest (`ATTENTION`, every guard `—`). See
+`docs/reports/batch-D-storage-runtime-approval.md`.
+
 **Batch B — `4d-rotation-orchestration-and-retirement`** (protocol §9/§10) is **CLOSED**:
 the production rotation trigger and the old-key retirement state machine landed, with the
 retirement ordering enforced (migrate all → re-scan → zero remaining references → mark
 RETIRED) and no key-destruction surface anywhere. See
 `docs/reports/batch-4d-rotation-orchestration-and-retirement.md`.
 
-The next batch is **Batch C — Panic Guard end-to-end**.
+The next batch is **Batch E — real notifications** (§16). Decide Q-C9 along with it, since
+Batch E is the first batch that must persist a real delivery receipt.
 
 This is followed, in the owner-mandated order, by:
 
@@ -317,8 +325,8 @@ This is followed, in the owner-mandated order, by:
 |---|---|---|
 | A | Reconcile roadmap / questions / decisions against the actual repository | **CLOSED** — `ba1a224`, CI `36598839725` success, report `docs/reports/batch-A-roadmap-reconciliation.md` |
 | B | Rotation trigger + old-key retirement (§9–§10) | **CLOSED** — `f88bdb6`→`22603d2`, CI `36612265938` success (194/194 JVM), device `OK (5 tests)` + full suite `OK (40 tests)` on RMX3910, report `docs/reports/batch-4d-rotation-orchestration-and-retirement.md` |
-| C | **Panic Guard end-to-end** — UI action → signal → immediate confirmation → `EventId` → `SecurityEvent` → pipeline → Room → reload → History → Detail, idempotent on repeat | §12–§15 |
-| D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 |
+| C | **Panic Guard end-to-end** — UI action → signal → immediate confirmation → `EventId` → `SecurityEvent` → pipeline → Room → reload → History → Detail, idempotent on repeat | §12–§15 — **CLOSED** `c3c3a43`→`d39945f`→`8cce2d7`, CI `36655321989` success (212/212 JVM), device `OK (3)` + full suite `OK (46 tests)`, report `docs/reports/batch-C-pipeline-honesty-and-panic-guard.md` |
+| D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 — **CLOSED** `986cb00`→`36e04c1`→`28d708c`, CI `36745562314` success (213/213 JVM), device `OK (6 tests)` + full suite `OK (48 tests)` **twice on one install** on RMX3910, report `docs/reports/batch-D-storage-runtime-approval.md`. The flip is recorded as amendment **A-5**; g4b now enforces the flipped value so an unrecorded revert fails CI |
 | E | Real notifications; `POST_NOTIFICATIONS` requested only when needed; granted/denied/disabled handled honestly — never "alert sent" without permission | §16 |
 | F | Background/active-guard execution; foreground service acceptable; **WorkManager prohibited as a real-time detector**; no 24/7 claim | §17 |
 | G | Motion Guard | §18 |
@@ -334,9 +342,11 @@ no external providers, **including ads and analytics**, during these core batche
 no UI may show `Protected`/`Active`/`Evidence captured`/`Alert sent` unless real state
 proves it (§31); every dead button must work, be honestly disabled, or be removed (§32).
 
-**Batch D is not a standalone step.** `StorageRuntimeApproval.approved` stays `false`
-until the Panic producer is device-verified, so no intermediate build ever opens storage
-and shows an empty app.
+**Batch D was never a standalone step, and the ordering held.** `StorageRuntimeApproval.approved`
+stayed `false` until the Panic producer was device-verified (Batch C, `OK (46 tests)` on
+RMX3910), and the flip then landed as a visible commit with a recorded amendment (A-5). No
+intermediate build ever opened storage and showed an empty app: g4b enforced `false` for
+every commit up to `986cb00`, and enforces `true` only from `36e04c1` onward.
 
 When device runs are needed, use the app and androidTest APKs from the **same** CI run,
 because each runner regenerates the debug keystore.

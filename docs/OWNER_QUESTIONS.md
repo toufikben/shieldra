@@ -111,8 +111,8 @@ re-opened unless you believe an answer was wrong. If so, add a line to the quest
 
 | ID | Question | Your answer | Implementation | Verification |
 |---|---|---|---|---|
-| Q-A15 | May the app open local storage in a default build? | **NO — storage is installed only behind an approval flag that stays `false`** | `StorageRuntimeApproval.approved = false`; `decideStorageInstall` | `StorageWiringGateOffInstrumentedTest` OK (3 tests) on device: no `shieldra.db`, no Keystore key created |
-| Q-A16 | May the dashboard show "Protected" / an "Active" guard with no detection? | **NO — with no detection the app must never claim protection** | `LockGuardDecision` → `lockGuardDashboard`; `DemoData` dropped from the runtime path | CI gate `PASS: runtime guard projection is honest`; on device the app renders `DISABLED` |
+| Q-A15 | May the app open local storage in a default build? | **YES — the owner flipped the approval flag in a visible commit** | **A-5** (2026-09-30) — `StorageRuntimeApproval.approved = true`; opening still goes exclusively through `openOrRecovery`, so a failure stays `RecoveryRequired` (§4.2–§4.4) | `StorageRuntimeInstallInstrumentedTest` OK (6 tests) on device: the running app installs storage, `shieldra.db` and the §9 rotation record appear, and an install alone still creates **no** Keystore key |
+| Q-A16 | May the dashboard show "Protected" / an "Active" guard with no detection? | **NO — with no detection the app must never claim protection** | `LockGuardDecision` → `lockGuardDashboard`; `DemoData` dropped from the runtime path | CI gate `PASS: runtime guard projection is honest`; on device the app renders `ATTENTION` with every guard showing `—` (never `Protected`, never `Active`) |
 | Q-A17 | May the UI invent evidence the storage does not have? | **NO — no fabricated photo, location, battery, or delivery receipt** | `PersistedEventReader` sets `hasPhoto=false`, `hasLocation=false`, battery `null` | CI gate + `PersistedEventReadingInstrumentedTest` OK (5 tests) on device |
 | Q-A18 | May Room be queried on the main thread? | **NO — Room throws there; all persisted reads go to `Dispatchers.IO`** | `produceState` + `LaunchedEffect` in `ShieldraNavHost` | CI gate `PASS: persisted events are read off the main thread` |
 
@@ -195,8 +195,16 @@ and never produces a build that claims more than it does.
 
 **Your answer:** ✅ **ANSWERED — Option 1. Protocol §11: "DO NOT flip it alone"; §14: flip
 in the SAME controlled batch as the first genuine detector, and only AFTER that detector
-passes device verification.** Protocol Batch D is explicitly bound to Batch C. Until then
-`StorageRuntimeApproval.approved` stays `false`.
+passes device verification.** Protocol Batch D is explicitly bound to Batch C.
+
+**Status (2026-09-30):** condition met and executed. Batch C's Panic producer was
+device-verified (CI `36655321989`, device `OK (46 tests)`), and the flip landed as
+**amendment A-5** in commit `36e04c1` — CI `36745562314` success (213/213 JVM tests),
+device `OK (6 tests)` in `StorageRuntimeInstallInstrumentedTest`. On the real phone the
+running app now opens storage, writes `shieldra.db` and the §9 rotation record
+(`shieldra-key-lifecycle.bin`, `active=v1`), and a Panic press persists a real event that
+appears in History with its own UUID. The dashboard stays honest: `ATTENTION`, every guard
+`—`, never `Protected`/`Active`. Reverting the flag requires a new recorded amendment.
 
 ---
 
