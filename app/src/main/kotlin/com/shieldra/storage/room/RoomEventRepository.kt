@@ -7,9 +7,11 @@ import com.shieldra.domain.EventRepository
 import com.shieldra.domain.EventState
 import com.shieldra.domain.EvidenceReference
 import com.shieldra.domain.GuardSeverity
+import com.shieldra.domain.PanicActivationStore
 import com.shieldra.domain.RepositoryResult
 import com.shieldra.domain.SecurityEvent
 import com.shieldra.domain.SecurityEventType
+import com.shieldra.domain.isTerminal
 import com.shieldra.storage.EvidenceKeyPolicy
 import java.time.Clock
 import java.time.Instant

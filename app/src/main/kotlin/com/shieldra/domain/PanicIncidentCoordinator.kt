@@ -128,19 +128,20 @@ class PanicIncidentCoordinator(
      * onto the very same object, so the initial write already carries the
      * counter and a crash cannot leave a saved Panic event without it.
      */
-    private fun SecurityEvent.asPanicActivation(count: Int, at: Instant): SecurityEvent = create(
-        eventId = id,
-        createdAt = createdAt,
-        expiresAt = expiresAt,
-        state = state,
-        severity = severity,
-        evidenceReferences = evidenceReferences,
-        deliveryInformation = deliveryInformation,
-        metadata = metadata,
-        type = SecurityEventType.PANIC_ACTIVATION,
-        panicActivationCount = count,
-        panicLastActivatedAt = at,
-    )
+    private fun SecurityEvent.asPanicActivation(count: Int, at: Instant): SecurityEvent =
+        SecurityEvent.create(
+            eventId = id,
+            createdAt = createdAt,
+            expiresAt = expiresAt,
+            state = state,
+            severity = severity,
+            evidenceReferences = evidenceReferences,
+            deliveryInformation = deliveryInformation,
+            metadata = metadata,
+            type = SecurityEventType.PANIC_ACTIVATION,
+            panicActivationCount = count,
+            panicLastActivatedAt = at,
+        )
 
     private data class ActivationRecord(
         val count: Int,
