@@ -5,6 +5,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.hardware.TriggerEvent
+import android.hardware.TriggerEventListener
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
@@ -21,6 +23,8 @@ import org.junit.runner.RunWith
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -141,19 +145,42 @@ class MotionSensorEvidenceInstrumentedTest {
     }
 
     @Test
-    fun the_tripwire_delivers_at_most_one_event_per_registration_while_the_phone_is_untouched() {
+    fun the_tripwire_is_reachable_through_the_trigger_api_and_fires_at_most_once_per_request() {
         val tripwire = requireSignificantMotion()
-        val burst = sampleFor(tripwire, SensorManager.SENSOR_DELAY_NORMAL, WINDOW_MS)
+        val firings = AtomicInteger()
+        val lastEvent = AtomicReference<TriggerEvent?>()
+        val listener = object : TriggerEventListener() {
+            override fun onTrigger(event: TriggerEvent) {
+                firings.incrementAndGet()
+                lastEvent.set(event)
+            }
+        }
+        // Measured on this build: SensorManager.registerListener for this sensor returns false and
+        // the platform logs "Trigger Sensors should use the requestTriggerSensor." A tripwire the
+        // detector cannot even register is the finding this assertion would surface.
+        val requested = manager.requestTriggerSensor(listener, tripwire)
+        try {
+            assertTrue(
+                "the wake-up tripwire design has no API to build on if the platform refuses " +
+                    "requestTriggerSensor for SIGNIFICANT_MOTION",
+                requested,
+            )
+            Thread.sleep(WINDOW_MS)
+        } finally {
+            manager.cancelTriggerSensor(listener, tripwire)
+        }
+        val fired = firings.get()
         assertTrue(
-            "SIGNIFICANT_MOTION is a one-shot sensor; more than one event per registration means " +
-                "this vendor HAL is not the platform's own tripwire, measured ${burst.deliveredCount}",
-            burst.deliveredCount <= 1,
+            "a trigger delivers once per request; more than one firing means this vendor HAL is " +
+                "not the platform's one-shot tripwire, measured $fired",
+            fired <= 1,
         )
         // Whether it fires at all while nobody touches the phone is a measurement, not a claim:
         // zero here is expected on a still device and proves nothing about a real carry.
         Log.i(
             TAG,
-            "MEASURED significant_motion_fired_untouched=${burst.deliveredCount} in ${WINDOW_MS} ms",
+            "MEASURED trigger_register_accepted=$requested trigger_fired_untouched=$fired " +
+                "in $WINDOW_MS ms last_values=${lastEvent.get()?.values?.toList()}",
         )
     }
 
@@ -253,7 +280,7 @@ class MotionSensorEvidenceInstrumentedTest {
 
     private fun sampleFor(sensor: Sensor, samplingPeriodUs: Int, windowMs: Long): Burst {
         val thread = HandlerThread("shieldra-motion-evidence").apply { start() }
-        val collector = Collector()
+        val collector = Collector(sensor.type)
         try {
             val handler = Handler(thread.looper)
             assertTrue(
@@ -271,15 +298,19 @@ class MotionSensorEvidenceInstrumentedTest {
     }
 
     /**
-     * What one registration produced. [deliveredCount] counts every event; [samples] holds only
-     * readings that really carry three axes, because a one-shot sensor such as SIGNIFICANT_MOTION
-     * documents a single value and the array it hands a listener is not always three long.
+     * What one registration produced. [deliveredCount] counts every event that reached the
+     * listener; [samples] holds only the readings that really belong to the requested sensor.
      */
     private class Burst(val deliveredCount: Int, val samples: List<MotionSample>)
 
-    /** Raw events become the pure domain sample type, on the handler thread. */
-    private class Collector : SensorEventListener {
+    /**
+     * Raw events become the pure domain sample type, on the handler thread. A listener also sees
+     * the platform's own bookkeeping events (a flush completes as a TYPE_META_DATA event on the
+     * same sensor), so only the requested type with three axes may become a sample.
+     */
+    private class Collector(private val sensorType: Int) : SensorEventListener {
         val samples: MutableList<MotionSample> = Collections.synchronizedList(mutableListOf())
+
         @Volatile
         var deliveredCount: Int = 0
             private set
@@ -287,7 +318,7 @@ class MotionSensorEvidenceInstrumentedTest {
         override fun onSensorChanged(event: SensorEvent) {
             deliveredCount++
             val values = event.values
-            if (values.size < 3) return
+            if (event.sensor?.type != sensorType || values.size < 3) return
             samples += MotionSample(
                 elapsedMs = event.timestamp / 1_000_000L,
                 x = values[0].toDouble(),
