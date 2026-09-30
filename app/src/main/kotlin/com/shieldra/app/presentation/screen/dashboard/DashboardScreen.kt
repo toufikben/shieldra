@@ -24,7 +24,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
 import com.shieldra.app.R
+import com.shieldra.app.presentation.settings.SettingsContent
+import com.shieldra.app.presentation.settings.disclosureLabelRes
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,7 +69,7 @@ fun DashboardScreen(
 
         item {
             Text(
-                text = stringResource(R.string.phase3_demo_disclosure),
+                text = stringResource(disclosureLabelRes(SettingsContent.dashboardMode(model.storageInstalled))),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = spacing.l),

@@ -376,6 +376,81 @@ done
   fail "on-device panic persistence test is missing"
 pass "the owner's named panic tests and the on-device persistence test are present"
 
+# 9. Batch F — the Settings screen may not promise a channel that does not exist,
+#    and the storage row may not print figures the app cannot read (findings 4/5).
+RES=app/src/main/res
+for key in settings_delivery_channels demo_delivery_channels settings_storage_summary phase3_demo_disclosure settings_section_delivery; do
+  if grep -RIn "name=\"$key\"" "$RES" >/dev/null 2>&1; then
+    fail "the fabricated Settings claim $key is back"
+  fi
+done
+if grep -RIn '"12 events\|12 حدث' "$RES" >/dev/null 2>&1; then
+  fail "a demo storage figure is being shipped as a real count"
+fi
+grep -q 'honestSettingsRows(' "$NAVHOST" \
+  || fail "the Settings screen is built from demo rows again"
+grep -q 'SettingsContent.targetOf(id)' "$NAVHOST" \
+  || fail "the notification setting has no honest Settings entry point"
+if grep -q '"delivery"' app/src/main/kotlin/com/shieldra/app/presentation/settings/SettingsContent.kt; then
+  fail "a Settings row still claims a delivery channel"
+fi
+grep -q 'val storageRowShowsFigures: Boolean = false' app/src/main/kotlin/com/shieldra/app/presentation/settings/SettingsContent.kt \
+  || fail "the storage row must not present figures the app cannot read"
+pass "Settings rows claim only channels and counts the app really has"
+
+# 10. Batch F — background execution is a contract, not a claim. No service, no
+#     second permission, and no detector may be added before the detector exists
+#     (directives F3/F6). The type of a future foreground service belongs to that
+#     detector's own Android requirements.
+if grep -q '<service' app/src/main/AndroidManifest.xml; then
+  fail "Batch F declared a service while no detector exists"
+fi
+if grep -RIn 'FOREGROUND_SERVICE' app/src/main/AndroidManifest.xml; then
+  fail "a foreground-service permission was added without a detector that needs it"
+fi
+if grep -RIn 'androidx\.work\|WorkManager\.getInstance\|EnqueueWorker\|\.enqueue(' app/src/main/kotlin; then
+  fail "WorkManager is being used in app sources; §17 forbids it as a real-time detector"
+fi
+if grep -RIn 'androidx.work' gradle/libs.versions.toml app/build.gradle.kts; then
+  fail "the WorkManager dependency was added; no batch up to F has a use for it"
+fi
+pass "no service, no extra permission, and no WorkManager detector before a real guard exists"
+
+# 11. Batch F — the execution layer must stay separated from detection, events,
+#     persistence and notification (directive F2). It owns none of them.
+BG=app/src/main/kotlin/com/shieldra/runtime/BackgroundExecution.kt
+[ -s "$BG" ] || fail "the background execution contract is missing"
+for forbidden in 'com.shieldra.domain' 'com.shieldra.storage' 'com.shieldra.notification' 'SecurityEvent' 'EventRepository'; do
+  if grep -q "$forbidden" "$BG"; then
+    fail "the background layer reaches into $forbidden; execution is not detection, persistence, or delivery"
+  fi
+done
+grep -q 'StartResult.AlreadyRunning' "$BG" || fail "start is not idempotent"
+grep -q 'StopResult.AlreadyStopped' "$BG" || fail "stop is not idempotent"
+grep -q 'StartResult.PrerequisitesMissing' "$BG" || fail "a missing prerequisite is not reported honestly"
+grep -q 'val claimsProtection: Boolean get() = this == ActiveGuardMonitoring' "$BG" \
+  || fail "a protection claim is available without an active detector"
+pass "background execution is idempotent, refuses honestly, and cannot claim protection"
+
+# 12. The owner's named Batch F tests exist.
+for name in start_with_every_prerequisite_present_brings_the_layer_up_once \
+  starting_twice_reports_already_running_and_never_brings_the_layer_up_twice \
+  stopping_twice_reports_already_stopped_and_never_tears_the_layer_down_twice \
+  start_with_a_missing_prerequisite_is_refused_and_nothing_is_brought_up \
+  a_failing_start_leaves_the_layer_stopped_and_carries_the_real_reason \
+  a_recreated_controller_reports_stopped_not_monitoring \
+  a_running_execution_layer_without_a_detector_is_not_active_monitoring; do
+  grep -q "fun $name" app/src/test/kotlin/com/shieldra/runtime/BackgroundExecutionControllerTest.kt ||
+    fail "named background execution test is missing: $name"
+done
+for name in the_settings_rows_have_a_notification_entry_and_no_delivery_entry \
+  the_storage_row_reflects_whether_storage_was_actually_installed \
+  the_dashboard_disclosure_stops_calling_real_storage_a_presentation_demo; do
+  grep -q "fun $name" app/src/test/kotlin/com/shieldra/app/presentation/settings/SettingsContentTest.kt ||
+    fail "named Settings honesty test is missing: $name"
+done
+pass "the owner's named Batch F tests are present"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"

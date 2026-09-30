@@ -59,6 +59,9 @@ import com.shieldra.app.presentation.screen.onboarding.ProtectionSetupScreen
 import com.shieldra.app.presentation.screen.onboarding.WelcomeScreen
 import com.shieldra.app.presentation.screen.premium.PremiumCallbacks
 import com.shieldra.app.presentation.screen.premium.PremiumScreen
+import com.shieldra.app.presentation.settings.SettingsContent
+import com.shieldra.app.presentation.settings.SettingsRowTarget
+import com.shieldra.app.presentation.settings.honestSettingsRows
 import com.shieldra.app.presentation.screen.settings.SettingsCallbacks
 import com.shieldra.app.presentation.screen.settings.SettingsScreen
 import com.shieldra.app.presentation.screen.settings.NotificationSetupScreen
@@ -244,12 +247,17 @@ fun ShieldraNavHost(
             }
             composable(ShieldraRoutes.SETTINGS) {
                 SettingsScreen(
-                    rows = DemoData.settingsRows(),
+                    rows = honestSettingsRows(
+                        storageInstalled = storageInstalled,
+                        notificationState = remember(permissionRequests) { notifier.permissionState() },
+                    ),
                     callbacks = SettingsCallbacks { id, _ ->
-                        if (id == DELIVERY_ROW_ID) {
-                            navController.navigate(ShieldraRoutes.NOTIFICATION_SETUP)
-                        } else {
-                            defer()
+                        when (SettingsContent.targetOf(id)) {
+                            // The one row with a real destination: the A-6 setup screen.
+                            SettingsRowTarget.NotificationSetup ->
+                                navController.navigate(ShieldraRoutes.NOTIFICATION_SETUP)
+
+                            SettingsRowTarget.NotAvailable -> defer()
                         }
                     },
                 )
@@ -345,9 +353,6 @@ private fun ageLabelFormatter(): (Instant, Instant) -> String {
 }
 
 private const val RECENT_EVENT_LIMIT = 20
-
-/** Settings row that opens notification setup (A-6); it is the only permission request. */
-private const val DELIVERY_ROW_ID = "delivery"
 
 /** Distinguishes "still loading" from "no such event", which are both null. */
 private sealed interface DetailLookup {

@@ -53,8 +53,8 @@ class SettingsContentTest {
     @Test
     fun the_storage_row_has_no_fabricated_event_or_byte_count() {
         // An event count cannot be read through the existing storage API, so the
-        // row must not print one at all.
-        assertFalse(SettingsContent.storageRowHasInventedCount)
+        // row must not print figures at all.
+        assertFalse(SettingsContent.storageRowShowsFigures)
     }
 
     // F7.8 — the dashboard mode follows the real storage state.

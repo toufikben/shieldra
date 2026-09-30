@@ -50,7 +50,7 @@
     <string name="premium_restore">Restore purchase</string>
 
     <string name="settings_section_security">SECURITY</string>
-    <string name="settings_section_delivery">DELIVERY</string>
+    <string name="settings_section_notifications">NOTIFICATIONS</string>
     <string name="settings_section_appearance">APPEARANCE</string>
     <string name="settings_section_data_privacy">DATA &amp; PRIVACY</string>
     <string name="settings_section_security_app">SECURITY (APP)</string>
@@ -110,7 +110,8 @@
     <string name="event_id">Event ID</string>
     <string name="open_in_maps">Open in Maps</string>
     <string name="phase3_deferred">This action is intentionally deferred in Phase 3.</string>
-    <string name="phase3_demo_disclosure">Phase 3 presentation demo — no production data or integrations.</string>
+    <string name="dashboard_events_disclosure">Security events are recorded and stored on this phone. No continuous monitoring is running yet.</string>
+    <string name="dashboard_no_storage_disclosure">Nothing is stored on this phone yet. No continuous monitoring is running.</string>
     <string name="settings_row_deferred">Settings are presentation-only in Phase 3.</string>
     <string name="action_get_started">Get started</string>
     <string name="detail_type">Type</string>
@@ -196,19 +197,18 @@
     <string name="premium_free_summary">Free includes: Lock Guard · Motion Guard · SIM Guard · Panic · Email delivery.</string>
     <string name="settings_protection">Protection</string>
     <string name="settings_guards_summary">Lock Guard · Guards</string>
-    <string name="settings_delivery_channels">Delivery channels</string>
     <string name="settings_app_lock">App lock</string>
     <string name="settings_require_authentication">Require authentication</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_match_system">Match system</string>
     <string name="settings_language">Language</string>
     <string name="settings_storage">Storage</string>
-    <string name="settings_storage_summary">12 events · 3.2 MB</string>
+    <string name="settings_storage_in_use">Local storage is in use on this phone</string>
+    <string name="settings_storage_none">No local storage on this phone yet</string>
     <string name="settings_retention">Retention policy</string>
     <string name="settings_retention_pending">Policy pending</string>
     <string name="settings_about_shieldra">About Shieldra</string>
     <string name="settings_help">Help</string>
-    <string name="demo_delivery_channels">Email · WhatsApp · Telegram</string>
     <string name="guard_premium_feature">Premium feature</string>
     <string name="guard_status_active">Active</string>
     <string name="guard_status_signal">Signal</string>

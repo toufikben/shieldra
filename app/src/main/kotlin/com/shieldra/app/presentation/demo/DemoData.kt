@@ -108,17 +108,4 @@ object DemoData {
         ),
         freeTierSummary = stringResource(R.string.premium_free_summary),
     )
-
-    @Composable
-    fun settingsRows(): List<SettingsRowUiModel> = listOf(
-        SettingsRowUiModel("protection", stringResource(R.string.settings_protection), stringResource(R.string.settings_guards_summary), SettingsIcon.Security, section = SettingsSection.Security),
-        SettingsRowUiModel("delivery", stringResource(R.string.settings_delivery_channels), stringResource(R.string.demo_delivery_channels), SettingsIcon.Delivery, section = SettingsSection.Delivery),
-        SettingsRowUiModel("app_lock", stringResource(R.string.settings_app_lock), stringResource(R.string.settings_require_authentication), SettingsIcon.Lock, true, SettingsSection.SecurityApp),
-        SettingsRowUiModel("theme", stringResource(R.string.settings_theme), stringResource(R.string.settings_match_system), SettingsIcon.Theme, section = SettingsSection.Appearance),
-        SettingsRowUiModel("language", stringResource(R.string.settings_language), icon = SettingsIcon.Language, section = SettingsSection.Appearance),
-        SettingsRowUiModel("storage", stringResource(R.string.settings_storage), stringResource(R.string.settings_storage_summary), SettingsIcon.Storage, section = SettingsSection.PrivacyData),
-        SettingsRowUiModel("retention", stringResource(R.string.settings_retention), stringResource(R.string.settings_retention_pending), SettingsIcon.Retention, true, SettingsSection.PrivacyData),
-        SettingsRowUiModel("about", stringResource(R.string.settings_about_shieldra), icon = SettingsIcon.Info, section = SettingsSection.About),
-        SettingsRowUiModel("help", stringResource(R.string.settings_help), icon = SettingsIcon.Help, section = SettingsSection.About),
-    )
 }

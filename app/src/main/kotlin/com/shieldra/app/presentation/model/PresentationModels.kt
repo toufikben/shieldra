@@ -79,6 +79,8 @@ data class DashboardUiModel(
     val networkLabel: String,
     val networkOk: Boolean,
     val showAds: Boolean,
+    /** Whether this process really opened local storage; decides the disclosure line. */
+    val storageInstalled: Boolean = false,
 )
 
 enum class HistoryTypeFilter { All, Lock, Motion, Sim, Panic, Battery }
@@ -100,8 +102,8 @@ data class PremiumUiModel(
     val freeTierSummary: String,
 )
 
-enum class SettingsSection { Security, Delivery, Appearance, PrivacyData, SecurityApp, About }
-enum class SettingsIcon { Security, Delivery, Lock, Theme, Language, Storage, Retention, Info, Help }
+enum class SettingsSection { Security, Notifications, Appearance, PrivacyData, SecurityApp, About }
+enum class SettingsIcon { Security, Notifications, Lock, Theme, Language, Storage, Retention, Info, Help }
 
 data class SettingsRowUiModel(
     val id: String,

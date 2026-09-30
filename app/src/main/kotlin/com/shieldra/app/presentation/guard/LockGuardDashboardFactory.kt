@@ -42,6 +42,7 @@ fun lockGuardDashboard(
         networkLabel = stringResource(R.string.status_network_unknown),
         networkOk = false,
         showAds = false,
+        storageInstalled = state == LockGuardState.StorageIdle,
     )
 }
 

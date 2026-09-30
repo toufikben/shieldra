@@ -32,7 +32,8 @@ import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.presentation.model.SettingsRowUiModel
 import com.shieldra.app.presentation.model.SettingsSection
-import com.shieldra.app.presentation.demo.DemoData
+import com.shieldra.app.presentation.settings.honestSettingsRows
+import com.shieldra.notification.NotificationPermissionState
 
 @Composable
 fun SettingsScreen(
@@ -54,8 +55,8 @@ fun SettingsScreen(
         SettingsGroup(grouped[SettingsSection.Security].orEmpty(), callbacks)
         Spacer(Modifier.height(spacing.xl))
 
-        SettingsSectionTitle(stringResource(R.string.settings_section_delivery))
-        SettingsGroup(grouped[SettingsSection.Delivery].orEmpty(), callbacks)
+        SettingsSectionTitle(stringResource(R.string.settings_section_notifications))
+        SettingsGroup(grouped[SettingsSection.Notifications].orEmpty(), callbacks)
         Spacer(Modifier.height(spacing.xl))
 
         SettingsSectionTitle(stringResource(R.string.settings_section_appearance))
@@ -159,7 +160,10 @@ private fun SettingsRow(row: SettingsRowUiModel, onClick: () -> Unit) {
 private fun SettingsDarkPreview() {
     ShieldraTheme(darkTheme = true) {
         SettingsScreen(
-            rows = DemoData.settingsRows(),
+            rows = honestSettingsRows(
+                storageInstalled = false,
+                notificationState = NotificationPermissionState.NotRequested,
+            ),
             callbacks = SettingsCallbacks { _, _ -> },
         )
     }
@@ -170,7 +174,10 @@ private fun SettingsDarkPreview() {
 private fun SettingsLightPreview() {
     ShieldraTheme(darkTheme = false) {
         SettingsScreen(
-            rows = DemoData.settingsRows(),
+            rows = honestSettingsRows(
+                storageInstalled = false,
+                notificationState = NotificationPermissionState.NotRequested,
+            ),
             callbacks = SettingsCallbacks { _, _ -> },
         )
     }
