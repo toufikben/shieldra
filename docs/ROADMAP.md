@@ -298,10 +298,31 @@ resumability, failure semantics (§27), factory reset (§28), and the retention 
 
 ## Required next batch
 
-**Batch D — flip the §15 production install gate.** Set `StorageRuntimeApproval.approved = true` in a visible
-commit, so local storage opens on first launch and the Panic button starts persisting real events. Decide Q-C9
-(session-only activation count vs. schema v3 metadata table). The rotation trigger and retirement state already
-exist behind this gate (Batch B); flipping it makes them live.
+**Batch F — background/active-guard execution** (§17). Foreground service is acceptable;
+WorkManager is prohibited as a real-time detector; no 24/7 claim. Its first task is the
+truthful-copy defect Batch E found and did not silently widen to fix: the notification setting is
+reachable only from a Settings row labelled "Delivery channels · Email · WhatsApp · Telegram"
+(no such channel exists), the dashboard banner still says "no production data" although real
+Room events are written since A-5, and the Settings storage row still shows demo numbers. See
+`docs/reports/batch-E-local-notifications-and-durable-activation.md`, findings 4 and 5.
+
+**Batch E — `E-local-notifications-and-durable-activation`** is **CLOSED** (2026-09-30): real
+local notifications (amendment **A-6**) and the durable Panic activation count with Room v2→v3
+(amendment **A-7**). CI chain `f16e635` RED → `a8d4bee`→`bdfb8ba`→`8084026`→`aa3517c`→`c3f367b`
+repairs → `ffd6745` narrow RED (a never-requested permission must not read as a refusal) →
+`4ec751b`→`53f0f43`, final run **`36771561585` success: 231 JVM tests, 0 failures, 0 errors, 0
+skipped**, lint, both APKs, g4b/Group C/Phase 3 gates green. On RMX3910 (APKs from the same run):
+`NotificationPermissionStateInstrumentedTest` **`OK (4 tests)`**,
+`PanicActivationSchemaMigrationInstrumentedTest` **`OK (3 tests)`**,
+`RoomPanicPersistenceInstrumentedTest` **`OK (3 tests)`**,
+`StorageRuntimeInstallInstrumentedTest` **`OK (6 tests)`**, and the full suite **`OK (55 tests)`
+twice on one install**. Observed on screen: fresh install reads **"Not requested"**; answering
+"Don't allow" changes it to **"Not allowed"** and nothing else; with the permission granted a
+Panic press posts a real notification record whose tag is the event id shown in History/Detail;
+three further presses leave one notification record and one event, including across a cold
+restart; turning the permission off in system settings makes the next press post **0**
+notifications while the event stays recorded. G4 remains **unaccepted** and §15 remains open.
+See `docs/reports/batch-E-local-notifications-and-durable-activation.md`.
 
 **Batch D — `D-storage-runtime-approval`** is **CLOSED** (2026-09-30): the flip is recorded as amendment
 **A-5** in `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`, CI `36745562314` is green (213/213 JVM),
@@ -316,8 +337,8 @@ retirement ordering enforced (migrate all → re-scan → zero remaining referen
 RETIRED) and no key-destruction surface anywhere. See
 `docs/reports/batch-4d-rotation-orchestration-and-retirement.md`.
 
-The next batch is **Batch E — real notifications** (§16). Decide Q-C9 along with it, since
-Batch E is the first batch that must persist a real delivery receipt.
+Batch E is **closed** (2026-09-30, amendments A-6/A-7 — see the section above). Q-C9 was decided
+with it and landed as durable per-event metadata, not a delivery receipt.
 
 This is followed, in the owner-mandated order, by:
 
@@ -327,8 +348,8 @@ This is followed, in the owner-mandated order, by:
 | B | Rotation trigger + old-key retirement (§9–§10) | **CLOSED** — `f88bdb6`→`22603d2`, CI `36612265938` success (194/194 JVM), device `OK (5 tests)` + full suite `OK (40 tests)` on RMX3910, report `docs/reports/batch-4d-rotation-orchestration-and-retirement.md` |
 | C | **Panic Guard end-to-end** — UI action → signal → immediate confirmation → `EventId` → `SecurityEvent` → pipeline → Room → reload → History → Detail, idempotent on repeat | §12–§15 — **CLOSED** `c3c3a43`→`d39945f`→`8cce2d7`, CI `36655321989` success (212/212 JVM), device `OK (3)` + full suite `OK (46 tests)`, report `docs/reports/batch-C-pipeline-honesty-and-panic-guard.md` |
 | D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 — **CLOSED** `986cb00`→`36e04c1`→`28d708c`, CI `36745562314` success (213/213 JVM), device `OK (6 tests)` + full suite `OK (48 tests)` **twice on one install** on RMX3910, report `docs/reports/batch-D-storage-runtime-approval.md`. The flip is recorded as amendment **A-5**; g4b now enforces the flipped value so an unrecorded revert fails CI |
-| E | Real notifications; `POST_NOTIFICATIONS` requested only when needed; granted/denied/disabled handled honestly — never "alert sent" without permission | §16 |
-| F | Background/active-guard execution; foreground service acceptable; **WorkManager prohibited as a real-time detector**; no 24/7 claim | §17 |
+| E | Real local notifications (A-6) + durable Panic activation count with Room v2→v3 (A-7); `POST_NOTIFICATIONS` requested only from the notification setup screen; granted / refused / never-asked kept distinct; a refusal never blocks recording; no local post ever worded as delivered | §16, §23, §31 — **CLOSED** `f16e635`→`…`→`53f0f43`, CI `36771561585` success (231/231 JVM, 0 failures), device `OK (4)` + `OK (3 migration)` + `OK (3 persistence)` + `OK (6 install)`, full suite **`OK (55 tests)` twice on one install** on RMX3910, report `docs/reports/batch-E-local-notifications-and-durable-activation.md`. Exactly one permission is declared; g4b fails a second one, a remote provider in the notification package, any `DELIVERED`/`SENT` name in the local result vocabulary, and a notifier that cannot tell silence from refusal |
+| F | Background/active-guard execution; foreground service acceptable; **WorkManager prohibited as a real-time detector**; no 24/7 claim | §17 — **NEXT** |
 | G | Motion Guard | §18 |
 | H | Evidence / privacy / permission implementation | §21–§23 |
 | I | SIM Guard — feasibility first, then implementation | §19 |

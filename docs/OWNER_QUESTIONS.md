@@ -13,12 +13,19 @@ boxes in Q-C3, Q-C4, Q-C7, Q-D5 and Q-D7.
 which answers C1–C7 and fixes the execution order. Its rulings are transcribed into each
 question below and into `docs/ROADMAP.md`. Where the protocol conflicts with an older note
 in this file, the protocol is marked and the conflict is recorded, not hidden.
+**Revised:** 2026-09-30, after Batch E closed — **Q-C9 is CLOSED** (amendment A-7, CI + device)
+and **Q-C10 is new** (the Settings row Batch E could not fix without widening its scope).
 
-> **Two items are still open after the protocol, and neither blocks Batch B or C:**
+> **Three items are still open after the protocol, and none blocks the next batch:**
 > 1. **Q-D5/Q-D7 — ads and billing.** The protocol (§30) contradicts the 2026-09-29
 >    store-launch decision. Needs one line from you. See the CONFLICT box there.
 > 2. **Q-C8 — destroying a *retired* evidence key version.** §10 forbids me from inventing a
 >    destructive policy, so Batch B stops at `RETIRED` until you answer.
+> 3. **Q-C10 — the Settings row that promises delivery channels** (raised by Batch E,
+>    2026-09-30). Needs one line: option 1 makes it Batch F's first task.
+>    Outside this repository, the published store copy still advertises **"zero Android
+>    permissions"**, which amendment A-6 superseded — the honest sentence is "no permissions
+>    until you need them".
 >
 > Everything else in section C is answered and quoted to its source.
 
@@ -49,7 +56,8 @@ in this file, the protocol is marked and the conflict is recorded, not hidden.
 2. Section **C** held the seven blocking questions, Q-C1 … Q-C7. All seven are now answered
    from the protocol; each row quotes the section that answers it, so the answer can be checked
    rather than trusted. **Q-C8 is new** — it is a question the protocol itself raised (§10) and
-   did not answer.
+   did not answer. **Q-C9 is closed** (amendment A-7, CI + device, 2026-09-30). **Q-C10 is the
+   one open item in section C** — raised by Batch E.
 3. Section **D** lists questions that belong to later phases and only need answering when
    that phase is reached. **D.2 is the exception: it carries the one open conflict.**
 4. Authority order, since the protocol arrived: **the owner's Final Master Execution Protocol
@@ -479,7 +487,47 @@ compatible with the current model. It turns out the current storage model cannot
 print a "recorded" claim for a number the database would have dropped. That would have been the
 same fabricated-success bug this batch exists to remove.
 
-**Your answer:** _____________
+**Your answer:** ✅ **ANSWERED (2026-09-30) — none of the three options as written: amendment
+A-7 took the third form (dedicated nullable columns on the event row, not a general metadata
+table) and named the limits that make it safe: no global counter, no second `EventId`, no
+severity change, no time window, lifecycle stays the only binding authority.**
+
+**Status (2026-09-30):** **CLOSED (CI + DEVICE).** CI `36771561585` (HEAD `53f0f43`) — 231 JVM
+tests, 0 failures, 0 errors, 0 skipped. On RMX3910:
+`PanicActivationSchemaMigrationInstrumentedTest` `OK (3 tests)`,
+`RoomPanicPersistenceInstrumentedTest` `OK (3 tests)`, full suite `OK (55 tests)` twice on one
+install, and on screen three further Panic presses (including one after a cold restart) left one
+History row and one notification record with the same event id. The exact integer inside the
+shipping `shieldra.db` was **not** read on device (no sqlite tooling, and this OEM build blocks
+`pm clear`) — recorded in the batch report rather than claimed. See
+`docs/reports/batch-E-local-notifications-and-durable-activation.md`.
+
+---
+
+## Q-C10 — The notification screen is reachable only through a row that promises other channels (NEW, raised by Batch E)
+
+**Status:** **OPEN — one line needed.** Nothing here blocks Batch F; it only decides what
+Batch F's first task fixes.
+
+**The finding, in the app as it runs today:** Batch E added a real notification setup screen,
+but there is no Settings row for it. The only way in is the row labelled **"Delivery channels —
+Email · WhatsApp · Telegram"**, which navigates to the notification screen. The label is wrong
+twice over: no delivery channel exists (protocol §30 forbids external providers), and §31 says
+no UI may claim more than the real state. The same screen also still shows a stale **"Phase 3
+presentation demo — no production data"** banner and demo storage figures (**12 events ·
+3.2 MB**) while the database holds the real events you just recorded (see the finding numbering
+in `docs/reports/batch-E-local-notifications-and-durable-activation.md`, FINDINGS 4 and 5).
+
+| Option | Rule | Consequence |
+|---|---|---|
+| **1 (recommended)** | Batch F replaces the row with a real **"Notifications"** row that shows the live state (`Allowed` / `Not allowed` / `Not requested`), deletes the Email/WhatsApp/Telegram wording, removes the demo banner, and prints the actual event and byte counts from the repository. | Every screen says only what the app does. Cost: a few UI files, no schema and no permission change. |
+| 2 | Fix only the wrong labels now; leave demo storage numbers until the evidence counters exist. | Less work, but Settings would still show a number the database never produced. §31 stays violated. |
+| 3 | Defer everything to a later polish batch. | Fastest path to §17 background monitoring, but a knowingly false row ships in every CI-built APK in the meantime. |
+
+**What I did NOT do:** silently widen Batch E to rewrite Settings, or keep a row that routes a
+"Delivery channels" label into a notification screen and call it a temporary detail.
+
+**Your answer:** ⬜ not answered yet — **take option 1 and I will do it as Batch F's first task.**
 
 ---
 
