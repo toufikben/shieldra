@@ -24,12 +24,12 @@ class NotificationStateTest {
     fun below_api_33_the_runtime_permission_is_not_required() {
         assertEquals(
             NotificationPermissionState.NotRequired,
-            NotificationPermissionState.forSdkInt(30),
+            NotificationPermissionState.forSdkInt(30, granted = null),
             "Android 11 has no runtime POST_NOTIFICATIONS permission",
         )
         assertEquals(
             NotificationPermissionState.NotRequired,
-            NotificationPermissionState.forSdkInt(26),
+            NotificationPermissionState.forSdkInt(26, granted = null),
             "the minimum supported version needs no permission either",
         )
     }
@@ -142,7 +142,21 @@ class NotificationStateTest {
 
     @Test
     fun no_local_result_ever_reads_as_delivered() {
-        val names = LocalPostResult.entries.map { it.name }
+        // LocalPostResult is a sealed interface, so the vocabulary is written out
+        // rather than enumerated; the exhaustive `when` below is what fails the
+        // build if a fourth member is ever added without being named honestly.
+        val results: List<LocalPostResult> = listOf(
+            LocalPostResult.NotAttempted,
+            LocalPostResult.PostedLocally,
+            LocalPostResult.FailedToPost("reason"),
+        )
+        val names = results.map { result ->
+            when (result) {
+                LocalPostResult.NotAttempted -> "NotAttempted"
+                LocalPostResult.PostedLocally -> "PostedLocally"
+                is LocalPostResult.FailedToPost -> "FailedToPost"
+            }
+        }
         assertTrue(
             names.none { it.contains("DELIVERED", ignoreCase = true) },
             "'PostedLocally' is the strongest local claim; DELIVERED belongs to remote delivery: $names",

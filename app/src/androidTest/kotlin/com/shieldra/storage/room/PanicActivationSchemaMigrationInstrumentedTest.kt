@@ -100,7 +100,7 @@ class PanicActivationSchemaMigrationInstrumentedTest {
 
     @Test
     fun the_atomic_activation_increment_refuses_a_terminal_event() {
-        val database = helper.createDatabase(TEST_DB, 2).apply {
+        helper.createDatabase(TEST_DB, 2).apply {
             execSQL(
                 "INSERT INTO security_events " +
                     "(event_id, event_type, state, severity, created_at_epoch_ms, " +
@@ -124,49 +124,51 @@ class PanicActivationSchemaMigrationInstrumentedTest {
             true,
             ShieldraDatabaseMigrations.MIGRATION_2_3,
         )
-        val dao = migrated.openHelper.writableDatabase
 
-        // The very shape the Room DAO will use: one atomic UPDATE that both
-        // increments and refuses a non-active event, so no read-then-write
-        // window exists for a crash or a concurrent press to slip through.
-        val liveUpdated = dao.execSQLUpdate(
-            "UPDATE security_events SET " +
-                "panic_activation_count = COALESCE(panic_activation_count, 0) + 1, " +
-                "panic_last_activated_at_epoch_ms = ? " +
-                "WHERE event_id = ? AND state NOT IN ('DELIVERED', 'FAILED_FINAL', 'EXPIRED')",
-            arrayOf<Any>(1750000009999L, "evt-live"),
-        )
-        assertEquals("an active event must accept the increment", 1, liveUpdated)
+        // The very shape the Room DAO uses: one statement that both increments and
+        // refuses a non-active event, so no read-then-write window exists for a
+        // crash or a concurrent press to slip through. It runs twice on the active
+        // row to show the count really accumulates instead of being re-stamped.
+        migrated.execSQL(incrementFor("evt-live", 1750000009999L))
+        migrated.execSQL(incrementFor("evt-live", 1750000010000L))
+        migrated.execSQL(incrementFor("evt-done", 1750000009999L))
 
-        val terminalUpdated = dao.execSQLUpdate(
-            "UPDATE security_events SET " +
-                "panic_activation_count = COALESCE(panic_activation_count, 0) + 1, " +
-                "panic_last_activated_at_epoch_ms = ? " +
-                "WHERE event_id = ? AND state NOT IN ('DELIVERED', 'FAILED_FINAL', 'EXPIRED')",
-            arrayOf<Any>(1750000009999L, "evt-done"),
-        )
-        assertEquals("a terminal event must match no row and refuse the increment", 0, terminalUpdated)
-
-        dao.query(
+        migrated.query(
             "SELECT panic_activation_count, panic_last_activated_at_epoch_ms " +
                 "FROM security_events WHERE event_id = 'evt-live'",
         ).use { cursor ->
             assertTrue(cursor.moveToFirst())
-            assertEquals(1L, cursor.longColumn("panic_activation_count"))
-            assertEquals(1750000009999L, cursor.longColumn("panic_last_activated_at_epoch_ms"))
+            assertEquals(
+                "a NULL count must become 1 on the first increment, then 2",
+                2L,
+                cursor.longColumn("panic_activation_count"),
+            )
+            assertEquals(
+                "the last activation instant must be the one just written",
+                1750000010000L,
+                cursor.longColumn("panic_last_activated_at_epoch_ms"),
+            )
         }
 
-        dao.query(
+        migrated.query(
             "SELECT panic_activation_count FROM security_events WHERE event_id = 'evt-done'",
         ).use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertNull(
-                "a refused increment must leave the column untouched",
+                "a terminal event must match no row and leave the column untouched",
                 cursor.nullableLongColumn("panic_activation_count"),
             )
         }
         migrated.close()
     }
+
+    /** The single atomic activation statement, as the Room DAO issues it. */
+    private fun incrementFor(eventId: String, activatedAtEpochMs: Long): String =
+        "UPDATE security_events SET " +
+            "panic_activation_count = COALESCE(panic_activation_count, 0) + 1, " +
+            "panic_last_activated_at_epoch_ms = $activatedAtEpochMs " +
+            "WHERE event_id = '$eventId' AND " +
+            "state NOT IN ('DELIVERED', 'FAILED_FINAL', 'EXPIRED')"
 
     @Test
     fun migration_2_3_is_registered_for_the_storage_factory() {
