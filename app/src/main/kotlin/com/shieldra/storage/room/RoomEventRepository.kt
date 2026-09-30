@@ -1,9 +1,11 @@
 package com.shieldra.storage.room
 
 import com.shieldra.domain.DeliveryInformation
+import com.shieldra.domain.DeliveryStatus
 import com.shieldra.domain.EventId
 import com.shieldra.domain.EventRepository
 import com.shieldra.domain.EventState
+import com.shieldra.domain.EvidenceReference
 import com.shieldra.domain.GuardSeverity
 import com.shieldra.domain.RepositoryResult
 import com.shieldra.domain.SecurityEvent
@@ -41,17 +43,7 @@ class RoomEventRepository(
                 if (inserted) {
                     event.evidenceReferences.forEach { reference ->
                         check(
-                            evidence.insert(
-                                EvidenceReferenceEntity(
-                                    evidenceId = reference.id,
-                                    eventId = event.id.value.toString(),
-                                    kind = "UNSPECIFIED",
-                                    contentReference = null,
-                                    capturedAtEpochMs = null,
-                                    keyVersion = EvidenceKeyPolicy.KEY_VERSION_V1,
-                                    aadVersion = EvidenceKeyPolicy.AAD_VERSION_V1,
-                                ),
-                            ) != -1L,
+                            evidence.insert(reference.toEntity(event.id.value.toString())) != -1L,
                         ) { "Evidence reference collision: ${reference.id}" }
                     }
                     event.deliveryInformation.forEachIndexed { index, information ->
@@ -75,12 +67,16 @@ class RoomEventRepository(
         expiresAt: Instant?,
     ): RepositoryResult {
         val current = events.find(eventId.value.toString()) ?: return RepositoryResult.NotFound
+        val unsupportedKeys = metadata?.keys?.filter { it != DEFERRED_STAGE_KEY }
+        if (!unsupportedKeys.isNullOrEmpty()) {
+            return RepositoryResult.Rejected("Schema v2 storage persists no metadata keys besides $DEFERRED_STAGE_KEY")
+        }
         if (current.state != expected.name) return RepositoryResult.Conflict(EventState.valueOf(current.state))
         val transition = com.shieldra.domain.transition(expected, next)
         if (transition is com.shieldra.domain.StateTransitionResult.Rejected) {
             return RepositoryResult.Rejected(transition.reason)
         }
-        val resumeStage = metadata?.get("deferredStage") ?: current.resumeStage
+        val resumeStage = metadata?.get(DEFERRED_STAGE_KEY) ?: current.resumeStage
         val changed = events.updateStateIfExpected(
             eventId = eventId.value.toString(),
             expectedState = expected.name,
@@ -94,22 +90,37 @@ class RoomEventRepository(
             ?: RepositoryResult.NotFound
     }
 
+    override fun recordEvidence(eventId: EventId, reference: EvidenceReference): RepositoryResult {
+        val id = eventId.value.toString()
+        if (events.find(id) == null) return RepositoryResult.NotFound
+        val inserted = evidence.insert(reference.toEntity(id))
+        return if (inserted != -1L) RepositoryResult.Applied else RepositoryResult.AlreadyExists
+    }
+
+    override fun recordDeliveryAttempt(eventId: EventId, information: DeliveryInformation): RepositoryResult {
+        val id = eventId.value.toString()
+        if (events.find(id) == null) return RepositoryResult.NotFound
+        val index = delivery.findForEvent(id).size
+        val inserted = delivery.insert(information.toEntity(id, index))
+        return if (inserted != -1L) RepositoryResult.Applied else RepositoryResult.Rejected("Delivery attempt collision: $id:$index")
+    }
+
     private fun toDomain(entity: SecurityEventEntity): SecurityEvent = SecurityEvent.create(
         eventId = EventId.from(UUID.fromString(entity.eventId)),
         createdAt = Instant.ofEpochMilli(entity.createdAtEpochMs),
         expiresAt = entity.expiresAtEpochMs?.let(Instant::ofEpochMilli),
         state = EventState.valueOf(entity.state),
         severity = entity.severity?.let(GuardSeverity::valueOf),
-        evidenceReferences = evidence.findForEvent(entity.eventId).map { com.shieldra.domain.EvidenceReference(it.evidenceId) },
+        evidenceReferences = evidence.findForEvent(entity.eventId).map { EvidenceReference(it.evidenceId) },
         deliveryInformation = delivery.findForEvent(entity.eventId).map { attempt ->
             DeliveryInformation(
                 channel = attempt.channel,
-                status = com.shieldra.domain.DeliveryStatus.valueOf(attempt.status),
+                status = DeliveryStatus.valueOf(attempt.status),
                 occurredAt = attempt.occurredAtEpochMs?.let(Instant::ofEpochMilli),
                 failureReason = attempt.failureReason,
             )
         },
-        metadata = entity.resumeStage?.let { mapOf("deferredStage" to it) } ?: emptyMap(),
+        metadata = entity.resumeStage?.let { mapOf(DEFERRED_STAGE_KEY to it) } ?: emptyMap(),
     )
 
     private fun SecurityEvent.toEntity(now: Instant): SecurityEventEntity = SecurityEventEntity(
@@ -119,8 +130,18 @@ class RoomEventRepository(
         severity = severity?.name,
         createdAtEpochMs = createdAt.toEpochMilli(),
         updatedAtEpochMs = now.toEpochMilli(),
-        resumeStage = metadata["deferredStage"],
+        resumeStage = metadata[DEFERRED_STAGE_KEY],
         expiresAtEpochMs = expiresAt?.toEpochMilli(),
+    )
+
+    private fun EvidenceReference.toEntity(eventId: String): EvidenceReferenceEntity = EvidenceReferenceEntity(
+        evidenceId = id,
+        eventId = eventId,
+        kind = "UNSPECIFIED",
+        contentReference = null,
+        capturedAtEpochMs = null,
+        keyVersion = EvidenceKeyPolicy.KEY_VERSION_V1,
+        aadVersion = EvidenceKeyPolicy.AAD_VERSION_V1,
     )
 
     private fun DeliveryInformation.toEntity(eventId: String, index: Int): DeliveryAttemptEntity =
@@ -132,4 +153,9 @@ class RoomEventRepository(
             occurredAtEpochMs = occurredAt?.toEpochMilli(),
             failureReason = failureReason,
         )
+
+    private companion object {
+        /** The only metadata key schema v2 has a column for; anything else is refused, not dropped. */
+        const val DEFERRED_STAGE_KEY = "deferredStage"
+    }
 }

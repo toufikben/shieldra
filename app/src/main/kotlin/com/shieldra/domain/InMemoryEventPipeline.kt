@@ -46,12 +46,48 @@ class InMemoryEventRepository : EventRepository {
             }
         }
     }
+
+    @Synchronized
+    override fun recordEvidence(eventId: EventId, reference: EvidenceReference): RepositoryResult {
+        val current = events[eventId] ?: return RepositoryResult.NotFound
+        if (current.evidenceReferences.any { it.id == reference.id }) return RepositoryResult.AlreadyExists
+        events[eventId] = current.withArtifacts(evidenceReferences = current.evidenceReferences + reference)
+        return RepositoryResult.Applied
+    }
+
+    @Synchronized
+    override fun recordDeliveryAttempt(eventId: EventId, information: DeliveryInformation): RepositoryResult {
+        val current = events[eventId] ?: return RepositoryResult.NotFound
+        events[eventId] = current.withArtifacts(deliveryInformation = current.deliveryInformation + information)
+        return RepositoryResult.Applied
+    }
 }
 
+/** Copies an event with the artifacts a stage really produced. */
+private fun SecurityEvent.withArtifacts(
+    evidenceReferences: List<EvidenceReference> = this.evidenceReferences,
+    deliveryInformation: List<DeliveryInformation> = this.deliveryInformation,
+): SecurityEvent = SecurityEvent.create(
+    eventId = id,
+    createdAt = createdAt,
+    expiresAt = expiresAt,
+    state = state,
+    severity = severity,
+    evidenceReferences = evidenceReferences,
+    deliveryInformation = deliveryInformation,
+    metadata = metadata,
+)
+
+/**
+ * Drives an event forward. A stage that reports success is believed only when
+ * the artifact it claims to have produced is actually in the repository: an
+ * unverified claim defers the event instead of advancing it, so no event can
+ * ever reach READY or DELIVERED on the strength of a stage call alone.
+ */
 class InMemoryEventPipeline(
     private val repository: EventRepository,
-    private val evidence: EvidenceStage = EvidenceStage { StageOutcome.Completed },
-    private val delivery: DeliveryStage = DeliveryStage { StageOutcome.Completed },
+    private val evidence: EvidenceStage,
+    private val delivery: DeliveryStage,
     private val now: () -> Instant = { Instant.now(JavaClock.systemUTC()) },
 ) : EventPipeline {
     private val eventLocks = ConcurrentHashMap<EventId, Any>()
@@ -101,6 +137,10 @@ class InMemoryEventPipeline(
         return when (val outcome = evidence.execute(event)) {
             StageOutcome.Completed -> {
                 expiredIfNeeded(repository.find(event.id) ?: event, expiresAt)?.let { return it }
+                val stored = repository.find(event.id) ?: event
+                if (stored.evidenceReferences.isEmpty()) {
+                    return defer(event, PipelineStage.EVIDENCE)
+                }
                 val updated = transitionAndRead(event, EventState.READY, expiresAt)
                 updated?.let { PipelineResult.Advanced(it, PipelineStage.EVIDENCE) }
                     ?: PipelineResult.Rejected(PipelineFailure(PipelineFailureKind.INVALID_STATE, "Evidence state update conflicted"))
@@ -116,6 +156,10 @@ class InMemoryEventPipeline(
         return when (val outcome = delivery.execute(delivering)) {
             StageOutcome.Completed -> {
                 expiredIfNeeded(repository.find(delivering.id) ?: delivering, expiresAt)?.let { return it }
+                val stored = repository.find(delivering.id) ?: delivering
+                if (stored.deliveryInformation.none { it.status == DeliveryStatus.SUCCESS }) {
+                    return defer(delivering, PipelineStage.DELIVERY)
+                }
                 val completed = transitionAndRead(delivering, EventState.DELIVERED, expiresAt)
                 completed?.let { PipelineResult.Advanced(it, PipelineStage.COMPLETED) }
                     ?: PipelineResult.Rejected(PipelineFailure(PipelineFailureKind.INVALID_STATE, "Completion state update conflicted"))

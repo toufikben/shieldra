@@ -38,10 +38,12 @@ import com.shieldra.app.presentation.guard.LockGuardDecision
 import com.shieldra.app.presentation.guard.PersistedEventLabels
 import com.shieldra.app.presentation.guard.StorageEventReader
 import com.shieldra.app.presentation.guard.ageParts
+import com.shieldra.app.presentation.guard.eventStateLabelRes
 import com.shieldra.app.presentation.guard.lockGuardDashboard
 import com.shieldra.app.presentation.model.EventUiModel
 import com.shieldra.app.presentation.model.EventDetailUiModel
 import com.shieldra.domain.EventState
+import com.shieldra.domain.PanicIncidentCoordinator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -86,9 +88,15 @@ fun ShieldraNavHost(
     val eventReader = remember(installedStorage, eventLabels) {
         StorageEventReader.reader(installedStorage, eventLabels)
     }
+    // Panic needs the installed repository; without installed storage there is
+    // nowhere to persist the event, so the press stays an honest deferral.
+    val panicCoordinator = remember(installedStorage) {
+        installedStorage?.let { PanicIncidentCoordinator(repository = it.eventRepository) }
+    }
+    var panicActivations by remember { mutableStateOf(0) }
     // Room refuses main-thread queries, so the load is dispatched off it and the
     // UI renders empty until the real rows arrive.
-    val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage) {
+    val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage, panicActivations) {
         value = withContext(Dispatchers.IO) { eventReader.readRecent(RECENT_EVENT_LIMIT, Instant.now()) }
     }
 
@@ -152,7 +160,17 @@ fun ShieldraNavHost(
                             navController.navigate(ShieldraRoutes.eventDetail(id))
                         },
                         onGuardClick = { defer() },
-                        onPanic = { defer() },
+                        onPanic = {
+                            val coordinator = panicCoordinator
+                            if (coordinator == null) {
+                                defer()
+                            } else {
+                                scope.launch {
+                                    withContext(Dispatchers.IO) { coordinator.activate() }
+                                    panicActivations += 1
+                                }
+                            }
+                        },
                         onViewAllEvents = {
                             navController.navigate(ShieldraRoutes.HISTORY)
                         },
@@ -231,15 +249,16 @@ fun ShieldraNavHost(
 
 @Composable
 private fun persistedEventLabels(): PersistedEventLabels {
+    // stringResource is composable, so the map is written out instead of built in a lambda.
     val stateLabels = mapOf(
-        EventState.DELIVERED to stringResource(R.string.status_delivered),
-        EventState.DELIVERING to stringResource(R.string.status_sending),
-        EventState.DEFERRED to stringResource(R.string.status_retrying),
-        EventState.FAILED_FINAL to stringResource(R.string.status_failed),
-        EventState.EXPIRED to stringResource(R.string.status_expired),
-        EventState.READY to stringResource(R.string.status_ready),
-        EventState.INITIATED to stringResource(R.string.status_sending),
-        EventState.COLLECTING to stringResource(R.string.status_ready),
+        EventState.INITIATED to stringResource(eventStateLabelRes(EventState.INITIATED)),
+        EventState.COLLECTING to stringResource(eventStateLabelRes(EventState.COLLECTING)),
+        EventState.READY to stringResource(eventStateLabelRes(EventState.READY)),
+        EventState.DELIVERING to stringResource(eventStateLabelRes(EventState.DELIVERING)),
+        EventState.DELIVERED to stringResource(eventStateLabelRes(EventState.DELIVERED)),
+        EventState.DEFERRED to stringResource(eventStateLabelRes(EventState.DEFERRED)),
+        EventState.FAILED_FINAL to stringResource(eventStateLabelRes(EventState.FAILED_FINAL)),
+        EventState.EXPIRED to stringResource(eventStateLabelRes(EventState.EXPIRED)),
     )
     val ageLabel = ageLabelFormatter()
     return PersistedEventLabels(

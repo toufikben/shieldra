@@ -19,6 +19,19 @@ interface EventRepository {
         metadata: Map<String, String>? = null,
         expiresAt: Instant? = null,
     ): RepositoryResult
+
+    /**
+     * Attaches one evidence artifact that a stage really produced. Recording is
+     * the only way an event can gain evidence; a pipeline may not advance to a
+     * state that implies evidence unless this call succeeded.
+     */
+    fun recordEvidence(eventId: EventId, reference: EvidenceReference): RepositoryResult
+
+    /**
+     * Attaches one delivery attempt that really happened, with its real status.
+     * A successful delivery state implies a recorded SUCCESS attempt.
+     */
+    fun recordDeliveryAttempt(eventId: EventId, information: DeliveryInformation): RepositoryResult
 }
 
 sealed interface RepositoryResult {

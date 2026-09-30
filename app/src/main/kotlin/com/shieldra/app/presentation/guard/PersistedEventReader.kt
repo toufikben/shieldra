@@ -98,6 +98,22 @@ internal fun EventState.toDeliveryStatus(): DeliveryStatus = when (this) {
     EventState.INITIATED, EventState.COLLECTING -> DeliveryStatus.Skipped
 }
 
+/**
+ * The label resource for a persisted state. A state that performed no delivery
+ * is never labelled as sending or delivered, so history cannot read a stored
+ * INITIATED event as a notification that was never attempted.
+ */
+internal fun eventStateLabelRes(state: EventState): Int = when (state) {
+    EventState.INITIATED -> com.shieldra.app.R.string.status_recorded
+    EventState.COLLECTING -> com.shieldra.app.R.string.status_collecting
+    EventState.READY -> com.shieldra.app.R.string.status_ready
+    EventState.DELIVERING -> com.shieldra.app.R.string.status_sending
+    EventState.DELIVERED -> com.shieldra.app.R.string.status_delivered
+    EventState.DEFERRED -> com.shieldra.app.R.string.status_retrying
+    EventState.FAILED_FINAL -> com.shieldra.app.R.string.status_failed
+    EventState.EXPIRED -> com.shieldra.app.R.string.status_expired
+}
+
 /** Coarse age of an event, so the caller owns all localized wording. */
 sealed interface AgeParts {
     data class Days(val value: Long) : AgeParts

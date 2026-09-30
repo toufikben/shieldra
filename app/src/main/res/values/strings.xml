@@ -81,6 +81,8 @@
     <string name="channel_email">Email</string>
     <string name="channel_whatsapp">WhatsApp</string>
     <string name="channel_telegram">Telegram</string>
+    <string name="status_recorded">Recorded</string>
+    <string name="status_collecting">Collecting evidence</string>
     <string name="status_ready">Ready</string>
     <string name="status_sending">Sending</string>
     <string name="status_delivered">Delivered</string>

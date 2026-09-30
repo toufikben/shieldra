@@ -217,6 +217,95 @@ grep -q 'checkEvidenceRotation' "$APP" \
   || fail "§9: the rotation check must run from the installed-storage branch only"
 pass "§9: the rotation trigger is wired behind the §15 install gate and keeps its failures"
 
+# Batch C (owner directive 2026-09-29): the event pipeline may never assume a
+# stage succeeded, and panic must become one persisted event per incident.
+PIPELINE=app/src/main/kotlin/com/shieldra/domain/InMemoryEventPipeline.kt
+CONTRACTS=app/src/main/kotlin/com/shieldra/domain/EventPipelineContracts.kt
+ROOM_REPO=app/src/main/kotlin/com/shieldra/storage/room/RoomEventRepository.kt
+PANIC=app/src/main/kotlin/com/shieldra/domain/PanicIncidentCoordinator.kt
+
+# 1. No fabricated success: stages are required constructor arguments, so no
+#    caller can run the pipeline with a stage that completes by default.
+if grep -Eq '(evidence|delivery): (EvidenceStage|DeliveryStage) = ' "$PIPELINE"; then
+  fail "the pipeline still has an always-completing default stage (phantom success)"
+fi
+grep -Eq 'private val evidence: EvidenceStage,' "$PIPELINE" || fail "the evidence stage must be a required dependency"
+grep -Eq 'private val delivery: DeliveryStage,' "$PIPELINE" || fail "the delivery stage must be a required dependency"
+pass "pipeline has no default success-producing stages"
+
+# 2. A stage is believed only when its artifact is really in the repository.
+grep -q 'stored.evidenceReferences.isEmpty()' "$PIPELINE" ||
+  fail "evidence completion is not verified against a persisted evidence reference"
+grep -q 'stored.deliveryInformation.none { it.status == DeliveryStatus.SUCCESS }' "$PIPELINE" ||
+  fail "delivery completion is not verified against a persisted successful attempt"
+pass "stage results are verified against persisted artifacts"
+
+# 3. Artifacts have a real recording path, in the contract and in Room storage.
+grep -q 'fun recordEvidence(eventId: EventId, reference: EvidenceReference)' "$CONTRACTS" ||
+  fail "the repository contract cannot record collected evidence"
+grep -q 'fun recordDeliveryAttempt(eventId: EventId, information: DeliveryInformation)' "$CONTRACTS" ||
+  fail "the repository contract cannot record a delivery attempt"
+grep -q 'override fun recordEvidence' "$ROOM_REPO" || fail "Room storage cannot record collected evidence"
+grep -q 'override fun recordDeliveryAttempt' "$ROOM_REPO" || fail "Room storage cannot record a delivery attempt"
+pass "evidence and delivery artifacts are recordable and persisted"
+
+# 4. A fact the database cannot store is refused, never silently dropped.
+grep -q 'persists no metadata keys' "$ROOM_REPO" ||
+  fail "Room updateState must reject metadata it cannot persist instead of dropping it"
+pass "unpersistable metadata fails closed instead of disappearing"
+
+# 5. Panic is an explicit activation with no counter, delay, cooldown or window.
+#    The prohibition is checked on code, not prose: the KDoc states the same
+#    words to explain what the coordinator must not do.
+[ -s "$PANIC" ] || fail "panic incident coordinator is missing"
+PANIC_CODE="$(grep -vE '^[[:space:]]*(\*|//|/\*)' "$PANIC")"
+if grep -qiE 'cooldown|attemptThreshold|confirmationDelay|timeWindow|debounce|Duration\.of' <<<"$PANIC_CODE"; then
+  fail "panic introduced an invented counter, delay, cooldown or time window"
+fi
+if grep -qE 'Thread\.sleep|delay\(' "$PANIC"; then
+  fail "panic must confirm immediately, not after a wait"
+fi
+grep -q 'GuardKind.PANIC' "$PANIC" || fail "panic must be confirmed through the approved guard engine"
+grep -q 'repository.save(event)' "$PANIC" || fail "the panic event must be persisted before any response work"
+grep -q 'isTerminal()' "$PANIC" || fail "the incident boundary must be the event lifecycle, not a time window"
+if grep -q 'EventPipeline\|InMemoryEventPipeline' "$PANIC"; then
+  fail "the panic coordinator must not run pipeline stages that have not been implemented"
+fi
+pass "panic confirms, persists first, and bounds the incident by lifecycle only"
+
+# 6. The dashboard action reaches the real coordinator off the main thread.
+grep -q 'PanicIncidentCoordinator(repository' "$NAVHOST" || fail "NavHost does not build the panic coordinator"
+grep -q 'coordinator.activate()' "$NAVHOST" || fail "NavHost does not activate the panic coordinator"
+if grep -Eq 'onPanic = \{ defer\(\) \}' "$NAVHOST"; then
+  fail "NavHost panic action is still a no-op deferral"
+fi
+pass "the panic button is wired to real persistence off the main thread"
+
+# 7. History labels state what really happened: a state that never delivered is
+#    never labelled as sending or delivered.
+grep -q 'eventStateLabelRes' "$NAVHOST" || fail "NavHost does not use the honest state label projection"
+grep -Eq 'EventState.INITIATED -> .*status_recorded' "$READER" ||
+  fail "an INITIATED event must be labelled as recorded, not as sending"
+grep -Eq 'EventState.COLLECTING -> .*status_collecting' "$READER" ||
+  fail "a COLLECTING event must be labelled as collecting evidence"
+pass "event state labels claim only what the state really did"
+
+# 8. The owner's named tests exist.
+[ -s app/src/test/kotlin/com/shieldra/domain/PanicIncidentCoordinatorTest.kt ] ||
+  fail "panic coordinator tests are missing"
+for name in first_panic_creates_exactly_one_real_event_id \
+  repeated_panic_while_the_event_is_not_terminal_reuses_the_same_event_id \
+  repeated_panic_does_not_start_duplicate_delivery_or_evidence_work \
+  activation_count_and_last_activation_stay_consistent_with_the_presses \
+  a_new_panic_after_the_previous_event_is_terminal_creates_a_new_event_id \
+  concurrent_panic_presses_cannot_create_two_active_events; do
+  grep -q "fun $name" app/src/test/kotlin/com/shieldra/domain/PanicIncidentCoordinatorTest.kt ||
+    fail "named panic test is missing: $name"
+done
+[ -s app/src/androidTest/kotlin/com/shieldra/storage/room/RoomPanicPersistenceInstrumentedTest.kt ] ||
+  fail "on-device panic persistence test is missing"
+pass "the owner's named panic tests and the on-device persistence test are present"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"

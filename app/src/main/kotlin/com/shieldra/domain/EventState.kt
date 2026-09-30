@@ -21,6 +21,11 @@ sealed interface StateTransitionResult {
     ) : StateTransitionResult
 }
 
+/** Terminal states accept no further transition, so they also end an incident. */
+fun EventState.isTerminal(): Boolean = this == EventState.DELIVERED ||
+    this == EventState.FAILED_FINAL ||
+    this == EventState.EXPIRED
+
 fun transition(from: EventState, to: EventState): StateTransitionResult {
     val allowed = when (from) {
         EventState.INITIATED -> setOf(EventState.COLLECTING, EventState.FAILED_FINAL, EventState.EXPIRED)

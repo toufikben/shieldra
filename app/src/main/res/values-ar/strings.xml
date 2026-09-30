@@ -81,6 +81,8 @@
     <string name="channel_email">البريد الإلكتروني</string>
     <string name="channel_whatsapp">واتساب</string>
     <string name="channel_telegram">تيليجرام</string>
+    <string name="status_recorded">تم التسجيل</string>
+    <string name="status_collecting">جارٍ جمع الأدلة</string>
     <string name="status_ready">جاهز</string>
     <string name="status_sending">جارٍ الإرسال</string>
     <string name="status_delivered">تم التسليم</string>
