@@ -2,7 +2,7 @@
 
 **Status:** Authoritative internal development record for this cycle.
 **Repository:** `toufikben/shieldra`
-**Last reconciled:** 2026-09-22
+**Last reconciled:** 2026-09-30
 
 This document records decisions approved in the unified SHIELDRA engineering protocol. It does not invent unresolved security, privacy, Android, cryptographic, provider, or release policy. Items not marked **APPROVED** remain proposed, unknown, deferred, or blocked.
 
@@ -28,6 +28,20 @@ This document records decisions approved in the unified SHIELDRA engineering pro
 ## Explicitly not approved yet
 
 The following must not be silently selected or implemented: exact camera trigger, location precision/freshness thresholds, evidence retention duration, deletion/export authority, cryptographic algorithm and Keystore lifecycle, authentication provider and session policy, Android foreground/background mechanism, notification payload policy, storage schema and migration details, external provider, delivery retry policy, billing, ads, accounts/cloud, or final release claims.
+
+> **Superseded where the owner has since ruled.** This list is the 2026-09-22 state and is
+> kept as written. Each item the owner has since decided is recorded as a numbered amendment
+> in the §17 log of
+> [`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`](docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md),
+> which is the binding authority: **A-1** quarantine window, **A-2/A-3** factory-reset key
+> deletion and its failure record, **A-4** missing-key reads surface as recovery-required,
+> **A-5** the §15 production storage gate opened, **A-6** real local notifications with
+> `POST_NOTIFICATIONS` requested only from the notification setup screen, and **A-7** the
+> durable Panic activation count (Room v2→v3). So "notification payload policy" and the
+> Room schema/migration details are no longer unapproved — they are owner-approved within
+> the boundaries those amendments state. Items with no amendment listed above remain
+> unapproved, including the Android foreground/background mechanism, external providers,
+> billing, and ads.
 
 ## Status vocabulary
 

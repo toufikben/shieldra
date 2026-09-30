@@ -76,7 +76,7 @@
     <string name="notification_permission_not_required">Not needed on this Android version</string>
     <string name="notification_result_posted">Local notification posted</string>
     <string name="notification_result_failed">Local notification failed</string>
-    <string name="notification_result_not_attempted">Notification permission denied — the event was still recorded</string>
+    <string name="notification_result_not_attempted">No notification was posted.</string>
     <string name="notification_turn_on">Turn on notifications</string>
     <string name="lock_guard">Lock Guard</string>
     <string name="protection_setup_question">Lock Guard uses the approved protection rule.</string>

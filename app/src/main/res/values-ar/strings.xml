@@ -76,7 +76,7 @@
     <string name="notification_permission_not_required">غير مطلوب على هذا إصدار أندرويد</string>
     <string name="notification_result_posted">تم نشر إشعار محلي</string>
     <string name="notification_result_failed">فشل الإشعار المحلي</string>
-    <string name="notification_result_not_attempted">إذن الإشعارات مرفوض — ومع ذلك سُجّل الحدث</string>
+    <string name="notification_result_not_attempted">لم يُنشر أي إشعار.</string>
     <string name="notification_turn_on">تشغيل الإشعارات</string>
     <string name="lock_guard">حارس القفل</string>
     <string name="protection_setup_question">يستخدم حارس القفل قاعدة الحماية المعتمدة.</string>
