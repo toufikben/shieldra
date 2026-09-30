@@ -102,8 +102,8 @@ class ShieldraDatabaseMigrationInstrumentedTest {
             ShieldraDatabaseMigrations.all.contains(ShieldraDatabaseMigrations.MIGRATION_1_2),
         )
         assertEquals(
-            "only one explicit migration path may exist (decision 4-5)",
-            1,
+            "the only migrations may be the explicit forward ones (no destructive fallback, decision 4-3/4-5)",
+            2,
             ShieldraDatabaseMigrations.all.size,
         )
     }
