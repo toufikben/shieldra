@@ -14,15 +14,19 @@ which answers C1–C7 and fixes the execution order. Its rulings are transcribed
 question below and into `docs/ROADMAP.md`. Where the protocol conflicts with an older note
 in this file, the protocol is marked and the conflict is recorded, not hidden.
 **Revised:** 2026-09-30, after Batch E closed — **Q-C9 is CLOSED** (amendment A-7, CI + device)
-and **Q-C10 is new** (the Settings row Batch E could not fix without widening its scope).
+and **Q-C10 was opened** (the Settings row Batch E could not fix without widening its scope).
+**Revised again:** 2026-09-30, after Batch F closed — **Q-C10 is CLOSED** (decided by your Batch F
+directive; CI `36782719559` 248/248 + RMX3910), and **Q-F1 is new** (the delivery claims that
+survived on Premium, the event Detail card, and onboarding's dead "Allow").
 
 > **Three items are still open after the protocol, and none blocks the next batch:**
 > 1. **Q-D5/Q-D7 — ads and billing.** The protocol (§30) contradicts the 2026-09-29
 >    store-launch decision. Needs one line from you. See the CONFLICT box there.
 > 2. **Q-C8 — destroying a *retired* evidence key version.** §10 forbids me from inventing a
 >    destructive policy, so Batch B stops at `RETIRED` until you answer.
-> 3. **Q-C10 — the Settings row that promises delivery channels** (raised by Batch E,
->    2026-09-30). Needs one line: option 1 makes it Batch F's first task.
+> 3. **Q-F1 — the delivery claims Batch F could not close without a product decision** (raised by
+>    Batch F, 2026-09-30). It is mostly the same line as Q-D5/Q-D7: answering those first would
+>    close most of it.
 >    Outside this repository, the published store copy still advertises **"zero Android
 >    permissions"**, which amendment A-6 superseded — the honest sentence is "no permissions
 >    until you need them".
@@ -56,8 +60,11 @@ and **Q-C10 is new** (the Settings row Batch E could not fix without widening it
 2. Section **C** held the seven blocking questions, Q-C1 … Q-C7. All seven are now answered
    from the protocol; each row quotes the section that answers it, so the answer can be checked
    rather than trusted. **Q-C8 is new** — it is a question the protocol itself raised (§10) and
-   did not answer. **Q-C9 is closed** (amendment A-7, CI + device, 2026-09-30). **Q-C10 is the
-   one open item in section C** — raised by Batch E.
+   did not answer. **Q-C9 is closed** (amendment A-7, CI + device, 2026-09-30). **Q-C10 is closed
+   too** (your Batch F directive; the one part of it that could not be done — real event and byte
+   counts in the Settings storage row — is recorded inside Q-C10 with the reason). Section **C** now
+   has two open items: **Q-C8** (destroying a retired key) and **Q-F1** (the delivery claims Batch F
+   left standing on Premium / the event Detail card / onboarding).
 3. Section **D** lists questions that belong to later phases and only need answering when
    that phase is reached. **D.2 is the exception: it carries the one open conflict.**
 4. Authority order, since the protocol arrived: **the owner's Final Master Execution Protocol
@@ -504,30 +511,83 @@ shipping `shieldra.db` was **not** read on device (no sqlite tooling, and this O
 
 ---
 
-## Q-C10 — The notification screen is reachable only through a row that promises other channels (NEW, raised by Batch E)
+## Q-C10 — The notification screen is reachable only through a row that promises other channels (raised by Batch E)
 
-**Status:** **OPEN — one line needed.** Nothing here blocks Batch F; it only decides what
-Batch F's first task fixes.
+**Status:** **CLOSED — decided by your Batch F directive and implemented (2026-09-30).**
+Commit `1502726` (CI `36779189112`, 247/247) plus the follow-up `d861922` (CI `36782719559`,
+248/248), device-verified on the RMX3910.
 
-**The finding, in the app as it runs today:** Batch E added a real notification setup screen,
-but there is no Settings row for it. The only way in is the row labelled **"Delivery channels —
-Email · WhatsApp · Telegram"**, which navigates to the notification screen. The label is wrong
-twice over: no delivery channel exists (protocol §30 forbids external providers), and §31 says
-no UI may claim more than the real state. The same screen also still shows a stale **"Phase 3
-presentation demo — no production data"** banner and demo storage figures (**12 events ·
-3.2 MB**) while the database holds the real events you just recorded (see the finding numbering
-in `docs/reports/batch-E-local-notifications-and-durable-activation.md`, FINDINGS 4 and 5).
+**The finding, in the app as it ran before Batch F:** Batch E added a real notification setup
+screen, but there was no Settings row for it. The only way in was the row labelled **"Delivery
+channels — Email · WhatsApp · Telegram"**, which navigated to the notification screen. The label was
+wrong twice over: no delivery channel exists (protocol §30 forbids external providers), and §31 says
+no UI may claim more than the real state. The same surface also carried a stale **"Phase 3
+presentation demo — no production data"** banner and demo storage figures (**12 events · 3.2 MB**)
+while the database held the real events you had recorded (Batch E report, FINDINGS 4 and 5).
+
+**Your ruling:** the Batch F directive named these three items as F1 — close them and only them,
+*"do NOT implement those channels, do NOT add external providers"*, and for storage: *"use real
+persisted values if already available through the existing storage API. If a value cannot be
+measured, display an honest unavailable state instead of inventing one. Do not redesign storage."*
+That is option 1, with one part of it changed by your own instruction.
+
+| What option 1 promised | What shipped, and why |
+|---|---|
+| A real **"Notifications"** row showing the live state | **Done.** `SettingsContent` declares the rows, `HonestSettingsRows` renders them, and the row subtitle reads `Allowed` / `Not allowed` / `Not requested` from the real A-6 permission state. Verified on screen. |
+| Delete the Email/WhatsApp/Telegram wording | **Done.** The delivery row, `settings_delivery_channels`, `demo_delivery_channels` and `settings_section_delivery` are gone, and a gate fails CI if a delivery row returns. |
+| Remove the demo banner | **Done.** The dashboard now says *"Security events are recorded and stored on this phone. No continuous monitoring is running yet."* when storage is installed, and an honest no-storage line when it is not. `phase3_demo_disclosure` no longer exists. |
+| Print the **actual event and byte counts** | **Not done — deliberately.** Your own F1.3 line forbade redesigning storage and there is no count or size API on `EventRepository`/the storage surface today (the read path exposes `listRecent` only). Inventing the numbers is exactly what §31 forbids, so the row shows a **state word** driven by the real `installedStorage != null`, and `SettingsContent.storageRowShowsFigures = false` records the reason in code. **If you want counts, that needs a storage read API — a new small batch, not a UI patch.** |
+
+**Also closed while I was re-reading the result:** the dashboard printed `Last check · 0s ago`,
+which is evidence of a check nothing ever performed. `LockGuardDecision.lastCheckSeconds()` now
+returns `null` and both locales print **"No check yet" / "لا يوجد فحص بعد"**; the onboarding copy no
+longer says the phone is *"quietly guarded"*. Written RED first (`cea844b`), then fixed.
+
+**What remains open is a different surface, not this row:** see **Q-F1**.
+
+---
+
+## Q-F1 — The remaining delivery and permission claims: Premium screen, event Detail, onboarding "Allow" (NEW, raised by Batch F)
+
+**Status:** **OPEN — one line needed, and it is mostly the same line as Q-D5/Q-D7.** None of it
+blocks Batch G (Motion Guard). It decides what a small truthfulness batch may fix.
+
+Batch F removed the delivery promise from **Settings**. Tracing every `DemoData` reference found the
+same claim surviving on three other surfaces. I did **not** rewrite them, because two of the three
+are product/pitch copy whose correctness depends on the **unanswered Q-D5/Q-D7 ads-and-billing
+conflict** — and per §14 I do not resolve an open decision by deleting the text it might still need.
+
+1. **`PremiumScreen` still advertises the channels at runtime.** Navigation builds it from
+   `DemoData.premium()` (`ShieldraNavHost.kt:241`), and it shows:
+   - `premium_feature_channels_detail` = **"Email · WhatsApp · Telegram"**
+   - `premium_feature_receipts` = **"Advanced delivery receipts"**
+   - `premium_free_summary` = **"Free includes: Lock Guard · Motion Guard · SIM Guard · Panic ·
+     Email delivery."**
+   All three claim capabilities that do not exist — Motion/SIM/Lock have no detector (out of Batch F
+   by your directive), and no delivery channel exists (§30). This is the largest §31 exposure left
+   in the app, and it is reachable from the Premium tab in every CI-built APK.
+2. **The event Detail screen renders an empty "DELIVERY" card.** `PersistedEventReader.kt:61` sets
+   `delivery = emptyList()` (correct — nothing was delivered), while `EventDetailScreen.kt:121`
+   renders the `DeliveryReceipt` block unconditionally, so a real event shows a heading with nothing
+   under it. Confirmed in the on-device dump.
+3. **Onboarding's continue action does nothing real.** `PermissionsScreen` lists permission purposes
+   while `ShieldraNavHost.kt:164` passes `onAllow = { defer() }`. §32 says a control must work, be
+   honestly disabled, or be removed — and §23 forbids requesting a permission before the feature
+   that needs it exists, so "make it work" is not the right fix here.
 
 | Option | Rule | Consequence |
 |---|---|---|
-| **1 (recommended)** | Batch F replaces the row with a real **"Notifications"** row that shows the live state (`Allowed` / `Not allowed` / `Not requested`), deletes the Email/WhatsApp/Telegram wording, removes the demo banner, and prints the actual event and byte counts from the repository. | Every screen says only what the app does. Cost: a few UI files, no schema and no permission change. |
-| 2 | Fix only the wrong labels now; leave demo storage numbers until the evidence counters exist. | Less work, but Settings would still show a number the database never produced. §31 stays violated. |
-| 3 | Defer everything to a later polish batch. | Fastest path to §17 background monitoring, but a knowingly false row ships in every CI-built APK in the meantime. |
+| **1 (recommended)** | In the next truthfulness slice: rewrite the three Premium strings to name only what the app does today (Panic + local recording + local notifications), hide the `DeliveryReceipt` block when there is nothing to show, and change onboarding's copy/button to "Continue — the app asks for nothing until a feature needs it". | Every screen says only what the app does. Cost: string resources and three presentation files. **Needs your yes because it edits the Premium pitch copy, which is a product surface, not a bug.** |
+| 2 | Fix only (2) and (3) now — they are pure defects — and hold the Premium copy until Q-D5/Q-D7 is answered. | Least product impact, but §31 stays violated on the Premium tab. |
+| 3 | Answer Q-D5/Q-D7 first (are Premium/ads/billing part of this release at all?), then decide the copy in one pass. | Cleanest. If Premium is not shipping, most of finding 1 disappears with it. |
 
-**What I did NOT do:** silently widen Batch E to rewrite Settings, or keep a row that routes a
-"Delivery channels" label into a notification screen and call it a temporary detail.
+**What I did NOT do:** silently rewrite the Premium feature list, delete the `ChannelId` enum and
+`channel_email/whatsapp/telegram` strings (they are consumed by `DeliveryReceipt.kt`, so removing
+them means deciding whether remote delivery is still planned — Q-D2), or leave these findings
+unstated because they sat outside Batch F's file list.
 
-**Your answer:** ⬜ not answered yet — **take option 1 and I will do it as Batch F's first task.**
+**Your answer:** ⬜ not answered yet — **option 3 would unblock the most with one line; option 1 if
+you want me to fix the copy now.**
 
 ---
 

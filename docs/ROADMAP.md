@@ -145,8 +145,8 @@ a PASS.
 | G0 — Authority | APPROVED FOR INTERNAL DEVELOPMENT | Continue without historical Product Freeze dependency; internal register is authoritative for this cycle | Later product/release authority may supersede it |
 | G1 — Protection rules | APPROVED FOR PURE CONTRACT CLOSURE | Encode approved Guard semantics in framework-free contracts/tests | Android feasibility, response, evidence, and API limitations |
 | G2 — Evidence/privacy | **ANSWERED / UNBLOCKED for the Panic batch** | Minimum post-confirmation evidence only. Owner protocol §21–§23: **no camera in the Panic batch**, no audio ever approved, no continuous location, no location in the Panic batch unless actually required; permissions requested **incrementally and only for the feature that needs them** | Camera policy, location precision/freshness, redaction, and the consent/privacy text remain for Batch H |
-| G3 — Android monitoring | **ANSWERED / UNBLOCKED in order** | §16 real notifications after a real event exists; §17 a foreground service is acceptable for an active guard; **WorkManager is prohibited as a real-time detector**; no 24/7 guarantee may be claimed; Doze/OEM/Force Stop/process death/reboot limitations must be documented | Background execution is Batch F, after the Panic loop is device-verified |
-| G4 — Storage/security | **SUBSTANTIALLY DEVICE-VERIFIED / NOT PRODUCTION-APPROVED** | AAD-v1, mandatory AAD, alias policy, StrongBox runtime detection, AES-GCM on real Keystore, key rotation algorithm, **rotation trigger and old-key retirement (§9/§10 — Batch B, CI `36612265938` + device `OK (40 tests)`)**, migration/recovery, evidence lifecycle, failure semantics, storage wiring gate, persisted read path — all IMPLEMENTED, CI VERIFIED, and DEVICE VERIFIED | Retirement **destroys nothing**: Q-C8 is still an open owner decision, rotation is reachable only behind the still-off §15 gate, and the approved successor chain stops at v2. What remains for G4: independent security review, threat model, OEM matrix beyond one device, and sign-off |
+| G3 — Android monitoring | **CONTRACT LANDED / NO DETECTOR YET** | §16 real notifications after a real event exists (closed in Batch E); §17 a foreground service is acceptable for an active guard; **WorkManager is prohibited as a real-time detector**; no 24/7 guarantee may be claimed; Batch F landed the platform-neutral `BackgroundExecutionController` contract with five separated layers and a `MonitoringClaim` that cannot produce a protection claim without a running detector | The **first real detector** (Batch G): it must name its own Android requirements, from which the foreground-service type and permission are then selected. Doze/OEM/Force Stop/reboot/process-death behaviour stays undocumented *as results* — `docs/capabilities/background-execution-limits.md` lists them as requirements to verify on the owner's device |
+| G4 — Storage/security | **SUBSTANTIALLY DEVICE-VERIFIED / NOT PRODUCTION-APPROVED** | AAD-v1, mandatory AAD, alias policy, StrongBox runtime detection, AES-GCM on real Keystore, key rotation algorithm, **rotation trigger and old-key retirement (§9/§10 — Batch B, CI `36612265938` + device `OK (40 tests)`)**, migration/recovery, evidence lifecycle, failure semantics, storage wiring gate, persisted read path — all IMPLEMENTED, CI VERIFIED, and DEVICE VERIFIED | Retirement **destroys nothing**: Q-C8 is still an open owner decision, the §15 install gate is open (amendment **A-5**, Batch D) so rotation is reachable at runtime, and the approved successor chain stops at v2. What remains for G4: independent security review, threat model, OEM matrix beyond one device, and sign-off |
 | G5 — External services | **DEFERRED — REAFFIRMED 2026-09-29** | Keep provider interfaces only where already justified | §30 of the owner protocol explicitly prohibits adding **Firebase, cloud backend, accounts, analytics, ads, WhatsApp, Telegram, SMS, email** during these core batches. This overrides the earlier note that AdMob/IAP were "authorized" — see the correction in `docs/OWNER_QUESTIONS.md` |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit (protocol Batch K) |
 | G7 — Implementation | **READY FOR PLATFORM BATCHES** | The pure-engine and storage foundations are closed; Panic Guard end-to-end is authorized as the next product batch (protocol §12–§15) | Each subsequent guard remains capability-gated in protocol order |
@@ -202,11 +202,19 @@ trigger and duration, location precision/freshness, redaction, and the consent/p
 
 ### Phase 7 — Continuous Monitoring
 
-**Status:** **RESOLVED IN PRINCIPLE / Batch F.** §17 authorizes a foreground service for
-an active guard and **prohibits WorkManager as a real-time detector**. The Android
-limitations (Doze, OEM battery management, Force Stop, process death, reboot, user
-restrictions) must be documented, and **no 24/7 guarantee may be claimed** — the app must
-never present a guarantee it cannot prove.
+**Status:** **CONTRACT LANDED (Batch F) / EXECUTION SURFACE DELIBERATELY ABSENT.** §17 authorizes
+a foreground service for an active guard and **prohibits WorkManager as a real-time detector**.
+Batch F shipped only the platform-neutral execution contract
+(`com.shieldra.runtime.BackgroundExecutionController`: idempotent start/stop, honest
+prerequisite refusal, failure keeps the layer `Stopped`, a recreated process reports `Stopped`,
+and `MonitoringClaim` whose only protection-claiming value requires a running detector). **No
+service, no foreground-service type, no second permission and no WorkManager detector were
+created**, because the detector that would need them does not exist yet — the type "must be
+selected from the actual detector's Android requirements rather than preselected now". The
+Android limitations (Doze, OEM battery management, Force Stop, process death, reboot, user
+restrictions) are recorded as requirements in
+`docs/capabilities/background-execution-limits.md`, **not** as verified results, and **no 24/7
+guarantee may be claimed** — the app must never present a guarantee it cannot prove.
 
 ### Phase 8 — Local Alerts/Response
 
@@ -298,13 +306,31 @@ resumability, failure semantics (§27), factory reset (§28), and the retention 
 
 ## Required next batch
 
-**Batch F — background/active-guard execution** (§17). Foreground service is acceptable;
-WorkManager is prohibited as a real-time detector; no 24/7 claim. Its first task is the
-truthful-copy defect Batch E found and did not silently widen to fix: the notification setting is
-reachable only from a Settings row labelled "Delivery channels · Email · WhatsApp · Telegram"
-(no such channel exists), the dashboard banner still says "no production data" although real
-Room events are written since A-5, and the Settings storage row still shows demo numbers. See
-`docs/reports/batch-E-local-notifications-and-durable-activation.md`, findings 4 and 5.
+**Batch G — Motion Guard** (§18) is the required next batch. Its first deliverable is the
+detector's real Android requirement set (which sensor, what sampling, whether it must run with the
+screen off, what current Play policy allows), because the foreground-service **type and permission
+must be chosen from those requirements** rather than preselected. `BackgroundExecutionController`
+is where it plugs in: `Prerequisite.DetectorAvailable` becomes real, and only then may
+`MonitoringClaim.ActiveGuardMonitoring` — and therefore any `Protected` UI — exist. Motion, SIM and
+Lock detection were explicitly out of Batch F's scope and remain unimplemented.
+
+**Batch F — `F-background-execution-contract`** is **CLOSED** (2026-09-30). **No continuous Guard
+detector was implemented in Batch F**, and none is claimed. It closed Batch E's three truthfulness
+findings (the `Email · WhatsApp · Telegram` delivery row, the stale "no production data" dashboard
+banner, the demo storage numbers) plus one more found while re-reading the device dump: the
+dashboard printed `Last check · 0s ago`, evidence of a check nothing ever performed. The background
+execution contract landed with the five layers separated and enforced by gates. CI chain `0e767b2`
+RED (`Unresolved reference 'SettingsContent'/'SettingsRowTarget'/'MonitoringClaim'`) → `1502726`
+**success, 247/247 JVM** → `cea844b` RED (`Unresolved reference 'lastCheckSeconds'`) → `d861922`
+**success, 248/248 JVM, 0 failures, 0 errors, 0 skipped**, lint clean, both APKs, g4b 40 checks and
+Phase 3 9 checks green. On RMX3910 (APKs from the same run `36782719559`): full instrumented suite
+**`OK (55 tests)` twice on one install**, onboarding reads "Continuous monitoring is not part of
+this build yet", the dashboard reads **"Last check · No check yet"** with **ATTENTION** and no
+`Protected`, Settings has a **Notifications** row with the live permission state, no delivery row
+anywhere, and a Storage row that states a real state instead of a count; a Panic press still posted
+a real notification (`tag=a9d5b402-9a6b-47ef-a4a2-1cdeb99be65d`) and reached History. No FGS exists,
+so no service device test exists or is claimed. See
+`docs/reports/batch-F-background-execution-contract.md`.
 
 **Batch E — `E-local-notifications-and-durable-activation`** is **CLOSED** (2026-09-30): real
 local notifications (amendment **A-6**) and the durable Panic activation count with Room v2→v3
@@ -349,8 +375,8 @@ This is followed, in the owner-mandated order, by:
 | C | **Panic Guard end-to-end** — UI action → signal → immediate confirmation → `EventId` → `SecurityEvent` → pipeline → Room → reload → History → Detail, idempotent on repeat | §12–§15 — **CLOSED** `c3c3a43`→`d39945f`→`8cce2d7`, CI `36655321989` success (212/212 JVM), device `OK (3)` + full suite `OK (46 tests)`, report `docs/reports/batch-C-pipeline-honesty-and-panic-guard.md` |
 | D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 — **CLOSED** `986cb00`→`36e04c1`→`28d708c`, CI `36745562314` success (213/213 JVM), device `OK (6 tests)` + full suite `OK (48 tests)` **twice on one install** on RMX3910, report `docs/reports/batch-D-storage-runtime-approval.md`. The flip is recorded as amendment **A-5**; g4b now enforces the flipped value so an unrecorded revert fails CI |
 | E | Real local notifications (A-6) + durable Panic activation count with Room v2→v3 (A-7); `POST_NOTIFICATIONS` requested only from the notification setup screen; granted / refused / never-asked kept distinct; a refusal never blocks recording; no local post ever worded as delivered | §16, §23, §31 — **CLOSED** `f16e635`→`…`→`53f0f43`, CI `36771561585` success (231/231 JVM, 0 failures), device `OK (4)` + `OK (3 migration)` + `OK (3 persistence)` + `OK (6 install)`, full suite **`OK (55 tests)` twice on one install** on RMX3910, report `docs/reports/batch-E-local-notifications-and-durable-activation.md`. Exactly one permission is declared; g4b fails a second one, a remote provider in the notification package, any `DELIVERED`/`SENT` name in the local result vocabulary, and a notifier that cannot tell silence from refusal |
-| F | Background/active-guard execution; foreground service acceptable; **WorkManager prohibited as a real-time detector**; no 24/7 claim | §17 — **NEXT** |
-| G | Motion Guard | §18 |
+| F | Background-execution **contract** only — no detector, no service, no new permission; five layers separated; `MonitoringClaim` makes a protection claim unrepresentable without a running detector; Batch E's three truthful-copy findings closed | §17 — **CLOSED** `0e767b2`→`1502726`→`cea844b`→`d861922`, CI `36782719559` success (**248/248 JVM**, 0 failures), device full suite **`OK (55 tests)` twice on one install** on RMX3910 + on-screen dumps (Settings/dashboard/onboarding honest, Panic→notification→History intact), report `docs/reports/batch-F-background-execution-contract.md`. **No continuous Guard detector was implemented.** g4b now fails: a second permission, a `<service>` or WorkManager detector before a real guard exists, a delivery row or demo storage figure in Settings, a `Protected`/`Monitoring` claim from the execution layer alone, a missing named Batch F test, and any screen asserting a check that never ran |
+| G | Motion Guard — detector requirements first, then the FGS type chosen from them | §18 — **NEXT** |
 | H | Evidence / privacy / permission implementation | §21–§23 |
 | I | SIM Guard — feasibility first, then implementation | §19 |
 | J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |
