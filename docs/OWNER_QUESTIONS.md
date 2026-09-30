@@ -429,6 +429,36 @@ already built has to be revisited.
 
 ---
 
+## Q-C9 — May a repeated Panic press be written to disk? (NEW, raised by Batch C)
+
+**OPEN-NONBLOCKING** — Batch C ships without the answer; nothing it built has to be revisited.
+
+**The situation:** your Batch C directive says a repeat press must not be lost, and to record
+`activationCount` / `lastActivatedAt` *"إذا كان ذلك متوافقًا مع النموذج الحالي"* — if that is
+compatible with the current model. It turns out the current storage model cannot hold them:
+
+- `SecurityEvent` does have a `metadata: Map<String, String>` field, but schema v2 gives an
+  event row **no metadata column at all**. The only key the Room repository can persist is the
+  deferred-stage marker, which lives in its own `resume_stage` column.
+- So Batch C made the honest choice: `RoomEventRepository.updateState()` now **refuses** any
+  metadata key it cannot store (`RepositoryResult.Rejected`) instead of silently dropping it, and
+  `PanicIncidentCoordinator` keeps the press tally **in the session** — a real count, correct for
+  the running app, and gone on process death. It is not presented as durable anywhere.
+
+| Option | Rule | Consequence |
+|---|---|---|
+| **1 (recommended)** | Keep it session-only for now. The event lifecycle already survives (`INITIATED` → bound repeats), and the count is an operational detail, not evidence. | Zero schema risk. Repeats after a restart are still bound to the same non-terminal event — only the *count* restarts. |
+| 2 | Add schema **v3**: an `event_metadata` child table (event_id, key, value) with an explicit `Migration(2, 3)` and a re-exported schema. | The tally becomes durable across restarts. Cost: a new migration + schema export, which must be produced by CI, and a second decision — how long metadata is retained with the event (§5.4). |
+| 3 | Add one `activation_count` column instead of a general metadata table. | Cheapest durable form, but it hard-codes a single Panic-specific fact into the shared event row. |
+
+**What Batch C did NOT do:** invent a metadata table, write a migration it could not verify, or
+print a "recorded" claim for a number the database would have dropped. That would have been the
+same fabricated-success bug this batch exists to remove.
+
+**Your answer:** _____________
+
+---
+
 # D. DEFERRED QUESTIONS — answer when that phase is reached
 
 These do not block the next batch. They are listed so nothing is forgotten.
