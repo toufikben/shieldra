@@ -6,6 +6,7 @@ import com.shieldra.app.presentation.model.ProtectionVisualState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -52,5 +53,13 @@ class LockGuardDecisionTest {
                 "no guard may be shown as Active/Signal without detection, was: $statuses",
             )
         }
+    }
+
+    // Batch F / §31: a "last check" timestamp is evidence that something checked.
+    // No detector runs, so the dashboard has no such evidence and must print none.
+    @Test
+    fun `no state may report a last check because nothing has ever checked`() {
+        assertNull(LockGuardDecision.lastCheckSeconds(LockGuardState.NotActive))
+        assertNull(LockGuardDecision.lastCheckSeconds(LockGuardState.StorageIdle))
     }
 }
