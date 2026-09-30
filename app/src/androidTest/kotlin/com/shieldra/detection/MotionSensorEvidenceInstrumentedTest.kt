@@ -13,6 +13,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.shieldra.app.MainActivity
 import com.shieldra.domain.SensorQuality
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -56,7 +57,7 @@ class MotionSensorEvidenceInstrumentedTest {
             Log.i(
                 TAG,
                 "MEASURED accelerometer name=${accelerometer.name} vendor=${accelerometer.vendor} " +
-                    "maxRange=${accelerometer.maxRange} minDelayUs=${accelerometer.minDelay} " +
+                    "maximumRange=${accelerometer.maximumRange} minDelayUs=${accelerometer.minDelay} " +
                     "maxDelayUs=${accelerometer.maxDelay} powerMa=${accelerometer.power} " +
                     "wakeUp=${accelerometer.isWakeUpSensor} reportingMode=${accelerometer.reportingMode}",
             )
@@ -119,13 +120,22 @@ class MotionSensorEvidenceInstrumentedTest {
             Log.i(
                 TAG,
                 "MEASURED significant_motion name=${tripwire.name} wakeUp=${tripwire.isWakeUpSensor} " +
-                    "oneShot=${tripwire.isOneShotSensor} " +
-                    "maxReportLatencySupported=${SensorManager.isMaxReportLatencySupported(tripwire)}",
+                    "reportingMode=${tripwire.reportingMode} " +
+                    "fifoMaxEventCount=${tripwire.fifoMaxEventCount} minDelayUs=${tripwire.minDelay}",
             )
+            // These two properties are the whole design: wakeUp is what lets a still phone be woken
+            // by movement at all, and one-shot is what makes one registration cost one event rather
+            // than a stream to keep switching off.
             assertTrue(
-                "a one-shot tripwire must support batched delivery or a cold process cannot be " +
-                    "woken to sample a burst",
-                SensorManager.isMaxReportLatencySupported(tripwire),
+                "a tripwire that cannot wake the device cannot restart sensing after the process " +
+                    "stopped, and this one reported wakeUp=false",
+                tripwire.isWakeUpSensor,
+            )
+            assertEquals(
+                "a continuous tripwire would deliver a stream of events to filter instead of one " +
+                    "per registration; this device reported reportingMode=" + tripwire.reportingMode,
+                Sensor.REPORTING_MODE_ONE_SHOT,
+                tripwire.reportingMode,
             )
         }
     }
@@ -270,6 +280,7 @@ class MotionSensorEvidenceInstrumentedTest {
     /** Raw events become the pure domain sample type, on the handler thread. */
     private class Collector : SensorEventListener {
         val samples: MutableList<MotionSample> = Collections.synchronizedList(mutableListOf())
+        @Volatile
         var deliveredCount: Int = 0
             private set
 
