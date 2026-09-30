@@ -22,7 +22,7 @@ import java.util.UUID
 class RoomEventRepository(
     private val database: ShieldraDatabase,
     private val clock: Clock = Clock.systemUTC(),
-) : EventRepository {
+) : EventRepository, PanicActivationStore {
     private val events = database.securityEventDao()
     private val evidence = database.evidenceReferenceDao()
     private val delivery = database.deliveryAttemptDao()
@@ -105,6 +105,23 @@ class RoomEventRepository(
         return if (inserted != -1L) RepositoryResult.Applied else RepositoryResult.Rejected("Delivery attempt collision: $id:$index")
     }
 
+    override fun panicActivationCount(eventId: EventId): Int? =
+        events.find(eventId.value.toString())?.panicActivationCount
+
+    override fun recordPanicActivation(eventId: EventId, at: Instant): RepositoryResult {
+        val id = eventId.value.toString()
+        val current = events.find(id) ?: return RepositoryResult.NotFound
+        if (EventState.valueOf(current.state).isTerminal()) {
+            return RepositoryResult.Rejected("Event $id is terminal and cannot absorb another activation")
+        }
+        val changed = events.incrementPanicActivation(id, at.toEpochMilli())
+        return when (changed) {
+            1 -> RepositoryResult.Applied
+            0 -> RepositoryResult.Rejected("Event $id no longer accepts activations")
+            else -> RepositoryResult.Rejected("Unexpected activation update count: $changed")
+        }
+    }
+
     private fun toDomain(entity: SecurityEventEntity): SecurityEvent = SecurityEvent.create(
         eventId = EventId.from(UUID.fromString(entity.eventId)),
         createdAt = Instant.ofEpochMilli(entity.createdAtEpochMs),
@@ -121,6 +138,9 @@ class RoomEventRepository(
             )
         },
         metadata = entity.resumeStage?.let { mapOf(DEFERRED_STAGE_KEY to it) } ?: emptyMap(),
+        type = SecurityEventType.valueOf(entity.eventType),
+        panicActivationCount = entity.panicActivationCount,
+        panicLastActivatedAt = entity.panicLastActivatedAtEpochMs?.let(Instant::ofEpochMilli),
     )
 
     private fun SecurityEvent.toEntity(now: Instant): SecurityEventEntity = SecurityEventEntity(
@@ -132,6 +152,8 @@ class RoomEventRepository(
         updatedAtEpochMs = now.toEpochMilli(),
         resumeStage = metadata[DEFERRED_STAGE_KEY],
         expiresAtEpochMs = expiresAt?.toEpochMilli(),
+        panicActivationCount = panicActivationCount,
+        panicLastActivatedAtEpochMs = panicLastActivatedAt?.toEpochMilli(),
     )
 
     private fun EvidenceReference.toEntity(eventId: String): EvidenceReferenceEntity = EvidenceReferenceEntity(

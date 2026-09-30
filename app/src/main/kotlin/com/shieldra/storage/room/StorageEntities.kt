@@ -29,6 +29,17 @@ data class SecurityEventEntity(
     val resumeStage: String?,
     @ColumnInfo(name = "expires_at_epoch_ms")
     val expiresAtEpochMs: Long?,
+    /**
+     * Explicit Panic activations this incident absorbed (amendment A-7).
+     *
+     * Nullable on purpose: NULL means "no activation was ever recorded", which
+     * is different from 0 and must never be back-filled for pre-v3 rows —
+     * a zero would claim a press happened on an event that predates counting.
+     */
+    @ColumnInfo(name = "panic_activation_count")
+    val panicActivationCount: Int?,
+    @ColumnInfo(name = "panic_last_activated_at_epoch_ms")
+    val panicLastActivatedAtEpochMs: Long?,
 )
 
 @Entity(

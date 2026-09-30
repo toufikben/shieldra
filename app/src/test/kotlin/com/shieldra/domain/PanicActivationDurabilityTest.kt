@@ -89,7 +89,7 @@ class PanicActivationDurabilityTest {
 
         val afterRestart = coordinator(repository)
         instant = Instant.parse("2026-09-30T11:00:00Z")
-        val resumed = afterRestart.activate()
+        val resumed = assertIs<PanicActivation.BoundToActive>(afterRestart.activate())
         assertEquals(
             Instant.parse("2026-09-30T11:00:00Z"),
             repository.lastActivationAtFor(resumed.event.id),
@@ -167,8 +167,7 @@ class PanicActivationDurabilityTest {
             threads + 1,
             repository.countFor(only.id),
             "eight concurrent presses on top of the first must produce nine durable activations",
-        )
-    }
+        )    }
 
     private fun coordinator(repository: EventRepository) = PanicIncidentCoordinator(
         repository = repository,

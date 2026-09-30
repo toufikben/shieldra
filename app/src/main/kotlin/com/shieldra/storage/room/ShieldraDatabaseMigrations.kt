@@ -34,6 +34,24 @@ object ShieldraDatabaseMigrations {
         }
     }
 
+    /**
+     * v2 → v3: makes the Panic activation count durable (amendment A-7).
+     *
+     * - `panic_activation_count`: how many explicit activations one Panic
+     *   incident has absorbed.
+     * - `panic_last_activated_at_epoch_ms`: when the most recent one arrived.
+     *
+     * Both are added nullable with no default, so existing rows keep reading
+     * as "no activation was recorded". Back-filling 0 or the event's creation
+     * time would assert a press that never happened.
+     */
+    val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE security_events ADD COLUMN panic_activation_count INTEGER")
+            db.execSQL("ALTER TABLE security_events ADD COLUMN panic_last_activated_at_epoch_ms INTEGER")
+        }
+    }
+
     /** All supported forward migrations, in order. No destructive fallback exists. */
-    val all: List<Migration> = listOf(MIGRATION_1_2)
+    val all: List<Migration> = listOf(MIGRATION_1_2, MIGRATION_2_3)
 }

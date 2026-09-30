@@ -26,10 +26,13 @@ in this file, the protocol is marked and the conflict is recorded, not hidden.
 > (with Pulse, AnimAi, and AI Photo Studio Chat). The store listing is being written in
 > parallel, so **a decision here can invalidate copy already written there.** Two claims are
 > already in tension with the code as it stands today:
-> - the listing says the app ships with **zero Android permissions** — true right now
->   (verified: no `uses-permission` in the manifest), but **it will stop being true at
->   Batch E**, when the real notification path needs `POST_NOTIFICATIONS`, and again at Batch F
->   for whatever the active guard legitimately requires (§16–§17). That wording is
+> - the listing says the app ships with **zero Android permissions** — this was true until
+>   Batch E and is now **superseded by amendment A-6**: the app declares exactly one
+>   permission, `POST_NOTIFICATIONS`, and asks for it only when the user opens notification
+>   setup. The accurate promise is "no permissions until you need them", not "zero".
+>   Verified: one `uses-permission` in the manifest, and a gate fails the build if a second
+>   one ever appears. The listing text still needs the same edit before publication; that
+>   wording is
 >   **pre-launch copy, not a permanent constraint**: §23 requires permissions to be
 >   incremental and necessary, which is stricter than promising zero and is the rule I follow.
 >   Whoever owns the listing must update the sentence before release; I am flagging it here so
@@ -235,6 +238,12 @@ requested "incrementally and only for real current functionality"; explicitly **
 camera + location + phone state during onboarding. §16: request `POST_NOTIFICATIONS` only
 when the feature genuinely needs it, and handle granted / denied / disabled-in-Settings
 honestly — never show "alert sent" without permission.**
+
+**Status (2026-09-30):** implemented as amendment **A-6** in Batch E. The app declares
+exactly one permission, `POST_NOTIFICATIONS`, and requests it from the notification setup
+screen reached from Settings — never from the Panic press and never bundled with anything
+else. A refusal leaves Panic recording untouched. g4b fails the build if a second
+permission is ever declared.
 Camera and location are **excluded from the Panic batch** by §21–§22, so neither moves into
 the manifest until Batch H.
 
@@ -439,9 +448,16 @@ already built has to be revisited.
 
 ## Q-C9 — May a repeated Panic press be written to disk? (NEW, raised by Batch C)
 
-**OPEN-NONBLOCKING** — Batch C ships without the answer; nothing it built has to be revisited.
+**ANSWERED (2026-09-30) — amendment A-7.** The count and the last activation instant are now
+persisted on the Panic event itself (Room v3, `panic_activation_count` and
+`panic_last_activated_at_epoch_ms`, both nullable, added by `MIGRATION_2_3` with no
+destructive fallback). The increment is one atomic `UPDATE … COALESCE(…) + 1 … WHERE state
+NOT IN (terminal states)`, so a concurrent press cannot lose an activation and a terminal
+event matches no row. `updateState()` still refuses unsupported metadata keys; the counter
+uses a separate `PanicActivationStore` contract instead. A-7 also adds
+`SecurityEventType.PANIC_ACTIVATION` so a Panic press can only bind to a Panic incident.
 
-**The situation:** your Batch C directive says a repeat press must not be lost, and to record
+**The situation, as raised by Batch C:** your Batch C directive says a repeat press must not be lost, and to record
 `activationCount` / `lastActivatedAt` *"إذا كان ذلك متوافقًا مع النموذج الحالي"* — if that is
 compatible with the current model. It turns out the current storage model cannot hold them:
 

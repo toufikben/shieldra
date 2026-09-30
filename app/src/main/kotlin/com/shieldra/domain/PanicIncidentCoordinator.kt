@@ -26,15 +26,17 @@ sealed interface PanicActivation {
  * Turns an explicit user activation into exactly one confirmed event.
  *
  * Panic has no attempt counter, no confirmation delay, no cooldown, and no
- * time window: while an event is non-terminal every further press binds to
+ * time window: while a Panic event is non-terminal every further press binds to
  * that same event, and only a terminal event starts a new one. The event is
  * persisted before anything else happens, so a press that could not be stored
  * is reported as a rejection rather than as a recorded incident.
  *
- * The activation count is this session's tally. It is deliberately not written
- * into [SecurityEvent.metadata]: schema v2 storage persists no metadata keys
- * besides the deferred stage, and silently dropping a recorded fact would be
- * exactly the kind of claim this batch exists to remove.
+ * Amendment A-7: the activation count is persisted beside the event through
+ * [PanicActivationStore] when the repository supports it, so a restart recovers
+ * the real count instead of starting over. The in-process [activations] map is a
+ * read-back cache for the values this class has to report — never the source of
+ * truth. A repository without a durable store still works, but its count resets
+ * on restart, and nothing in the UI presents that count as durable.
  */
 class PanicIncidentCoordinator(
     private val repository: EventRepository,
@@ -45,21 +47,49 @@ class PanicIncidentCoordinator(
 ) {
     private val activations = ConcurrentHashMap<EventId, ActivationRecord>()
 
+    /** Null when storage cannot hold the counter; the session tally then applies. */
+    private val store: PanicActivationStore? = repository as? PanicActivationStore
+
     fun activationCount(eventId: EventId): Int = activations[eventId]?.count ?: 0
 
     fun lastActivatedAt(eventId: EventId): Instant? = activations[eventId]?.lastActivatedAt
 
     @Synchronized
     fun activate(): PanicActivation {
-        val active = repository.listRecent(activeEventScanLimit).firstOrNull { !it.state.isTerminal() }
+        // Only a Panic incident may absorb a Panic press. Without the type
+        // filter, the first non-terminal event of any future guard would be
+        // adopted here and its counters corrupted (amendment A-7).
+        val active = repository.listRecent(activeEventScanLimit)
+            .firstOrNull { it.type == SecurityEventType.PANIC_ACTIVATION && !it.state.isTerminal() }
         if (active != null) {
-            return PanicActivation.BoundToActive(active, record(active.id, clock.now()))
+            val at = clock.now()
+            val durable = store
+            if (durable == null) {
+                val next = (activations[active.id]?.count ?: 0) + 1
+                return PanicActivation.BoundToActive(active, remember(active.id, next, at))
+            }
+            when (durable.recordPanicActivation(active.id, at)) {
+                is RepositoryResult.Applied -> {
+                    val count = durable.panicActivationCount(active.id)
+                        ?: return activateNewIncident(at)
+                    return PanicActivation.BoundToActive(active, remember(active.id, count, at))
+                }
+                // Storage refused: the event stopped being active between the
+                // scan and the write. Starting a fresh incident is the only
+                // honest reading — reusing a count would claim a press landed on
+                // an event that cannot take one.
+                else -> return activateNewIncident(at)
+            }
         }
 
+        return activateNewIncident(clock.now())
+    }
+
+    private fun activateNewIncident(at: Instant): PanicActivation {
         val evaluation = engine.evaluate(
             GuardSignal(
                 kind = GuardKind.PANIC,
-                observedAt = clock.now(),
+                observedAt = at,
                 observation = GuardObservation.PanicActivated,
             ),
             clock,
@@ -72,11 +102,12 @@ class PanicIncidentCoordinator(
             )
         }
 
-        return when (val saved = repository.save(event)) {
-            RepositoryResult.Applied -> PanicActivation.Recorded(event, record(event.id, clock.now()))
-            RepositoryResult.AlreadyExists -> {
-                val stored = repository.find(event.id) ?: event
-                PanicActivation.BoundToActive(stored, record(stored.id, clock.now()))
+        val panicked = event.asPanicActivation(count = 1, at = at)
+        return when (val saved = repository.save(panicked)) {
+            is RepositoryResult.Applied -> PanicActivation.Recorded(panicked, remember(panicked.id, 1, at))
+            is RepositoryResult.AlreadyExists -> {
+                val stored = repository.find(panicked.id) ?: panicked
+                PanicActivation.BoundToActive(stored, remember(stored.id, 1, at))
             }
             is RepositoryResult.Conflict -> PanicActivation.Rejected(
                 "Event persistence conflicted with state ${saved.current}",
@@ -86,11 +117,30 @@ class PanicIncidentCoordinator(
         }
     }
 
-    private fun record(eventId: EventId, at: Instant): Int {
-        val next = (activations[eventId]?.count ?: 0) + 1
-        activations[eventId] = ActivationRecord(next, at)
-        return next
+    /** Counts live in storage; this only caches what [PanicActivation] must report. */
+    private fun remember(eventId: EventId, count: Int, at: Instant): Int {
+        activations[eventId] = ActivationRecord(count, at)
+        return count
     }
+
+    /**
+     * Tags the engine's event as a Panic activation and stamps the first count
+     * onto the very same object, so the initial write already carries the
+     * counter and a crash cannot leave a saved Panic event without it.
+     */
+    private fun SecurityEvent.asPanicActivation(count: Int, at: Instant): SecurityEvent = create(
+        eventId = id,
+        createdAt = createdAt,
+        expiresAt = expiresAt,
+        state = state,
+        severity = severity,
+        evidenceReferences = evidenceReferences,
+        deliveryInformation = deliveryInformation,
+        metadata = metadata,
+        type = SecurityEventType.PANIC_ACTIVATION,
+        panicActivationCount = count,
+        panicLastActivatedAt = at,
+    )
 
     private data class ActivationRecord(
         val count: Int,

@@ -38,6 +38,25 @@ interface SecurityEventDao {
         resumeStage: String?,
         expiresAtEpochMs: Long?,
     ): Int
+
+    /**
+     * One atomic Panic activation (amendment A-7).
+     *
+     * Incrementing and stamping happen in a single UPDATE so no window exists
+     * in which a concurrent press or a crash could read a stale count and lose
+     * an activation. The `state NOT IN (...)` guard makes a terminal event
+     * match zero rows, so the caller sees a refusal instead of a silent
+     * increment on an incident that has already ended.
+     */
+    @Query(
+        """
+        UPDATE security_events
+        SET panic_activation_count = COALESCE(panic_activation_count, 0) + 1,
+            panic_last_activated_at_epoch_ms = :activatedAtEpochMs
+        WHERE event_id = :eventId AND state NOT IN ('DELIVERED', 'FAILED_FINAL', 'EXPIRED')
+        """,
+    )
+    fun incrementPanicActivation(eventId: String, activatedAtEpochMs: Long): Int
 }
 
 @Dao

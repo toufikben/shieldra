@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      Amendment A-6: the only permission SHIELDRA requests. It exists because a
+      local event notification cannot be shown on Android 13+ without it, and it
+      is requested from the notification setup screen (with the reason shown
+      first) — never from the Panic press. A refusal never blocks recording a
+      Security Event. No other permission is declared: no camera, no location,
+      no phone state, and no network permission.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".ShieldraApp"
         android:allowBackup="false"

@@ -38,10 +38,23 @@ else
   printf 'PASS: no forbidden Phase 3 implementation patterns\n'
 fi
 
-if grep -qE '<uses-permission|@mipmap/ic_launcher' app/src/main/AndroidManifest.xml; then
-  printf 'FAIL: Phase 3 manifest declares permissions or missing launcher resource\n'; fail=1
+# Amendment A-6 authorizes exactly one permission: POST_NOTIFICATIONS, because a
+# local event notification is impossible on Android 13+ without it, and it is
+# requested from the notification setup screen rather than from a Panic press.
+# Every other permission stays forbidden — the manifest is the only place SHIELDRA
+# could quietly acquire camera, location, phone-state, or network access.
+declared="$(grep -oE '<uses-permission[^>]*android:name="[^"]+"' app/src/main/AndroidManifest.xml | grep -oE 'android:name="[^"]+"' | sed 's/android:name="//;s/"$//' | sort)"
+unexpected="$(printf '%s\n' "$declared" | grep -v '^android.permission.POST_NOTIFICATIONS$' | grep -v '^$' || true)"
+if [ -n "$unexpected" ]; then
+  printf 'FAIL: manifest declares permissions outside amendment A-6:\n%s\n' "$unexpected"; fail=1
 else
-  printf 'PASS: Phase 3 manifest has no permissions or broken launcher reference\n'
+  printf 'PASS: manifest declares only the A-6 notification permission\n'
+fi
+
+if grep -qE '@mipmap/ic_launcher' app/src/main/AndroidManifest.xml; then
+  printf 'FAIL: manifest references a launcher resource that does not exist\n'; fail=1
+else
+  printf 'PASS: manifest has no broken launcher reference\n'
 fi
 
 if grep -RInE '28\.dp.*click|\.size\(28\.dp\).*click|\.size\(28\.dp\).*TextButton' app/src/main/kotlin/com/shieldra/app; then

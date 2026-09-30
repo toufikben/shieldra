@@ -269,12 +269,71 @@ if grep -qE 'Thread\.sleep|delay\(' "$PANIC"; then
   fail "panic must confirm immediately, not after a wait"
 fi
 grep -q 'GuardKind.PANIC' "$PANIC" || fail "panic must be confirmed through the approved guard engine"
-grep -q 'repository.save(event)' "$PANIC" || fail "the panic event must be persisted before any response work"
+# The invariant is "the confirmed event reaches storage before any response work",
+# so accept either the original local name or the Panic-tagged one introduced by
+# amendment A-7; both persist the event as the first action.
+grep -qE 'repository\.save\((event|panicked)\)' "$PANIC" || fail "the panic event must be persisted before any response work"
 grep -q 'isTerminal()' "$PANIC" || fail "the incident boundary must be the event lifecycle, not a time window"
 if grep -q 'EventPipeline\|InMemoryEventPipeline' "$PANIC"; then
   fail "the panic coordinator must not run pipeline stages that have not been implemented"
 fi
 pass "panic confirms, persists first, and bounds the incident by lifecycle only"
+
+# 5b. Amendment A-7: the activation count is durable metadata on the Panic event,
+# not a session tally, and it must never be smuggled through the generic metadata
+# channel that schema v2 deliberately refuses.
+STORE_DURABLE=app/src/main/kotlin/com/shieldra/domain/SecurityEventContracts.kt
+ROOM_REPO=app/src/main/kotlin/com/shieldra/storage/room/RoomEventRepository.kt
+[ -s "$STORE_DURABLE" ] || fail "the durable Panic activation store is missing"
+grep -q 'interface PanicActivationStore' "$STORE_DURABLE" || fail "no durable Panic activation contract exists"
+grep -q 'panicActivationCount' "$STORE_DURABLE" || fail "the event does not carry a durable activation count"
+grep -q 'PANIC_ACTIVATION' "$STORE_DURABLE" || fail "Panic events are not distinguishable from other security events"
+grep -q 'SecurityEventType.PANIC_ACTIVATION' "$PANIC" || fail "a Panic press must only bind to a Panic incident, not any non-terminal event"
+grep -q 'recordPanicActivation' "$ROOM_REPO" || fail "Room does not persist Panic activations"
+if grep -q 'deferredStage.*activationCount\|activationCount.*deferredStage' "$ROOM_REPO"; then
+  fail "the activation count must not ride the generic metadata key"
+fi
+if grep -qE 'panicActivationCount.*COALESCE|COALESCE.*panicActivationCount' app/src/main/kotlin/com/shieldra/storage/room/StorageDaos.kt && \
+   ! grep -q "state NOT IN" app/src/main/kotlin/com/shieldra/storage/room/StorageDaos.kt; then
+  fail "the atomic activation increment must refuse a terminal event"
+fi
+grep -q 'MIGRATION_2_3' app/src/main/kotlin/com/shieldra/storage/room/ShieldraDatabaseMigrations.kt \
+  || fail "the v2->v3 explicit migration is missing"
+# A real call sets the flag; StorageSchema.requireNoDestructiveFallback() merely
+# names the parameter in order to reject it, so match the call, not the word.
+if grep -rqE '\.fallbackToDestructiveMigration\(|fallbackToDestructiveMigration[[:space:]]*=[[:space:]]*true' app/src/main/kotlin/; then
+  fail "no destructive migration may exist (decision 4-3)"
+fi
+pass "Panic activation count is durable, Panic-scoped, atomically guarded, and migrated"
+
+# 5c. Amendment A-6: notifications are local, permission-gated, and never claim
+# delivery. A local post must never be recorded as a successful delivery, because
+# that would advance an event to DELIVERED on the strength of a notification the
+# user may never have seen.
+NOTIFY=app/src/main/kotlin/com/shieldra/notification/NotificationState.kt
+[ -s "$NOTIFY" ] || fail "the notification state model is missing"
+grep -q 'enum class NotificationPermissionState' "$NOTIFY" || fail "permission state is not modelled"
+grep -q 'sealed interface LocalPostResult' "$NOTIFY" || fail "local posting result is not modelled separately from permission"
+# Comment lines are excluded: the KDoc deliberately names DELIVERED to explain
+# why a local result must never be called that.
+NOTIFY_CODE="$(grep -vE '^[[:space:]]*(\*|//|/\*)' "$NOTIFY")"
+if grep -qE '\b(DELIVERED|SENT)\b' <<<"$NOTIFY_CODE"; then
+  fail "a local notification result must never be named delivered or sent"
+fi
+if grep -rqE 'FirebaseMessaging|firebase-messaging|Firebase|Retrofit|OkHttp|smtp|SmtpClient' app/src/main/kotlin/com/shieldra/notification/; then
+  fail "Batch E is local notifications only; no remote or external provider may be introduced"
+fi
+grep -q 'android.permission.POST_NOTIFICATIONS' app/src/main/AndroidManifest.xml \
+  || fail "the A-6 notification permission is not declared"
+REQS="$(grep -c '<uses-permission' app/src/main/AndroidManifest.xml || true)"
+if [ "$REQS" -ne 1 ]; then
+  fail "exactly one permission may be declared (A-6); found $REQS"
+fi
+grep -q 'RequestPermission' "$NAVHOST" || fail "the permission is never requested from the UI"
+if grep -q 'RequestPermission' "$PANIC"; then
+  fail "the permission must never be requested from the Panic path"
+fi
+pass "notifications are local, permission-gated, and never claim delivery"
 
 # 6. The dashboard action reaches the real coordinator off the main thread.
 grep -q 'PanicIncidentCoordinator(repository' "$NAVHOST" || fail "NavHost does not build the panic coordinator"

@@ -65,7 +65,19 @@
 
     <string name="step_of">Step %1$d of %2$d</string>
     <string name="notifications">Notifications</string>
-    <string name="permission_notification_reason">This Phase 3 demo shows where notification setup would appear; no Android permission is requested.</string>
+    <string name="permission_notification_reason">SHIELDRA records security events on this phone. To also show you a notification when one happens, Android needs your permission. SHIELDRA asks for it only here, and your security events are recorded either way.</string>
+    <string name="notification_channel_security_events">Security events</string>
+    <string name="notification_channel_security_events_description">Local notifications for events SHIELDRA recorded on this phone.</string>
+    <string name="notification_event_title">Security event recorded</string>
+    <string name="notification_event_body">Shieldra recorded a security event at %1$s.</string>
+    <string name="notification_permission_allowed">Allowed</string>
+    <string name="notification_permission_denied">Not allowed</string>
+    <string name="notification_permission_not_requested">Not requested</string>
+    <string name="notification_permission_not_required">Not needed on this Android version</string>
+    <string name="notification_result_posted">Local notification posted</string>
+    <string name="notification_result_failed">Local notification failed</string>
+    <string name="notification_result_not_attempted">Notification permission denied — the event was still recorded</string>
+    <string name="notification_turn_on">Turn on notifications</string>
     <string name="lock_guard">Lock Guard</string>
     <string name="protection_setup_question">Lock Guard uses the approved protection rule.</string>
     <string name="lock_guard_threshold">%1$d failed attempts confirm a security event</string>

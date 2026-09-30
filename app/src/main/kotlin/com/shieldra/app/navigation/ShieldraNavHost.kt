@@ -61,6 +61,13 @@ import com.shieldra.app.presentation.screen.premium.PremiumCallbacks
 import com.shieldra.app.presentation.screen.premium.PremiumScreen
 import com.shieldra.app.presentation.screen.settings.SettingsCallbacks
 import com.shieldra.app.presentation.screen.settings.SettingsScreen
+import com.shieldra.app.presentation.screen.settings.NotificationSetupScreen
+import com.shieldra.domain.PanicActivation
+import com.shieldra.notification.LocalEventNotifier
+import com.shieldra.notification.LocalPostResult
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.shieldra.app.presentation.model.HistoryFilterState
 import com.shieldra.app.R
 import kotlinx.coroutines.launch
@@ -94,6 +101,14 @@ fun ShieldraNavHost(
         installedStorage?.let { PanicIncidentCoordinator(repository = it.eventRepository) }
     }
     var panicActivations by remember { mutableStateOf(0) }
+    // Real local notifications (A-6). The permission is requested only from the
+    // notification setup screen; a Panic press never triggers a request.
+    val context = LocalContext.current
+    val notifier = remember(context) { LocalEventNotifier(context) }
+    var lastPostResult by remember { mutableStateOf<LocalPostResult?>(null) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { /* the screen re-reads the live state on return */ }
     // Room refuses main-thread queries, so the load is dispatched off it and the
     // UI renders empty until the real rows arrive.
     val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage, panicActivations) {
@@ -166,7 +181,22 @@ fun ShieldraNavHost(
                                 defer()
                             } else {
                                 scope.launch {
-                                    withContext(Dispatchers.IO) { coordinator.activate() }
+                                    val activation = withContext(Dispatchers.IO) { coordinator.activate() }
+                                    // The event is already persisted at this point; a
+                                    // missing notification never undoes that (A-6).
+                                    lastPostResult = when (activation) {
+                                        is PanicActivation.Recorded ->
+                                            notifier.postSecurityEvent(
+                                                activation.event.id.value.toString(),
+                                                eventLabels.stateLabel(activation.event.state),
+                                            )
+                                        is PanicActivation.BoundToActive ->
+                                            notifier.postSecurityEvent(
+                                                activation.event.id.value.toString(),
+                                                eventLabels.stateLabel(activation.event.state),
+                                            )
+                                        is PanicActivation.Rejected -> LocalPostResult.NotAttempted
+                                    }
                                     panicActivations += 1
                                 }
                             }
@@ -207,7 +237,23 @@ fun ShieldraNavHost(
             composable(ShieldraRoutes.SETTINGS) {
                 SettingsScreen(
                     rows = DemoData.settingsRows(),
-                    callbacks = SettingsCallbacks { _, _ -> defer() },
+                    callbacks = SettingsCallbacks { id, _ ->
+                        if (id == DELIVERY_ROW_ID) {
+                            navController.navigate(ShieldraRoutes.NOTIFICATION_SETUP)
+                        } else {
+                            defer()
+                        }
+                    },
+                )
+            }
+
+            // Notification setup (A-6): the only permission request in the app.
+            composable(ShieldraRoutes.NOTIFICATION_SETUP) {
+                NotificationSetupScreen(
+                    permissionState = notifier.permissionState(),
+                    lastResult = lastPostResult,
+                    onRequest = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                    onBack = { navController.popBackStack() },
                 )
             }
 
@@ -291,6 +337,9 @@ private fun ageLabelFormatter(): (Instant, Instant) -> String {
 }
 
 private const val RECENT_EVENT_LIMIT = 20
+
+/** Settings row that opens notification setup (A-6); it is the only permission request. */
+private const val DELIVERY_ROW_ID = "delivery"
 
 /** Distinguishes "still loading" from "no such event", which are both null. */
 private sealed interface DetailLookup {
