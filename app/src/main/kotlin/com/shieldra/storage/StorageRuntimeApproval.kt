@@ -4,12 +4,14 @@ package com.shieldra.storage
  * §15 production-wiring gate (decision, not a feature flag).
  *
  * Local storage may only be attached to the running application behind this
- * explicit approval. It is `false` until the owner flips it in a visible
- * commit (§14: no silent policy change). Flipping this constant is the owner's
- * sign-off that the storage/Keystore path is cleared for runtime use.
+ * explicit approval. The owner flipped it to `true` in a visible commit
+ * (amendment A-5, §14: no silent policy change) after the first detector's
+ * device verification passed (owner answer Q-C2, option 1). This constant is
+ * the owner's sign-off that the storage/Keystore path is cleared for runtime
+ * use; it goes back to `false` only through another recorded amendment.
  */
 object StorageRuntimeApproval {
-    const val approved: Boolean = false
+    const val approved: Boolean = true
 }
 
 /**

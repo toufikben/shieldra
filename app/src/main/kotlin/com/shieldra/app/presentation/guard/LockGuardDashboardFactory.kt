@@ -12,9 +12,9 @@ import com.shieldra.app.presentation.model.GuardUiModel
 /**
  * Builds the dashboard the app may honestly show, straight from the pure
  * [LockGuardDecision]. It never invents a "Protected" state, an active guard,
- * a battery reading, a network reading, or ads — none of those facts exist yet,
- * because detection and monitoring (phase 5 / G3) are not implemented and the
- * storage gate is off by default. Only [recentEvents] is real, and it is
+ * a battery reading, a network reading, or ads — none of those facts exist
+ * yet, because detection and monitoring (phase 5 / G3) are not implemented,
+ * regardless of the storage gate. Only [recentEvents] is real, and it is
  * whatever the persisted reader actually returned.
  */
 @Composable

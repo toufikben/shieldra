@@ -11,15 +11,18 @@ import com.shieldra.storage.decideStorageInstall
  * §15 production wiring, behind an explicit runtime approval gate.
  *
  * Local storage is installed only when [StorageRuntimeApproval.approved] is
- * true, and the owner flips that constant in a visible commit (§14). With the
- * gate off (the default), no open is attempted at all, so a default build
- * provably creates no database and touches no Keystore key — the Phase-3
- * no-side-effect behavior is preserved.
+ * true. The owner flipped that constant to true in a visible commit
+ * (amendment A-5, §14) after the first detector's device verification passed
+ * (Q-C2 option 1), so the approved build now opens storage at process start.
+ * A build that is behind an unflipped gate still provably creates no database
+ * and touches no Keystore key.
  *
  * Opening goes exclusively through [LocalShieldraStorage.openOrRecovery],
  * never the raw factory: a failure surfaces as RecoveryRequired and is kept as
  * state rather than crashing or falling back to a destructive recreate
- * (§4.2–§4.4). This wiring does not by itself close §15 or G4.
+ * (§4.2–§4.4). Installing storage does not by itself close §15 or G4, and it
+ * never claims protection: with no detector running, the honest projection
+ * stays idle/attention, never "Protected".
  */
 class ShieldraApp : Application() {
     var storageDecision: StorageInstallDecision<LocalShieldraStorage> = StorageInstallDecision.NotApproved
@@ -58,10 +61,9 @@ class ShieldraApp : Application() {
      * start, off the main thread because the eligibility scan is a Room read and a
      * migration is a Room write.
      *
-     * The gate above is what makes this inert in a default build: with
-     * `StorageRuntimeApproval.approved = false` there is no storage to scan, no
-     * lifecycle record, and no Keystore access. Batch D flips the gate in the same
-     * verified batch that ships the first real detector.
+     * Since the owner flipped the gate (A-5), an approved process start runs this
+     * scan over real storage. An unflipped build never reaches here: no storage
+     * to scan, no lifecycle record, no Keystore access.
      */
     private fun checkEvidenceRotation(storage: LocalShieldraStorage) {
         Thread {

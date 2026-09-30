@@ -13,7 +13,7 @@ import com.shieldra.app.presentation.model.ProtectionVisualState
  * honest distinction available now is whether local storage is installed at all.
  */
 sealed interface LockGuardState {
-    /** Storage gate is off (the shipped default): nothing is persisted or running. */
+    /** Storage is not installed (gate off or open failed): nothing is persisted or running. */
     data object NotActive : LockGuardState
 
     /** Storage is installed, but monitoring is not configured: an honest idle state. */

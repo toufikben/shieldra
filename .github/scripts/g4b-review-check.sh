@@ -22,15 +22,18 @@ grep -q 'context.noBackupFilesDir' app/src/main/kotlin/com/shieldra/storage/Loca
 pass "evidence factory uses noBackupFilesDir"
 
 # §15 production-wiring gate: local storage may attach to the running app only
-# behind the runtime approval flag, which stays false until the owner flips it
-# in a visible commit (§14). Opening must go through openOrRecovery so a failed
-# open becomes RecoveryRequired, never a destructive recreate (§4.2-§4.4).
+# behind the runtime approval flag. The owner flipped it to true in a visible
+# commit (amendment A-5, §14) after the first detector's device verification
+# passed (Q-C2 option 1). Reverting it to false is itself a policy change and
+# must arrive as another recorded amendment, so the gate here enforces true.
+# Opening must go through openOrRecovery so a failed open becomes
+# RecoveryRequired, never a destructive recreate (§4.2-§4.4).
 GATE=app/src/main/kotlin/com/shieldra/storage/StorageRuntimeApproval.kt
 APP=app/src/main/kotlin/com/shieldra/app/ShieldraApp.kt
 [ -s "$GATE" ] || fail "storage runtime approval gate is missing"
-grep -Eq 'const val approved:[[:space:]]*Boolean[[:space:]]*=[[:space:]]*false' "$GATE" \
-  || fail "storage runtime approval must default to false until the owner signs off (sec 14/15)"
-pass "storage install gate present and off by default"
+grep -Eq 'const val approved:[[:space:]]*Boolean[[:space:]]*=[[:space:]]*true' "$GATE" \
+  || fail "storage runtime approval was flipped back to false without a recorded owner amendment (sec 14/15, A-5)"
+pass "storage install gate is the owner-flipped true (A-5)"
 
 grep -q 'StorageRuntimeApproval.approved' "$APP" \
   || fail "ShieldraApp does not consult the storage runtime approval gate"
