@@ -19,7 +19,7 @@ and **Q-C10 was opened** (the Settings row Batch E could not fix without widenin
 directive; CI `36782719559` 248/248 + RMX3910), and **Q-F1 is new** (the delivery claims that
 survived on Premium, the event Detail card, and onboarding's dead "Allow").
 
-> **Three items are still open after the protocol, and none blocks the next batch:**
+> **Open items after the protocol, and none blocks the next batch:**
 > 1. **Q-D5/Q-D7 — ads and billing.** The protocol (§30) contradicts the 2026-09-29
 >    store-launch decision. Needs one line from you. See the CONFLICT box there.
 > 2. **Q-C8 — destroying a *retired* evidence key version.** §10 forbids me from inventing a
@@ -27,6 +27,11 @@ survived on Premium, the event Detail card, and onboarding's dead "Allow").
 > 3. **Q-F1 — the delivery claims Batch F could not close without a product decision** (raised by
 >    Batch F, 2026-09-30). It is mostly the same line as Q-D5/Q-D7: answering those first would
 >    close most of it.
+> 4. **Q-G1 — what magnitude counts as "strong movement".** Your G1-02 rule fixes the timing
+>    (3 s / two within 10 s) but not the acceleration threshold, and §37 makes the meaning of a
+>    guard yours, not mine. The Motion evaluator ships with the threshold **injected**, and the
+>    guard stays un-armable until you set it from measured samples.
+>    Your Batch G mechanism rulings are **not** open: they are amendments **A-8 … A-11** (see Q-G2).
 >    Outside this repository, the published store copy still advertises **"zero Android
 >    permissions"**, which amendment A-6 superseded — the honest sentence is "no permissions
 >    until you need them".
@@ -588,6 +593,53 @@ unstated because they sat outside Batch F's file list.
 
 **Your answer:** ⬜ not answered yet — **option 3 would unblock the most with one line; option 1 if
 you want me to fix the copy now.**
+
+---
+
+## Q-G1 — What magnitude counts as "strong movement", and what counts as noise? (NEW, raised by Batch G)
+
+**Status:** **OPEN — one number needed, and it needs a measurement first.** Nothing blocks the
+pure work; it blocks only the *shipping default*.
+
+**Why I am asking instead of choosing:** your rule **G1-02** fixes the **time** side — confirm
+after ~3 seconds of strong/unusual movement, or two suspicious movements within 10 seconds, after
+sensor-quality validation, ignoring isolated noise — and it explicitly leaves *"calibration,
+sampling, and battery behavior"* to be verified. It does **not** state how large the acceleration
+has to be. That is the meaning of a guard (§37), so I will not invent it.
+
+**Measured on your phone (`dumpsys sensorservice`, 2026-09-30):** the accelerometer is a SILAN
+`sc7a20`, `perm: n/a`, continuous, **10 Hz – 200 Hz**, **non-wakeUp**; `SIGNIFICANT_MOTION` is
+one-shot, **wakeUp**, `perm: n/a`. So motion costs no permission, and the tripwire exists in
+hardware — but a number for "strong" still has to come from real samples on this device, not from
+the datasheet.
+
+| Option | Rule | Consequence |
+|---|---|---|
+| **1 (recommended)** | I ship the pure Motion evaluator with **injected** calibration, and the app never shows Motion as `Active`; then an on-device burst **measures** the resting noise floor and movement magnitudes and brings you the numbers with a proposed default. You approve the constant, and only then does Motion become armable. | No guessed security threshold ever ships. Cost: the guard stays unproven until the measurement lands. |
+| 2 | Use the common ~2.3–2.5 m/s² deviation heuristic as the default now. | Faster to a working demo. I advise against it: it is a rule of thumb from other devices, and §31/§37 say a guard's meaning is yours. |
+| 3 | Make it a user-adjustable sensitivity (Low/Standard/High) mapped to constants you set. | Sells well as a feature, but it multiplies the calibration decisions and adds a settings surface before the detector is proven. |
+
+**Answer format:** e.g. `Q-G1: الخيار 1` — and when the measured numbers arrive you can answer the
+constant itself with `Q-G1: 2.4 m/s²` or similar.
+
+---
+
+## Q-G2 — the four Batch G mechanism questions: ANSWERED 2026-09-30 (kept for the record)
+
+Batch F's closing report asked four things. Your answers are now amendments **A-8 … A-11** in
+`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` §17, so they are not open items:
+
+| Asked | Your ruling | Amendment |
+|---|---|---|
+| Foreground service with `specialUse` + `FOREGROUND_SERVICE*` permissions | **Conditional** — approved as architecture, *not* as permission-only code; added only when a real user-started, user-stoppable monitoring service exists; `specialUse` only if nothing more specific fits; **never an empty service written to defeat a CI gate** | **A-8** |
+| A persistent notification while monitoring runs | **Agreed** — it must exist while the service really runs, and must read accurately: *"SHIELDRA protection is active"*, never *"جهازك مُراقَب"*, never "24/7", never "guaranteed" | **A-9** |
+| Auto-start after reboot (`RECEIVE_BOOT_COMPLETED` / `BOOT_COMPLETED`) | **Rejected for this stage** — prove *app opened → user enables → monitoring starts* first, then test real OEM behaviour. Your note: Android 15 restricts some FGS types from `BOOT_COMPLETED` and `specialUse` is exempt, but that is not a reason to build auto-start now | **A-10** |
+| Battery-optimization / Realme restrictions | **Reworded** — an **optional recommendation** with your exact sentence: *"For more reliable background protection on some devices, SHIELDRA recommends allowing unrestricted battery usage. Your device manufacturer may still apply additional background restrictions."* It is not a requirement, and I must not claim the system would certainly kill the service without it | **A-11** |
+
+The one point where your correction changed my reasoning, recorded so it is not repeated: disabling
+battery optimization is documented as an exemption related to **background FGS-start limits**, not
+as a guarantee that the service survives — so "the OEM will usually kill it without this" was too
+strong a claim, and §31 is the reason it matters.
 
 ---
 

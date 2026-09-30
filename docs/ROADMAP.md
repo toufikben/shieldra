@@ -306,13 +306,31 @@ resumability, failure semantics (§27), factory reset (§28), and the retention 
 
 ## Required next batch
 
-**Batch G — Motion Guard** (§18) is the required next batch. Its first deliverable is the
-detector's real Android requirement set (which sensor, what sampling, whether it must run with the
-screen off, what current Play policy allows), because the foreground-service **type and permission
-must be chosen from those requirements** rather than preselected. `BackgroundExecutionController`
-is where it plugs in: `Prerequisite.DetectorAvailable` becomes real, and only then may
-`MonitoringClaim.ActiveGuardMonitoring` — and therefore any `Protected` UI — exist. Motion, SIM and
-Lock detection were explicitly out of Batch F's scope and remain unimplemented.
+**Batch G — Motion Guard** (§18) is the current batch, and its first deliverable — *the detector's
+real Android requirements* — is now **MEASURED, not assumed**:
+`docs/capabilities/motion-detection-requirements.md` records the RMX3910 sensor inventory
+(accelerometer `perm: n/a`, continuous, **non-wakeUp**, 10–200 Hz; `SIGNIFICANT_MOTION`
+one-shot **wakeUp** `perm: n/a`) and the shape it forces: a wake-capable tripwire, then a short
+accelerometer burst judged by the approved G1-02 rule.
+
+**The owner settled the four open decisions on 2026-09-30** (recorded as amendments **A-8 … A-11**
+in `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` §17 — read them before writing any Motion
+code):
+
+| | Ruling |
+|---|---|
+| **A-8** | A foreground service is approved **as an architectural decision, not as permission-only code**. No `<service>`, no `FOREGROUND_SERVICE`, no `FOREGROUND_SERVICE_SPECIAL_USE` until a real monitoring service the user starts and can stop exists. `specialUse` is chosen **only** when nothing more specific fits, with the `PROPERTY_SPECIAL_USE_FGS_SUBTYPE` property and a Play justification. An empty service written to defeat the CI gate is forbidden. |
+| **A-9** | While an FGS really runs it must show a **continuous, accurate** notification: *"SHIELDRA protection is active"*. Never "24/7", never "guaranteed". |
+| **A-10** | **Rejected for now**: no `RECEIVE_BOOT_COMPLETED`, no `BOOT_COMPLETED`. First prove *app opened → user enables → monitoring starts*, then test OEM/reboot behaviour. |
+| **A-11** | Battery restriction is an **optional recommendation**, with the owner's exact wording; it is never presented as a requirement, and the app never claims the system would kill the service without it. |
+
+Consequences for the batch order: the **pure** Motion judgement (samples → quality → G1-02
+window) and the honest projection come first; the Android sensor adapter and its on-device
+background-delivery proof come next; **the foreground service and its permission come last, and
+only if the device evidence shows monitoring must continue outside the foreground.** Motion's
+magnitude thresholds are **Q-G1** (an owner decision) and stay injected parameters until measured.
+
+Motion, SIM and Lock detection were explicitly out of Batch F's scope and remain unimplemented.
 
 **Batch F — `F-background-execution-contract`** is **CLOSED** (2026-09-30). **No continuous Guard
 detector was implemented in Batch F**, and none is claimed. It closed Batch E's three truthfulness
