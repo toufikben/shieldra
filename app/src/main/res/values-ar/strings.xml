@@ -3,8 +3,8 @@
     <string name="app_name">شيلدرا</string>
 
     <string name="welcome_title">شيلدرا</string>
-    <string name="welcome_subtitle">حارس هاتفك الهادئ.</string>
-    <string name="welcome_body">استكشف العرض التقديمي لشيلدرا لتجربة حماية مستقبلية.</string>
+    <string name="welcome_subtitle">تُسجَّل الأحداث الأمنية على هذا الهاتف.</string>
+    <string name="welcome_body">المراقبة المستمرة ليست جزءًا من هذا الإصدار بعد. ما تُطلقه يُحفظ هنا، على هذا الجهاز.</string>
     <string name="welcome_get_started">ابدأ الآن</string>
     <string name="welcome_skip">تخطَّ الآن</string>
 
@@ -165,6 +165,7 @@
     <string name="protection_disabled">معطلة</string>
     <string name="protection_disabled_accessibility">الحماية معطلة</string>
     <string name="last_check_seconds">آخر تحقق: منذ %1$ds</string>
+    <string name="last_check_none">لا يوجد فحص بعد</string>
     <string name="last_check_minutes">آخر تحقق: منذ %1$dm</string>
     <string name="last_check_hours">آخر تحقق: منذ %1$dh</string>
     <string name="seconds_ago">منذ %1$ds</string>

@@ -72,7 +72,8 @@ data class EventDetailUiModel(
 
 data class DashboardUiModel(
     val protectionState: ProtectionVisualState,
-    val lastCheckSeconds: Long,
+    /** Seconds since a check really ran; null when no detector has ever checked. */
+    val lastCheckSeconds: Long?,
     val guards: List<GuardUiModel>,
     val recentEvents: List<EventUiModel>,
     val batteryPercent: Int?,

@@ -40,4 +40,11 @@ object LockGuardDecision {
 
     fun guardStatuses(state: LockGuardState): Map<GuardKind, GuardStatus> =
         GuardKind.entries.associateWith { GuardStatus.Disabled }
+
+    /**
+     * When the last check ran — which is never, because nothing checks. A check
+     * timestamp is evidence of a detector, and there is none, so the honest answer
+     * is the absence of one rather than a clock reading of zero.
+     */
+    fun lastCheckSeconds(state: LockGuardState): Long? = null
 }

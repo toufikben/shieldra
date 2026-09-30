@@ -451,6 +451,26 @@ for name in the_settings_rows_have_a_notification_entry_and_no_delivery_entry \
 done
 pass "the owner's named Batch F tests are present"
 
+# 13. Batch F — the first-run screen and the shield may not claim a watch that no
+#     detector performs (directives F2/F8: execution is not monitoring, and a check
+#     timestamp is evidence of a check).
+for claim in 'quietly guarded' 'presentation demo for a future protection'; do
+  if grep -RIn "$claim" app/src/main/res >/dev/null 2>&1; then
+    fail "a shipped screen claims protection the app does not provide: $claim"
+  fi
+done
+for locale in values values-ar; do
+  grep -q 'name="last_check_none"' "app/src/main/res/$locale/strings.xml" \
+    || fail "$locale has no honest wording for a check that never happened"
+done
+grep -q 'fun lastCheckSeconds(state: LockGuardState): Long? = null' \
+  app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDecision.kt \
+  || fail "the guard decision must report that no check has ever run"
+grep -q 'lastCheckSeconds = LockGuardDecision.lastCheckSeconds(state)' \
+  app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDashboardFactory.kt \
+  || fail "the dashboard is inventing a last-check time again"
+pass "no screen claims a check or a guard that does not exist"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"

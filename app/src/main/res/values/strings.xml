@@ -3,8 +3,8 @@
     <string name="app_name">Shieldra</string>
 
     <string name="welcome_title">Shieldra</string>
-    <string name="welcome_subtitle">Your phone is quietly guarded.</string>
-    <string name="welcome_body">Explore the Shieldra presentation demo for a future protection experience.</string>
+    <string name="welcome_subtitle">Security events are recorded on this phone.</string>
+    <string name="welcome_body">Continuous monitoring is not part of this build yet. What you trigger is stored here, on this device.</string>
     <string name="welcome_get_started">Get started</string>
     <string name="welcome_skip">Skip for now</string>
 
@@ -165,6 +165,7 @@
     <string name="protection_disabled">DISABLED</string>
     <string name="protection_disabled_accessibility">Protection disabled</string>
     <string name="last_check_seconds">Last check: %1$ds ago</string>
+    <string name="last_check_none">No check yet</string>
     <string name="last_check_minutes">Last check: %1$dm ago</string>
     <string name="last_check_hours">Last check: %1$dh ago</string>
     <string name="seconds_ago">%1$ds ago</string>

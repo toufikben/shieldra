@@ -35,7 +35,7 @@ fun lockGuardDashboard(
     }
     return DashboardUiModel(
         protectionState = LockGuardDecision.protectionState(state),
-        lastCheckSeconds = 0L,
+        lastCheckSeconds = LockGuardDecision.lastCheckSeconds(state),
         guards = guards,
         recentEvents = recentEvents,
         batteryPercent = null,

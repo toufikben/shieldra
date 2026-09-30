@@ -78,7 +78,9 @@ fun DashboardScreen(
 
         item {
             LiveStatusStrip(
-                lastCheckLabel = stringResource(R.string.seconds_ago, model.lastCheckSeconds),
+                lastCheckLabel = model.lastCheckSeconds
+                    ?.let { stringResource(R.string.seconds_ago, it) }
+                    ?: stringResource(R.string.last_check_none),
                 batteryPercent = model.batteryPercent,
                 networkLabel = model.networkLabel,
                 networkOk = model.networkOk,

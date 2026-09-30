@@ -107,7 +107,7 @@ private fun configFor(state: ProtectionVisualState): ShieldCoreConfig {
 @Composable
 fun ShieldCore(
     state: ProtectionVisualState,
-    lastCheckSeconds: Long,
+    lastCheckSeconds: Long?,
     modifier: Modifier = Modifier,
 ) {
     val config = configFor(state)
@@ -219,7 +219,8 @@ fun ShieldCore(
 }
 
 @Composable
-private fun formatLastCheck(seconds: Long): String = when {
+private fun formatLastCheck(seconds: Long?): String = when {
+    seconds == null -> stringResource(R.string.last_check_none)
     seconds < 60 -> stringResource(R.string.last_check_seconds, seconds)
     seconds < 3600 -> stringResource(R.string.last_check_minutes, seconds / 60)
     else -> stringResource(R.string.last_check_hours, seconds / 3600)
