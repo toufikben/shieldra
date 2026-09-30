@@ -471,6 +471,43 @@ grep -q 'lastCheckSeconds = LockGuardDecision.lastCheckSeconds(state)' \
   || fail "the dashboard is inventing a last-check time again"
 pass "no screen claims a check or a guard that does not exist"
 
+# 14. Batch G — Motion judgement is pure until the device proves delivery (A-8). The
+#     magnitude thresholds are the owner's (Q-G1), so no shipping default may exist here,
+#     and no boot receiver may appear while reboot auto-start is rejected (A-10).
+MOTION=app/src/main/kotlin/com/shieldra/detection/MotionDetection.kt
+[ -s "$MOTION" ] || fail "the Motion measurement layer is missing"
+if grep -q '^import android\.' "$MOTION"; then
+  fail "Motion judgement reached into Android; the sensor adapter is a separate, device-proven step (A-8)"
+fi
+if grep -RIn 'SensorManager\|registerListener\|DefaultSensor' app/src/main/kotlin; then
+  fail "a sensor listener was registered before amendment A-8's device evidence exists"
+fi
+for default in 'strongDeltaMs2: Double = ' 'noiseFloorDeltaMs2: Double = ' 'minEpisodeMs: Long = ' 'maxSampleGapMs: Long = '; do
+  if grep -q "$default" "$MOTION"; then
+    fail "a Motion magnitude threshold has a shipping default value ($default); Q-G1 belongs to the owner"
+  fi
+done
+grep -q 'MotionReading.Unreliable' "$MOTION" \
+  || fail "Motion can no longer report unreliable samples instead of a quiet device"
+if grep -RIn 'RECEIVE_BOOT_COMPLETED\|BOOT_COMPLETED' app/src/main; then
+  fail "boot auto-start was added while amendment A-10 rejects it for this phase"
+fi
+for name in a_strong_movement_that_last_longer_than_the_approved_three_seconds_confirms_a_security_event \
+  a_burst_shorter_than_the_minimum_episode_is_isolated_noise_and_never_an_occurrence \
+  two_strong_bursts_inside_the_repetition_window_confirm_and_a_single_one_does_not \
+  two_bursts_eleven_seconds_apart_are_outside_the_approved_window_and_stay_signal_only \
+  a_silence_longer_than_the_sampling_limit_is_unreliable_rather_than_a_quiet_device \
+  a_non_finite_sample_is_unreliable_and_can_never_confirm \
+  no_samples_are_insufficient_and_are_never_reported_as_a_still_device \
+  the_same_movement_on_a_phone_turned_on_its_side_measures_the_same \
+  values_between_the_noise_floor_and_the_strong_level_start_no_episode \
+  a_movement_that_never_settles_reports_the_full_measured_duration_not_zero \
+  the_peak_recorded_for_an_episode_is_the_largest_deviation_it_saw; do
+  grep -qE "fun $name\(" app/src/test/kotlin/com/shieldra/detection/MotionWindowEvaluatorTest.kt \
+    || fail "the Motion test $name was removed or renamed"
+done
+pass "Motion judgement is pure, injected-calibrated, fail-closed, and covered by the owner's named tests"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"
