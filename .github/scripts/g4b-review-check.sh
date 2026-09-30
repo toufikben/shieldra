@@ -333,6 +333,14 @@ grep -q 'RequestPermission' "$NAVHOST" || fail "the permission is never requeste
 if grep -q 'RequestPermission' "$PANIC"; then
   fail "the permission must never be requested from the Panic path"
 fi
+# "Never asked about" and "refused" are different answers, and the platform
+# reports DENIED for both, so the app has to remember that it asked.
+NOTIFIER=app/src/main/kotlin/com/shieldra/notification/LocalEventNotifier.kt
+[ -s "$NOTIFIER" ] || fail "the local notifier is missing"
+grep -q 'hasBeenRequested()' "$NOTIFIER" \
+  || fail "the notifier cannot tell a permission it never asked about from a refusal"
+grep -q 'recordPermissionRequest()' "$NAVHOST" \
+  || fail "answering the system dialog is never recorded, so silence and refusal look alike"
 pass "notifications are local, permission-gated, and never claim delivery"
 
 # 6. The dashboard action reaches the real coordinator off the main thread.

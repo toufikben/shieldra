@@ -60,7 +60,7 @@ class NotificationPermissionStateInstrumentedTest {
         val notifier = LocalEventNotifier(context, FakePermissionRequestRecord(requested = true))
         val result = notifier.postSecurityEvent(
             eventId = "device-notification-post",
-            occurredAtLabel = "device",
+            statusLabel = "device",
         )
         val granted = notifier.permissionState() == NotificationPermissionState.Granted ||
             notifier.permissionState() == NotificationPermissionState.NotRequired

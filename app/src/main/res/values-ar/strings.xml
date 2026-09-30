@@ -69,7 +69,7 @@
     <string name="notification_channel_security_events">الأحداث الأمنية</string>
     <string name="notification_channel_security_events_description">إشعارات محلية للأحداث التي سجّلها SHIELDRA على هذا الهاتف.</string>
     <string name="notification_event_title">تم تسجيل حدث أمني</string>
-    <string name="notification_event_body">سجّل SHIELDRA حدثًا أمنيًا في %1$s.</string>
+    <string name="notification_event_body">تم تسجيل حدث أمني. الحالة: %1$s.</string>
     <string name="notification_permission_allowed">مسموح</string>
     <string name="notification_permission_denied">غير مسموح</string>
     <string name="notification_permission_not_requested">لم يُطلب</string>

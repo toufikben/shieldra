@@ -69,7 +69,7 @@
     <string name="notification_channel_security_events">Security events</string>
     <string name="notification_channel_security_events_description">Local notifications for events SHIELDRA recorded on this phone.</string>
     <string name="notification_event_title">Security event recorded</string>
-    <string name="notification_event_body">Shieldra recorded a security event at %1$s.</string>
+    <string name="notification_event_body">Recorded security event. Status: %1$s.</string>
     <string name="notification_permission_allowed">Allowed</string>
     <string name="notification_permission_denied">Not allowed</string>
     <string name="notification_permission_not_requested">Not requested</string>

@@ -106,9 +106,17 @@ fun ShieldraNavHost(
     val context = LocalContext.current
     val notifier = remember(context) { LocalEventNotifier(context) }
     var lastPostResult by remember { mutableStateOf<LocalPostResult?>(null) }
+    // Bumped when the system dialog has been answered, so the screen re-reads the
+    // live state instead of showing "not requested" after we already asked.
+    var permissionRequests by remember { mutableStateOf(0) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-    ) { /* the screen re-reads the live state on return */ }
+    ) {
+        // Both answers count as having been asked; the permission itself is read
+        // from the platform afterwards, never assumed from this callback.
+        notifier.recordPermissionRequest()
+        permissionRequests += 1
+    }
     // Room refuses main-thread queries, so the load is dispatched off it and the
     // UI renders empty until the real rows arrive.
     val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage, panicActivations) {
@@ -250,7 +258,7 @@ fun ShieldraNavHost(
             // Notification setup (A-6): the only permission request in the app.
             composable(ShieldraRoutes.NOTIFICATION_SETUP) {
                 NotificationSetupScreen(
-                    permissionState = notifier.permissionState(),
+                    permissionState = remember(permissionRequests) { notifier.permissionState() },
                     lastResult = lastPostResult,
                     onRequest = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
                     onBack = { navController.popBackStack() },
