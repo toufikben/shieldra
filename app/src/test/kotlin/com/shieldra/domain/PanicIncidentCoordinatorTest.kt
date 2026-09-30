@@ -215,7 +215,18 @@ class PanicIncidentCoordinatorTest {
         assertEquals(stored.id, activation.event.id)
         assertEquals(stored.state, activation.event.state)
         assertEquals(stored.createdAt, activation.event.createdAt)
-        assertEquals(SecurityEventType.CONFIRMED_SECURITY_EVENT, stored.type)
+        assertEquals(
+            SecurityEventType.PANIC_ACTIVATION,
+            stored.type,
+            "A-7: a persisted Panic must be identifiable as a Panic, so a repeat press binds to a Panic " +
+                "incident and never to another guard's open event",
+        )
+        assertEquals(
+            1,
+            stored.panicActivationCount,
+            "the very first write must already carry the count, so a crash cannot leave a saved Panic without one",
+        )
+        assertNotNull(stored.panicLastActivatedAt)
     }
 
     private fun coordinator(

@@ -111,7 +111,11 @@ class PanicActivationDurabilityTest {
         assertEquals(1, afterTerminal.activationCount)
         assertTrue(first.event.id != afterTerminal.event.id, "a terminal incident must yield a new event id")
         assertEquals(1, repository.countFor(afterTerminal.event.id))
-        assertEquals(3, repository.countFor(first.event.id), "the terminal event keeps its own count")
+        assertEquals(
+            2,
+            repository.countFor(first.event.id),
+            "the refused press must leave the terminal event's own count at what it reached while active",
+        )
     }
 
     @Test
