@@ -95,7 +95,7 @@ class PanicIncidentCoordinator(
     private data class ActivationRecord(
         val count: Int,
         val lastActivatedAt: Instant,
-    }
+    )
 
     private companion object {
         /** A panic incident is the newest active event; the list is bounded well below this. */

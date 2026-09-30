@@ -175,7 +175,7 @@ class RoomEventRepositoryInstrumentedTest {
         database.close()
 
         database = open(name)
-        val stored = assertNotNull(RoomEventRepository(database, fixedClock).find(event.id))
+        val stored = checkNotNull(RoomEventRepository(database, fixedClock).find(event.id))
         assertEquals(
             "Evidence recorded off the save path must be durable",
             listOf("ev-device-${event.id.value}"),

@@ -126,12 +126,11 @@ class PanicIncidentCoordinatorTest {
 
         val first = assertIs<PanicActivation.Recorded>(coordinator.activate())
         val repeat = assertIs<PanicActivation.BoundToActive>(coordinator.activate())
-        val expired = assertIs<PanicActivation.Recorded>(
-            run {
-                repository.updateState(first.event.id, EventState.INITIATED, EventState.EXPIRED)
-                coordinator.activate()
-            },
+        assertEquals(
+            RepositoryResult.Applied,
+            repository.updateState(first.event.id, EventState.INITIATED, EventState.EXPIRED),
         )
+        val expired = assertIs<PanicActivation.Recorded>(coordinator.activate())
 
         assertEquals(first.event.id, repeat.event.id)
         assertTrue(expired.event.id != first.event.id)

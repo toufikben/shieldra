@@ -122,10 +122,9 @@ class RoomPanicPersistenceInstrumentedTest {
             labels = PersistedEventLabels(title = "Security event"),
         )
         val projected = reader.readRecent(limit = 20, now = fixedClock.instant()).single()
-        val detail = assertNotNull(
-            "A persisted panic must be reachable from the device history",
+        val detail = checkNotNull(
             reader.readOne(activation.event.id.value.toString(), now = fixedClock.instant()),
-        )
+        ) { "A persisted panic must be reachable from the device history" }
 
         assertTrue("History must not claim a photo that was never taken", !projected.hasPhoto)
         assertTrue("History must not claim a location that was never taken", !projected.hasLocation)
