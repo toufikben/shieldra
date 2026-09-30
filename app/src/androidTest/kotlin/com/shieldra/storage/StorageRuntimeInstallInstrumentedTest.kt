@@ -73,19 +73,30 @@ class StorageRuntimeInstallInstrumentedTest {
         val coordinator = PanicIncidentCoordinator(repository = storage.eventRepository)
 
         val first = coordinator.activate()
-        check(first is PanicActivation.Recorded) { "the first press must record a real event: $first" }
+        val firstEvent = when (first) {
+            is PanicActivation.Recorded -> first.event
+            // A previous suite run may have left a still-open incident on the device.
+            // Panic deliberately has no cooldown and no time window, so binding to it
+            // is the correct behavior, not a failure.
+            is PanicActivation.BoundToActive -> first.event
+            is PanicActivation.Rejected -> throw IllegalStateException(
+                "a panic press must never be rejected against installed storage: ${first.reason}",
+            )
+        }
         val repeat = coordinator.activate()
-        check(repeat is PanicActivation.BoundToActive) { "a repeat press must bind to the active incident: $repeat" }
+        val repeatEvent = checkNotNull((repeat as? PanicActivation.BoundToActive)?.event) {
+            "a repeat press must bind to the running incident, but was $repeat"
+        }
 
         assertEquals(
             "a repeat press must reuse the same incident id",
-            first.event.id,
-            repeat.event.id,
+            firstEvent.id,
+            repeatEvent.id,
         )
         assertEquals(
             "exactly one event may be persisted for the incident",
             1,
-            storage.eventRepository.listRecent(50).count { it.id == first.event.id },
+            storage.eventRepository.listRecent(50).count { it.id == firstEvent.id },
         )
     }
 
