@@ -599,7 +599,12 @@ you want me to fix the copy now.**
 ## Q-G1 — What magnitude counts as "strong movement", and what counts as noise? (NEW, raised by Batch G)
 
 **Status:** **OPEN — one number needed, and it needs a measurement first.** Nothing blocks the
-pure work; it blocks only the *shipping default*.
+pure work; it blocks only the *shipping default*. The pure work has now landed (slice
+`G-motion-judgement`, CI `36789435527`): `MotionCalibration` takes `strongDeltaMs2`,
+`noiseFloorDeltaMs2`, `minEpisodeMs` and `maxSampleGapMs` from its caller and has **no defaults** —
+a gate fails the build if one ever appears. Slice **G2** is the measurement (resting noise floor
+and a carried-phone magnitude on RMX3910); when it reports, this question becomes a choice between
+real numbers instead of a guess.
 
 **Why I am asking instead of choosing:** your rule **G1-02** fixes the **time** side — confirm
 after ~3 seconds of strong/unusual movement, or two suspicious movements within 10 seconds, after

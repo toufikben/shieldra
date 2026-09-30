@@ -330,6 +330,25 @@ background-delivery proof come next; **the foreground service and its permission
 only if the device evidence shows monitoring must continue outside the foreground.** Motion's
 magnitude thresholds are **Q-G1** (an owner decision) and stay injected parameters until measured.
 
+**Slice `G-motion-judgement` is LANDED (CI verified + device no-regression verified, 2026-10-01).**
+`MotionDetection.kt` turns raw samples into the exact `GuardObservation.Motion` the approved engine
+already consumes: orientation-free magnitude, hysteresis between the strong level and the noise
+floor, isolated bursts dropped as noise, and `Unreliable` / `Insufficient` instead of a "still
+device" claim when the samples stop, lie, or never arrive. RED `36788390266` failed with 57
+unresolved-reference errors confined to the new test file; GREEN `36789435527` is **259 JVM tests,
+0 failures, 0 errors, 0 skipped** (Batch F's 248 + the 11 new Motion tests, read from that run's
+own `unit-test-results` artifact). On RMX3910 with APKs from the same run: full instrumented suite
+**`OK (55 tests)` twice on one install**. **What this is not:** no listener is registered, no
+service, permission or screen changed, no magnitude threshold ships (Q-G1 open), and Motion still
+renders `—` — nothing monitors anything yet. See
+`docs/reports/batch-G1-motion-judgement.md`.
+
+The next slice is **G2 — the adapter's evidence**: on this phone, measure whether sensor delivery
+survives the activity leaving the foreground, whether `SIGNIFICANT_MOTION` fires on this vendor
+HAL at all, and what the resting noise floor and a carried-phone magnitude really are. Its numbers
+are what Q-G1 needs, and A-8's condition ("a real monitoring service the user starts") can only be
+judged after it.
+
 Motion, SIM and Lock detection were explicitly out of Batch F's scope and remain unimplemented.
 
 **Batch F — `F-background-execution-contract`** is **CLOSED** (2026-09-30). **No continuous Guard
@@ -394,7 +413,7 @@ This is followed, in the owner-mandated order, by:
 | D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 — **CLOSED** `986cb00`→`36e04c1`→`28d708c`, CI `36745562314` success (213/213 JVM), device `OK (6 tests)` + full suite `OK (48 tests)` **twice on one install** on RMX3910, report `docs/reports/batch-D-storage-runtime-approval.md`. The flip is recorded as amendment **A-5**; g4b now enforces the flipped value so an unrecorded revert fails CI |
 | E | Real local notifications (A-6) + durable Panic activation count with Room v2→v3 (A-7); `POST_NOTIFICATIONS` requested only from the notification setup screen; granted / refused / never-asked kept distinct; a refusal never blocks recording; no local post ever worded as delivered | §16, §23, §31 — **CLOSED** `f16e635`→`…`→`53f0f43`, CI `36771561585` success (231/231 JVM, 0 failures), device `OK (4)` + `OK (3 migration)` + `OK (3 persistence)` + `OK (6 install)`, full suite **`OK (55 tests)` twice on one install** on RMX3910, report `docs/reports/batch-E-local-notifications-and-durable-activation.md`. Exactly one permission is declared; g4b fails a second one, a remote provider in the notification package, any `DELIVERED`/`SENT` name in the local result vocabulary, and a notifier that cannot tell silence from refusal |
 | F | Background-execution **contract** only — no detector, no service, no new permission; five layers separated; `MonitoringClaim` makes a protection claim unrepresentable without a running detector; Batch E's three truthful-copy findings closed | §17 — **CLOSED** `0e767b2`→`1502726`→`cea844b`→`d861922`, CI `36782719559` success (**248/248 JVM**, 0 failures), device full suite **`OK (55 tests)` twice on one install** on RMX3910 + on-screen dumps (Settings/dashboard/onboarding honest, Panic→notification→History intact), report `docs/reports/batch-F-background-execution-contract.md`. **No continuous Guard detector was implemented.** g4b now fails: a second permission, a `<service>` or WorkManager detector before a real guard exists, a delivery row or demo storage figure in Settings, a `Protected`/`Monitoring` claim from the execution layer alone, a missing named Batch F test, and any screen asserting a check that never ran |
-| G | Motion Guard — detector requirements first, then the FGS type chosen from them | §18 — **NEXT** |
+| G | Motion Guard — **slice G1 LANDED**: pure judgement (`MotionWindowEvaluator` + `MotionGuardObservation`), CI `36789435527` **259/259 JVM**, device full suite **`OK (55 tests)` ×2** on RMX3910; thresholds stay injected (Q-G1 open), no listener and no FGS. **Next: G2 — sensor delivery + noise-floor measurement on the owner's phone**, then the adapter, then the FGS type chosen from that evidence only if it demands one | §18 — **IN PROGRESS** |
 | H | Evidence / privacy / permission implementation | §21–§23 |
 | I | SIM Guard — feasibility first, then implementation | §19 |
 | J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |
