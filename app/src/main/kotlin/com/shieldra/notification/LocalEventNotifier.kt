@@ -66,6 +66,11 @@ class LocalEventNotifier(
     /**
      * Posts one local notification for a real recorded event, after re-checking
      * the permission. Returns what actually happened — never a "delivered" claim.
+     *
+     * The event id is used as the notification tag, so a repeated Panic press on
+     * the same incident updates that incident's own notification instead of
+     * stacking a second one (A-6: no duplicated notification work), and two
+     * different events can never overwrite each other by colliding on a hash.
      */
     fun postSecurityEvent(eventId: String, occurredAtLabel: String): LocalPostResult =
         permissionState().postIfPossible(
@@ -85,7 +90,7 @@ class LocalEventNotifier(
                 .setAutoCancel(true)
                 .build()
             context.getSystemService(NotificationManager::class.java)
-                .notify(eventId.hashCode(), notification)
+                .notify(eventId, eventId.hashCode(), notification)
             LocalPostResult.PostedLocally
         }
 
