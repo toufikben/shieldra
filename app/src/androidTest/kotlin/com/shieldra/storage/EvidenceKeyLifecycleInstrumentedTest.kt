@@ -219,6 +219,11 @@ class EvidenceKeyLifecycleInstrumentedTest {
         database.securityEventDao().insert(
             SecurityEventEntity(
                 eventId = eventId,
+                // Row-level storage fixture, not a domain event: the rotation tests
+                // need a parent row for their evidence references and never read this
+                // column. A real Panic press writes PANIC_ACTIVATION with its own
+                // activation count (amendment A-7); that path is covered by
+                // RoomPanicPersistenceInstrumentedTest.
                 eventType = "PANIC",
                 state = "INITIATED",
                 severity = "HIGH",
@@ -226,6 +231,8 @@ class EvidenceKeyLifecycleInstrumentedTest {
                 updatedAtEpochMs = 1_700_000_000_000L,
                 resumeStage = null,
                 expiresAtEpochMs = null,
+                panicActivationCount = null,
+                panicLastActivatedAtEpochMs = null,
             ),
         )
     }
