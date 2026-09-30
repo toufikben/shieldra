@@ -10,11 +10,22 @@ import kotlin.test.assertTrue
  * an explicit approval flag, and the decision must be a pure function so the
  * three outcomes are testable without an Application or a Keystore.
  *
- * The three cases locked here: default-off never opens storage; approved + a
+ * The four cases locked here: default-off never opens storage; approved + a
  * successful open installs the value; approved + a failed open surfaces
- * RecoveryRequired with no installed storage (and no destructive fallback).
+ * RecoveryRequired with no installed storage (and no destructive fallback);
+ * and the shipped constant itself records the owner's §14 production flip,
+ * which may only happen after the first real detector passes device
+ * verification (Q-C2 option 1, protocol §11/§14).
  */
 class StorageRuntimeGateTest {
+
+    @Test
+    fun `the owner has flipped the production storage gate`() {
+        assertTrue(
+            StorageRuntimeApproval.approved,
+            "§14/§15: this gate flips only in a visible owner commit, after the first detector's device verification (Q-C2 option 1)",
+        )
+    }
 
     @Test
     fun `not approved returns NotApproved and never calls open`() {
