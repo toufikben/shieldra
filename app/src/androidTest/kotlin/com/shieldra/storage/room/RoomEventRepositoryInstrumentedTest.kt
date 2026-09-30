@@ -4,7 +4,11 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.shieldra.domain.DeliveryInformation
 import com.shieldra.domain.DeliveryStage
+import com.shieldra.domain.DeliveryStatus
+import com.shieldra.domain.EvidenceReference
+import com.shieldra.domain.EvidenceStage
 import com.shieldra.domain.EventId
 import com.shieldra.domain.EventState
 import com.shieldra.domain.InMemoryEventPipeline
@@ -103,6 +107,7 @@ class RoomEventRepositoryInstrumentedTest {
         var attempts = 0
         val firstPipeline = InMemoryEventPipeline(
             repository = repository,
+            evidence = recordingEvidence(repository),
             delivery = DeliveryStage {
                 attempts += 1
                 StageOutcome.Deferred
@@ -113,7 +118,7 @@ class RoomEventRepositoryInstrumentedTest {
         firstPipeline.process(event.id)
         firstPipeline.process(event.id)
         val deferred = firstPipeline.process(event.id)
-        assertTrue(deferred is PipelineResult.Deferred)
+        assertTrue("A deferred delivery must be reported as deferred", deferred is PipelineResult.Deferred)
         assertEquals(EventState.DEFERRED, repository.find(event.id)?.state)
         database.close()
 
@@ -121,16 +126,113 @@ class RoomEventRepositoryInstrumentedTest {
         val reopenedRepository = RoomEventRepository(database, fixedClock)
         val resumed = InMemoryEventPipeline(
             repository = reopenedRepository,
-            delivery = DeliveryStage {
+            evidence = recordingEvidence(reopenedRepository),
+            delivery = DeliveryStage { attempt ->
                 attempts += 1
+                reopenedRepository.recordDeliveryAttempt(
+                    attempt.id,
+                    DeliveryInformation(
+                        channel = "device-test",
+                        status = DeliveryStatus.SUCCESS,
+                        occurredAt = attempt.createdAt,
+                    ),
+                )
                 StageOutcome.Completed
             },
             now = { fixedClock.instant() },
         ).process(event.id)
 
-        assertTrue(resumed is PipelineResult.Advanced)
+        assertTrue("A resumed delivery that really sent must reach delivered", resumed is PipelineResult.Advanced)
         assertEquals(EventState.DELIVERED, reopenedRepository.find(event.id)?.state)
         assertEquals(2, attempts)
+        database.close()
+        delete(name)
+    }
+
+    @Test
+    fun recorded_evidence_and_delivery_attempt_survive_a_reopen() {
+        val name = databaseName()
+        var database = open(name)
+        val event = event()
+        val repository = RoomEventRepository(database, fixedClock)
+        repository.save(event)
+
+        assertEquals(
+            RepositoryResult.Applied,
+            repository.recordEvidence(event.id, EvidenceReference("ev-device-${event.id.value}")),
+        )
+        assertEquals(
+            RepositoryResult.Applied,
+            repository.recordDeliveryAttempt(
+                event.id,
+                DeliveryInformation(
+                    channel = "device-test",
+                    status = DeliveryStatus.SUCCESS,
+                    occurredAt = fixedClock.instant(),
+                ),
+            ),
+        )
+        database.close()
+
+        database = open(name)
+        val stored = assertNotNull(RoomEventRepository(database, fixedClock).find(event.id))
+        assertEquals(
+            "Evidence recorded off the save path must be durable",
+            listOf("ev-device-${event.id.value}"),
+            stored.evidenceReferences.map { it.id },
+        )
+        assertEquals(
+            listOf(DeliveryStatus.SUCCESS),
+            stored.deliveryInformation.map { it.status },
+        )
+        database.close()
+        delete(name)
+    }
+
+    @Test
+    fun artifacts_cannot_be_recorded_for_an_event_that_does_not_exist() {
+        val name = databaseName()
+        val database = open(name)
+        val repository = RoomEventRepository(database, fixedClock)
+        val missing = EventId.from(UUID.randomUUID())
+
+        assertEquals(RepositoryResult.NotFound, repository.recordEvidence(missing, EvidenceReference("ev-orphan")))
+        assertEquals(
+            "A delivery attempt needs a parent event, never an orphan row",
+            RepositoryResult.NotFound,
+            repository.recordDeliveryAttempt(
+                missing,
+                DeliveryInformation(channel = "device-test", status = DeliveryStatus.SUCCESS),
+            ),
+        )
+        database.close()
+        delete(name)
+    }
+
+    @Test
+    fun metadata_the_database_cannot_persist_is_rejected_rather_than_dropped() {
+        val name = databaseName()
+        val database = open(name)
+        val repository = RoomEventRepository(database, fixedClock)
+        val event = event()
+        repository.save(event)
+
+        val rejected = repository.updateState(
+            event.id,
+            EventState.INITIATED,
+            EventState.COLLECTING,
+            mapOf("activationCount" to "2"),
+        )
+
+        assertTrue(
+            "Silently dropping metadata would make a recorded fact disappear: $rejected",
+            rejected is RepositoryResult.Rejected,
+        )
+        assertEquals(
+            "A rejected update must not leave a half-applied state",
+            EventState.INITIATED,
+            repository.find(event.id)?.state,
+        )
         database.close()
         delete(name)
     }
@@ -183,6 +285,13 @@ class RoomEventRepositoryInstrumentedTest {
         } finally {
             delete(name)
         }
+    }
+
+    private fun recordingEvidence(repository: RoomEventRepository): EvidenceStage = EvidenceStage { stored ->
+        check(
+            repository.recordEvidence(stored.id, EvidenceReference("ev-device-${stored.id.value}")) is RepositoryResult.Applied,
+        ) { "Test evidence could not be recorded on the device" }
+        StageOutcome.Completed
     }
 
     private fun open(name: String): ShieldraDatabase = Room.databaseBuilder(

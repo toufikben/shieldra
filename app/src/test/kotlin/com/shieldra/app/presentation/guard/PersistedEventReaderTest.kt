@@ -1,5 +1,6 @@
 package com.shieldra.app.presentation.guard
 
+import com.shieldra.app.presentation.model.LocationKind
 import com.shieldra.domain.EventId
 import com.shieldra.domain.EventState
 import com.shieldra.domain.SecurityEvent
@@ -10,6 +11,7 @@ import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PersistedEventReaderTest {
@@ -158,6 +160,53 @@ class PersistedEventReaderTest {
         assertEquals("حدث أمني", projected.title)
         assertEquals("جاهز", projected.subtitle)
         assertEquals("قبل 1 ساعة", projected.timestampLabel)
+    }
+
+    @Test
+    fun a_panic_that_collected_nothing_is_never_projected_as_evidence() {
+        val persisted = event(createdAt = now.minus(Duration.ofMinutes(1)), state = EventState.INITIATED)
+        val reader = PersistedEventReader(storageInstalled = true, loadRecent = { listOf(persisted) })
+
+        val projected = reader.readRecent(limit = 20, now = now).single()
+
+        assertTrue(!projected.hasPhoto, "No evidence was collected, so history must not claim a photo")
+        assertTrue(!projected.hasLocation, "No evidence was collected, so history must not claim a location")
+        assertEquals(
+            com.shieldra.app.presentation.model.DeliveryStatus.Skipped,
+            projected.deliveryStatus,
+            "An event that never entered delivery must not be projected as sending",
+        )
+        assertEquals(EventState.INITIATED.name, projected.subtitle)
+    }
+
+    @Test
+    fun a_panic_that_was_never_sent_projects_no_delivery_receipt() {
+        val persisted = event(createdAt = now.minus(Duration.ofMinutes(1)), state = EventState.INITIATED)
+        val reader = PersistedEventReader(storageInstalled = true, loadRecent = { listOf(persisted) })
+
+        val detail = assertNotNull(reader.readOne(persisted.id.value.toString(), now = now))
+
+        assertTrue(detail.delivery.isEmpty(), "Nothing was attempted, so the detail must show no receipt")
+        assertTrue(!detail.hasPhoto)
+        assertNull(detail.batteryPercent, "No battery reading was taken, so the detail must not show one")
+        assertEquals(LocationKind.Unavailable, detail.location.kind)
+    }
+
+    @Test
+    fun states_that_performed_no_delivery_are_not_labelled_as_sending_or_delivered() {
+        listOf(EventState.INITIATED, EventState.COLLECTING, EventState.READY).forEach { state ->
+            val label = eventStateLabelRes(state)
+            assertTrue(
+                label != com.shieldra.app.R.string.status_sending &&
+                    label != com.shieldra.app.R.string.status_delivered,
+                "$state must not be labelled as a delivery, because no delivery happened",
+            )
+        }
+        assertEquals(com.shieldra.app.R.string.status_delivered, eventStateLabelRes(EventState.DELIVERED))
+        assertEquals(com.shieldra.app.R.string.status_sending, eventStateLabelRes(EventState.DELIVERING))
+        assertEquals(com.shieldra.app.R.string.status_failed, eventStateLabelRes(EventState.FAILED_FINAL))
+        assertEquals(com.shieldra.app.R.string.status_expired, eventStateLabelRes(EventState.EXPIRED))
+        assertEquals(com.shieldra.app.R.string.status_retrying, eventStateLabelRes(EventState.DEFERRED))
     }
 
     private fun event(createdAt: Instant, state: EventState): SecurityEvent = SecurityEvent.create(
