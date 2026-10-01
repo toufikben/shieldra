@@ -700,6 +700,38 @@ grep -q 'enum class MonitoringClaim' app/src/main/kotlin/com/shieldra/runtime/Ba
   || fail "MonitoringClaim was removed: §9 keeps measured signal data separate from any monitoring claim"
 pass "A-15 is still only a decision record, and the G4 seam refuses a stream the signal layer could not believe"
 
+# 19. Batch G slice Q-G1 — the one manual calibration the owner authorized in the A-15 directive. It
+#     is a measurement harness and nothing more: it must go through the adapter G3 already verified
+#     (A-12 keeps registration there), it must not reach a decision, a channel, storage or a sensor
+#     the owner has not approved, it must not move the phone by itself (the owner performs the single
+#     deliberate carry), and its aids must be named as probes so no number can be mistaken for the
+#     shipping strong-motion level the owner still owes (Q-G1).
+Q1=app/src/androidTest/kotlin/com/shieldra/detection/MotionCalibrationInstrumentedTest.kt
+[ -s "$Q1" ] || fail "the Q-G1 calibration harness is missing"
+grep -q 'MotionSensorAdapter(' "$Q1" \
+  || fail "the Q-G1 harness no longer measures through the verified adapter"
+if grep -qE 'registerListener|getDefaultSensor' "$Q1"; then
+  fail "the Q-G1 harness registers sensors itself; the adapter owns registration (A-12)"
+fi
+Q1_CODE="$(grep -hvE '^[[:space:]]*(/\*|\*|//)' "$Q1")"
+if printf '%s\n' "$Q1_CODE" | grep -qE 'SecurityEvent|EventId|Panic|Notification|Room|Evidence|Camera|Location|Sms|Mail|firebase|WorkManager|startForeground|RequestQueue'; then
+  fail "the Q-G1 harness reaches a decision, a channel, storage or an unapproved sensor; §5 allows measurement only"
+fi
+if printf '%s\n' "$Q1_CODE" | grep -qE 'executeShellCommand|injectEvents|getUiAutomation'; then
+  fail "the Q-G1 harness drives the device itself; §5 forbids that — the owner performs the one deliberate carry"
+fi
+for aid in 'PHASE_REST_MS = 8_000L' 'PHASE_CARRY_MS = 20_000L' 'PHASE_SETTLE_MS = 6_000L' 'PROBE' '"RAW' '"DERIVED'; do
+  grep -q "$aid" "$Q1" || fail "the Q-G1 harness no longer carries $aid, so the §5 sequence or the raw/derived split is gone"
+done
+for field in 'sample_count' 'deviation_max' 'deviation_median' 'deviation_p90' 'deviation_p99' \
+  'median_interval_ms' 'longest_gap_ms' 'clock_resolution_drops' 'sensor_quality' \
+  'deliberate_movement_identified' 'gravity_deviation' 'screen_interactive_at_end'; do
+  grep -q "$field" "$Q1" || fail "the Q-G1 evidence no longer reports $field (§6)"
+done
+HARNESS_IN_MAIN="$(grep -RIn 'MotionCalibrationInstrumented' app/src/main --include='*.kt' --include='*.xml' || true)"
+[ -z "$HARNESS_IN_MAIN" ] || fail "the Q-G1 measurement harness is wired into production code: $HARNESS_IN_MAIN"
+pass "the Q-G1 harness stays a test-only measurement: adapter-owned registration, §5 sequence, §6 fields, no device driving"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"
