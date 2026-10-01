@@ -454,6 +454,53 @@ per A-14 Batch H arrives only as a **decisions package** (Q-C5's capture duratio
 location precision/retention, whether camera is allowed at all) with no H code and no gate relaxation
 before an explicit amendment.
 
+**Slice `G4-seam` — the quality-aware Motion judgement — is CLOSED (CI verified, 2026-10-01).** The
+gap described above is now closed: `MotionGuardObservation.of(reading, streamQuality, window)`
+*requires* the `MotionSignalQuality` the G3 normalizer computed and refuses on it **before anything is
+counted** — `EMPTY` → `SensorQuality.UNAVAILABLE`, `INVALID`/`IRREGULAR` → `NOISY`, each refusal
+carrying `Duration.ZERO` and zero occurrences, so an untrusted stream cannot leak a duration or a
+repetition window into the owner's rule on its way to being discarded. The two vocabularies are bridged
+rather than collapsed (`MotionSignalQuality` = what the sampling did, `SensorQuality` = what the domain
+may claim), the 3 s / two-in-10 s rule is untouched, and `MotionCalibration` still has **no defaults**.
+14 new JVM tests (`MotionStreamQualityTest`) cover §8 — including "a trusted stream still confirms", so
+the seam cannot pass by always refusing — plus the five §7-D boundary cases. CI chain `927f20d` **RED**
+(`36880439938` failure, unresolved seam symbol) → `7e3eb0e` GREEN attempt (`36881558063` failure: three
+`assertTrue` in JUnit order inside a kotlin.test file — a harness defect, kept in the record) →
+`9adde73` **success `36882705433`: 284 tests, 284 passed**, all three static gates green. Gate section
+18 now forbids any A-15 code token in `app/src/main` and pins the seam's no-default parameter. Report:
+`docs/reports/batch-G4-seam-and-QG1-harness.md`.
+
+**Slice `QG1-harness` — the one manual calibration measurement — is BUILT, DEVICE-VERIFIED, and only
+half RUN (2026-10-01).** `MotionCalibrationInstrumentedTest` samples through the already-verified
+`MotionSensorAdapter` and describes readings with `MotionSignalNormalizer`, so the numbers it logs are
+the shipping path's own. It reports raw and derived data separately, sweeps `PROBE` levels that locate
+*which* stretch was the carry without becoming product levels, and ends every window with
+`OWNERSHIP q_g1=UNANSWERED shipped_strong_threshold=false`. CI `36885649601` **success** compiled it
+into the test APK; on RMX3910 with that run's pair the full suite is **`OK (70 tests)` twice on one
+install** (68 → 70 is exactly the two new methods) and the class alone **`OK (2 tests)`**. Getting
+there cost one honest device failure: the first pass reported `Tests run: 70, Failures: 1`,
+`ConcurrentModificationException`, because the collector copied a `synchronizedList` while the sensor
+thread was appending to it — `synchronizedList` guards calls, not iterations. Fixed in `1e4bf6c` by
+unregistering before the copy; the instrument was wrong, not the product.
+
+Measured and on the record (**§7-A, supplementing G2 rather than replacing it**): a still RMX3910 over
+four unattended windows sits at **median 0.3816–0.3964 m/s²**, **p99 0.4765–0.5145**, **max
+0.5112–0.5516** gravity deviation at ≈111 Hz delivered for a 20 000 µs request, `clock_resolution_drops`
+0–2, quality `USABLE`. One window also caught a **single isolated 4.5576 m/s² transient on an untouched
+phone** while its median stayed at 0.4016 — and the harness still correctly answered
+`deliberate_movement_identified=false`, because the run above the probe lasted 0 ms. That is the
+owner's duration-over-magnitude rule confirmed by measurement: a threshold keyed to a *maximum* would
+have fired on a phone lying still.
+
+**NOT RUN, and the reason it cannot be: §7-B, the deliberate carry.** §5 requires the device owner to
+perform the pickup and carry by hand and §11 forbids any automated test from moving the phone, so both
+carry windows in this batch were unattended and both reported no movement. Consequently **§7-C is
+deliberately withheld**: no strong-motion level is proposed, because a level must sit above what a real
+carry produces and no carry has been measured — inventing one from rest data would turn measurement
+into policy, which the directive's FINAL RULE forbids. The next owner action is one manual pass of the
+printed sequence (still 8 s → pick up and carry naturally 20 s → put down and leave still 6 s) while the
+harness runs; **the Foreground Service stays unimplemented until Q-G1 is answered.**
+
 **Slice `F2-onboarding-copy-truthfulness` is CLOSED — CI and device verified (2026-10-01).** Commit
 `1babdbd`, CI `36871617120` **success** (full command + all three contract scripts), and its own APK
 pair re-walked on RMX3910 after a clean install with no permission pre-granted: the permission step now
@@ -539,7 +586,13 @@ This is followed, in the owner-mandated order, by:
 | D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 — **CLOSED** `986cb00`→`36e04c1`→`28d708c`, CI `36745562314` success (213/213 JVM), device `OK (6 tests)` + full suite `OK (48 tests)` **twice on one install** on RMX3910, report `docs/reports/batch-D-storage-runtime-approval.md`. The flip is recorded as amendment **A-5**; g4b now enforces the flipped value so an unrecorded revert fails CI |
 | E | Real local notifications (A-6) + durable Panic activation count with Room v2→v3 (A-7); `POST_NOTIFICATIONS` requested only from the notification setup screen; granted / refused / never-asked kept distinct; a refusal never blocks recording; no local post ever worded as delivered | §16, §23, §31 — **CLOSED** `f16e635`→`…`→`53f0f43`, CI `36771561585` success (231/231 JVM, 0 failures), device `OK (4)` + `OK (3 migration)` + `OK (3 persistence)` + `OK (6 install)`, full suite **`OK (55 tests)` twice on one install** on RMX3910, report `docs/reports/batch-E-local-notifications-and-durable-activation.md`. Exactly one permission is declared; g4b fails a second one, a remote provider in the notification package, any `DELIVERED`/`SENT` name in the local result vocabulary, and a notifier that cannot tell silence from refusal |
 | F | Background-execution **contract** only — no detector, no service, no new permission; five layers separated; `MonitoringClaim` makes a protection claim unrepresentable without a running detector; Batch E's three truthful-copy findings closed | §17 — **CLOSED** `0e767b2`→`1502726`→`cea844b`→`d861922`, CI `36782719559` success (**248/248 JVM**, 0 failures), device full suite **`OK (55 tests)` twice on one install** on RMX3910 + on-screen dumps (Settings/dashboard/onboarding honest, Panic→notification→History intact), report `docs/reports/batch-F-background-execution-contract.md`. **No continuous Guard detector was implemented.** g4b now fails: a second permission, a `<service>` or WorkManager detector before a real guard exists, a delivery row or demo storage figure in Settings, a `Protected`/`Monitoring` claim from the execution layer alone, a missing named Batch F test, and any screen asserting a check that never ran. **F2 follow-up (2026-10-01):** Batch F's own on-device dump called onboarding honest and was wrong — a first-run walk on RMX3910 with the `adf68cc` APK pair found the permission step claiming the request happens "only here" while its Continue is `defer()`, and the protection step printing one sentence twice; both fixed as copy only, pinned by g4b section 17, suite re-verified **`OK (68 tests)` ×2** on that install. Report: `docs/reports/batch-F2-onboarding-copy-truthfulness.md`. **Re-walk on `1babdbd`'s own pair** (CI `36871617120`) confirmed both fixes on screen, re-ran **`OK (68 tests)` ×2**, and surfaced a fifth dashboard row — `Battery / Not monitoring yet`, honest but unscheduled — raised as **Q-F1 item 4** rather than deleted |
-| G | Motion Guard — **slices G1 + G2 + G3 LANDED**: pure judgement (`MotionWindowEvaluator` + `MotionGuardObservation`, CI `36789435527` 259/259 JVM, suite `OK (55 tests)` ×2); on-device sensor evidence (`MotionSensorEvidenceInstrumentedTest`, CI `36793076936` **259/259 JVM**, Motion class **`OK (6 tests)`** and full suite **`OK (61 tests)` ×2** on RMX3910); and the **adapter + signal-quality layer inside amendment A-12** (`MotionSensorAdapter` + `MotionSignalNormalizer`, CI `36814463442` **270/270 JVM**, adapter class **`OK (7 tests)`** ×2 and full suite **`OK (68 tests)`** ×2 on one install). Measured through the shipped path: `registerListener` for the accelerometer returns `true`, 159 samples per 1500 ms, median interval **9.0 ms** → **111.1 Hz** computed from delivered timestamps (never asserted as a constant), `clockResolutionDrops=0`, `significant_motion_available=true` with the trigger **never armed**. G3 emits **signal data only** — no Security Event, severity, notification, Room write, service or permission; `MotionSensorAdapter(` is referenced nowhere else in `app/src/main` (g4b section 15). Thresholds stay injected (Q-G1: rest half measured, strong half still needs one deliberate carry), and the dashboard shows **Motion Guard — "Not monitoring yet"**. **G4-A (the screen-off measurement) is RUN AND CLOSED AS EVIDENCE** on RMX3910 — 20 runs in A-14's two buckets: valid evidence exists only for lit windows (9.0 ms median → 111.1 Hz ×4, plus one 19.0 ms → 52.6 Hz control on the same requested period), while all 10 genuinely dark windows ended `TIMEOUT_NO_DATA` with the platform keeping the registration and an undrained 4500-entry queue (`Dropping 1 cached events (4500/4500) … app:com.shieldra.app`, up to 521 lines/run) and the measured process advancing 0–22 CPU ticks over 229–1128 s; A-14's clean re-run of B (only `screen_off_timeout` changed, restored after) produced three non-contaminated dark runs that still never returned. **No delivery rate exists for the screen-off case on this device**, and "FGS required" is explicitly not a campaign result. Report: `docs/reports/batch-G4A-background-sensor-measurement.md`. **Next: the owner's A-8/FGS decision (Q-G3), then G4** | §18 — **IN PROGRESS** |
+| G | Motion Guard — **slices G1 + G2 + G3 LANDED**: pure judgement (`MotionWindowEvaluator` + `MotionGuardObservation`, CI `36789435527` 259/259 JVM, suite `OK (55 tests)` ×2); on-device sensor evidence (`MotionSensorEvidenceInstrumentedTest`, CI `36793076936` **259/259 JVM**, Motion class **`OK (6 tests)`** and full suite **`OK (61 tests)` ×2** on RMX3910); and the **adapter + signal-quality layer inside amendment A-12** (`MotionSensorAdapter` + `MotionSignalNormalizer`, CI `36814463442` **270/270 JVM**, adapter class **`OK (7 tests)`** ×2 and full suite **`OK (68 tests)`** ×2 on one install). Measured through the shipped path: `registerListener` for the accelerometer returns `true`, 159 samples per 1500 ms, median interval **9.0 ms** → **111.1 Hz** computed from delivered timestamps (never asserted as a constant), `clockResolutionDrops=0`, `significant_motion_available=true` with the trigger **never armed**. G3 emits **signal data only** — no Security Event, severity, notification, Room write, service or permission; `MotionSensorAdapter(` is referenced nowhere else in `app/src/main` (g4b section 15). Thresholds stay injected (Q-G1: rest half measured, strong half still needs one deliberate carry), and the dashboard shows **Motion Guard — "Not monitoring yet"**. **G4-A (the screen-off measurement) is RUN AND CLOSED AS EVIDENCE** on RMX3910 — 20 runs in A-14's two buckets: valid evidence exists only for lit windows (9.0 ms median → 111.1 Hz ×4, plus one 19.0 ms → 52.6 Hz control on the same requested period), while all 10 genuinely dark windows ended `TIMEOUT_NO_DATA` with the platform keeping the registration and an undrained 4500-entry queue (`Dropping 1 cached events (4500/4500) … app:com.shieldra.app`, up to 521 lines/run) and the measured process advancing 0–22 CPU ticks over 229–1128 s; A-14's clean re-run of B (only `screen_off_timeout` changed, restored after) produced three non-contaminated dark runs that still never returned. **No delivery rate exists for the screen-off case on this device**, and "FGS required" is explicitly not a campaign result. Report: `docs/reports/batch-G4A-background-sensor-measurement.md`. **Next: the owner's A-8/FGS decision (Q-G3), then G4** — **both now done in part:** **Q-G3 was answered
+as A-15**, the **G4 quality seam LANDED** (`9adde73`, CI `36882705433` **284/284 JVM**, gate §18 holding
+A-15 as decision-only) and the **Q-G1 harness LANDED and device-verified** (`1e4bf6c`, CI `36885649601`,
+RMX3910 **`OK (70 tests)` ×2**, class alone `OK (2 tests)`). Q-G1 itself stays **OPEN**: its rest half is
+measured, its carry half is **NOT RUN** because only the owner's hands may perform it, and no strong-motion
+level was proposed. The Foreground Service remains unimplemented by §2. See
+`docs/reports/batch-G4-seam-and-QG1-harness.md` | §18 — **IN PROGRESS** |
 | H | Evidence / privacy / permission implementation | §21–§23 |
 | I | SIM Guard — feasibility first, then implementation | §19 |
 | J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |

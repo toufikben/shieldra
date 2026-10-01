@@ -40,7 +40,11 @@ is approved**. The open list below drops to four items.
 >    guard yours, not mine. The Motion evaluator ships with the threshold **injected**, and the
 >    guard stays un-armable until you set it from measured samples. G2 measured the **resting**
 >    noise floor on RMX3910 (≤0.52 m/s²); the **strong** level still needs one deliberate carry
->    by you, because no test may move the phone.
+>    by you, because no test may move the phone. **Update 2026-10-01:** the G4 quality seam landed
+>    (CI `36882705433`, 284/284) and the calibration harness is built and device-verified (CI
+>    `36885649601`, RMX3910 `OK (70 tests)` ×2). Rest is measured on the shipping path
+>    (median 0.38–0.40, p99 0.48–0.51 m/s²); the carry half is **NOT RUN** and **no threshold is
+>    proposed** — the 34-second manual pass the answer needs is written out in the Q-G1 section.
 >    Your Batch G mechanism rulings are **not** open: they are amendments **A-8 … A-11** (see Q-G2).
 >    A-8's ruling still governs *how* a service may ever be added (never an empty service to defeat a
 >    gate, never permission-only code); what G4-A re-opens is the separate *whether/when* question —
@@ -640,7 +644,8 @@ you want me to fix the copy now.**
 
 ## Q-G1 — What magnitude counts as "strong movement", and what counts as noise? (NEW, raised by Batch G)
 
-**Status:** **OPEN — half the measurement exists now.** Nothing blocks the pure work; it blocks
+**Status:** **OPEN — the instrument is built and device-verified; only your hand is missing.** Nothing
+blocks the pure work; it blocks
 only the *shipping default*. The pure work landed (slice `G-motion-judgement`, CI `36789435527`):
 `MotionCalibration` takes `strongDeltaMs2`, `noiseFloorDeltaMs2`, `minEpisodeMs` and
 `maxSampleGapMs` from its caller and has **no defaults** — a gate fails the build if one ever
@@ -662,6 +667,33 @@ tested. So the noise-floor half is unchanged, the **strong half still needs the 
 carry**, and the request now comes with a working collector: logging |‖a‖ − g| during a real carry
 is a measurement, not a guess. See
 `docs/capabilities/motion-detection-requirements.md` ("MEASURED through the G3 adapter").
+
+**Update 2026-10-01 — the collector is built, tested on your phone, and waiting for one manual pass.**
+The G4-seam slice landed the missing validation layer (CI `36882705433`, **284/284 JVM**), and the
+Q-G1 harness (`MotionCalibrationInstrumentedTest`, CI `36885649601`, RMX3910 **`OK (70 tests)` twice on
+one install**) now measures |‖a‖ − g| through the shipping adapter + normalizer and prints raw and
+derived data separately, with `OWNERSHIP q_g1=UNANSWERED shipped_strong_threshold=false` on every run.
+Four unattended rest windows reproduced G2's floor on the shipping path: **median 0.3816–0.3964,
+p99 0.4765–0.5145, max 0.5112–0.5516 m/s²** at ~111 Hz. The **strong half is still NOT RUN**, for the
+reason this question has always had: §5/§11 say *you* carry the phone and no test may move it. Both
+carry windows so far were untouched, and the harness said `deliberate_movement_identified=false` —
+correctly, including when one window caught a single isolated **4.56 m/s²** transient while its median
+stayed at 0.40; a duration rule ignored what a maximum rule would have fired on.
+
+**Therefore no number is proposed.** §7-C asked for a `PROPOSED — NOT OWNER APPROVED` level, and I am
+withholding it deliberately: a strong level must sit *above what a real carry produces*, no carry has
+been measured, and guessing one from rest data would be turning measurement into policy. The one thing
+that unblocks it takes ~34 seconds with the phone in your hand while the harness runs:
+
+1. `adb shell svc power stayon true`, start
+   `am instrument -w -e class com.shieldra.detection.MotionCalibrationInstrumentedTest com.shieldra.app.test/androidx.test.runner.AndroidJUnitRunner`
+2. when it prints `INSTRUCTION phase=rest` — **do not touch the phone** for 8 s;
+3. on `phase=carry` — **pick it up deliberately and carry it naturally for 20 s** (walking with it in
+   your hand, the way you would actually do it);
+4. on `phase=settle` — put it down and leave it still; `adb shell svc power stayon false` afterwards.
+
+One clean pass is enough. If the movement is interrupted or the phone is bumped, the run is repeated
+rather than interpreted (§11). Report: `docs/reports/batch-G4-seam-and-QG1-harness.md`.
 
 **Why I am asking instead of choosing:** your rule **G1-02** fixes the **time** side — confirm
 after ~3 seconds of strong/unusual movement, or two suspicious movements within 10 seconds, after
