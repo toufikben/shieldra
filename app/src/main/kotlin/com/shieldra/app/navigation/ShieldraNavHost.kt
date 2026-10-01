@@ -69,6 +69,7 @@ import com.shieldra.app.presentation.screen.settings.NotificationSetupScreen
 import com.shieldra.domain.PanicActivation
 import com.shieldra.notification.LocalEventNotifier
 import com.shieldra.notification.LocalPostResult
+import com.shieldra.runtime.MotionEventWrites
 import com.shieldra.runtime.MotionMonitoringStartDecision
 import com.shieldra.runtime.MotionRuntime
 import android.Manifest
@@ -127,8 +128,10 @@ fun ShieldraNavHost(
         permissionRequests += 1
     }
     // Room refuses main-thread queries, so the load is dispatched off it and the
-    // UI renders empty until the real rows arrive.
-    val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage, panicActivations) {
+    // UI renders empty until the real rows arrive. The keys are the writes that change what the
+    // query can return: a Panic press, and an event row the running monitor just persisted.
+    val motionEventWrites by MotionEventWrites.state.collectAsState()
+    val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage, panicActivations, motionEventWrites) {
         value = withContext(Dispatchers.IO) { eventReader.readRecent(RECENT_EVENT_LIMIT, Instant.now()) }
     }
     val monitoringStoppedMessage = stringResource(R.string.motion_monitoring_stopped)

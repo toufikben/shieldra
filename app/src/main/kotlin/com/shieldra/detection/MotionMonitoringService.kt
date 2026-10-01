@@ -21,6 +21,7 @@ import com.shieldra.domain.MotionConfirmation
 import com.shieldra.domain.MotionIncidentBinder
 import com.shieldra.runtime.BackgroundExecutionController
 import com.shieldra.runtime.ExecutionPhase
+import com.shieldra.runtime.MotionEventWrites
 import com.shieldra.runtime.MotionMonitor
 import com.shieldra.runtime.MotionRuntime
 import com.shieldra.runtime.StartResult
@@ -181,11 +182,15 @@ class MotionMonitoringService : Service(), MotionMonitor {
     }
 
     /**
-     * A confirmation that could not be stored is not a monitoring failure: the notice stays truthful
-     * about monitoring while the recording problem is reported as what it is. Logging it here is the
-     * only honest option left in this slice — the claim the user sees never comes from this path.
+     * What a confirmation means outside the monitor. A row that really got written invalidates the
+     * event lists, so the owner sees the event the monitor just recorded without restarting the app
+     * (G5 truthfulness fix B); a movement that joined the open incident wrote no row and so claims
+     * no refresh. A confirmation that could not be stored is not a monitoring failure: the notice
+     * stays truthful about monitoring while the recording problem is reported as what it is, which
+     * is the only honest option left in this slice — the claim the user sees never comes from here.
      */
     private fun report(confirmation: MotionConfirmation) {
+        MotionEventWrites.record(confirmation)
         if (confirmation is MotionConfirmation.Rejected) {
             Log.w(TAG, "a confirmed Movement could not be recorded: ${confirmation.reason}")
         }

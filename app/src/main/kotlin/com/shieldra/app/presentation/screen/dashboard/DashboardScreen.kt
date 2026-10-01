@@ -55,6 +55,10 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
 ) {
     val spacing = ShieldraTheme.spacing
+    // Read off the Motion tile, which the dashboard factory built from the monitoring service's own
+    // published claim. The disclosure line and the Start/Stop button follow this one reading so
+    // neither can disagree with the tile about whether Motion is monitoring.
+    val motionMonitoring = model.guards.firstOrNull { it.kind == GuardKind.Motion }?.status == GuardStatus.Active
 
     LazyColumn(
         modifier = modifier
@@ -71,7 +75,9 @@ fun DashboardScreen(
 
         item {
             Text(
-                text = stringResource(disclosureLabelRes(SettingsContent.dashboardMode(model.storageInstalled))),
+                text = stringResource(
+                    disclosureLabelRes(SettingsContent.dashboardMode(model.storageInstalled, motionMonitoring = motionMonitoring)),
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = spacing.l),
@@ -113,8 +119,7 @@ fun DashboardScreen(
             // The button follows the tile instead of reading the claim itself, so the two can never
             // disagree about whether Motion is monitoring.
             MotionMonitoringAction(
-                monitoring = model.guards.firstOrNull { it.kind == GuardKind.Motion }
-                    ?.status == GuardStatus.Active,
+                monitoring = motionMonitoring,
                 onToggle = callbacks.onMotionMonitoringToggle,
                 modifier = Modifier.padding(horizontal = spacing.l),
             )

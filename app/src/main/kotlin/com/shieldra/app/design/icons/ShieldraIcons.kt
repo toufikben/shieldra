@@ -33,6 +33,7 @@ fun EventType.icon(): ImageVector = when (this) {
     EventType.SimChange -> Icons.Filled.SimCard
     EventType.Panic -> Icons.Filled.WarningAmber
     EventType.Battery -> Icons.Filled.BatteryAlert
+    EventType.Other -> Icons.Filled.Info
 }
 
 fun SettingsIcon.icon(): ImageVector = when (this) {

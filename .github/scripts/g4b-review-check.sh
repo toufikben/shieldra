@@ -828,10 +828,10 @@ grep -q 'MotionEventWrites.state.collectAsState()' "$NAVHOST" \
 grep -Eq 'produceState\(initialValue = emptyList<EventUiModel>\(\)[^)]*motionEventWrites' "$NAVHOST" \
   || fail "the recent-event load has no Motion-write key, so History and the dashboard keep a stale list"
 DASHBOARD_SCREEN=app/src/main/kotlin/com/shieldra/app/presentation/screen/dashboard/DashboardScreen.kt
-MONITORING_DERIVATIONS="$(grep -c 'val motionMonitoringActive' "$DASHBOARD_SCREEN" || true)"
+MONITORING_DERIVATIONS="$(grep -c 'val motionMonitoring =' "$DASHBOARD_SCREEN" || true)"
 [ "$MONITORING_DERIVATIONS" = "1" ] \
   || fail "the dashboard derives Motion's monitoring state $MONITORING_DERIVATIONS times; one tile, one derivation (A-18)"
-grep -Eq 'dashboardMode\(model.storageInstalled, motionMonitoring = motionMonitoringActive\)' "$DASHBOARD_SCREEN" \
+grep -Eq 'dashboardMode\(model.storageInstalled, motionMonitoring = motionMonitoring\)' "$DASHBOARD_SCREEN" \
   || fail "the dashboard disclosure does not follow the same Motion truth the tile and the button follow"
 for name in a_newly_written_motion_event_raises_the_reload_token \
   a_movement_that_joined_the_open_incident_writes_no_row_so_the_token_stays \

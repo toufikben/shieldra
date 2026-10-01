@@ -4,7 +4,7 @@
 
     <string name="welcome_title">شيلدرا</string>
     <string name="welcome_subtitle">تُسجَّل الأحداث الأمنية على هذا الهاتف.</string>
-    <string name="welcome_body">المراقبة المستمرة ليست جزءًا من هذا الإصدار بعد. ما تُطلقه يُحفظ هنا، على هذا الجهاز.</string>
+    <string name="welcome_body">ما تُطلقه يُسجَّل ويُحفظ هنا، على هذا الجهاز. يمكنك تشغيل مراقبة الحركة من اللوحة الرئيسية.</string>
     <string name="welcome_get_started">ابدأ الآن</string>
     <string name="welcome_skip">تخطَّ الآن</string>
 
@@ -121,6 +121,7 @@
     <string name="open_in_maps">فتح في الخرائط</string>
     <string name="phase3_deferred">هذا الإجراء مؤجل عمدًا في المرحلة الثالثة.</string>
     <string name="dashboard_events_disclosure">تُسجَّل الأحداث الأمنية وتُحفظ على هذا الهاتف. لا توجد مراقبة مستمرة تعمل بعد.</string>
+    <string name="dashboard_motion_disclosure">تُسجَّل الأحداث الأمنية وتُحفظ على هذا الهاتف. مراقبة الحركة تعمل الآن.</string>
     <string name="dashboard_no_storage_disclosure">لا شيء محفوظ على هذا الهاتف بعد. لا توجد مراقبة مستمرة تعمل.</string>
     <string name="settings_row_deferred">الإعدادات للعرض فقط في المرحلة الثالثة.</string>
     <string name="action_get_started">ابدأ الآن</string>

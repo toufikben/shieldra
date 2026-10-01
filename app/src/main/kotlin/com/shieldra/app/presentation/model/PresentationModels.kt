@@ -44,7 +44,12 @@ data class ChannelReceiptUiModel(
     val detail: String? = null,
 )
 
-enum class EventType { FailedUnlock, Motion, SimChange, Panic, Battery }
+/**
+ * The guard a History row belongs to. [Other] is where a persisted event of no named guard lands:
+ * it shows under "All" and under no filter chip, because filing an unattributed row under another
+ * guard's filter would state a fact the row does not carry.
+ */
+enum class EventType { FailedUnlock, Motion, SimChange, Panic, Battery, Other }
 
 data class EventUiModel(
     val id: String,

@@ -4,7 +4,7 @@
 
     <string name="welcome_title">Shieldra</string>
     <string name="welcome_subtitle">Security events are recorded on this phone.</string>
-    <string name="welcome_body">Continuous monitoring is not part of this build yet. What you trigger is stored here, on this device.</string>
+    <string name="welcome_body">What you trigger is recorded and stored here, on this device. You can start Motion monitoring from the dashboard.</string>
     <string name="welcome_get_started">Get started</string>
     <string name="welcome_skip">Skip for now</string>
 
@@ -121,6 +121,7 @@
     <string name="open_in_maps">Open in Maps</string>
     <string name="phase3_deferred">This action is intentionally deferred in Phase 3.</string>
     <string name="dashboard_events_disclosure">Security events are recorded and stored on this phone. No continuous monitoring is running yet.</string>
+    <string name="dashboard_motion_disclosure">Security events are recorded and stored on this phone. Motion monitoring is running.</string>
     <string name="dashboard_no_storage_disclosure">Nothing is stored on this phone yet. No continuous monitoring is running.</string>
     <string name="settings_row_deferred">Settings are presentation-only in Phase 3.</string>
     <string name="action_get_started">Get started</string>

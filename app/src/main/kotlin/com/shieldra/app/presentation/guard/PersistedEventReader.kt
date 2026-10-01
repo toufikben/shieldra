@@ -8,6 +8,7 @@ import com.shieldra.app.presentation.model.LocationKind
 import com.shieldra.app.presentation.model.LocationUiModel
 import com.shieldra.domain.EventState
 import com.shieldra.domain.SecurityEvent
+import com.shieldra.domain.SecurityEventType
 import java.time.Duration
 import java.time.Instant
 
@@ -41,7 +42,7 @@ class PersistedEventReader(
 
     private fun SecurityEvent.toUiModel(now: Instant): EventUiModel = EventUiModel(
         id = id.value.toString(),
-        type = labels.type,
+        type = persistedEventTypeOf(this.type),
         title = labels.title,
         subtitle = labels.stateLabel(state),
         timestampLabel = labels.ageLabel(now, createdAt),
@@ -52,7 +53,7 @@ class PersistedEventReader(
 
     private fun SecurityEvent.toDetailUiModel(now: Instant): EventDetailUiModel = EventDetailUiModel(
         id = id.value.toString(),
-        type = labels.type,
+        type = persistedEventTypeOf(this.type),
         title = labels.title,
         timestampLabel = labels.ageLabel(now, createdAt),
         batteryPercent = null,
@@ -68,11 +69,21 @@ class PersistedEventReader(
 }
 
 /**
+ * The History type a persisted row belongs to, read off the row's own guard. A row that names no
+ * guard stays [EventType.Other] rather than borrowing Panic's filter and icon, and because the
+ * reader's labels carry no type, no wording passed in can retype a row.
+ */
+internal fun persistedEventTypeOf(type: SecurityEventType): EventType = when (type) {
+    SecurityEventType.MOTION_CONFIRMED_EVENT -> EventType.Motion
+    SecurityEventType.PANIC_ACTIVATION -> EventType.Panic
+    SecurityEventType.CONFIRMED_SECURITY_EVENT -> EventType.Other
+}
+
+/**
  * Localized display text. [ageLabel] is injected so the caller owns the
  * "x ago" wording; [stateLabel] states what actually happened to the event.
  */
 data class PersistedEventLabels(
-    val type: EventType = EventType.Panic,
     val title: String = "Security event",
     val stateLabels: Map<EventState, String> = emptyMap(),
     val ageLabel: (now: Instant, createdAt: Instant) -> String = { now, createdAt ->

@@ -69,14 +69,16 @@ object SettingsContent {
     }
 
     /**
-     * The disclosure line under the shield. Both values describe facts the app can
-     * prove, and neither may suggest monitoring (directive F1.2, §31).
+     * The disclosure line under the shield. Every value describes a fact the app can prove: the
+     * storage half comes from the installed gate, and [DashboardMode.LocalEventsWithMotion] is the
+     * one case where a running monitor publishes its own state (directive F1.2, §31, A-19).
      */
     enum class DashboardMode {
         NoStorageYet,
-        LocalEventsOnly;
+        LocalEventsOnly,
+        LocalEventsWithMotion;
 
-        val claimsMonitoring: Boolean get() = false
+        val claimsMonitoring: Boolean get() = this == LocalEventsWithMotion
     }
 
     /**
@@ -144,8 +146,11 @@ object SettingsContent {
     fun storageRowState(storageInstalled: Boolean): StorageRowState =
         if (storageInstalled) StorageRowState.InUse else StorageRowState.NotInstalled
 
-    fun dashboardMode(storageInstalled: Boolean): DashboardMode =
-        if (storageInstalled) DashboardMode.LocalEventsOnly else DashboardMode.NoStorageYet
+    fun dashboardMode(storageInstalled: Boolean, motionMonitoring: Boolean): DashboardMode = when {
+        !storageInstalled -> DashboardMode.NoStorageYet
+        motionMonitoring -> DashboardMode.LocalEventsWithMotion
+        else -> DashboardMode.LocalEventsOnly
+    }
 }
 
 /** The line under the shield: what this build really does, never what it might. */
@@ -153,6 +158,7 @@ object SettingsContent {
 internal fun disclosureLabelRes(mode: SettingsContent.DashboardMode): Int = when (mode) {
     SettingsContent.DashboardMode.NoStorageYet -> R.string.dashboard_no_storage_disclosure
     SettingsContent.DashboardMode.LocalEventsOnly -> R.string.dashboard_events_disclosure
+    SettingsContent.DashboardMode.LocalEventsWithMotion -> R.string.dashboard_motion_disclosure
 }
 
 /** The storage row names the state only; a figure would have to be invented. */
