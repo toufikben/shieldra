@@ -31,6 +31,11 @@ is approved**. The open list below drops to four items.
 `MotionCalibration` still injectable. The FGS **API/type review** A-8/A-15 demanded is now written up
 (`docs/reports/batch-G5-foreground-service-type-review.md`). What is still yours: the **four remaining
 calibration numbers**, confirmation of the reviewed type, and the G5 design itself.
+**Revised again:** 2026-10-01, after you answered **Q-G1b** — recorded as **amendment A-17**: `Q-G1` is
+**closed** at `0.8 / 500 / 100 / 20_000` on top of A-16's `4.6` (the `250 ms` proposal rejected),
+`specialUse` is **confirmed** with the `health` correction accepted, and `minEpisodeMs` is separated from
+G1-02's confirmation policy by ruling. **The open list is back to three items (Q-D5/Q-D7, Q-C8, Q-F1),
+and what is left of mine is one thing: the G5 design, for your approval before any code.**
 
 > **Open items after the protocol, and none blocks the next batch:**
 > 1. **Q-D5/Q-D7 — ads and billing.** The protocol (§30) contradicts the 2026-09-29
@@ -40,15 +45,18 @@ calibration numbers**, confirmation of the reviewed type, and the G5 design itse
 > 3. **Q-F1 — the delivery claims Batch F could not close without a product decision** (raised by
 >    Batch F, 2026-09-30). It is mostly the same line as Q-D5/Q-D7: answering those first would
 >    close most of it.
-> 4. ~~**Q-G1 — what magnitude counts as "strong movement".**~~ **STRONG HALF ANSWERED 2026-10-01:
->    `4.6 m/s²`, recorded as amendment A-16**, with your G1-02 time rule untouched (≈3 s continuous
->    strong movement, or two suspicious episodes in 10 s, quality checked first) and
->    `MotionCalibration` still injectable. The carry it was decided from is measured on the shipping
->    path (rest `max 0.5192`; natural carry `p99 3.4878`, `max 5.1399`). **What is still open inside
->    Q-G1** is its literal second half — *what counts as noise* — plus the three numbers that make a
->    shippable calibration: `noiseFloorDeltaMs2`, `minEpisodeMs`, `maxSampleGapMs`, and the adapter's
->    `requestedReportPeriodUs`. Until they are yours, no `MotionCalibration(...)` literal exists in
->    `app/src/main` and Motion stays un-armable. See the Q-G1 entry for the measured basis of each.
+> 4. ~~**Q-G1 — what magnitude counts as "strong movement", and what counts as noise.**~~ **CLOSED
+>    2026-10-01 — amendments A-16 + A-17.** The shipping Motion calibration is exactly
+>    **`strongDeltaMs2 4.6` / `noiseFloorDeltaMs2 0.8` / `minEpisodeMs 500` / `maxSampleGapMs 100` /
+>    `requestedReportPeriodUs 20_000`**, with `250 ms` rejected in favour of `100 ms`, and the FGS type
+>    confirmed as **`specialUse`** after the fourteen-type review (with your `health` correction applied:
+>    it also opens via `HIGH_SAMPLING_RATE_SENSORS`, and is excluded on documented *purpose*, not
+>    permission shape). **G1-02 is untouched** and the binding separation stands: `minEpisodeMs` is
+>    *episode definition/assembly*, the ~3 s / 2-in-10 s rule is the *confirmation policy* — neither
+>    substitutes for the other. **What this closes and what it does not:** no calibration number is open
+>    any more, and a `MotionCalibration` shipping default may now exist — but only inside one named
+>    calibration object, in the same commit as a real service, behind a new gate amendment (**A-18**).
+>    **A-17 licenses no code by itself**; the next step is the G5 design on your screen, then your yes.
 >    Your Batch G mechanism rulings are **not** open: they are amendments **A-8 … A-11** (see Q-G2).
 >    A-8's ruling still governs *how* a service may ever be added (never an empty service to defeat a
 >    gate, never permission-only code); the *whether/when* question was **Q-G3** and is answered.
@@ -645,10 +653,12 @@ you want me to fix the copy now.**
 
 ---
 
-## Q-G1 — What magnitude counts as "strong movement", and what counts as noise? (NEW, raised by Batch G)
+## Q-G1 — What magnitude counts as "strong movement", and what counts as noise? — **CLOSED 2026-10-01 (A-16 + A-17)**
 
-**Status:** **STRONG HALF ANSWERED 2026-10-01 — `4.6 m/s²`, recorded as amendment A-16; G1-02 untouched.
-The noise half and the three remaining calibration numbers are still yours.** Nothing
+**Status:** **ANSWERED IN FULL — `4.6 / 0.8 / 500 / 100 / 20_000`, recorded as amendments **A-16** (the
+`4.6` strong level) and **A-17** (the noise floor, episode length, sample gap, requested period, and the
+`specialUse` type confirmation). G1-02 is untouched, and `minEpisodeMs` is explicitly *not* a second
+confirmation policy.** Nothing
 blocks the pure work; it blocks
 only the *shipping default*. The pure work landed (slice `G-motion-judgement`, CI `36789435527`):
 `MotionCalibration` takes `strongDeltaMs2`, `noiseFloorDeltaMs2`, `minEpisodeMs` and
@@ -752,29 +762,39 @@ arm the guard — 3 of 2112 carry samples exceeded it, and the longest continuou
 in that carry was **19 ms**. SHIELDRA's Motion will arm on snatch/impact-class acceleration, not on
 being carried. That is the profile you chose; lowering it needs a new measurement and a new amendment.
 
-### Still yours: the four numbers that make a shippable calibration
+### ✅ ANSWERED 2026-10-01 — the four remaining numbers **and** the type confirmation (**amendment A-17**)
 
-`MotionCalibration` has four fields and the adapter takes one more requested value. A-16 approves only
-the first; the guard stays **un-armable** (no `MotionCalibration(...)` literal in `app/src/main`) until
-the rest are answered. The measured basis for each is below, with a **PROPOSED — NOT OWNER APPROVED**
-value so you have something to edit rather than invent:
+Your literal answer was `Q-G1b: 0.8 / 500 / 100 / 20000 — specialUse مؤكد`, with **`250 ms` rejected** in
+favour of `100 ms`. `Q-G1` is therefore **closed**: the shipping calibration is exactly
+**`4.6 / 0.8 / 500 / 100 / 20_000`** (`4.6` from A-16), and no sixth number — or change to one of these —
+enters `app/src/main` without a new dated amendment here (§14, §37).
 
-| # | Field | What it does in the code that already shipped | Measured basis on RMX3910 | PROPOSED (not approved) |
+**One binding separation you asked for explicitly, recorded so no code blurs it:** `minEpisodeMs = 500`
+is **episode definition/assembly** (when a motion episode counts as an episode at all, inside
+`MotionWindowEvaluator`); G1-02's **≈3 s continuous, or 2 suspicious occurrences in 10 s**, is the
+**confirmation policy** inside `ApprovedGuardRules` and is what produces a Security Event. A 500 ms
+episode is not a confirmed event, and the 3 s rule is never lowered because the 500 ms rule exists.
+
+The basis each number was chosen against, as measured on RMX3910:
+
+| # | Field | What it does in the code that already shipped | Measured basis on RMX3910 | Approved value (A-17) |
 |---|---|---|---|---|
 | 1 | `noiseFloorDeltaMs2` | Hysteresis: an episode opens at ≥ **4.6** and stays open while samples remain **above this floor**, so it decides how long one bump can keep an episode alive | worst stationary reading ever seen **0.5516** (four rest windows ≤0.5112–0.5516, G2 ≤0.524, harness pass3 max 0.5192) | `0.8 m/s²` ≈ 1.45× the worst rest reading |
-| 2 | `minEpisodeMs` | An episode shorter than this is dropped before the engine ever counts it | the isolated 4.5576 stationary transient ended in one sample; the longest continuous stretch above 0.5 in a real carry was **464 ms** | `500 ms` — sub-second impact spikes die here, G1-02's 3 s still does the confirming |
-| 3 | `maxSampleGapMs` | A gap larger than this makes the whole window `Unreliable`, so no claim is built across a hole in the data | median interval **9.0 ms**, longest gap in any verified window **10 ms** | `250 ms` ≈ 27× the measured interval; it must stay **above** the normalizer's own stall tolerance, not fight it |
-| 4 | `requestedReportPeriodUs` | What the adapter asks the sensor for; Android treats it as a suggestion | 20 000 µs requested → **111 Hz delivered**; the accelerometer is **non-wakeUp** (continuous watching has a real CPU cost) and `SIGNIFICANT_MOTION` is one-shot, so it cannot carry this | `20_000` — the only period ever measured on this device. A coarser period (e.g. 60 000) would **under-read peaks** and can hide a snatch from a 4.6 threshold; battery cost of the running service is **NOT MEASURED** and must be measured on-device after the service lands, before any battery claim is made |
+| 2 | `minEpisodeMs` | An episode shorter than this is dropped before the engine ever counts it | the isolated 4.5576 stationary transient ended in one sample; the longest continuous stretch above 0.5 in a real carry was **464 ms** | `500 ms` — sub-second impact spikes die here; **episode definition only**, G1-02's 3 s still does the confirming |
+| 3 | `maxSampleGapMs` | A gap larger than this makes the whole window `Unreliable`, so no claim is built across a hole in the data | median interval **9.0 ms**, longest gap in any verified window **10 ms**, slowest reference window median **19.0 ms** | `100 ms` — ≈10× the worst measured gap without gluing two separate movements into one event. **`250 ms` was rejected by the owner**, and raising this later needs a new measurement plus a new amendment |
+| 4 | `requestedReportPeriodUs` | What the adapter asks the sensor for; Android treats it as a suggestion | 20 000 µs requested → **111 Hz delivered**; the accelerometer is **non-wakeUp** (continuous watching has a real CPU cost) and `SIGNIFICANT_MOTION` is one-shot, so it cannot carry this | `20_000` — the only period ever measured on this device. It is a *request*: the delivered rate stays computed from timestamps (A-12). Battery cost of the running service is **NOT MEASURED** and must be measured on-device after the service lands, before any battery claim is made |
 
-**Answer format:** one line, e.g. `Q-G1b: 0.8 / 500 / 250 / 20000` — or edit any of them.
-
-**And one confirmation, not a number:** the API/type review A-8 and A-15(7) demanded is written up in
+**And the confirmation A-8 / A-15(7) demanded:** the API/type review is written up in
 `docs/reports/batch-G5-foreground-service-type-review.md`. It eliminates all fourteen documented types
 one by one; the only type whose own definition covers continuous on-device anti-theft motion monitoring
-is **`specialUse`** (`health` is the closest and was rejected because its documented purpose is fitness
-tracking, and taking it would mean either asserting a fitness use case to Google or adding an
-`ACTIVITY_RECOGNITION` permission §23 forbids). The review's draft Play-facing `<property>` explanation
-is in that file, labelled DRAFT. **No FGS code exists yet and no gate moved.**
+is **`specialUse`**, and you confirmed it. Per your correction the report now states that **`health` also
+opens technically through `HIGH_SAMPLING_RATE_SENSORS`**, not only through `ACTIVITY_RECOGNITION` — and
+that it is excluded on its **documented purpose** (fitness/health), not on the shape of the permission
+it needs. Choosing an FGS type by comparing permissions while misdescribing the use case is the failure
+mode A-8 forbids. The Play-facing `<property>` explanation is in that file, still labelled DRAFT until
+it ships with the service. **No FGS code exists yet and no gate has moved** — the gate move is a
+separate amendment (**A-18**) that lands in the same commit as the real service.
+
 
 ---
 

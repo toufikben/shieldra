@@ -66,7 +66,7 @@ conclusion; the reason column is what in the documented definition forces it.
 | `dataSync` | "data transfer operations: upload/download, backup and restore, import/export, local file processing" | none, **plus a new Android 15 time limit** | **No** — reading a motion sensor is not a data-transfer operation, and the documented type would carry a timeout SHIELDRA cannot accept. Choosing it to avoid a Play review would be exactly the "type that does not match the use case" A-8 forbids |
 | `remoteMessaging` | "transfer messages between devices" | none | **No** — no external channel is approved (§30); no SMS/email/cloud/push exists in the app |
 | `shortService` | "finalize essential tasks quickly that cannot be interrupted or postponed (~3 min max), incompatible with persistent services" | plain `FOREGROUND_SERVICE` | **No** — monitoring is by definition longer than ~3 minutes and must survive as long as the user leaves it on; `START_STICKY` is disallowed for this type |
-| `health` | "long-running use cases supporting fitness applications (e.g. training coaches, exercise trackers)" | declare `HIGH_SAMPLING_RATE_SENSORS` **or** hold a health/body-sensor/`ACTIVITY_RECOGNITION` runtime permission | **No — and this is the only genuinely close candidate, so it is worth stating why.** Its shape (continuous sensor work) does resemble ours; its *documented purpose* is fitness/exercise tracking, and SHIELDRA's monitoring is anti-theft security, not a workout. Taking this type would require either asserting a fitness use case to Google or adding `ACTIVITY_RECOGNITION`, a runtime permission that §23 and A-6 forbid because the feature does not need it. (Note also that the sampling-rate declaration is about rates above the platform's 200 Hz ceiling concern; the measured path runs ~111 Hz, so even the sensor-shape argument for `health` is weak.) |
+| `health` | "long-running use cases supporting fitness applications (e.g. training coaches, exercise trackers)" | declare `HIGH_SAMPLING_RATE_SENSORS` **or** hold a health/body-sensor/`ACTIVITY_RECOGNITION` runtime permission | **No — and this is the only genuinely close candidate, so it is worth stating why.** Its shape (continuous sensor work) does resemble ours, and there are **two** technical routes into it: declaring `HIGH_SAMPLING_RATE_SENSORS` (a normal manifest declaration, no runtime prompt) **or** holding a body/health/`ACTIVITY_RECOGNITION` runtime permission. What rules it out is the *documented purpose*: `health` is for fitness/exercise-class use cases, and SHIELDRA's monitoring is anti-theft security, so taking the type would mean describing the app to Android and to Google as something it is not. Choosing a type by its permission shape while mis-stating the use case is what A-8's "never permission-only code" forbids. (The sensor-shape argument is also weak: the sampling-rate declaration is about rates above the platform's motion-sensor ceiling concern, and the measured path runs ~111 Hz.) |
 | `systemExempted` | "reserved for system apps and specific system integrations" — demo mode, device owner, profile owner, `ROLE_EMERGENCY` security app, device admin, exact-alarm holders, configured VPN | matching one of those criteria, else `ForegroundServiceTypeNotAllowedException` | **No** — SHIELDRA is none of them. An ordinary Play app can technically qualify by holding `SCHEDULE_EXACT_ALARM`, but that would be buying a type with a permission the product does not use; A-8's "never add permission-only code" bars it |
 | `specialUse` | "valid foreground service use cases not covered by any other type" | `FOREGROUND_SERVICE_SPECIAL_USE` + a `<property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE">` explanation + Play Console review | **The only type whose own definition covers the case.** Continuous on-device motion monitoring for theft detection is not messaging, not media, not a transfer, not fitness, not a device pairing, and not a system role |
 
@@ -107,7 +107,12 @@ Play-facing copy, offered so the owner can edit the claim rather than write it f
 
 ## WHAT THIS REVIEW DOES NOT DECIDE
 
-- **The remaining four calibration numbers.** `MotionCalibration` needs `strongDeltaMs2` (approved:
+**SUPERSEDED BY A-17 — the owner later answered the remaining numbers (`4.6 / 0.8 / 500 / 100 / 20_000`,
+with the `250 ms` proposal rejected) and confirmed this review's outcome (`specialUse`), with one
+correction: `health` also opens through `HIGH_SAMPLING_RATE_SENSORS`, so it is excluded on documented
+*purpose*, not on permission shape. A shipping `MotionCalibration` default may now exist — but only
+inside one named calibration object, in the same commit as the real service, behind amendment A-18.
+Original note, kept for the record:** `MotionCalibration` needs `strongDeltaMs2` (approved:
   4.6), `noiseFloorDeltaMs2`, `minEpisodeMs` and `maxSampleGapMs`, and the adapter still takes an
   injected `requestedReportPeriodUs`. A-16 leaves those to the owner, so no shipping
   `MotionCalibration(...)` literal may appear in `app/src/main` yet. §37 makes the meaning of a
@@ -119,6 +124,10 @@ Play-facing copy, offered so the owner can edit the claim rather than write it f
   (`MonitoringClaim` stays in force).
 
 ## STATUS
+
+**Updated after amendment A-17 (2026-10-01):** the reviewed outcome — `specialUse` — is **CONFIRMED by
+the owner**, the `health` row above carries the owner's correction, and the four open calibration numbers
+are closed. What has **not** changed is this file's own status: no manifest line, no Kotlin, no gate moved.
 
 | Item | Status |
 |---|---|

@@ -593,12 +593,19 @@ RMX3910 **`OK (70 tests)` ×2**, class alone `OK (2 tests)`). Q-G1's **strong ha
 manual carry the question required (pass3 on RMX3910, `OK (1 test)`, rest `max 0.5192` / carry
 `p99 3.4878`, `max 5.1399`); **G1-02 was left untouched** by your ruling, and the harness's
 `deliberate_movement_identified=false` was explicitly not treated as a reason to lower the 3 s.
-Still open inside Q-G1: `noiseFloorDeltaMs2`, `minEpisodeMs`, `maxSampleGapMs` and
-`requestedReportPeriodUs` — so no `MotionCalibration(...)` literal ships and Motion stays un-armable.
+What remained open at that point inside Q-G1: `noiseFloorDeltaMs2`, `minEpisodeMs`, `maxSampleGapMs` and
+`requestedReportPeriodUs` — so no `MotionCalibration(...)` literal shipped and Motion stayed un-armable.
 The **FGS API/type review** A-8/A-15(7) demanded is written and eliminates all fourteen documented
-types to `specialUse` (`docs/reports/batch-G5-foreground-service-type-review.md`); **no FGS code exists
-and no gate has moved.** The Foreground Service remains unimplemented by §2. See
-`docs/reports/batch-G4-seam-and-QG1-harness.md` | §18 — **IN PROGRESS** |
+types to `specialUse` (`docs/reports/batch-G5-foreground-service-type-review.md`). **Q-G1 IS NOW CLOSED
+IN FULL — amendment A-17:** the shipping calibration is `4.6 / 0.8 / 500 / 100 / 20_000` (the `250 ms`
+proposal rejected for `100 ms`, ≈10× the worst measured gap), `specialUse` is **confirmed** with the
+owner's `health` correction applied (it also opens via `HIGH_SAMPLING_RATE_SENSORS`; excluded on
+documented *purpose*, not permission shape), and `minEpisodeMs` is ruled **episode definition**, distinct
+from G1-02's **confirmation policy**, which is untouched. **No FGS code exists and no gate has moved** —
+the gate move is **A-18**, and it lands in the same commit as the real service, not before it. Next: the
+**G5 design**, presented for the owner's approval before any code. The Foreground Service remains
+unimplemented by §2. See
+`docs/reports/batch-G4-seam-and-QG1-harness.md` | §18 — **IN PROGRESS** (calibration CLOSED, service DESIGN pending owner approval) |
 | H | Evidence / privacy / permission implementation | §21–§23 |
 | I | SIM Guard — feasibility first, then implementation | §19 |
 | J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |
