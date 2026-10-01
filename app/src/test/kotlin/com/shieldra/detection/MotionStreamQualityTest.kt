@@ -63,8 +63,8 @@ class MotionStreamQualityTest {
     fun a_stream_the_signal_layer_measured_as_irregular_is_never_reported_with_valid_sensor_quality() {
         val movement = strongMovement()
         assertTrue(
-            "the fixture movement must hold episodes, otherwise this test proves nothing: $movement",
             (movement as MotionReading.Movements).episodes.isNotEmpty(),
+            "the fixture movement must hold episodes, otherwise this test proves nothing: $movement",
         )
         assertEquals(
             SensorQuality.NOISY,
@@ -129,8 +129,8 @@ class MotionStreamQualityTest {
         assertEquals(SensorQuality.VALID, observation.sensorQuality)
         assertEquals(GuardConfirmationStatus.CONFIRMED, confirm(observation).confirmation.status)
         assertTrue(
-            "a trusted stream must report the measured length, was ${observation.duration}",
             observation.duration >= ApprovedGuardRules.motionStrongDuration,
+            "a trusted stream must report the measured length, was ${observation.duration}",
         )
     }
 
@@ -190,8 +190,8 @@ class MotionStreamQualityTest {
         val movement = evaluator.read(flat(delta = 4.1, count = 200)) as MotionReading.Movements
         assertEquals(1, movement.episodes.size)
         assertTrue(
-            "the episode must span the movement, was ${movement.episodes.single().durationMs} ms",
             movement.episodes.single().durationMs >= 3_000,
+            "the episode must span the movement, was ${movement.episodes.single().durationMs} ms",
         )
     }
 }
