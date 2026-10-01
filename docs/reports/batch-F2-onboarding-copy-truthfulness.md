@@ -80,7 +80,10 @@ forbids resolving an open decision by deleting the text it might still need.
 
 **CI for this commit — `36871617120`, conclusion `success`.** The workflow ran the full command
 (`clean test lint assembleDebug assembleDebugAndroidTest`) plus all three contract scripts, so
-section 17 passed in CI and not only locally.
+section 17 passed in CI and not only locally. The three follow-up docs commits were each CI-verified on
+their own run too — `bf163b2` → `36874321721`, `df12179` → `36874698595`, `7502ae5` → `36875623738`, all
+`success`, the last reporting `CI TEST SUMMARY: 270 tests, 270 passed, 0 failures, 0 errors, 0 skipped`
+with `G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS` and `Group C boundary scan passed`.
 
 **Device re-check — done, on the APK pair from that same run** (`1babdbd`), installed over plain
 `adb install -r` after uninstalling both packages, with `runtime permissions:` confirmed empty so the
