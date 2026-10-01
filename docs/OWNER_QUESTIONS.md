@@ -26,6 +26,11 @@ new** (your A-8/foreground-service decision on that evidence), and Batch H is re
 **amendment A-15**: a real user-started Foreground Service is the approved Motion architecture, with
 `specialUse` still conditional on an API review and with **no FGS code authorized until Q-G1's threshold
 is approved**. The open list below drops to four items.
+**Revised again:** 2026-10-01, after the manual carry landed on RMX3910 and you answered
+**Q-G1's strong half with `4.6 m/s²`** — recorded as **amendment A-16**, with **G1-02 unchanged** and
+`MotionCalibration` still injectable. The FGS **API/type review** A-8/A-15 demanded is now written up
+(`docs/reports/batch-G5-foreground-service-type-review.md`). What is still yours: the **four remaining
+calibration numbers**, confirmation of the reviewed type, and the G5 design itself.
 
 > **Open items after the protocol, and none blocks the next batch:**
 > 1. **Q-D5/Q-D7 — ads and billing.** The protocol (§30) contradicts the 2026-09-29
@@ -35,20 +40,18 @@ is approved**. The open list below drops to four items.
 > 3. **Q-F1 — the delivery claims Batch F could not close without a product decision** (raised by
 >    Batch F, 2026-09-30). It is mostly the same line as Q-D5/Q-D7: answering those first would
 >    close most of it.
-> 4. **Q-G1 — what magnitude counts as "strong movement".** Your G1-02 rule fixes the timing
->    (3 s / two within 10 s) but not the acceleration threshold, and §37 makes the meaning of a
->    guard yours, not mine. The Motion evaluator ships with the threshold **injected**, and the
->    guard stays un-armable until you set it from measured samples. G2 measured the **resting**
->    noise floor on RMX3910 (≤0.52 m/s²); the **strong** level still needs one deliberate carry
->    by you, because no test may move the phone. **Update 2026-10-01:** the G4 quality seam landed
->    (CI `36882705433`, 284/284) and the calibration harness is built and device-verified (CI
->    `36885649601`, RMX3910 `OK (70 tests)` ×2). Rest is measured on the shipping path
->    (median 0.38–0.40, p99 0.48–0.51 m/s²); the carry half is **NOT RUN** and **no threshold is
->    proposed** — the 34-second manual pass the answer needs is written out in the Q-G1 section.
+> 4. ~~**Q-G1 — what magnitude counts as "strong movement".**~~ **STRONG HALF ANSWERED 2026-10-01:
+>    `4.6 m/s²`, recorded as amendment A-16**, with your G1-02 time rule untouched (≈3 s continuous
+>    strong movement, or two suspicious episodes in 10 s, quality checked first) and
+>    `MotionCalibration` still injectable. The carry it was decided from is measured on the shipping
+>    path (rest `max 0.5192`; natural carry `p99 3.4878`, `max 5.1399`). **What is still open inside
+>    Q-G1** is its literal second half — *what counts as noise* — plus the three numbers that make a
+>    shippable calibration: `noiseFloorDeltaMs2`, `minEpisodeMs`, `maxSampleGapMs`, and the adapter's
+>    `requestedReportPeriodUs`. Until they are yours, no `MotionCalibration(...)` literal exists in
+>    `app/src/main` and Motion stays un-armable. See the Q-G1 entry for the measured basis of each.
 >    Your Batch G mechanism rulings are **not** open: they are amendments **A-8 … A-11** (see Q-G2).
 >    A-8's ruling still governs *how* a service may ever be added (never an empty service to defeat a
->    gate, never permission-only code); what G4-A re-opens is the separate *whether/when* question —
->    that one is **Q-G3**.
+>    gate, never permission-only code); the *whether/when* question was **Q-G3** and is answered.
 >    Outside this repository, the published store copy still advertises **"zero Android
 >    permissions"**, which amendment A-6 superseded — the honest sentence is "no permissions
 >    until you need them".
@@ -644,7 +647,8 @@ you want me to fix the copy now.**
 
 ## Q-G1 — What magnitude counts as "strong movement", and what counts as noise? (NEW, raised by Batch G)
 
-**Status:** **OPEN — the instrument is built and device-verified; only your hand is missing.** Nothing
+**Status:** **STRONG HALF ANSWERED 2026-10-01 — `4.6 m/s²`, recorded as amendment A-16; G1-02 untouched.
+The noise half and the three remaining calibration numbers are still yours.** Nothing
 blocks the pure work; it blocks
 only the *shipping default*. The pure work landed (slice `G-motion-judgement`, CI `36789435527`):
 `MotionCalibration` takes `strongDeltaMs2`, `noiseFloorDeltaMs2`, `minEpisodeMs` and
@@ -715,6 +719,62 @@ the datasheet.
 
 **Answer format:** e.g. `Q-G1: الخيار 1` — and when the measured numbers arrive you can answer the
 constant itself with `Q-G1: 2.4 m/s²` or similar.
+
+---
+
+### ✅ ANSWERED (strong half) 2026-10-01 — `strongDeltaMs2 = 4.6 m/s²`, recorded as amendment **A-16**
+
+Your ruling, as given: **4.6** rather than 4.0, because it sits above the highest *stationary*
+transient ever measured on this phone (**4.5576** while untouched) and above the natural carry's
+**p99 (3.4878)**, without rising above the whole range of ordinary movement (**carry max 5.1399**) —
+and because **"الزمن/التكرار هو جزء أساسي من الحماية من false positives، وليس threshold وحده"**.
+**G1-02 is unchanged** (≈3 s continuous strong movement, **or** two suspicious episodes within 10 s,
+signal quality checked first, isolated spikes ignored). The harness returning
+`deliberate_movement_identified=false` on a real carry is **not** treated as a defect in the product
+rule, because the harness probes against `3 × rest max = 1.5577`, a different standard from the
+guard's own — the 3 s was not lowered to satisfy that indicator. `MotionCalibration` stays injectable
+and 4.6 is a **SHIELDRA calibration for this slice**, not a claim that every Android phone is equally
+sensitive.
+
+**Provenance of the measurement it was decided from** (single clean pass, 2026-10-01 17:38, RMX3910):
+carrier `MotionCalibrationInstrumentedTest#one_deliberate_carry_is_measured_against_the_rest_baseline_of_the_same_run`,
+`OK (1 test)`, `Time: 36.15`, through `MotionSensorAdapter`; `adapter_delivered=3599`,
+`clock_resolution_drops=0`, first reading 1133 ms after launch.
+Rest `n=845`, median 0.3834, p90 0.4408, p99 0.4864, **max 0.5192**; carry `n=2112` over 19 991 ms,
+median 0.4677, p90 1.5965, p99 3.4878, **max 5.1399**; above 0.5/1.0/1.5/2.0/3.0/4.0 m/s² =
+47.8% / 26.1% / 11.9% / 5.7% / 2.2% / **3 samples**. Raw logcat and the per-second profile are in the
+working folder `shieldra-qg1-manual/pass3-*` and are **not committed** (the raw stream is ~1.8 MB);
+`pass1`, `pass2` and the dry run are quarantined as not-evidence in `PASS-STATUS.txt` because the
+phase cue never reached the phone. Say the word if you want the profile table committed as a report.
+
+**What 4.6 buys, stated honestly so nobody "fixes" it later:** at that level a natural walk does not
+arm the guard — 3 of 2112 carry samples exceeded it, and the longest continuous stretch above 3.0 m/s²
+in that carry was **19 ms**. SHIELDRA's Motion will arm on snatch/impact-class acceleration, not on
+being carried. That is the profile you chose; lowering it needs a new measurement and a new amendment.
+
+### Still yours: the four numbers that make a shippable calibration
+
+`MotionCalibration` has four fields and the adapter takes one more requested value. A-16 approves only
+the first; the guard stays **un-armable** (no `MotionCalibration(...)` literal in `app/src/main`) until
+the rest are answered. The measured basis for each is below, with a **PROPOSED — NOT OWNER APPROVED**
+value so you have something to edit rather than invent:
+
+| # | Field | What it does in the code that already shipped | Measured basis on RMX3910 | PROPOSED (not approved) |
+|---|---|---|---|---|
+| 1 | `noiseFloorDeltaMs2` | Hysteresis: an episode opens at ≥ **4.6** and stays open while samples remain **above this floor**, so it decides how long one bump can keep an episode alive | worst stationary reading ever seen **0.5516** (four rest windows ≤0.5112–0.5516, G2 ≤0.524, harness pass3 max 0.5192) | `0.8 m/s²` ≈ 1.45× the worst rest reading |
+| 2 | `minEpisodeMs` | An episode shorter than this is dropped before the engine ever counts it | the isolated 4.5576 stationary transient ended in one sample; the longest continuous stretch above 0.5 in a real carry was **464 ms** | `500 ms` — sub-second impact spikes die here, G1-02's 3 s still does the confirming |
+| 3 | `maxSampleGapMs` | A gap larger than this makes the whole window `Unreliable`, so no claim is built across a hole in the data | median interval **9.0 ms**, longest gap in any verified window **10 ms** | `250 ms` ≈ 27× the measured interval; it must stay **above** the normalizer's own stall tolerance, not fight it |
+| 4 | `requestedReportPeriodUs` | What the adapter asks the sensor for; Android treats it as a suggestion | 20 000 µs requested → **111 Hz delivered**; the accelerometer is **non-wakeUp** (continuous watching has a real CPU cost) and `SIGNIFICANT_MOTION` is one-shot, so it cannot carry this | `20_000` — the only period ever measured on this device. A coarser period (e.g. 60 000) would **under-read peaks** and can hide a snatch from a 4.6 threshold; battery cost of the running service is **NOT MEASURED** and must be measured on-device after the service lands, before any battery claim is made |
+
+**Answer format:** one line, e.g. `Q-G1b: 0.8 / 500 / 250 / 20000` — or edit any of them.
+
+**And one confirmation, not a number:** the API/type review A-8 and A-15(7) demanded is written up in
+`docs/reports/batch-G5-foreground-service-type-review.md`. It eliminates all fourteen documented types
+one by one; the only type whose own definition covers continuous on-device anti-theft motion monitoring
+is **`specialUse`** (`health` is the closest and was rejected because its documented purpose is fitness
+tracking, and taking it would mean either asserting a fitness use case to Google or adding an
+`ACTIVITY_RECOGNITION` permission §23 forbids). The review's draft Play-facing `<property>` explanation
+is in that file, labelled DRAFT. **No FGS code exists yet and no gate moved.**
 
 ---
 
