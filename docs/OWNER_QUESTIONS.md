@@ -596,12 +596,18 @@ conflict** — and per §14 I do not resolve an open decision by deleting the te
    while `ShieldraNavHost.kt:164` passes `onAllow = { defer() }`. §32 says a control must work, be
    honestly disabled, or be removed — and §23 forbids requesting a permission before the feature
    that needs it exists, so "make it work" is not the right fix here.
-   **Update from the device pass on `1babdbd` (2026-10-01):** that commit's own CI APK pair was
-   installed (run `36871617120` **success**, plain `adb install -r` so no permission was pre-granted)
-   and the step was re-read on screen: it now says the permission is asked for **in Settings**, and the
-   protection step prints its sentence once. Suite re-run twice on that install: **`OK (68 tests)`** in
-   19.365 s and 19.112 s. **The dead button is still yours to decide** — remove the step, or keep it as
-   an explanation-only step.
+   **Update from the device pass on `adf68cc` (2026-10-01):** tapping that **Continue** on the phone
+   really does nothing but show *"This action is intentionally deferred in Phase 3."* — and the step
+   also told the user *"SHIELDRA asks for it only here"*, which is false (the only request site is the
+   A-6 Settings screen, `ShieldraNavHost.kt:271`). That **false sentence was fixed** in slice `F2a`
+   (`docs/reports/batch-F2-onboarding-copy-truthfulness.md`): onboarding got its own copy pointing at
+   Settings, and gate section 17 keeps it there.
+   **Verified on `1babdbd` (2026-10-01):** that commit's own CI APK pair was installed (run
+   `36871617120` **success**, plain `adb install -r` so no permission was pre-granted) and the step was
+   re-read on screen — it now says the permission is asked for **in Settings**, and the protection step
+   prints its sentence once. Suite re-run twice on that install: **`OK (68 tests)`** in 19.365 s and
+   19.112 s. **The dead button is still yours to decide** — remove the step, or keep it as an
+   explanation-only step.
 4. **The dashboard lists a fifth guard: `Battery` (NEW, found on the `1babdbd` re-walk).**
    `LockGuardDashboardFactory.kt:27` builds the guard list by mapping over `GuardKind.entries`, and
    `GuardKind` (`PresentationModels.kt:11`) is `Lock, Motion, Sim, Panic, Battery`. So the real
@@ -615,7 +621,7 @@ conflict** — and per §14 I do not resolve an open decision by deleting the te
 
 | Option | Rule | Consequence |
 |---|---|---|
-| **1 (recommended)** | In the next truthfulness slice: rewrite the three Premium strings to name only what the app does today (Panic + local recording + local notifications), hide the `DeliveryReceipt` block when there is nothing to show, and change onboarding's copy/button to "Continue — the app asks for nothing until a feature needs it". | Every screen says only what the app does. Cost: string resources and three presentation files. **Needs your yes because it edits the Premium pitch copy, which is a product surface, not a bug.** |
+| **1 (recommended)** | In the next truthfulness slice: rewrite the three Premium strings to name only what the app does today (Panic + local recording + local notifications), hide the `DeliveryReceipt` block when there is nothing to show, and change onboarding's copy/button to "Continue — the app asks for nothing until a feature needs it". Item 4's row is decided in the same pass: drop `Battery` from the dashboard list or scope it. | Every screen says only what the app does. Cost: string resources and three presentation files. **Needs your yes because it edits the Premium pitch copy, which is a product surface, not a bug.** |
 | 2 | Fix only (2) and (3) now — they are pure defects — and hold the Premium copy until Q-D5/Q-D7 is answered. | Least product impact, but §31 stays violated on the Premium tab. |
 | 3 | Answer Q-D5/Q-D7 first (are Premium/ads/billing part of this release at all?), then decide the copy in one pass. | Cleanest. If Premium is not shipping, most of finding 1 disappears with it. |
 
