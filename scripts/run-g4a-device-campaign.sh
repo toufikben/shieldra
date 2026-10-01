@@ -28,7 +28,8 @@
 #     bash scripts/run-g4a-device-campaign.sh
 #
 # Optional: RUNS (repetitions per phase, default 3), PHASES (subset, default "A B C D"),
-#           OUT_DIR, ANDROID_SERIAL, SCREEN_SLEEP_DELAY_MS, REQUESTED_PERIOD_US.
+#           OUT_DIR, ANDROID_SERIAL, SCREEN_SLEEP_DELAY_MS, REQUESTED_PERIOD_US,
+#           RUN_DEADLINE_EXTRA_S (wall-clock grace after the nominal window, default 240).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -40,6 +41,7 @@ PHASES="${PHASES:-A B C D}"
 OUT_DIR="${OUT_DIR:-$ROOT_DIR/evidence/g4a/$(date +%Y%m%d-%H%M%S)}"
 SCREEN_SLEEP_DELAY_MS="${SCREEN_SLEEP_DELAY_MS:-8000}"
 REQUESTED_PERIOD_US="${REQUESTED_PERIOD_US:-20000}"
+RUN_DEADLINE_EXTRA_S="${RUN_DEADLINE_EXTRA_S:-240}"
 
 PACKAGE="com.shieldra.app"
 TEST_PACKAGE="com.shieldra.app.test"
@@ -170,15 +172,39 @@ run_one() {
     sleeper=$!
   fi
 
-  local started instrument_status
+  local started instrument_status deadline_s deadline instr_pid
+  local timed_out=0
   started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  deadline_s=$(( window_ms / 1000 + RUN_DEADLINE_EXTRA_S ))
+  # The vehicle bounds its own window, but every bound it has depends on one of its threads being
+  # scheduled. On this device a dark run hung with all 18 threads asleep, utime/stime unmoving for
+  # minutes and SensorService still logging drops for us, so the vehicle's guard never fired and
+  # `am instrument -w` blocked forever. The driver therefore carries its own wall-clock deadline.
+  # Crossing it is a fact about the measurement tool giving up, not a fact about the sensor stopping,
+  # so it gets its own label and its own file instead of being folded into the vehicle's states.
+  deadline=$(( $(date +%s) + deadline_s ))
   set +e
   "$ADB_BIN" -s "$SER" shell am instrument -w \
     -e class "${CLASS}#${method}" \
     -e run_index "$run" \
     -e window_ms "$window_ms" \
     -e requested_period_us "$REQUESTED_PERIOD_US" \
-    "$TEST_PACKAGE/$RUNNER" > "$log_dir/instrument.log" 2>&1
+    "$TEST_PACKAGE/$RUNNER" > "$log_dir/instrument.log" 2>&1 &
+  instr_pid=$!
+  while kill -0 "$instr_pid" 2>/dev/null; do
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      timed_out=1
+      break
+    fi
+    sleep 5
+  done
+  if [ "$timed_out" = "1" ]; then
+    echo "   DEADLINE: the vehicle did not return within ${deadline_s}s, stopping it and recording TIMEOUT_NO_DATA"
+    adb_sh "am force-stop $PACKAGE" >/dev/null 2>&1 || true
+    adb_sh "am force-stop $TEST_PACKAGE" >/dev/null 2>&1 || true
+    kill "$instr_pid" 2>/dev/null || true
+  fi
+  wait "$instr_pid" 2>/dev/null
   instrument_status=$?
   set -e
 
@@ -200,7 +226,17 @@ run_one() {
   adb_sh dumpsys power | grep -E 'mWakefulness|mState|mScreenOn|Interactive' > "$log_dir/post-power.txt" || true
 
   local result samples median rate maxgap drops contamination
-  if [ ! -s "$json_file" ]; then
+  if [ "$timed_out" = "1" ] && [ ! -s "$json_file" ]; then
+    result="TIMEOUT_NO_DATA"
+    samples=""; median=""; rate=""; maxgap=""; drops=""
+    contamination="driver_deadline_reached_vehicle_never_returned"
+    # Written by the driver, not by the vehicle. evidence.json stays empty on purpose: an empty
+    # vehicle file plus a driver-side timeout record is how "the tool could not finish" stays
+    # distinguishable from "the sensor stopped" (INTERRUPTED) in the evidence.
+    printf '{"schema":"shieldra-g4a-driver-timeout-v1","produced_by":"scripts/run-g4a-device-campaign.sh","vehicle_emitted_evidence":"false","phase":"%s","run_index":"%s","window_ms":"%s","deadline_s":"%s","screen_off_requested":"%s","started_utc":"%s","stopped_utc":"%s","instrument_exit":"%s","sensor_service_drops_for_this_package":"%s"}\n' \
+      "$phase" "$run" "$window_ms" "$deadline_s" "$wants_off" "$started" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$instrument_status" "$sensor_drops" \
+      > "$log_dir/driver-timeout.json"
+  elif [ ! -s "$json_file" ]; then
     result="NO_EVIDENCE"
     samples=""; median=""; rate=""; maxgap=""; drops=""; contamination="instrument exit $instrument_status"
   else
@@ -217,8 +253,8 @@ run_one() {
   fi
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
     "$phase" "$run" "$window_ms" "$wants_off" "$result" "$samples" "$median" "$rate" "$maxgap" "$drops" \
-    "$contamination" "$sensor_drops" "started=$started exit=$instrument_status" >> "$SUMMARY"
-  echo "   started=$started instrument_exit=$instrument_status result=$result samples=$samples sensor_service_drops=$sensor_drops"
+    "$contamination" "$sensor_drops" "started=$started exit=$instrument_status deadline_exceeded=$timed_out" >> "$SUMMARY"
+  echo "   started=$started instrument_exit=$instrument_status result=$result samples=$samples sensor_service_drops=$sensor_drops deadline_exceeded=$timed_out"
   echo "   evidence: $json_file"
 }
 
