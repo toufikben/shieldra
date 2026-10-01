@@ -431,10 +431,25 @@ a production service under Doze/OEM restrictions on battery (A-13), and **"an FG
 a result of this campaign** — that is A-8's decision, now raised as **Q-G3** for the owner. See
 `docs/reports/batch-G4A-background-sensor-measurement.md`.
 
+**Q-G3 was ANSWERED on 2026-10-01 — Option 1 — and the answer is amendment A-15:** continuous Motion
+monitoring gets a **real Foreground Service** that the user starts, can stop, and sees an accurate
+ongoing notification for while it genuinely runs; no 24/7 claim, no boot start (A-10 intact), battery
+guidance optional (A-11 intact), and `specialUse` chosen only if a repository/API review shows no more
+specific FGS type fits. **A-15 is a decision record, not implementation permission.** The owner fixed the
+order: **A-15 → pure G4 evaluator with no default threshold → one manual Q-G1 measurement → owner
+approves the strong-motion calibration → only then the FGS code.** So `<service>`, `FOREGROUND_SERVICE`,
+`FOREGROUND_SERVICE_SPECIAL_USE`, monitoring-notification changes, runtime monitoring activation,
+Security Event creation from Motion, severity, evidence, Panic, camera and location all remain forbidden
+in this slice, and **the static gates are not relaxed to make room for future code** — a later relaxation
+must itself be a numbered amendment.
+
 **G4 — the layer above signal data** (`Signal → Validation → Confirmation → Severity → Confirmed
-Security Event`, the flow A-12 names) is **not started**. It is gated on decisions, not on code: the
-owner's answer to A-8/FGS (Q-G3) and the strong-magnitude half of **Q-G1** (one deliberate carry of the
-phone, which no automated test may do). Until then Motion may not be shown as `Active` anywhere, and
+Security Event`, the flow A-12 names) is **the current slice, pure code only**. The missing piece is
+narrow and real: `MotionGuardObservation.of` decides quality from the *evaluator's* reading alone and
+reports `SensorQuality.VALID` for any episode list, so a stream the G3 normalizer measured as
+`IRREGULAR` or `INVALID` could still reach the engine as valid sensor data and confirm. The slice closes
+that seam — quality carried, never upgraded — with the owner's 3 s / two-in-10 s rule untouched and every
+magnitude value still injected. Until then Motion may not be shown as `Active` anywhere, and
 per A-14 Batch H arrives only as a **decisions package** (Q-C5's capture duration, photo count,
 location precision/retention, whether camera is allowed at all) with no H code and no gate relaxation
 before an explicit amendment.

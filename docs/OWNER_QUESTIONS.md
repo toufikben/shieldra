@@ -22,6 +22,10 @@ survived on Premium, the event Detail card, and onboarding's dead "Allow").
 is closed as evidence (report: `docs/reports/batch-G4A-background-sensor-measurement.md`), **Q-G3 is
 new** (your A-8/foreground-service decision on that evidence), and Batch H is recorded as a
 **decisions-only** package behind it per amendment **A-14**.
+**Revised again:** 2026-10-01 (later the same day), after you answered **Q-G3 = Option 1** — recorded as
+**amendment A-15**: a real user-started Foreground Service is the approved Motion architecture, with
+`specialUse` still conditional on an API review and with **no FGS code authorized until Q-G1's threshold
+is approved**. The open list below drops to four items.
 
 > **Open items after the protocol, and none blocks the next batch:**
 > 1. **Q-D5/Q-D7 — ads and billing.** The protocol (§30) contradicts the 2026-09-29
@@ -44,14 +48,13 @@ new** (your A-8/foreground-service decision on that evidence), and Batch H is re
 >    Outside this repository, the published store copy still advertises **"zero Android
 >    permissions"**, which amendment A-6 superseded — the honest sentence is "no permissions
 >    until you need them".
-> 5. **Q-G3 — the A-8 foreground-service decision**, which G4-A's evidence now puts in front of you.
->    The measurement is finished: valid numbers exist only for lit windows, and every genuinely dark
->    window ended with the app process given no CPU while the platform kept the subscription and an
->    undrained queue. That answers "what happened to the sensor path in the dark", not "should
->    SHIELDRA run a foreground service" — A-14 makes that your call, and four options (decide now /
->    measure once more, on battery and from the app's own UI / keep A-8 closed and build pure G4 /
->    drop while-dark motion monitoring) are set out in Q-G3 with no recommendation from me.
->    **Batch H's camera and location parameters stay deferred behind this one**, per A-14's order.
+> 5. ~~**Q-G3 — the A-8 foreground-service decision**~~ **ANSWERED 2026-10-01 (Option 1, amendment
+>    A-15).** A real user-started, user-stoppable Foreground Service with an accurate ongoing
+>    notification is the approved Motion architecture; no 24/7 claim, no boot start, battery guidance
+>    optional, `specialUse` only if no more specific FGS type fits. **It does not license the code yet**
+>    — the order you set is A-15 → pure G4 evaluator → one manual Q-G1 measurement → your threshold
+>    approval → then the service. What still sits behind it: **Batch H's camera and location
+>    parameters**, which A-14 keeps as a decisions-only package.
 >
 > Everything else in section C is answered and quoted to its source.
 
@@ -704,6 +707,10 @@ strong a claim, and §31 is the reason it matters.
 
 ## Q-G3 — A-8 / the foreground service: the decision G4-A now puts in front of you (NEW, raised by G4-A)
 
+**Status:** **ANSWERED 2026-10-01 — Option 1, recorded as amendment A-15.** The decision is the
+owner's; the code it authorizes is gated behind the Q-G1 threshold approval, so this slice writes only
+the pure Motion decision layer and one manual measurement. See the answer at the end of this entry.
+
 **What the campaign found, in one paragraph.** On your RMX3910, an accelerometer subscription opened
 while the app is in the foreground **stays registered** when the display goes dark, and the platform
 keeps a **full, undrained queue** for it (`Dropping 1 cached events (4500/4500) …
@@ -743,6 +750,22 @@ camera sub-question) stay deferred: A-14 fixes the order as *G4-A report → evi
 then the H decisions package*, and the gates (`group-c-contract-check.sh`, `g4b-review-check.sh`) still
 forbid any H code until an authority amendment changes them. I have not invented any of those values
 and will not.
+
+**Your answer:** ✅ **ANSWERED (2026-10-01) — Option 1**, recorded as **amendment A-15** in
+`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` §17 before any production architecture changed. The
+ruling: continuous Motion monitoring will use a **real Foreground Service**, started by a visible
+user-initiated action, stoppable by that user, carrying an accurate ongoing notification only while it
+genuinely runs, with no 24/7 guarantee, no reboot start in this batch, and battery guidance kept
+optional. `specialUse` is **not** pre-decided — it is chosen only if a repository/API review confirms no
+more specific FGS type fits the real Motion use case.
+
+**What the owner's answer did *not* do:** it is not a claim that G4-A proved an FGS technically
+necessary (A-13/A-14 still forbid that reading), and it is **not permission to write the service now**.
+The sequence he fixed is **A-15 → pure G4 evaluator (no default threshold) → one manual Q-G1 measurement
+→ owner approves the strong-motion calibration → then the real FGS implementation**. Until step four,
+`<service>`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` and any monitoring notification
+remain forbidden, the static gates stay unrelaxed, and the dashboard must still read
+**Motion Guard — Not monitoring yet**.
 
 ---
 
