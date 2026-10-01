@@ -18,6 +18,11 @@
 # forces Doze: the harness checks PowerManager.isInteractive itself and marks the run contaminated if
 # the platform did not agree.
 #
+# Each run keeps two logs: logcat.txt (the harness's G4A_JSON= evidence line) and sensor-service.log
+# (SensorService's own warnings, including cached-event drops attributed to this app). When a run
+# reports little or nothing, the two together say whether the sensor stopped producing or the process
+# stopped consuming — the ambiguity amendment A-13 insists on reporting instead of resolving.
+#
 # Usage:
 #   APK=/path/to/app-debug.apk TEST_APK=/path/to/app-debug-androidTest.apk \
 #     bash scripts/run-g4a-device-campaign.sh
@@ -100,7 +105,7 @@ adb_sh() { "$ADB_BIN" -s "$SER" shell "$@"; }
 
 mkdir -p "$OUT_DIR"
 SUMMARY="$OUT_DIR/summary.tsv"
-printf 'phase\trun\twindow_ms\tscreen_off_requested\tresult\tsamples\tmedian_ms\trate_hz\tmax_gap_ms\tdrops\tcontamination\ttiming\n' > "$SUMMARY"
+printf 'phase\trun\twindow_ms\tscreen_off_requested\tresult\tsamples\tmedian_ms\trate_hz\tmax_gap_ms\tdrops\tcontamination\tsensor_service_drops\ttiming\n' > "$SUMMARY"
 
 echo "== preflight =="
 {
@@ -148,7 +153,11 @@ run_one() {
   # changed. If its own screen-timeout puts the display to sleep mid-baseline, the evidence line
   # says so through screen_interactive_polls_during_window and the report states it.
   "$ADB_BIN" -s "$SER" logcat -c || true
-  "$ADB_BIN" -s "$SER" logcat -v threadtime "$TAG:I" '*:S' > "$log_dir/logcat.txt" 2>&1 &
+  # Capture two tags per run: the harness's own evidence line, and SensorService's warnings. The
+  # second is not decoration — on RMX3910 SensorService logged "Dropping N cached events ...
+  # app:com.shieldra.app type=1" while the dark run collected nothing, which is platform-side proof
+  # of who stopped consuming: the sensor side kept producing and the process did not get scheduled.
+  "$ADB_BIN" -s "$SER" logcat -v threadtime "$TAG:I" 'SensorService:W' '*:S' > "$log_dir/logcat-raw.txt" 2>&1 &
   local logcat_pid=$!
   sleep 1
 
@@ -180,12 +189,17 @@ run_one() {
   kill "$logcat_pid" 2>/dev/null || true
   wait "$logcat_pid" 2>/dev/null || true
 
-  grep -h 'G4A_JSON=' "$log_dir/logcat.txt" | sed 's/.*G4A_JSON=//' > "$json_file" || true
+  grep -h 'G4A_JSON=' "$log_dir/logcat-raw.txt" > "$log_dir/logcat.txt" || true
+  grep -h 'SensorService' "$log_dir/logcat-raw.txt" > "$log_dir/sensor-service.log" || true
+  # Only drops attributed to THIS package count: SensorService reports drops for every client, and a
+  # number that includes them would blame another app for this run's starvation.
+  sensor_drops="$(grep -h "app:$PACKAGE" "$log_dir/sensor-service.log" | grep -c 'Dropping' || true)"
+  sed 's/.*G4A_JSON=//' "$log_dir/logcat.txt" > "$json_file" || true
   adb_sh dumpsys battery > "$log_dir/post-battery.txt" || true
   adb_sh dumpsys deviceidle > "$log_dir/post-deviceidle.txt" || true
   adb_sh dumpsys power | grep -E 'mWakefulness|mState|mScreenOn|Interactive' > "$log_dir/post-power.txt" || true
 
-  local result samples median rate maxgap drops contamination
+  local result samples median rate maxgap drops contamination sensor_drops
   if [ ! -s "$json_file" ]; then
     result="NO_EVIDENCE"
     samples=""; median=""; rate=""; maxgap=""; drops=""; contamination="instrument exit $instrument_status"
@@ -201,10 +215,10 @@ run_one() {
       result="CONTAMINATED ($result)"
     fi
   fi
-  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
     "$phase" "$run" "$window_ms" "$wants_off" "$result" "$samples" "$median" "$rate" "$maxgap" "$drops" \
-    "$contamination" "started=$started exit=$instrument_status" >> "$SUMMARY"
-  echo "   started=$started instrument_exit=$instrument_status result=$result samples=$samples"
+    "$contamination" "$sensor_drops" "started=$started exit=$instrument_status" >> "$SUMMARY"
+  echo "   started=$started instrument_exit=$instrument_status result=$result samples=$samples sensor_service_drops=$sensor_drops"
   echo "   evidence: $json_file"
 }
 

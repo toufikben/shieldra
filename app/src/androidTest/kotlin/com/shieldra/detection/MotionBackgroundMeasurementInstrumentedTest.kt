@@ -32,6 +32,17 @@ import java.util.Collections
  * interrupted delivery and read as an answer about foreground services. The worker keeps the
  * measurement honest about the question it is actually asking.
  *
+ * **The evidence line is written by the main thread from a shared progress record, never by the
+ * worker.** That is deliberate, and it is the fix for a measured failure: on RMX3910 a dark-phase
+ * worker was given no CPU at all (`top -H` reported 0:00.00 for the observer thread while
+ * `SensorService` filled its 4500-event cache and dropped `app:com.shieldra.app type=1` events),
+ * the run never returned, and the previous harness therefore died holding nothing — a 0-byte
+ * evidence file for a run that had actually collected samples. Progress is published as it happens
+ * (registration, settle state, window bounds, polls, the sample list, the adapter's own counters),
+ * and the main thread emits from it on **both** exits: when the worker reports back and when the
+ * guard expires and the worker never will. A hung measurement now yields a labelled measurement
+ * instead of silence, and silence was indistinguishable from "delivery stopped".
+ *
  * The window is closed by elapsedRealtime rather than by a count of sleeps, and the difference
  * between elapsedRealtime and the process's own monotonic clock is reported as ap_suspend_ms. The
  * reason is a measured property of RMX3910: `dumpsys sensorservice` lists sc7a20 ACCELEROMETER as
@@ -83,7 +94,35 @@ class MotionBackgroundMeasurementInstrumentedTest {
 
     private data class Phase(val name: String, val windowMs: Long, val expectsScreenOff: Boolean)
 
-    /** One phase's raw observation, kept in one place so no evidence field is passed positionally. */
+    /**
+     * Everything one phase learns, published as it is learned so the main thread can read it at any
+     * moment — including the moment it gives up on the worker. Fields written by the worker are
+     * volatile; the sample list is synchronized because the sensor callback fills it concurrently.
+     */
+    private class Progress(val phase: Phase, val runIndex: String, val requestedPeriodUs: Int) {
+        val samples: MutableList<MotionSample> = Collections.synchronizedList(mutableListOf<MotionSample>())
+
+        @Volatile var adapter: MotionSensorAdapter? = null
+        @Volatile var registration: String = NOT_ATTEMPTED
+        @Volatile var settleWaitedMs: Long = 0L
+        @Volatile var screenOffBeforeWindow: Boolean = false
+        @Volatile var windowStartMs: Long = 0L
+        @Volatile var windowEndMs: Long = 0L
+        @Volatile var startWallClockMs: Long = 0L
+        @Volatile var endWallClockMs: Long = 0L
+        @Volatile var monotonicStartMs: Long = 0L
+        @Volatile var monotonicEndMs: Long = 0L
+        @Volatile var polls: Int = 0
+        @Volatile var interactivePolls: Int = 0
+        @Volatile var exception: String? = null
+        @Volatile var observerCompleted: Boolean = false
+
+        fun offer(sample: MotionSample) {
+            samples.add(sample)
+        }
+    }
+
+    /** One phase's evidence input, already resolved to a window the emit step can describe. */
     private data class Observation(
         val phase: Phase,
         val runIndex: String,
@@ -93,6 +132,7 @@ class MotionBackgroundMeasurementInstrumentedTest {
         val screenOffBeforeWindow: Boolean,
         val polls: Int,
         val interactivePolls: Int,
+        val windowStarted: Boolean,
         val windowStartMs: Long,
         val windowEndMs: Long,
         val startWallClockMs: Long,
@@ -104,54 +144,57 @@ class MotionBackgroundMeasurementInstrumentedTest {
         val reportingAfterStop: Boolean,
         val windowMonotonicMs: Long,
         val exception: String?,
+        val observerCompleted: Boolean,
+        val windowClosedWithinGuard: Boolean,
     )
 
     private fun runPhase(phase: Phase) {
         val args = InstrumentationRegistry.getArguments()
         val windowMs = args.longArg("window_ms") ?: phase.windowMs
         val settleDeadlineMs = args.longArg("settle_deadline_ms") ?: DEFAULT_SETTLE_DEADLINE_MS
-        val raised = arrayOfNulls<String>(1)
-        val worker = Thread({ raised[0] = observe(phase, args) }, "shieldra-g4a-observer")
+        val progress = Progress(
+            phase = phase.copy(windowMs = windowMs),
+            runIndex = args.getString("run_index") ?: "1",
+            requestedPeriodUs = args.intArg("requested_period_us") ?: DEFAULT_REQUESTED_PERIOD_US,
+        )
+        val worker = Thread({
+            observe(phase, args, progress)
+            progress.observerCompleted = true
+        }, "shieldra-g4a-observer")
+        // A daemon worker cannot keep the process alive after the main thread has given up on it.
+        worker.isDaemon = true
 
         worker.start()
         val guardMs = windowMs + settleDeadlineMs + JOIN_MARGIN_MS
         worker.join(guardMs)
-        if (worker.isAlive) {
+        if (!progress.observerCompleted) {
+            // The worker is stuck — on this device, measured, that has meant no CPU rather than a
+            // dead sensor. The samples it did collect are still evidence, so they are reported here
+            // and the run is labelled, instead of the harness throwing and taking the evidence with it.
+            stopQuietly(progress.adapter)
+            emit(snapshot(progress))
             throw AssertionError(
-                "G4-A phase ${phase.name} was still measuring after $guardMs ms, so the runner gave up on it",
+                "G4-A phase ${phase.name} was still measuring after $guardMs ms, so the runner gave up on it. " +
+                    "The evidence line above describes what had been delivered up to that moment.",
             )
         }
-        raised[0]?.let { message -> throw AssertionError("G4-A phase ${phase.name} raised: $message") }
+        emit(snapshot(progress))
+        progress.exception?.let { message -> throw AssertionError("G4-A phase ${phase.name} raised: $message") }
     }
 
-    /** Measures one phase, writes its evidence line, and returns the exception text if it raised. */
-    private fun observe(phase: Phase, args: Bundle): String? {
+    /** Measures one phase into `progress`. Never throws and never emits: the main thread does both. */
+    private fun observe(phase: Phase, args: Bundle, progress: Progress) {
         val windowMs = args.longArg("window_ms") ?: phase.windowMs
         val requestedPeriodUs = args.intArg("requested_period_us") ?: DEFAULT_REQUESTED_PERIOD_US
         val settleDeadlineMs = args.longArg("settle_deadline_ms") ?: DEFAULT_SETTLE_DEADLINE_MS
         val pollMs = args.longArg("poll_ms") ?: DEFAULT_POLL_MS
-        val runIndex = args.getString("run_index") ?: "1"
 
-        val delivered = Delivered()
         val adapter = MotionSensorAdapter(sensorManager)
-        var registration = NOT_ATTEMPTED
-        var settleWaitedMs = 0L
-        var screenOffBeforeWindow = false
-        var windowStartMs = 0L
-        var windowEndMs = 0L
-        var startWallClockMs = 0L
-        var endWallClockMs = 0L
-        var actualElapsedMs = 0L
-        var monotonicStartMs = 0L
-        var monotonicEndMs = 0L
-        var polls = 0
-        var interactivePolls = 0
-        var raised: String? = null
-
+        progress.adapter = adapter
         try {
             // Registered before the screen goes dark: the question is whether an established
             // subscription keeps feeding the process, not whether registration works in the dark.
-            registration = adapter.startReporting(delivered::offer, requestedPeriodUs).toString()
+            progress.registration = adapter.startReporting(progress::offer, requestedPeriodUs).toString()
 
             if (phase.expectsScreenOff) {
                 val settleStart = SystemClock.elapsedRealtime()
@@ -159,68 +202,83 @@ class MotionBackgroundMeasurementInstrumentedTest {
                 while (powerManager.isInteractive && SystemClock.elapsedRealtime() < deadline) {
                     Thread.sleep(SETTLE_POLL_MS)
                 }
-                screenOffBeforeWindow = !powerManager.isInteractive
-                settleWaitedMs = SystemClock.elapsedRealtime() - settleStart
+                progress.screenOffBeforeWindow = !powerManager.isInteractive
+                progress.settleWaitedMs = SystemClock.elapsedRealtime() - settleStart
             }
 
-            windowStartMs = SystemClock.elapsedRealtimeNanos() / NANOS_PER_MILLI
-            startWallClockMs = System.currentTimeMillis()
-            monotonicStartMs = System.nanoTime() / NANOS_PER_MILLI
+            progress.windowStartMs = SystemClock.elapsedRealtimeNanos() / NANOS_PER_MILLI
+            progress.startWallClockMs = System.currentTimeMillis()
+            progress.monotonicStartMs = System.nanoTime() / NANOS_PER_MILLI
             // The window is closed by elapsedRealtime — the clock the sensor timestamps are stamped
             // with — not by a count of nominal sleeps. Thread.sleep is measured against a clock that
             // stands still while the application processor suspends, so counting sleeps stretched a
             // 60 s window to hours on RMX3910 and the run never reported at all.
-            while (elapsedSince(windowStartMs) < windowMs) {
-                val remainingMs = windowMs - elapsedSince(windowStartMs)
+            while (elapsedSince(progress.windowStartMs) < windowMs) {
+                val remainingMs = windowMs - elapsedSince(progress.windowStartMs)
                 Thread.sleep(minOf(pollMs, maxOf(remainingMs, MIN_POLL_SLICE_MS)))
-                polls++
-                if (powerManager.isInteractive) interactivePolls++
+                progress.polls++
+                if (powerManager.isInteractive) progress.interactivePolls++
             }
-            endWallClockMs = System.currentTimeMillis()
-            windowEndMs = SystemClock.elapsedRealtimeNanos() / NANOS_PER_MILLI
-            monotonicEndMs = System.nanoTime() / NANOS_PER_MILLI
-            actualElapsedMs = endWallClockMs - startWallClockMs
+            progress.endWallClockMs = System.currentTimeMillis()
+            progress.windowEndMs = SystemClock.elapsedRealtimeNanos() / NANOS_PER_MILLI
+            progress.monotonicEndMs = System.nanoTime() / NANOS_PER_MILLI
         } catch (thrown: Throwable) {
-            raised = "${thrown.javaClass.name}: ${thrown.message}"
+            progress.exception = "${thrown.javaClass.name}: ${thrown.message}"
         }
 
-        // Unregister, let an event already dispatched on the collector thread land, then take the
-        // one snapshot the evidence is built from. The list is a synchronized wrapper, and iterating
-        // it while the delivery thread still holds it is documented as unsafe, so the copy is locked.
+        // Unregister and let an event already dispatched on the collector thread land. The sample
+        // list stays owned by the progress record; the snapshot the evidence is built from is taken
+        // by the main thread, under the same lock.
         stopQuietly(adapter)
         Thread.sleep(SETTLE_AFTER_STOP_MS)
-        val samples = synchronized(delivered.samples) { delivered.samples.toList() }
+    }
 
-        emit(
-            Observation(
-                phase = phase.copy(windowMs = windowMs),
-                runIndex = runIndex,
-                requestedPeriodUs = requestedPeriodUs,
-                registration = registration,
-                settleWaitedMs = settleWaitedMs,
-                screenOffBeforeWindow = screenOffBeforeWindow,
-                polls = polls,
-                interactivePolls = interactivePolls,
-                windowStartMs = windowStartMs,
-                windowEndMs = windowEndMs,
-                startWallClockMs = startWallClockMs,
-                endWallClockMs = endWallClockMs,
-                actualElapsedMs = actualElapsedMs,
-                samples = samples,
-                deliveredSampleCount = adapter.deliveredSampleCount,
-                clockResolutionDrops = adapter.clockResolutionDrops,
-                reportingAfterStop = adapter.isReporting,
-                windowMonotonicMs = monotonicEndMs - monotonicStartMs,
-                exception = raised,
-            ),
+    /**
+     * Read the progress record exactly once. A window that never closed is described as far as the
+     * moment of reading, which is the honest bound: the guard expired, so nothing later is attributable
+     * to the phase.
+     */
+    private fun snapshot(progress: Progress): Observation {
+        val adapter = progress.adapter
+        val samples = synchronized(progress.samples) { progress.samples.toList() }
+        val windowStarted = progress.windowStartMs > 0L
+        val windowEndMs = when {
+            progress.windowEndMs > 0L -> progress.windowEndMs
+            windowStarted -> SystemClock.elapsedRealtimeNanos() / NANOS_PER_MILLI
+            else -> 0L
+        }
+        val monotonicNowMs = System.nanoTime() / NANOS_PER_MILLI
+        return Observation(
+            phase = progress.phase,
+            runIndex = progress.runIndex,
+            requestedPeriodUs = progress.requestedPeriodUs,
+            registration = progress.registration,
+            settleWaitedMs = progress.settleWaitedMs,
+            screenOffBeforeWindow = progress.screenOffBeforeWindow,
+            polls = progress.polls,
+            interactivePolls = progress.interactivePolls,
+            windowStarted = windowStarted,
+            windowStartMs = progress.windowStartMs,
+            windowEndMs = windowEndMs,
+            startWallClockMs = progress.startWallClockMs,
+            endWallClockMs = if (progress.endWallClockMs > 0L) progress.endWallClockMs else System.currentTimeMillis(),
+            actualElapsedMs = if (windowStarted) System.currentTimeMillis() - progress.startWallClockMs else 0L,
+            samples = samples,
+            deliveredSampleCount = adapter?.deliveredSampleCount ?: 0,
+            clockResolutionDrops = adapter?.clockResolutionDrops ?: 0,
+            reportingAfterStop = adapter?.isReporting ?: false,
+            windowMonotonicMs = if (windowStarted) monotonicNowMs - progress.monotonicStartMs else 0L,
+            exception = progress.exception,
+            observerCompleted = progress.observerCompleted,
+            windowClosedWithinGuard = progress.windowEndMs > 0L,
         )
-        return raised
     }
 
     /** Milliseconds of elapsedRealtime since `startMs` — the clock the samples are stamped with. */
     private fun elapsedSince(startMs: Long): Long = SystemClock.elapsedRealtimeNanos() / NANOS_PER_MILLI - startMs
 
-    private fun stopQuietly(adapter: MotionSensorAdapter) {
+    private fun stopQuietly(adapter: MotionSensorAdapter?) {
+        if (adapter == null) return
         try {
             adapter.stopReporting()
         } catch (thrown: Throwable) {
@@ -231,16 +289,18 @@ class MotionBackgroundMeasurementInstrumentedTest {
     }
 
     private fun emit(observation: Observation) {
-        val windowStartMs = observation.windowStartMs
-        val windowEndMs = observation.windowEndMs
-        val windowSamples = observation.samples.filter { it.elapsedMs in windowStartMs..windowEndMs }
+        val windowSamples = if (observation.windowStarted) {
+            observation.samples.filter { it.elapsedMs in observation.windowStartMs..observation.windowEndMs }
+        } else {
+            emptyList()
+        }
         val intervals = windowSamples.zipWithNext { earlier, later -> later.elapsedMs - earlier.elapsedMs }
         val signal = MotionSignalNormalizer(STALL_TOLERANCE_FACTOR).normalize(windowSamples)
         val median = signal.medianIntervalMs
         val toleranceMs = median?.let { it * STALL_TOLERANCE_FACTOR }
-        val tailGapMs = windowSamples.lastOrNull()?.let { windowEndMs - it.elapsedMs }
+        val tailGapMs = windowSamples.lastOrNull()?.let { observation.windowEndMs - it.elapsedMs }
         val oversized = toleranceMs?.let { limit -> intervals.filter { it > limit } }.orEmpty()
-        val windowDurationMs = windowEndMs - windowStartMs
+        val windowDurationMs = observation.windowEndMs - observation.windowStartMs
 
         val deliveryState = when {
             observation.exception != null -> INTERRUPTED
@@ -250,6 +310,7 @@ class MotionBackgroundMeasurementInstrumentedTest {
         }
         val contamination = when {
             observation.exception != null -> "exception_raised_during_the_run"
+            !observation.windowClosedWithinGuard -> WINDOW_NEVER_CLOSED
             observation.phase.expectsScreenOff && !observation.screenOffBeforeWindow ->
                 "screen_never_went_asleep_within_the_settle_deadline"
             observation.phase.expectsScreenOff && observation.interactivePolls > 0 ->
@@ -277,8 +338,11 @@ class MotionBackgroundMeasurementInstrumentedTest {
             "screen_off_confirmed_before_window" to observation.screenOffBeforeWindow,
             "screen_interactive_polls_during_window" to observation.interactivePolls,
             "polls_during_window" to observation.polls,
-            "window_start_elapsed_ms" to windowStartMs,
-            "window_end_elapsed_ms" to windowEndMs,
+            "window_started" to observation.windowStarted,
+            "window_closed_within_guard" to observation.windowClosedWithinGuard,
+            "observer_completed" to observation.observerCompleted,
+            "window_start_elapsed_ms" to observation.windowStartMs,
+            "window_end_elapsed_ms" to observation.windowEndMs,
             "start_wall_clock_ms" to observation.startWallClockMs,
             "end_wall_clock_ms" to observation.endWallClockMs,
             "registration_result" to observation.registration,
@@ -307,16 +371,6 @@ class MotionBackgroundMeasurementInstrumentedTest {
             "contamination_reason" to contamination,
         )
         Log.i(TAG, "G4A_JSON=" + buildString { json(fields) })
-    }
-
-    /** Delivery sink. The samples live behind a synchronized list because the sensor callback runs
-     * on the adapter's own thread while the observation is being assembled. */
-    private class Delivered {
-        val samples: MutableList<MotionSample> = Collections.synchronizedList(mutableListOf<MotionSample>())
-
-        fun offer(sample: MotionSample) {
-            samples.add(sample)
-        }
     }
 
     /** A test-only JSON writer: this harness must emit evidence without a serialization dependency
@@ -376,6 +430,7 @@ class MotionBackgroundMeasurementInstrumentedTest {
         const val NO_DATA = "NO_DATA"
         const val CONTINUING = "CONTINUING"
         const val INTERRUPTED = "INTERRUPTED"
+        const val WINDOW_NEVER_CLOSED = "window_never_closed_within_the_guard"
         const val STALL_TOLERANCE_FACTOR = 3.0
         const val PHASE_A_WINDOW_MS = 60_000L
         const val PHASE_B_WINDOW_MS = 60_000L
@@ -387,7 +442,13 @@ class MotionBackgroundMeasurementInstrumentedTest {
         const val MIN_POLL_SLICE_MS = 250L
         const val SETTLE_POLL_MS = 250L
         const val SETTLE_AFTER_STOP_MS = 500L
-        const val JOIN_MARGIN_MS = 180_000L
+
+        /**
+         * The main thread gives up on the worker this long after the window and its settle wait have
+         * nominally finished. The previous margin was three minutes, which on a phone that starves the
+         * process simply postponed the evidence line by three more minutes of wall time.
+         */
+        const val JOIN_MARGIN_MS = 60_000L
         const val NANOS_PER_MILLI = 1_000_000L
     }
 }
