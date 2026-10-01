@@ -247,7 +247,7 @@ class PersistedEventReaderTest {
     fun every_persisted_guard_projects_to_its_own_history_type_and_none_to_another_s() {
         val rows = SecurityEventType.entries.mapIndexed { index, type ->
             event(
-                createdAt = now.minus(Duration.ofMinutes(index + 1)),
+                createdAt = now.minus(Duration.ofMinutes((index + 1).toLong())),
                 state = EventState.INITIATED,
                 type = type,
             )
