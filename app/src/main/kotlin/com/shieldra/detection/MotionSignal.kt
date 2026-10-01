@@ -31,7 +31,7 @@ internal fun accelerationMagnitudeMs2(x: Double, y: Double, z: Double): Double =
 
 /** Orientation-free: the same movement measures the same whether the phone is flat or on its side. */
 internal fun gravityDeltaMs2(x: Double, y: Double, z: Double): Double =
-      kotlin.math.abs(accelerationMagnitudeMs2(x, y, z) - STANDARD_GRAVITY_MS2)
+    kotlin.math.abs(accelerationMagnitudeMs2(x, y, z) - STANDARD_GRAVITY_MS2)
 
 /**
  * One readable accelerometer reading, described rather than judged. [gravityDeltaMs2] is how far
@@ -106,6 +106,8 @@ class MotionSignalNormalizer(private val stallToleranceFactor: Double) {
                 reasons += "sample $index at ${sample.elapsedMs} ms is not a finite acceleration"
                 continue
             }
+            // The checks below read the delivered clock, not a requested rate: a KDoc that cites a
+            // measurement is never what makes them pass.
             val previous = points.lastOrNull()
             if (previous != null) {
                 val interval = sample.elapsedMs - previous.elapsedMs

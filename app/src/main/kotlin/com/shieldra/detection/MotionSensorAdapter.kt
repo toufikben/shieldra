@@ -53,13 +53,16 @@ class MotionSensorAdapter(
     val significantMotionAvailable: Boolean get() = significantMotion != null
 
     /** The sensor this adapter actually registered, or null while nothing is registered. */
+    @Volatile
     var registeredSensorType: Int? = null
         private set
 
+    @Volatile
     var isReporting: Boolean = false
         private set
 
     /** Samples handed to the caller's sink. A sample dropped for clock reasons is not counted here. */
+    @Volatile
     var deliveredSampleCount: Int = 0
         private set
 
@@ -68,11 +71,14 @@ class MotionSensorAdapter(
      * Slice G2 measured that a phone can batch events faster than the clock can name them, so this
      * is reported instead of being silently absorbed.
      */
+    @Volatile
     var clockResolutionDrops: Int = 0
         private set
 
+    @Volatile
     private var sink: ((MotionSample) -> Unit)? = null
     private var collectorThread: HandlerThread? = null
+    @Volatile
     private var lastElapsedMs: Long? = null
 
     private val listener = object : SensorEventListener {

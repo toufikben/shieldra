@@ -139,11 +139,10 @@ class MotionWindowEvaluator(private val calibration: MotionCalibration) {
 
     /**
      * Magnitude minus rest gravity: orientation-free, so a phone held on its side measures the
-     * same movement it would measure flat. Squaring first and summing keeps that exact for any
-     * permutation of the same reading's axes.
+     * same movement it would measure flat. The maths itself is shared with the G3 signal layer in
+     * `MotionSignal.kt`, so the two halves of Motion cannot drift apart.
      */
-    private fun deviation(sample: MotionSample): Double =
-        abs(sqrt(sample.x * sample.x + sample.y * sample.y + sample.z * sample.z) - STANDARD_GRAVITY_MS2)
+    private fun deviation(sample: MotionSample): Double = gravityDeltaMs2(sample.x, sample.y, sample.z)
 }
 
 /**
