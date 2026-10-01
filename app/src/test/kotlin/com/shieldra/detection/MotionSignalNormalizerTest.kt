@@ -90,7 +90,7 @@ class MotionSignalNormalizerTest {
         assertEquals(2, signal.droppedSampleCount)
         assertEquals(MotionSignalQuality.INVALID, signal.quality)
         assertTrue(
-            signal.qualityReasons.joinToString().contains("not finite", ignoreCase = true),
+            signal.qualityReasons.joinToString().contains("not a finite acceleration", ignoreCase = true),
             "the reason must name what the sensor actually did",
         )
     }
