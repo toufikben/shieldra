@@ -69,11 +69,15 @@ class MotionSignalNormalizerTest {
 
         assertEquals(MotionSignalQuality.EMPTY, one.quality, "one sample measures no interval at all")
         assertEquals(MotionSignalQuality.EMPTY, none.quality)
-        assertEquals(null, none.measuredRateHz, "a rate that was never measured must not be invented")
-        assertTrue(
-            none.qualityReasons.joinToString().contains("nothing was measured", ignoreCase = true),
-            "the reason must say nothing was measured, which is not the same as a still device",
-        )
+        assertEquals(null, one.medianIntervalMs, "one sample is not a measured interval")
+        assertEquals(null, one.measuredRateHz, "a rate that was never measured must not be invented")
+        assertEquals(null, none.measuredRateHz)
+        for (signal in listOf(one, none)) {
+            assertTrue(
+                "${signal.qualityReasons} must say nothing was measured, which is not the same as a still device",
+                signal.qualityReasons.any { it.contains("Nothing was measured", ignoreCase = true) },
+            )
+        }
     }
 
     @Test

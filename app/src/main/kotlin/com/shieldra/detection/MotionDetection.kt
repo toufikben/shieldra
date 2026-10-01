@@ -4,20 +4,16 @@ import com.shieldra.domain.ApprovedGuardRules
 import com.shieldra.domain.GuardObservation
 import com.shieldra.domain.SensorQuality
 import java.time.Duration
-import kotlin.math.abs
-import kotlin.math.sqrt
 
 /**
  * Batch G / G1-02: the measurement half of Motion Guard.
  *
  * The domain engine already holds the owner's approved *time* rule; this file produces the
- * observation that rule consumes. It is pure JVM code with no Android import on purpose: no
- * sensor has been registered, no service exists, and no permission was added, because amendment
- * A-8 makes the execution surface depend on device evidence this repository does not have yet.
+ * observation that rule consumes. It is pure JVM code with no Android import on purpose: the
+ * adapter that gathers samples lives in `MotionSensorAdapter.kt`, and amendment A-12 keeps the
+ * judgement and the Android surface in separate files so neither can quietly become the other.
+ * The magnitude maths it shares with that layer is in `MotionSignal.kt`.
  */
-
-/** Standard gravity: the rest magnitude a deviation is measured against. Not a security threshold. */
-private const val STANDARD_GRAVITY_MS2 = 9.80665
 
 data class MotionSample(
     val elapsedMs: Long,

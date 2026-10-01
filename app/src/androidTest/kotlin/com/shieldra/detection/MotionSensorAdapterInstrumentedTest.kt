@@ -133,7 +133,8 @@ class MotionSensorAdapterInstrumentedTest {
         adapter.stopReporting()
 
         val signal = MotionSignalNormalizer(STALL_TOLERANCE_FACTOR).normalize(received.samples)
-        val median = assertNotNull("a delivered stream must carry a measured interval", signal.medianIntervalMs)
+        assertNotNull("a delivered stream must carry a measured interval", signal.medianIntervalMs)
+        val median = signal.medianIntervalMs!!
         assertEquals(
             "the normalizer must report the interval the timestamps say, not the requested period",
             independentMedianIntervalMs(received.samples),

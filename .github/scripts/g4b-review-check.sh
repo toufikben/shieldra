@@ -477,10 +477,11 @@ pass "no screen claims a check or a guard that does not exist"
 MOTION=app/src/main/kotlin/com/shieldra/detection/MotionDetection.kt
 [ -s "$MOTION" ] || fail "the Motion measurement layer is missing"
 if grep -q '^import android\.' "$MOTION"; then
-  fail "Motion judgement reached into Android; the sensor adapter is a separate, device-proven step (A-8)"
+  fail "Motion judgement reached into Android; the sensor adapter is a separate file by A-12"
 fi
-if grep -RIn 'SensorManager\|registerListener\|DefaultSensor' app/src/main/kotlin; then
-  fail "a sensor listener was registered before amendment A-8's device evidence exists"
+# The judgement file must stay registrable-free: the Android surface is MotionSensorAdapter.kt.
+if grep -qE 'SensorManager|registerListener|getDefaultSensor' "$MOTION"; then
+  fail "Motion judgement registers sensors itself; the adapter owns registration (A-12)"
 fi
 for default in 'strongDeltaMs2: Double = ' 'noiseFloorDeltaMs2: Double = ' 'minEpisodeMs: Long = ' 'maxSampleGapMs: Long = '; do
   if grep -q "$default" "$MOTION"; then
@@ -507,6 +508,78 @@ for name in a_strong_movement_that_last_longer_than_the_approved_three_seconds_c
     || fail "the Motion test $name was removed or renamed"
 done
 pass "Motion judgement is pure, injected-calibrated, fail-closed, and covered by the owner's named tests"
+
+# 15. Batch G slice G3 — the adapter and the sampling/quality layer, and only those. Amendment A-12
+#     limits this slice to signal data: no Security Event, severity, Panic, notification, storage
+#     write, evidence, camera, location, messaging or cloud path may appear in the shipping code,
+#     the one-shot tripwire may not be armed from the continuous layer, nothing that was *measured*
+#     on RMX3910 may become a constant, and nothing may instantiate the adapter until a monitoring
+#     surface exists (A-8). Comment lines are excluded: they are where the measurements are cited.
+SIGNAL=app/src/main/kotlin/com/shieldra/detection/MotionSignal.kt
+ADAPTER=app/src/main/kotlin/com/shieldra/detection/MotionSensorAdapter.kt
+[ -s "$SIGNAL" ] || fail "the Motion sampling/quality layer (G3) is missing"
+[ -s "$ADAPTER" ] || fail "the Motion sensor adapter (G3) is missing"
+grep -q 'fun normalize(' "$SIGNAL" || fail "the signal layer no longer describes a stream"
+grep -q 'MotionSignalQuality.EMPTY' "$SIGNAL" \
+  || fail "the signal layer can no longer separate 'nothing measured' from 'device at rest'"
+grep -q 'fun startReporting(' "$ADAPTER" || fail "the adapter no longer owns registration"
+grep -q 'fun stopReporting(' "$ADAPTER" \
+  || fail "the adapter cannot stop, so a stream would outlive whoever started it"
+
+G3_CODE="$(grep -hvE '^[[:space:]]*(/\*|\*|//)' "$SIGNAL" "$ADAPTER")"
+if printf '%s\n' "$G3_CODE" | grep -qE 'SecurityEvent|EventId|Panic|Notification|Room|Evidence|Camera|Location|Sms|Mail|firebase|WorkManager|RequestQueue|cool[A-Za-z]*down|confirm'; then
+  fail "the G3 signal layer reaches a decision, a channel, or storage; A-12 limits it to signal data"
+fi
+printf '%s\n' "$G3_CODE" | grep -q 'isFinite' \
+  || fail "the signal layer no longer rejects samples that are not finite accelerations"
+if ! printf '%s\n' "$G3_CODE" | grep -q 'median'; then
+  fail "the sampling interval is no longer measured from delivered timestamps"
+fi
+
+# A-12 rule 1: SIGNIFICANT_MOTION may only be looked up, never armed, from this layer.
+if grep -RInE 'requestTriggerSensor|cancelTriggerSensor|TriggerEventListener' "$SIGNAL" "$ADAPTER"; then
+  fail "G3 armed the one-shot tripwire; it belongs to its own layer, not to continuous sampling (A-12)"
+fi
+SIG_LINES="$(grep -n 'SIGNIFICANT_MOTION' "$ADAPTER" | grep -vE 'getDefaultSensor|^[0-9]+:[[:space:]]*(/\*|\*|//)' || true)"
+[ -z "$SIG_LINES" ] || fail "the tripwire is used beyond an availability lookup in G3: $SIG_LINES"
+
+# A-12 rule 3: numbers measured on one phone are not shipping constants.
+for measured in '106' '0\.52' '0\.285' '0\.395' '0\.386' '0\.505' '20_000'; do
+  if printf '%s\n' "$G3_CODE" | grep -qE "$measured"; then
+    fail "a value measured on RMX3910 in slice G2 became a constant in shipping code ($measured)"
+  fi
+done
+if grep -q 'requestedReportPeriodUs: Int = ' "$ADAPTER"; then
+  fail "the adapter ships a default reporting period; the rate is the owner's calibration decision"
+fi
+
+# A-8/A-12: the adapter is not wired into anything that runs, and no service or permission appeared.
+USES="$(grep -RIn 'MotionSensorAdapter(' app/src/main/kotlin --include='*.kt' | grep -v "$ADAPTER" || true)"
+[ -z "$USES" ] || fail "the G3 adapter is wired into the running app while no monitoring surface is approved: $USES"
+for forbidden in '<service' 'FOREGROUND_SERVICE' 'RECEIVE_BOOT_COMPLETED' 'BOOT_COMPLETED'; do
+  if grep -q "$forbidden" app/src/main/AndroidManifest.xml; then
+    fail "$forbidden appeared while A-8/A-10 hold it back"
+  fi
+done
+
+for name in fewer_than_two_samples_is_reported_as_nothing_measured_not_as_a_still_device \
+  a_sample_that_is_not_a_finite_acceleration_is_dropped_and_the_stream_is_marked_invalid \
+  two_samples_that_share_one_millisecond_are_invalid_because_the_clock_cannot_separate_them \
+  the_sampling_rate_is_measured_from_the_timestamps_that_arrived_not_from_what_was_requested \
+  a_delivery_that_stops_beyond_the_injected_tolerance_is_irregular_and_reports_the_measured_numbers \
+  the_stall_tolerance_has_to_be_a_real_number_above_one; do
+  grep -qE "fun $name\(" app/src/test/kotlin/com/shieldra/detection/MotionSignalNormalizerTest.kt \
+    || fail "the G3 signal test $name was removed or renamed"
+done
+for name in starting_reporting_registers_the_accelerometer_and_nothing_else \
+  the_adapter_delivers_accelerometer_samples_stamped_by_the_sensor_clock \
+  stopping_the_adapter_stops_the_stream \
+  the_measured_rate_is_computed_from_delivered_timestamps_not_from_the_request \
+  a_device_without_an_accelerometer_is_reported_as_unavailable_and_never_registers; do
+  grep -qE "fun $name\(" app/src/androidTest/kotlin/com/shieldra/detection/MotionSensorAdapterInstrumentedTest.kt \
+    || fail "the G3 on-device test $name was removed or renamed"
+done
+pass "the G3 adapter and signal layer stay inside amendment A-12: signal data only, measured rates, no tripwire arming"
 
 git diff --check
 pass "git diff check"
