@@ -189,6 +189,14 @@ class MotionSensorEvidenceInstrumentedTest {
         val accelerometer = requireAccelerometer()
         val rest = sampleFor(accelerometer, SENSOR_PERIOD_US, REST_WINDOW_MS).samples
         reportRestingDeviation(rest)
+        // The stream's trustworthiness is measured from the live delivery rather than declared, so
+        // the bridge is exercised with the quality this device actually produced.
+        val stream = MotionSignalNormalizer(STALL_TOLERANCE_FACTOR).normalize(rest)
+        Log.i(
+            TAG,
+            "MEASURED stream_quality=${stream.quality} median_interval_ms=${stream.medianIntervalMs} " +
+                "dropped_samples=${stream.droppedSampleCount}",
+        )
 
         when (val reading = MotionWindowEvaluator(FIXTURE_CALIBRATION).read(rest)) {
             MotionReading.Insufficient -> assertTrue(
@@ -204,7 +212,7 @@ class MotionSensorEvidenceInstrumentedTest {
                 assertTrue(
                     "an Unreliable live reading must map to NOISY so the approved rule cannot " +
                         "confirm from it",
-                    MotionGuardObservation.of(reading).sensorQuality == SensorQuality.NOISY,
+                    MotionGuardObservation.of(reading, stream.quality).sensorQuality == SensorQuality.NOISY,
                 )
             }
 
@@ -217,11 +225,24 @@ class MotionSensorEvidenceInstrumentedTest {
                         episode.durationMs >= FIXTURE_CALIBRATION.minEpisodeMs,
                     )
                 }
-                assertTrue(
-                    "the bridge must never upgrade live samples above VALID, was " +
-                        MotionGuardObservation.of(reading).sensorQuality,
-                    MotionGuardObservation.of(reading).sensorQuality == SensorQuality.VALID,
-                )
+                val observation = MotionGuardObservation.of(reading, stream.quality)
+                if (stream.quality == MotionSignalQuality.USABLE) {
+                    assertTrue(
+                        "a stream the signal layer believed must still reach the approved rule as " +
+                            "valid sensor data, was ${observation.sensorQuality}",
+                        observation.sensorQuality == SensorQuality.VALID,
+                    )
+                } else {
+                    assertTrue(
+                        "the bridge upgraded a live stream the signal layer refused: " +
+                            "${stream.quality} became ${observation.sensorQuality}",
+                        observation.sensorQuality != SensorQuality.VALID,
+                    )
+                    assertTrue(
+                        "a refused live stream may not contribute a movement claim",
+                        observation.suspiciousOccurrences == 0 && observation.duration.isZero,
+                    )
+                }
             }
         }
     }
@@ -338,6 +359,12 @@ class MotionSensorEvidenceInstrumentedTest {
         const val WINDOW_MS = 1_500L
         const val REST_WINDOW_MS = 2_000L
         const val GRAVITY_MS2 = 9.80665
+
+        /**
+         * A stall is a delivery gap this many times longer than the measured median interval. Test
+         * fixture only: the shipping tolerance belongs with the Q-G1 calibration decision.
+         */
+        const val STALL_TOLERANCE_FACTOR = 3.0
 
         val FIXTURE_CALIBRATION = MotionCalibration(
             strongDeltaMs2 = 4.0,

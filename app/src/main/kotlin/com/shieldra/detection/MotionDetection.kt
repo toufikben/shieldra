@@ -146,29 +146,42 @@ class MotionWindowEvaluator(private val calibration: MotionCalibration) {
 }
 
 /**
- * The only bridge from what was measured to what the approved engine may decide. It never
- * upgrades sensor quality and never reports a movement the samples did not contain.
+ * The only bridge from what was measured to what the approved engine may decide. It never upgrades
+ * sensor quality and never reports a movement the samples did not contain. Slice G4 added the cap
+ * that was missing: what the signal layer measured about the *stream* ([MotionSignalQuality], from
+ * delivery timing and the values themselves) arrives as a required input, so a stream that stalled
+ * or carried a value that is not an acceleration cannot enter the approved rule as valid sensor
+ * data just because the samples it did deliver looked like a movement.
  */
 object MotionGuardObservation {
 
     fun of(
         reading: MotionReading,
+        streamQuality: MotionSignalQuality,
         window: Duration = ApprovedGuardRules.motionRepetitionWindow,
-    ): GuardObservation.Motion = when (reading) {
-        MotionReading.Insufficient -> GuardObservation.Motion(
-            duration = Duration.ZERO,
-            suspiciousOccurrences = 0,
-            sensorQuality = SensorQuality.UNAVAILABLE,
-        )
+    ): GuardObservation.Motion {
+        // Refused before anything is counted, so an untrusted stream cannot leak a duration, an
+        // occurrence, or a repetition window into the owner's rule on its way to being discarded.
+        val refused = when (streamQuality) {
+            MotionSignalQuality.EMPTY -> refusal(SensorQuality.UNAVAILABLE)
+            MotionSignalQuality.INVALID, MotionSignalQuality.IRREGULAR -> refusal(SensorQuality.NOISY)
+            MotionSignalQuality.USABLE -> null
+        }
+        if (refused != null) return refused
 
-        is MotionReading.Unreliable -> GuardObservation.Motion(
-            duration = Duration.ZERO,
-            suspiciousOccurrences = 0,
-            sensorQuality = SensorQuality.NOISY,
-        )
-
-        is MotionReading.Movements -> observed(reading.episodes, window)
+        return when (reading) {
+            MotionReading.Insufficient -> refusal(SensorQuality.UNAVAILABLE)
+            is MotionReading.Unreliable -> refusal(SensorQuality.NOISY)
+            is MotionReading.Movements -> observed(reading.episodes, window)
+        }
     }
+
+    /** The one shape every refusal takes: nothing may be claimed, and the quality says why. */
+    private fun refusal(quality: SensorQuality) = GuardObservation.Motion(
+        duration = Duration.ZERO,
+        suspiciousOccurrences = 0,
+        sensorQuality = quality,
+    )
 
     private fun observed(
         episodes: List<MotionEpisode>,

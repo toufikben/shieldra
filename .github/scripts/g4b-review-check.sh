@@ -652,6 +652,54 @@ if grep -q 'R.string.lock_guard_window' "$PROTECTION_STEP" && grep -q 'R.string.
 fi
 pass "onboarding copy claims only what the onboarding screens really do"
 
+# 18. Batch G slice G4 — the pure validation seam, under amendment A-15. A-15 approves a real
+#     foreground service as the *architecture* for continuous Motion monitoring and withholds its
+#     code in the same sentence: no service element, no FGS permission, no service type and no
+#     startForeground until the owner answers Q-G1. The half that IS approved is pure JVM, and its
+#     contract is that the bridge can no longer be called quality-blind — the stream quality G3
+#     measured must arrive as a required argument, it may only ever lower what the observation
+#     claims, and the seam must still have no caller inside the running app (§10, §3).
+DETECTION=app/src/main/kotlin/com/shieldra/detection/MotionDetection.kt
+for notyet in '<service' 'startForeground' 'FOREGROUND_SERVICE' 'foregroundServiceType' 'SPECIAL_USE' 'specialUse'; do
+  if grep -RIn "$notyet" app/src/main --include='*.kt' --include='*.xml'; then
+    fail "A-15 records an architecture, it does not license its code: $notyet appeared while Q-G1 is unanswered"
+  fi
+done
+grep -q 'streamQuality: MotionSignalQuality' "$DETECTION" \
+  || fail "the Motion seam no longer receives what the signal layer measured about the stream, so G3's verdict is dropped on the way to the engine"
+if grep -Eq 'streamQuality: MotionSignalQuality[[:space:]]*=' "$DETECTION"; then
+  fail "the seam defaults the stream quality: a caller could ask for a judgement without ever saying whether the stream could be believed"
+fi
+for quality in 'MotionSignalQuality.EMPTY' 'MotionSignalQuality.INVALID' 'MotionSignalQuality.IRREGULAR' 'MotionSignalQuality.USABLE'; do
+  grep -q "$quality" "$DETECTION" || fail "the seam no longer names $quality, so that kind of stream would fall through to a default"
+done
+SEAM_CALLERS="$(grep -RIn 'MotionGuardObservation' app/src/main --include='*.kt' | grep -v "$DETECTION" || true)"
+[ -z "$SEAM_CALLERS" ] || fail "the Motion seam is wired into the running app while monitoring is still not approved: $SEAM_CALLERS"
+for name in a_stream_the_signal_layer_measured_as_irregular_is_never_reported_with_valid_sensor_quality \
+  a_stream_the_signal_layer_measured_as_invalid_is_never_reported_with_valid_sensor_quality \
+  a_stream_with_nothing_measured_is_reported_as_unavailable_rather_than_as_a_still_device \
+  an_untrusted_stream_reports_no_movement_at_all_rather_than_a_movement_it_cannot_believe \
+  a_repeated_movement_on_an_untrusted_stream_never_reaches_the_owner_s_repetition_rule \
+  three_seconds_of_strong_movement_on_an_untrusted_stream_stays_signal_only \
+  the_same_movement_on_a_trusted_stream_still_confirms \
+  an_untrusted_stream_is_refused_for_every_injected_calibration \
+  changing_the_injected_calibration_changes_the_decision_deterministically \
+  a_deviation_below_the_noise_floor_starts_no_episode \
+  a_deviation_just_under_the_noise_floor_starts_no_episode \
+  a_deviation_between_the_noise_floor_and_the_strong_level_starts_no_episode \
+  a_deviation_just_under_the_strong_level_starts_no_episode \
+  a_deviation_above_the_strong_level_starts_an_episode; do
+  grep -qE "fun $name\(" app/src/test/kotlin/com/shieldra/detection/MotionStreamQualityTest.kt \
+    || fail "the G4 stream-quality test $name was removed or renamed"
+done
+for locale in values values-ar; do
+  grep -q 'name="guard_subtitle_inactive">' "app/src/main/res/$locale/strings.xml" \
+    || fail "$locale lost the 'not monitoring yet' copy §9 requires while Motion monitoring is unapproved"
+done
+grep -q 'enum class MonitoringClaim' app/src/main/kotlin/com/shieldra/runtime/BackgroundExecution.kt \
+  || fail "MonitoringClaim was removed: §9 keeps measured signal data separate from any monitoring claim"
+pass "A-15 is still only a decision record, and the G4 seam refuses a stream the signal layer could not believe"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"
