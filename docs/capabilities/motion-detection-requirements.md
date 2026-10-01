@@ -31,7 +31,8 @@ Device features include `android.hardware.sensor.accelerometer`. Battery saver w
    this design does not use. So Batch G adds **no** `<uses-permission>` for sensing, and the
    "exactly one permission" gate stays untouched.
 2. **Sampling stays at or under the accelerometer's 200 Hz ceiling**, and far below it in
-   practice, so `HIGH_SAMPLING_RATE_SENSORS` is not needed either.
+   practice, so `HIGH_SAMPLING_RATE_SENSORS` is not needed either. Measured caveat below: this HAL
+   answers a 50 Hz request with ~106 Hz, so the *requested* rate is not the *delivered* rate.
 3. **A raw continuous accelerometer watch is the wrong shape on this device.** The accelerometer
    is **non-wakeUp**: it cannot bring the device out of suspend, so an "always sampling" guard
    would have to hold the CPU awake — a battery cost the owner has not approved and §31 forbids
@@ -40,7 +41,44 @@ Device features include `android.hardware.sensor.accelerometer`. Battery saver w
    permission, and it is the platform's own "the device was moved" signal. The shape Batch G
    should therefore take is: `SIGNIFICANT_MOTION` fires → a short accelerometer burst samples
    the movement → the approved G1-02 rule decides → a Security Event is persisted through the
-   existing pipeline.
+   existing pipeline. **The API that shape must use is `SensorManager.requestTriggerSensor`, not
+   `registerListener`** — measured, see the next section.
+
+## MEASURED by the instrumented harness — RMX3910, 2026-10-01 00:56
+
+`MotionSensorEvidenceInstrumentedTest`, six tests, on the APK pair from CI run `36793076936`;
+full suite `OK (61 tests)` twice on one install. These are runtime readings, not datasheet values.
+
+| Measurement | Result |
+|---|---|
+| `SIGNIFICANT_MOTION` at runtime | `wakeUp=true`, `reportingMode=2` (`REPORTING_MODE_ONE_SHOT`), `fifoMaxEventCount=0`, `minDelay=-1` |
+| `registerListener(SIGNIFICANT_MOTION, …)` | **refused** — returned `false`, platform logged `E/SensorManager: Trigger Sensors should use the requestTriggerSensor.` (observed with run `36791998789`'s APK, the build that still used the wrong API; nothing in the final harness calls it) |
+| `requestTriggerSensor(SIGNIFICANT_MOTION)` from an ordinary app | **accepted** (`true`); fired **0** times in 1500 ms with the phone untouched |
+| Accelerometer identity | `sc7a20 ACCELEROMETER` / SILAN, `maximumRange=78.45` m/s², `minDelay=5000 µs`, `maxDelay=100000 µs`, `power=0.001 mA`, `wakeUp=false`, `reportingMode=0` (continuous) |
+| Delivered rate for a 20 000 µs (50 Hz) request | **159 events in 1500 ms ≈ 106 Hz**, twice; `SensorService` shows the HAL actuated at `10000000` ns, i.e. an ODR-locked 100 Hz |
+| Delivery with **no resumed activity** | **159 events in 1500 ms** — full rate continued |
+| Resting deviation, phone untouched | 210 samples / 1980 ms: min **0.2853**, median **0.3948**, max **0.5237** m/s² · 213 samples / 1995 ms: min **0.2943**, median **0.3858**, max **0.5050** m/s² |
+| Live rest samples through the pure rule | once `Movements([])`, once **`Unreliable("samples at 152336237 ms and 152336237 ms are not in increasing time order")`** |
+
+### What those readings decide
+
+5. **The tripwire is a trigger, and it is reachable.** `SensorManager` refuses a listener for
+   SIGNIFICANT_MOTION and names the API to use instead; `requestTriggerSensor` accepts the
+   registration from this unsigned, non-system app. So the wake-capable shape in row 4 has a real
+   entry point on this device — and the adapter must arm it once per movement, because the trigger
+   delivers once per request.
+6. **A burst costs ~100 Hz whether it is asked for or not.** The evaluator's `maxSampleGapMs` and
+   any battery claim must be argued against the delivered rate, not the requested one.
+7. **Millisecond-resolution timestamps are not enough for this sensor.** At the delivered rate the
+   platform handed two samples inside the same millisecond, and the approved pure rule then
+   refused the whole burst as `Unreliable` — correctly, by its own contract, and intermittently in
+   practice. The adapter must carry sub-millisecond times (the platform's `event.timestamp` is
+   nanoseconds) or the ordering rule must admit equal stamps; that is a **G3** decision about
+   plumbing, not a change to G1-02's thresholds.
+8. **The resting noise floor is now a number, not an assumption**: ~0.52 m/s² worst case over two
+   independent rests. The `1.2 m/s²` noise floor used in every JVM test sits ~2.3× above it, which
+   is the shape of an argument for Q-G1 — but the *strong* level still has no measured support,
+   because no test moved the phone.
 
 ## The approved rule this must implement (G1-02, unchanged)
 
@@ -67,19 +105,23 @@ numbers either — a threshold must come from measured samples, not from a guess
 - the pure evaluator takes an injected `MotionCalibration` (threshold, hysteresis, minimum valid
   sample rate) and every JVM test asserts against injected values;
 - the **shipping defaults** are asked of the owner as **Q-G1**, after the on-device burst has
-  produced a measured resting-noise floor and a measured movement magnitude range;
+  produced a measured resting-noise floor and a measured movement magnitude range. The resting
+  half is now measured (≈0.52 m/s² worst case, twice); the movement half is not, because no
+  automated test may carry the phone — that needs one deliberate carry by the owner;
 - until then no screen may show a Motion guard as `Active`.
 
 ## UNVERIFIED — requirements to test on the owner's device, not results
 
+The first pass of the harness (previous section) settled three of these rows and left the rest
+open. What remains is listed here; nothing below is a result.
+
 | # | Requirement | How it will be tested | Why it is not assumed |
 |---|---|---|---|
-| 1 | Do sensor callbacks keep arriving when the app is **not** the foreground activity? | instrumented test that registers a listener and reads events after the activity stops | Android 9+ suppresses continuous/on-change/one-shot delivery to background apps; the documented exemption set must be **proven on this OEM build**, not trusted from docs (`docs/PHASE4_ANDROID_CAPABILITY_MATRIX.md:10` marks Motion CONDITIONAL with exactly this evidence required) |
-| 2 | Does the burst sample with the **screen off**, and what does it cost? | instrumented test around screen-off plus a measured battery delta | non-wakeUp sensor; Doze; `low_power` state |
-| 3 | Does `SIGNIFICANT_MOTION` actually fire on a real carry/pickup of this phone? | manual device check with the dump visible | vendor HAL quality varies |
-| 4 | Resting noise floor and movement magnitude on this device | measured samples, then **Q-G1** | thresholds are policy, not physics |
-| 5 | Whether a foreground service is needed at all, and of which type | only after 1–3 are known | **A-8: no `<service>`, no `FOREGROUND_SERVICE*` until a real monitoring service is in use** |
-| 6 | Reboot survival | deferred | **A-10: no `RECEIVE_BOOT_COMPLETED` in this phase** |
+| 1 | Delivery with the **screen off**, and while the app is genuinely background rather than merely activity-less | instrumented window with the screen off, plus a measured battery delta | **measured so far:** 159 events in 1500 ms with no resumed activity — an **upper bound**, because the instrumentation itself holds the process alive. Android 9+ suppresses continuous delivery to background apps and the exemption set must be proven on this OEM build (`docs/PHASE4_ANDROID_CAPABILITY_MATRIX.md:10` marks Motion CONDITIONAL with exactly this evidence required) |
+| 2 | Does the tripwire actually fire on a real carry or pickup of this phone? | arm `requestTriggerSensor` and have the owner move the phone with the dump visible | **measured so far:** the platform accepts the registration and it fired 0 times untouched — which is expected on a still device and says nothing about a carry; vendor HAL quality varies |
+| 3 | Movement magnitude on this device | samples from a real carry, then **Q-G1** | only the **resting** floor is measured (≈0.52 m/s² worst case); the strong level has no measurement behind it yet |
+| 4 | Whether a foreground service is needed at all, and of which type | only after 1–3 are known | **A-8: no `<service>`, no `FOREGROUND_SERVICE*` until a real monitoring service is in use** |
+| 5 | Reboot survival | deferred | **A-10: no `RECEIVE_BOOT_COMPLETED` in this phase** |
 
 ## The reporting rules that follow (already binding)
 
@@ -99,6 +141,9 @@ numbers either — a threshold must come from measured samples, not from a guess
 
 ## Explicitly not created by this document
 
-No `SensorManager` call, no listener, no service, no permission, no manifest change. The gates
-that currently fail a `<service>` or a second `<uses-permission>` stay exactly as they are; when
-Batch G earns an FGS, the gate change and the amendment must land in the same visible commit.
+No `SensorManager` call, no listener, no service, no permission and no manifest change **in
+`app/src/main`** — the g4b gate fails any of those there. The Batch G sensor harness that produced
+the readings above lives in `app/src/androidTest`, registers listeners only while a test runs, and
+arms only a one-shot trigger; none of it is reachable from the app. The gates that currently fail a
+`<service>` or a second `<uses-permission>` stay exactly as they are; when Batch G earns an FGS,
+the gate change and the amendment must land in the same visible commit.

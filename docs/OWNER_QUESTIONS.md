@@ -30,7 +30,9 @@ survived on Premium, the event Detail card, and onboarding's dead "Allow").
 > 4. **Q-G1 — what magnitude counts as "strong movement".** Your G1-02 rule fixes the timing
 >    (3 s / two within 10 s) but not the acceleration threshold, and §37 makes the meaning of a
 >    guard yours, not mine. The Motion evaluator ships with the threshold **injected**, and the
->    guard stays un-armable until you set it from measured samples.
+>    guard stays un-armable until you set it from measured samples. G2 measured the **resting**
+>    noise floor on RMX3910 (≤0.52 m/s²); the **strong** level still needs one deliberate carry
+>    by you, because no test may move the phone.
 >    Your Batch G mechanism rulings are **not** open: they are amendments **A-8 … A-11** (see Q-G2).
 >    Outside this repository, the published store copy still advertises **"zero Android
 >    permissions"**, which amendment A-6 superseded — the honest sentence is "no permissions
@@ -598,13 +600,18 @@ you want me to fix the copy now.**
 
 ## Q-G1 — What magnitude counts as "strong movement", and what counts as noise? (NEW, raised by Batch G)
 
-**Status:** **OPEN — one number needed, and it needs a measurement first.** Nothing blocks the
-pure work; it blocks only the *shipping default*. The pure work has now landed (slice
-`G-motion-judgement`, CI `36789435527`): `MotionCalibration` takes `strongDeltaMs2`,
-`noiseFloorDeltaMs2`, `minEpisodeMs` and `maxSampleGapMs` from its caller and has **no defaults** —
-a gate fails the build if one ever appears. Slice **G2** is the measurement (resting noise floor
-and a carried-phone magnitude on RMX3910); when it reports, this question becomes a choice between
-real numbers instead of a guess.
+**Status:** **OPEN — half the measurement exists now.** Nothing blocks the pure work; it blocks
+only the *shipping default*. The pure work landed (slice `G-motion-judgement`, CI `36789435527`):
+`MotionCalibration` takes `strongDeltaMs2`, `noiseFloorDeltaMs2`, `minEpisodeMs` and
+`maxSampleGapMs` from its caller and has **no defaults** — a gate fails the build if one ever
+appears. Slice **G2** then measured the phone (CI `36793076936`, RMX3910, `OK (61 tests)` twice):
+with the device lying still, |‖a‖ − 9.80665| over 210 and 213 samples in ~2 s gave
+**min 0.285 / median 0.395 / max 0.524** and **min 0.294 / median 0.386 / max 0.505 m/s²**. So the
+**noise floor** now has a measured basis — the `1.2 m/s²` used in every test sits ~2.3× above the
+worst rest reading. The **strong level does not**: no automated test may carry the phone, and the
+tripwire fired 0 times while untouched, which says nothing about a real pickup. One deliberate
+carry (or a short walk with the phone in a pocket) with the samples logged is what turns the other
+half of this question into a choice between real numbers.
 
 **Why I am asking instead of choosing:** your rule **G1-02** fixes the **time** side — confirm
 after ~3 seconds of strong/unusual movement, or two suspicious movements within 10 seconds, after

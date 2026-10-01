@@ -313,6 +313,10 @@ real Android requirements* — is now **MEASURED, not assumed**:
 one-shot **wakeUp** `perm: n/a`) and the shape it forces: a wake-capable tripwire, then a short
 accelerometer burst judged by the approved G1-02 rule.
 
+*Naming:* "slice G1/G2/G3" below is Batch G's own build order. The `G1 — Protection rules`,
+`G2 — Evidence/privacy`, `G3 — Android monitoring` rows in the §18 table earlier in this file are
+the older decision-log numbering and mean something else entirely.
+
 **The owner settled the four open decisions on 2026-09-30** (recorded as amendments **A-8 … A-11**
 in `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` §17 — read them before writing any Motion
 code):
@@ -343,11 +347,42 @@ service, permission or screen changed, no magnitude threshold ships (Q-G1 open),
 renders `—` — nothing monitors anything yet. See
 `docs/reports/batch-G1-motion-judgement.md`.
 
-The next slice is **G2 — the adapter's evidence**: on this phone, measure whether sensor delivery
-survives the activity leaving the foreground, whether `SIGNIFICANT_MOTION` fires on this vendor
-HAL at all, and what the resting noise floor and a carried-phone magnitude really are. Its numbers
-are what Q-G1 needs, and A-8's condition ("a real monitoring service the user starts") can only be
-judged after it.
+**Slice `G-motion-sensor-evidence` is LANDED (CI verified + measured on the owner's phone,
+2026-10-01).** `MotionSensorEvidenceInstrumentedTest` (6 tests) registered listeners and armed a
+trigger on RMX3910, and the answers were not the ones the documents predicted:
+
+- **the tripwire is a *trigger*, not a listener** — `registerListener(SIGNIFICANT_MOTION, …)` is
+  refused with the platform's own `E/SensorManager: Trigger Sensors should use the
+  requestTriggerSensor.`, while `requestTriggerSensor` **is accepted** from this ordinary unsigned
+  debug app. A-8's wake-up shape therefore has a real entry point; nothing before this slice knew
+  that;
+- **~100 Hz whether asked or not** — a 20 000 µs (50 Hz) request delivered 159 events per 1500 ms
+  (≈106 Hz, `SensorService` actuating the HAL at 10 ms), so any sampling or battery reasoning must
+  use the delivered rate;
+- **delivery continued with no resumed activity** (159 events / 1500 ms) — recorded as the
+  **upper bound** it is: the instrumentation holds the process alive and the screen stayed on, so
+  this number does **not** answer A-8's foreground-service question;
+- **the resting noise floor is a number now** — max |‖a‖ − g| of **0.524** and **0.505 m/s²** over
+  two independent ~2 s rests (210 and 213 samples), which is the measured half of Q-G1;
+- **millisecond timestamps lose real samples** — the platform delivered two samples inside one
+  millisecond and the pure rule correctly rejected that whole burst as `Unreliable`, so the
+  adapter must carry sub-millisecond time.
+
+CI chain: `390569e` **RED** `36791176374` (three `Unresolved reference`s in
+`compileDebugAndroidTestKotlin` — the harness was never compiled on this PC) → `7082987` **success**
+`36791998789` (259/259 JVM) → device run of *that* build returned `Tests run: 6, Failures: 1`,
+which is how the trigger refusal surfaced → `12bf081` **success** `36793076936` (259/259 JVM, lint
+run to completion, g4b + Phase 3 `PASS`, both APKs). On the phone with that run's APKs: Motion class
+**`OK (6 tests)`**, then the full instrumented suite **`OK (61 tests)` twice on one install**.
+**What this is not:** no adapter, no `SensorManager` reference in `app/src/main`, no service, no
+permission, no manifest or screen change; the strong-magnitude half of Q-G1 is still unmeasured
+because no test may carry the phone. See `docs/reports/batch-G2-motion-sensor-evidence.md`.
+
+The next slice is **G3 — the Android adapter**: a continuous accelerometer listener for the burst
+plus a `requestTriggerSensor`/`cancelTriggerSensor` pair for the tripwire, feeding the rule that is
+already tested, with timestamps that survive ~100 Hz. It stays behind *app opened → user enables →
+monitoring starts* (A-8), and the foreground-service decision waits for the screen-off measurement
+this harness could not make.
 
 Motion, SIM and Lock detection were explicitly out of Batch F's scope and remain unimplemented.
 
@@ -413,7 +448,7 @@ This is followed, in the owner-mandated order, by:
 | D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 — **CLOSED** `986cb00`→`36e04c1`→`28d708c`, CI `36745562314` success (213/213 JVM), device `OK (6 tests)` + full suite `OK (48 tests)` **twice on one install** on RMX3910, report `docs/reports/batch-D-storage-runtime-approval.md`. The flip is recorded as amendment **A-5**; g4b now enforces the flipped value so an unrecorded revert fails CI |
 | E | Real local notifications (A-6) + durable Panic activation count with Room v2→v3 (A-7); `POST_NOTIFICATIONS` requested only from the notification setup screen; granted / refused / never-asked kept distinct; a refusal never blocks recording; no local post ever worded as delivered | §16, §23, §31 — **CLOSED** `f16e635`→`…`→`53f0f43`, CI `36771561585` success (231/231 JVM, 0 failures), device `OK (4)` + `OK (3 migration)` + `OK (3 persistence)` + `OK (6 install)`, full suite **`OK (55 tests)` twice on one install** on RMX3910, report `docs/reports/batch-E-local-notifications-and-durable-activation.md`. Exactly one permission is declared; g4b fails a second one, a remote provider in the notification package, any `DELIVERED`/`SENT` name in the local result vocabulary, and a notifier that cannot tell silence from refusal |
 | F | Background-execution **contract** only — no detector, no service, no new permission; five layers separated; `MonitoringClaim` makes a protection claim unrepresentable without a running detector; Batch E's three truthful-copy findings closed | §17 — **CLOSED** `0e767b2`→`1502726`→`cea844b`→`d861922`, CI `36782719559` success (**248/248 JVM**, 0 failures), device full suite **`OK (55 tests)` twice on one install** on RMX3910 + on-screen dumps (Settings/dashboard/onboarding honest, Panic→notification→History intact), report `docs/reports/batch-F-background-execution-contract.md`. **No continuous Guard detector was implemented.** g4b now fails: a second permission, a `<service>` or WorkManager detector before a real guard exists, a delivery row or demo storage figure in Settings, a `Protected`/`Monitoring` claim from the execution layer alone, a missing named Batch F test, and any screen asserting a check that never ran |
-| G | Motion Guard — **slice G1 LANDED**: pure judgement (`MotionWindowEvaluator` + `MotionGuardObservation`), CI `36789435527` **259/259 JVM**, device full suite **`OK (55 tests)` ×2** on RMX3910; thresholds stay injected (Q-G1 open), no listener and no FGS. **Next: G2 — sensor delivery + noise-floor measurement on the owner's phone**, then the adapter, then the FGS type chosen from that evidence only if it demands one | §18 — **IN PROGRESS** |
+| G | Motion Guard — **slices G1 + G2 LANDED**: pure judgement (`MotionWindowEvaluator` + `MotionGuardObservation`, CI `36789435527` 259/259 JVM, suite `OK (55 tests)` ×2) and on-device sensor evidence (`MotionSensorEvidenceInstrumentedTest`, CI `36793076936` **259/259 JVM**, Motion class **`OK (6 tests)`** and full suite **`OK (61 tests)` ×2** on RMX3910). Measured: the tripwire is reachable **only** through `requestTriggerSensor` (accepted), `registerListener` for it is refused, ~106 Hz delivered for a 50 Hz request, rest noise floor ≤0.52 m/s², and two live samples in one millisecond make the pure rule read `Unreliable`. Thresholds stay injected (Q-G1: rest half measured, strong half needs one carry), no listener exists in `app/src/main`, and no FGS was decided from an upper-bound number. **Next: G3 — the Android adapter**, then the FGS type only if the screen-off evidence demands one | §18 — **IN PROGRESS** |
 | H | Evidence / privacy / permission implementation | §21–§23 |
 | I | SIM Guard — feasibility first, then implementation | §19 |
 | J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |
