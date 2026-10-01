@@ -38,17 +38,20 @@ else
   printf 'PASS: no forbidden Phase 3 implementation patterns\n'
 fi
 
-# Amendment A-6 authorizes exactly one permission: POST_NOTIFICATIONS, because a
-# local event notification is impossible on Android 13+ without it, and it is
-# requested from the notification setup screen rather than from a Panic press.
-# Every other permission stays forbidden — the manifest is the only place SHIELDRA
-# could quietly acquire camera, location, phone-state, or network access.
+# Amendment A-6 authorized POST_NOTIFICATIONS, and amendment A-19 authorized exactly the two
+# foreground-service permissions beside it — declared with the service that needs them, never ahead
+# of it. Every other permission stays forbidden: the manifest is the only place SHIELDRA could
+# quietly acquire camera, location, phone-state, or network access.
 declared="$(grep -oE '<uses-permission[^>]*android:name="[^"]+"' app/src/main/AndroidManifest.xml | grep -oE 'android:name="[^"]+"' | sed 's/android:name="//;s/"$//' | sort)"
-unexpected="$(printf '%s\n' "$declared" | grep -v '^android.permission.POST_NOTIFICATIONS$' | grep -v '^$' || true)"
+unexpected="$(printf '%s\n' "$declared" \
+  | grep -v '^android.permission.POST_NOTIFICATIONS$' \
+  | grep -v '^android.permission.FOREGROUND_SERVICE$' \
+  | grep -v '^android.permission.FOREGROUND_SERVICE_SPECIAL_USE$' \
+  | grep -v '^$' || true)"
 if [ -n "$unexpected" ]; then
-  printf 'FAIL: manifest declares permissions outside amendment A-6:\n%s\n' "$unexpected"; fail=1
+  printf 'FAIL: manifest declares permissions outside amendments A-6/A-19:\n%s\n' "$unexpected"; fail=1
 else
-  printf 'PASS: manifest declares only the A-6 notification permission\n'
+  printf 'PASS: manifest declares only the A-6 notification permission and the A-19 service pair\n'
 fi
 
 if grep -qE '@mipmap/ic_launcher' app/src/main/AndroidManifest.xml; then

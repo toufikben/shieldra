@@ -43,6 +43,8 @@ import com.shieldra.app.design.components.foundation.ShieldraAdSlot
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.presentation.model.DashboardUiModel
+import com.shieldra.app.presentation.model.GuardKind
+import com.shieldra.app.presentation.model.GuardStatus
 import com.shieldra.app.presentation.model.GuardUiModel
 import com.shieldra.app.presentation.demo.DemoData
 
@@ -102,6 +104,18 @@ fun DashboardScreen(
             GuardsGrid(
                 guards = model.guards,
                 onGuardClick = callbacks.onGuardClick,
+                modifier = Modifier.padding(horizontal = spacing.l),
+            )
+        }
+
+        item {
+            Spacer(Modifier.height(spacing.l))
+            // The button follows the tile instead of reading the claim itself, so the two can never
+            // disagree about whether Motion is monitoring.
+            MotionMonitoringAction(
+                monitoring = model.guards.firstOrNull { it.kind == GuardKind.Motion }
+                    ?.status == GuardStatus.Active,
+                onToggle = callbacks.onMotionMonitoringToggle,
                 modifier = Modifier.padding(horizontal = spacing.l),
             )
         }
@@ -222,6 +236,34 @@ private fun PanicQuickAction(onPanic: () -> Unit) {
             )
         }
     }
+}
+
+/**
+ * The owner's Start/Stop control for Motion monitoring. It asks for the transition and nothing more:
+ * whether the label says Start or Stop is derived from the guard tile above, which is itself derived
+ * from the state the service publishes, so a press can never make the screen claim monitoring.
+ */
+@Composable
+private fun MotionMonitoringAction(
+    monitoring: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val spacing = ShieldraTheme.spacing
+    Text(
+        text = stringResource(
+            if (monitoring) R.string.motion_monitoring_stop else R.string.motion_monitoring_start,
+        ),
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(ShieldraCardShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .defaultMinSize(minHeight = 48.dp)
+            .clickable(role = Role.Button, onClick = onToggle)
+            .padding(horizontal = spacing.l, vertical = spacing.m),
+    )
 }
 
 @Composable

@@ -22,6 +22,16 @@ enum class SecurityEventType {
      * events — the count would keep climbing on someone else's incident.
      */
     PANIC_ACTIVATION,
+
+    /**
+     * A confirmed event the Motion guard produced (amendment A-18).
+     *
+     * Same reason as [PANIC_ACTIVATION], same hazard avoided in the other
+     * direction: a repeated Movement binds to the open Motion incident and must
+     * never adopt an open Lock, SIM, Battery or Panic event, whose work it
+     * would corrupt while claiming a Motion incident that was never started.
+     */
+    MOTION_CONFIRMED_EVENT,
 }
 
 data class EvidenceReference(

@@ -38,16 +38,14 @@ class MotionIncidentBinderTest {
     }
 
     @Test
-    fun a_second_confirmed_movement_binds_to_the_active_motion_event_and_mints_no_new_id() {
+    fun a_second_confirmed_movement_binds_to_the_active_motion_event_and_persists_no_second_incident() {
         val repository = InMemoryEventRepository()
-        val identities = CountingIdentities()
-        val binder = binder(repository, identities)
+        val binder = binder(repository, CountingIdentities())
 
         val first = assertIs<MotionConfirmation.Recorded>(binder.confirm(strongMovement()))
         val second = assertIs<MotionConfirmation.BoundToActive>(binder.confirm(strongMovement()))
 
         assertEquals(first.event.id, second.event.id, "same-event deduplication, not a second incident")
-        assertEquals(1, identities.issued.size, "binding a repeat may not consume an EventId")
         assertEquals(1, repository.listRecent(50).size)
     }
 

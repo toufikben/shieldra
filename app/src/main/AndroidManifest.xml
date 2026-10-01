@@ -7,8 +7,19 @@
       first) — never from the Panic press. A refusal never blocks recording a
       Security Event. No other permission is declared: no camera, no location,
       no phone state, and no network permission.
+
+      Amendment A-19 (with the service that needs them, never ahead of it): the
+      two foreground-service permissions belong to
+      com.shieldra.detection.MotionMonitoringService and to nothing else.
+      A-17 approved `specialUse` as the type after the four candidate types were
+      reviewed one by one, and A-18/Q-G5-b keeps monitoring from starting at all
+      when the ongoing notification would not be visible. Still no camera, no
+      location, no phone state, no network permission, and no boot permission
+      (A-10 — monitoring is started by the user, never by the device waking up).
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:name=".ShieldraApp"
@@ -28,5 +39,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          Motion monitoring (slice G5). Not exported: only the app's own runtime
+          handle starts it, only from a user action on the dashboard. It holds the
+          single MotionSensorAdapter, so no other component may bind to it or
+          start it for a second registration.
+        -->
+        <service
+            android:name="com.shieldra.detection.MotionMonitoringService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Continuous accelerometer sampling for the SHIELDRA Motion guard, started only by the device owner from the dashboard" />
+        </service>
     </application>
 </manifest>

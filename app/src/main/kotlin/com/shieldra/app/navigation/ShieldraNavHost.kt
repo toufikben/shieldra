@@ -15,6 +15,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +69,8 @@ import com.shieldra.app.presentation.screen.settings.NotificationSetupScreen
 import com.shieldra.domain.PanicActivation
 import com.shieldra.notification.LocalEventNotifier
 import com.shieldra.notification.LocalPostResult
+import com.shieldra.runtime.MotionMonitoringStartDecision
+import com.shieldra.runtime.MotionRuntime
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -88,9 +91,12 @@ fun ShieldraNavHost(
     val scope = rememberCoroutineScope()
     val deferredMessage = stringResource(R.string.phase3_deferred)
     val defer = { scope.launch { snackbarHostState.showSnackbar(deferredMessage) } }
-    // Honest projection: there is no live detection/monitoring yet (phase 5/G3),
-    // so the UI derives from whether the storage gate installed anything, never
-    // from fabricated protection numbers.
+    // Motion monitoring is projected from the claim the service publishes about itself, never from
+    // the fact that Start was pressed (A-18): while no service has reported a live registration the
+    // guard renders as not monitoring.
+    val motionClaim by MotionRuntime.state.collectAsState()
+    // Honest projection: the guards without a detector are projected from whether the storage gate
+    // installed anything, never from fabricated protection numbers.
     val installedStorage = (LocalContext.current.applicationContext as ShieldraApp).installedStorage
     val storageInstalled = installedStorage != null
     val guardState = LockGuardDecision.decide(storageInstalled)
@@ -124,6 +130,19 @@ fun ShieldraNavHost(
     // UI renders empty until the real rows arrive.
     val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage, panicActivations) {
         value = withContext(Dispatchers.IO) { eventReader.readRecent(RECENT_EVENT_LIMIT, Instant.now()) }
+    }
+    val monitoringStoppedMessage = stringResource(R.string.motion_monitoring_stopped)
+    val monitoringNeedsPermissionMessage = stringResource(R.string.motion_monitoring_needs_permission)
+    val monitoringRefusedMessage = stringResource(R.string.motion_monitoring_refused)
+    val monitoringNoStorageMessage = stringResource(R.string.motion_monitoring_no_storage)
+    var stopWasRequested by remember { mutableStateOf(false) }
+    // "Stopped" reports an observed state, not a press: it appears once the service has retracted
+    // itself, and never while it still claims to be monitoring.
+    LaunchedEffect(motionClaim) {
+        if (stopWasRequested && !motionClaim.claimsProtection) {
+            stopWasRequested = false
+            snackbarHostState.showSnackbar(monitoringStoppedMessage)
+        }
     }
 
     Scaffold(
@@ -180,7 +199,11 @@ fun ShieldraNavHost(
             // ===== Main =====
             composable(ShieldraRoutes.DASHBOARD) {
                 DashboardScreen(
-                    model = lockGuardDashboard(guardState, recentEvents.take(RECENT_EVENT_LIMIT)),
+                    model = lockGuardDashboard(
+                        state = guardState,
+                        recentEvents = recentEvents.take(RECENT_EVENT_LIMIT),
+                        motionClaim = motionClaim,
+                    ),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->
                             navController.navigate(ShieldraRoutes.eventDetail(id))
@@ -214,6 +237,34 @@ fun ShieldraNavHost(
                         },
                         onViewAllEvents = {
                             navController.navigate(ShieldraRoutes.HISTORY)
+                        },
+                        onMotionMonitoringToggle = {
+                            if (motionClaim.claimsProtection) {
+                                stopWasRequested = true
+                                MotionRuntime.stopMonitoring(context)
+                            } else {
+                                // The service publishes its own claim once it is really up, so a start
+                                // that this press asked for renders as monitoring only when Android
+                                // and the sensor agree.
+                                when (MotionRuntime.startMonitoring(context, storageInstalled)) {
+                                    MotionMonitoringStartDecision.MayStartMonitoring -> Unit
+                                    MotionMonitoringStartDecision.AskForNotificationPermission ->
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(monitoringNeedsPermissionMessage)
+                                        }
+
+                                    is MotionMonitoringStartDecision.DoNotStartMonitoring ->
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                if (storageInstalled) {
+                                                    monitoringRefusedMessage
+                                                } else {
+                                                    monitoringNoStorageMessage
+                                                },
+                                            )
+                                        }
+                                }
+                            }
                         },
                     ),
                 )

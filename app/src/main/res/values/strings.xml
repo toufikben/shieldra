@@ -79,6 +79,16 @@
     <string name="notification_result_failed">Local notification failed</string>
     <string name="notification_result_not_attempted">No notification was posted.</string>
     <string name="notification_turn_on">Turn on notifications</string>
+    <string name="notification_channel_motion_monitoring">Motion monitoring</string>
+    <string name="notification_channel_motion_monitoring_description">Shows, while it is happening, that SHIELDRA monitoring is running.</string>
+    <!-- A-9: the exact wording an ongoing notice may carry while a foreground service really runs. Never "24/7", never "guaranteed". -->
+    <string name="notification_motion_ongoing_title">SHIELDRA protection is active</string>
+    <string name="motion_monitoring_start">Start Motion monitoring</string>
+    <string name="motion_monitoring_stop">Stop Motion monitoring</string>
+    <string name="motion_monitoring_needs_permission">Monitoring has to stay visible to you, so turn notifications on in SHIELDRA Settings first.</string>
+    <string name="motion_monitoring_refused">Monitoring was not started: its ongoing notification would not reach you.</string>
+    <string name="motion_monitoring_stopped">Motion monitoring stopped.</string>
+    <string name="motion_monitoring_no_storage">Monitoring was not started: this build has no installed storage to record what it confirms.</string>
     <string name="lock_guard">Lock Guard</string>
     <string name="protection_setup_question">Lock Guard uses the approved protection rule.</string>
     <string name="lock_guard_threshold">%1$d failed attempts confirm a security event</string>
@@ -217,6 +227,7 @@
     <string name="guard_status_locked">Locked</string>
     <string name="guard_accessibility">%1$s. %2$s. Status: %3$s.%4$s</string>
     <string name="guard_subtitle_inactive">Not monitoring yet</string>
+    <string name="guard_subtitle_motion_active">Motion monitoring is active</string>
     <string name="event_security_event">Security event</string>
     <string name="event_age_days">%1$d days ago</string>
     <string name="event_age_hours">%1$d hours ago</string>

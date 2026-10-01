@@ -325,9 +325,13 @@ if grep -rqE 'FirebaseMessaging|firebase-messaging|Firebase|Retrofit|OkHttp|smtp
 fi
 grep -q 'android.permission.POST_NOTIFICATIONS' app/src/main/AndroidManifest.xml \
   || fail "the A-6 notification permission is not declared"
-REQS="$(grep -c '<uses-permission' app/src/main/AndroidManifest.xml || true)"
-if [ "$REQS" -ne 1 ]; then
-  fail "exactly one permission may be declared (A-6); found $REQS"
+# Amendment A-19 licenses exactly two more permissions, and they belong to the one service that
+# carries them. Anything outside this named three is a new amendment, not a manifest edit.
+DECLARED="$(grep -oE 'android:name="android\.permission\.[A-Z_]+"' app/src/main/AndroidManifest.xml \
+  | sed 's/.*android\.permission\.//;s/"//' | sort | tr '\n' ' ')"
+EXPECTED="FOREGROUND_SERVICE FOREGROUND_SERVICE_SPECIAL_USE POST_NOTIFICATIONS "
+if [ "$DECLARED" != "$EXPECTED" ]; then
+  fail "the manifest declares permissions outside the A-6/A-19 named three; got [$DECLARED]"
 fi
 grep -q 'RequestPermission' "$NAVHOST" || fail "the permission is never requested from the UI"
 if grep -q 'RequestPermission' "$PANIC"; then
@@ -398,15 +402,23 @@ grep -q 'val storageRowShowsFigures: Boolean = false' app/src/main/kotlin/com/sh
   || fail "the storage row must not present figures the app cannot read"
 pass "Settings rows claim only channels and counts the app really has"
 
-# 10. Batch F — background execution is a contract, not a claim. No service, no
-#     second permission, and no detector may be added before the detector exists
-#     (directives F3/F6). The type of a future foreground service belongs to that
-#     detector's own Android requirements.
-if grep -q '<service' app/src/main/AndroidManifest.xml; then
-  fail "Batch F declared a service while no detector exists"
+# 10. Batch F — background execution is a contract, not a claim. Amendment A-19 replaced the flat
+#     service/FGS bans with a named allowance: exactly one <service>, the approved Motion monitoring
+#     class, the `specialUse` type A-17 chose after reviewing the candidates, and its subtype
+#     property. Nothing else may appear, and WorkManager stays banned (directives F3/§17).
+SERVICES="$(grep -c '<service' app/src/main/AndroidManifest.xml || true)"
+if [ "$SERVICES" -ne 1 ]; then
+  fail "A-19 allows exactly one <service> element (the Motion monitoring service); found $SERVICES"
 fi
-if grep -RIn 'FOREGROUND_SERVICE' app/src/main/AndroidManifest.xml; then
-  fail "a foreground-service permission was added without a detector that needs it"
+grep -q 'android:name="com.shieldra.detection.MotionMonitoringService"' app/src/main/AndroidManifest.xml \
+  || fail "the one allowed service is the approved Motion monitoring service (A-19)"
+grep -q 'android:foregroundServiceType="specialUse"' app/src/main/AndroidManifest.xml \
+  || fail "A-17 approved specialUse as the service type; the manifest no longer declares it"
+grep -q 'android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE' app/src/main/AndroidManifest.xml \
+  || fail "the specialUse subtype property A-17 requires for the Play review statement is missing"
+FGS_PERMS="$(grep -c 'android.permission.FOREGROUND_SERVICE' app/src/main/AndroidManifest.xml || true)"
+if [ "$FGS_PERMS" -ne 2 ]; then
+  fail "A-19 licenses exactly the two named foreground-service permissions; found $FGS_PERMS"
 fi
 if grep -RIn 'androidx\.work\|WorkManager\.getInstance\|EnqueueWorker\|\.enqueue(' app/src/main/kotlin; then
   fail "WorkManager is being used in app sources; §17 forbids it as a real-time detector"
@@ -414,7 +426,7 @@ fi
 if grep -RIn 'androidx.work' gradle/libs.versions.toml app/build.gradle.kts; then
   fail "the WorkManager dependency was added; no batch up to F has a use for it"
 fi
-pass "no service, no extra permission, and no WorkManager detector before a real guard exists"
+pass "one named service with the approved type, the A-19 permission set, and no WorkManager detector"
 
 # 11. Batch F — the execution layer must stay separated from detection, events,
 #     persistence and notification (directive F2). It owns none of them.
@@ -553,12 +565,18 @@ if grep -q 'requestedReportPeriodUs: Int = ' "$ADAPTER"; then
   fail "the adapter ships a default reporting period; the rate is the owner's calibration decision"
 fi
 
-# A-8/A-12: the adapter is not wired into anything that runs, and no service or permission appeared.
-USES="$(grep -RIn 'MotionSensorAdapter(' app/src/main/kotlin --include='*.kt' | grep -v "$ADAPTER" || true)"
-[ -z "$USES" ] || fail "the G3 adapter is wired into the running app while no monitoring surface is approved: $USES"
-for forbidden in '<service' 'FOREGROUND_SERVICE' 'RECEIVE_BOOT_COMPLETED' 'BOOT_COMPLETED'; do
+# A-19, with A-18 correction (أ): the approved service is the adapter's only owner in the shipping
+# app — a second owner would mean two `isReporting` flags and two unregistrations. The boot ban (A-10)
+# and the G3 signal-data rules above are untouched by that transition.
+SERVICE=app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt
+[ -s "$SERVICE" ] || fail "the Motion monitoring service A-19 was written for is missing"
+grep -q 'MotionSensorAdapter(' "$SERVICE" \
+  || fail "the monitoring service no longer owns the adapter, so nothing registers the accelerometer"
+USES="$(grep -RIn 'MotionSensorAdapter(' app/src/main/kotlin --include='*.kt' | grep -v "$ADAPTER" | grep -v "$SERVICE" || true)"
+[ -z "$USES" ] || fail "a second Motion adapter owner appeared in the shipping app; A-19 allows the service alone: $USES"
+for forbidden in 'RECEIVE_BOOT_COMPLETED' 'BOOT_COMPLETED'; do
   if grep -q "$forbidden" app/src/main/AndroidManifest.xml; then
-    fail "$forbidden appeared while A-8/A-10 hold it back"
+    fail "$forbidden appeared while A-10 holds boot auto-start back"
   fi
 done
 
@@ -619,9 +637,13 @@ for forbidden in 'WAKE_LOCK' 'WakeLock' 'newWakeLock' 'IGNORE_BATTERY_OPTIMIZATI
     fail "$forbidden appeared while G4-A is only a measurement (A-13 forbids changing execution conditions)"
   fi
 done
-for forbidden in '<service' 'FOREGROUND_SERVICE' 'RECEIVE_BOOT_COMPLETED' 'BOOT_COMPLETED'; do
+# A-19 replaced this manifest ban once the campaign and its report were closed: what A-13 actually
+# forbade was adding a service or a permission to make a measurement pass. That rule is still
+# enforced, by §10 allowing exactly one named service and nothing else. The execution conditions the
+# campaign measured under remain untouched — no wake lock, no battery exemption anywhere.
+for forbidden in 'RECEIVE_BOOT_COMPLETED' 'BOOT_COMPLETED'; do
   if grep -q "$forbidden" app/src/main/AndroidManifest.xml; then
-    fail "$forbidden appeared during the G4-A measurement; A-8/A-10/A-13 hold it back"
+    fail "$forbidden appeared while A-10 holds boot auto-start back"
   fi
 done
 
@@ -652,19 +674,16 @@ if grep -q 'R.string.lock_guard_window' "$PROTECTION_STEP" && grep -q 'R.string.
 fi
 pass "onboarding copy claims only what the onboarding screens really do"
 
-# 18. Batch G slice G4 — the pure validation seam, under amendment A-15. A-15 approves a real
-#     foreground service as the *architecture* for continuous Motion monitoring and withholds its
-#     code in the same sentence: no service element, no FGS permission, no service type and no
-#     startForeground until the owner answers Q-G1. The half that IS approved is pure JVM, and its
-#     contract is that the bridge can no longer be called quality-blind — the stream quality G3
-#     measured must arrive as a required argument, it may only ever lower what the observation
-#     claims, and the seam must still have no caller inside the running app (§10, §3).
+# 18. Batch G slice G4/G5 — the pure validation seam and, since amendment A-19, the service that
+#     finally calls it. A-15 recorded the foreground-service architecture and withheld its code; A-17
+#     closed Q-G1; A-18 approved the design and its three corrections; A-19 licensed the code with the
+#     named gate transition. The seam's contract is unchanged: the stream quality G3 measured still
+#     arrives as a required argument, it may only ever lower what the observation claims, and the
+#     foreground-service surface may appear in the approved service and manifest and nowhere else.
 DETECTION=app/src/main/kotlin/com/shieldra/detection/MotionDetection.kt
-for notyet in '<service' 'startForeground' 'FOREGROUND_SERVICE' 'foregroundServiceType' 'SPECIAL_USE' 'specialUse'; do
-  if grep -RIn "$notyet" app/src/main --include='*.kt' --include='*.xml'; then
-    fail "A-15 records an architecture, it does not license its code: $notyet appeared while Q-G1 is unanswered"
-  fi
-done
+RUNTIME=app/src/main/kotlin/com/shieldra/runtime/MotionRuntime.kt
+FGS_CARRIERS="$(grep -RIn 'startForeground\|FOREGROUND_SERVICE\|foregroundServiceType\|SPECIAL_USE\|specialUse\|<service' app/src/main --include='*.kt' --include='*.xml' | grep -v "$SERVICE" | grep -v "$RUNTIME" | grep -v 'app/src/main/AndroidManifest.xml' || true)"
+[ -z "$FGS_CARRIERS" ] || fail "the foreground-service surface appeared outside the service, its runtime handle and the manifest (A-19): $FGS_CARRIERS"
 grep -q 'streamQuality: MotionSignalQuality' "$DETECTION" \
   || fail "the Motion seam no longer receives what the signal layer measured about the stream, so G3's verdict is dropped on the way to the engine"
 if grep -Eq 'streamQuality: MotionSignalQuality[[:space:]]*=' "$DETECTION"; then
@@ -673,8 +692,10 @@ fi
 for quality in 'MotionSignalQuality.EMPTY' 'MotionSignalQuality.INVALID' 'MotionSignalQuality.IRREGULAR' 'MotionSignalQuality.USABLE'; do
   grep -q "$quality" "$DETECTION" || fail "the seam no longer names $quality, so that kind of stream would fall through to a default"
 done
-SEAM_CALLERS="$(grep -RIn 'MotionGuardObservation' app/src/main --include='*.kt' | grep -v "$DETECTION" || true)"
-[ -z "$SEAM_CALLERS" ] || fail "the Motion seam is wired into the running app while monitoring is still not approved: $SEAM_CALLERS"
+PIPELINE=app/src/main/kotlin/com/shieldra/detection/MotionGuardPipeline.kt
+[ -s "$PIPELINE" ] || fail "the approved Motion pipeline is missing"
+SEAM_CALLERS="$(grep -RIn 'MotionGuardObservation' app/src/main --include='*.kt' | grep -v "$DETECTION" | grep -v "$PIPELINE" || true)"
+[ -z "$SEAM_CALLERS" ] || fail "the Motion seam is called from outside the approved pipeline (A-19): $SEAM_CALLERS"
 for name in a_stream_the_signal_layer_measured_as_irregular_is_never_reported_with_valid_sensor_quality \
   a_stream_the_signal_layer_measured_as_invalid_is_never_reported_with_valid_sensor_quality \
   a_stream_with_nothing_measured_is_reported_as_unavailable_rather_than_as_a_still_device \
@@ -694,11 +715,13 @@ for name in a_stream_the_signal_layer_measured_as_irregular_is_never_reported_wi
 done
 for locale in values values-ar; do
   grep -q 'name="guard_subtitle_inactive">' "app/src/main/res/$locale/strings.xml" \
-    || fail "$locale lost the 'not monitoring yet' copy §9 requires while Motion monitoring is unapproved"
+    || fail "$locale lost the 'not monitoring yet' copy every guard still needs (§9: a guard that is not running says so)"
+  grep -q 'name="guard_subtitle_motion_active">' "app/src/main/res/$locale/strings.xml" \
+    || fail "$locale has no Motion copy for a service that really reports (A-18)"
 done
 grep -q 'enum class MonitoringClaim' app/src/main/kotlin/com/shieldra/runtime/BackgroundExecution.kt \
   || fail "MonitoringClaim was removed: §9 keeps measured signal data separate from any monitoring claim"
-pass "A-15 is still only a decision record, and the G4 seam refuses a stream the signal layer could not believe"
+pass "the G4 seam still refuses a stream the signal layer could not believe, and the FGS surface stays named"
 
 # 19. Batch G slice Q-G1 — the one manual calibration the owner authorized in the A-15 directive. It
 #     is a measurement harness and nothing more: it must go through the adapter G3 already verified
@@ -731,6 +754,50 @@ done
 HARNESS_IN_MAIN="$(grep -RIn 'MotionCalibrationInstrumented' app/src/main --include='*.kt' --include='*.xml' || true)"
 [ -z "$HARNESS_IN_MAIN" ] || fail "the Q-G1 measurement harness is wired into production code: $HARNESS_IN_MAIN"
 pass "the Q-G1 harness stays a test-only measurement: adapter-owned registration, §5 sequence, §6 fields, no device driving"
+
+# 20. Batch G slice G5 — the monitoring surface amendment A-19 licensed. These are the minimum
+#     assertions that protect the decisions which came with that transition and nothing more (the
+#     owner's «التسريع المنضبط»: no barriers without benefit). The six approved calibration figures
+#     are stated once, A-9 fixes the ongoing notice's wording, the notification permission is still
+#     asked only from Settings (A-6), and the dashboard's Motion state is derived only from the claim
+#     a live service publishes (A-18 corrections أ/ب).
+CAL=app/src/main/kotlin/com/shieldra/detection/ApprovedMotionCalibration.kt
+[ -s "$CAL" ] || fail "the object that carries the approved Motion calibration is missing"
+for approved in 'strongDeltaMs2: Double = 4.6' 'noiseFloorDeltaMs2: Double = 0.8' 'minEpisodeMs: Long = 500L' \
+  'maxSampleGapMs: Long = 100L' 'requestedReportPeriodUs: Int = 20_000' 'stallToleranceFactor: Double = 11.0'; do
+  grep -q "$approved" "$CAL" || fail "A-17/A-18 lost an approved calibration figure ($approved)"
+done
+DUPLICATE_FIGURES="$(grep -RIn '4\.6\|0\.8\|20_000\|11\.0\|500L\|100L' app/src/main/kotlin/com/shieldra/detection app/src/main/kotlin/com/shieldra/runtime --include='*.kt' | grep -v "$CAL" || true)"
+[ -z "$DUPLICATE_FIGURES" ] || fail "an approved calibration figure was stated outside the named object, so it could drift or a seventh could appear: $DUPLICATE_FIGURES"
+# A-9: the exact wording an ongoing notice may carry while this service really runs.
+grep -q '<string name="notification_motion_ongoing_title">SHIELDRA protection is active</string>' app/src/main/res/values/strings.xml \
+  || fail "the ongoing notice no longer carries A-9's approved English wording"
+grep -q '<string name="notification_motion_ongoing_title">حماية SHIELDRA نشِطة</string>' app/src/main/res/values-ar/strings.xml \
+  || fail "the ongoing notice no longer carries A-9's approved Arabic wording"
+if grep -RIn '24/7\|مضمونة' app/src/main/res --include='strings.xml' | grep '<string'; then
+  fail "a shipped string claims permanent or guaranteed protection (A-9)"
+fi
+# A-6/Q-G5-b: monitoring refuses to start without a visible notice, and asking for the permission
+# stays in the notification setup screen — never in the monitoring path and never in Panic.
+if grep -RIn 'RequestPermission' app/src/main/kotlin/com/shieldra/detection app/src/main/kotlin/com/shieldra/runtime; then
+  fail "the monitoring path asks for POST_NOTIFICATIONS itself; A-6 keeps the request in Settings"
+fi
+TRUTH=app/src/main/kotlin/com/shieldra/runtime/MotionMonitoringTruth.kt
+grep -q 'fun claim(serviceRunning: Boolean, sensorReporting: Boolean)' "$TRUTH" \
+  || fail "the monitoring claim no longer reads the two platform facts A-18 (ب) named"
+grep -q 'MotionMonitoringPresentation.guardStatus(motionClaim)' \
+  app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDashboardFactory.kt \
+  || fail "the dashboard no longer derives Motion's state from the published claim"
+grep -q 'MotionRuntime.state.collectAsState()' "$NAVHOST" \
+  || fail "the running app does not read the monitoring claim it renders"
+for name in a_service_that_is_not_running_renders_the_motion_guard_as_disabled \
+  a_running_service_without_a_live_sensor_registration_renders_disabled_not_active \
+  only_a_live_registration_renders_the_motion_guard_as_active \
+  no_claim_ever_renders_a_signal_or_a_locked_guard; do
+  grep -q "fun $name" app/src/test/kotlin/com/shieldra/app/presentation/guard/MotionMonitoringPresentationTest.kt ||
+    fail "the named Motion projection test is missing: $name"
+done
+pass "A-19's licensed surface stays named: one calibration object, A-9 wording, no permission ask in monitoring, and a claim-derived dashboard"
 
 git diff --check
 pass "git diff check"

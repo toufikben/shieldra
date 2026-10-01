@@ -112,7 +112,7 @@ class MotionGuardPipelineTest {
 
     @Test
     fun nothing_measured_is_reported_as_unavailable_rather_than_as_a_still_device() {
-        val observation = pipeline.observe(emptyList())
+        val observation = pipeline.observe(emptyList<MotionSample>())
 
         assertEquals(SensorQuality.UNAVAILABLE, observation.sensorQuality)
         assertEquals(Duration.ZERO, observation.duration)

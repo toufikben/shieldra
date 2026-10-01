@@ -79,6 +79,16 @@
     <string name="notification_result_failed">فشل الإشعار المحلي</string>
     <string name="notification_result_not_attempted">لم يُنشر أي إشعار.</string>
     <string name="notification_turn_on">تشغيل الإشعارات</string>
+    <string name="notification_channel_motion_monitoring">مراقبة الحركة</string>
+    <string name="notification_channel_motion_monitoring_description">يُظهر، أثناء حدوثها، أن مراقبة SHIELDRA تعمل.</string>
+    <!-- A-9: الصياغة الوحيدة المسموح بها لإشعار دائم بينما خدمة خلفية تعمل فعلًا. لا «24/7» ولا «مضمون». -->
+    <string name="notification_motion_ongoing_title">حماية SHIELDRA نشِطة</string>
+    <string name="motion_monitoring_start">تشغيل مراقبة الحركة</string>
+    <string name="motion_monitoring_stop">إيقاف مراقبة الحركة</string>
+    <string name="motion_monitoring_needs_permission">يجب أن تبقى المراقبة ظاهرة لك، لذا شغِّل الإشعارات من إعدادات SHIELDRA أولًا.</string>
+    <string name="motion_monitoring_refused">لم تبدأ المراقبة: إشعارها الدائم لن يصل إليك.</string>
+    <string name="motion_monitoring_stopped">توقفت مراقبة الحركة.</string>
+    <string name="motion_monitoring_no_storage">لم تبدأ المراقبة: لا تخزين مثبَّت في هذا البناء ليسجّل ما تؤكده.</string>
     <string name="lock_guard">حارس القفل</string>
     <string name="protection_setup_question">يستخدم حارس القفل قاعدة الحماية المعتمدة.</string>
     <string name="lock_guard_threshold">تؤكد %1$d محاولتان فاشلتان حدثًا أمنيًا</string>
@@ -217,6 +227,7 @@
     <string name="guard_status_locked">مقفل</string>
     <string name="guard_accessibility">%1$s. %2$s. الحالة: %3$s.%4$s</string>
     <string name="guard_subtitle_inactive">لم تبدأ المراقبة بعد</string>
+    <string name="guard_subtitle_motion_active">مراقبة الحركة نشِطة</string>
     <string name="event_security_event">حدث أمني</string>
     <string name="event_age_days">قبل %1$d يوم</string>
     <string name="event_age_hours">قبل %1$d ساعة</string>

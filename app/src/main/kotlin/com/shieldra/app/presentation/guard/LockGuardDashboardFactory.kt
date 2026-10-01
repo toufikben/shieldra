@@ -8,28 +8,37 @@ import com.shieldra.app.presentation.model.DashboardUiModel
 import com.shieldra.app.presentation.model.EventUiModel
 import com.shieldra.app.presentation.model.GuardKind
 import com.shieldra.app.presentation.model.GuardUiModel
+import com.shieldra.runtime.MonitoringClaim
 
 /**
  * Builds the dashboard the app may honestly show, straight from the pure
  * [LockGuardDecision]. It never invents a "Protected" state, an active guard,
  * a battery reading, a network reading, or ads — none of those facts exist
- * yet, because detection and monitoring (phase 5 / G3) are not implemented,
- * regardless of the storage gate. Only [recentEvents] is real, and it is
- * whatever the persisted reader actually returned.
+ * yet, regardless of the storage gate. Only [recentEvents] is real, and it is
+ * whatever the persisted reader actually returned. [motionClaim] is real too,
+ * and it is the only thing that can make the Motion guard look active: it comes
+ * from the monitoring service's own state, never from a press.
  */
 @Composable
 fun lockGuardDashboard(
     state: LockGuardState,
     recentEvents: List<EventUiModel> = emptyList(),
+    motionClaim: MonitoringClaim = MonitoringClaim.NoExecution,
 ): DashboardUiModel {
     val statuses = LockGuardDecision.guardStatuses(state)
     val inactiveSubtitle = stringResource(R.string.guard_subtitle_inactive)
+    val motionSubtitle = stringResource(MotionMonitoringPresentation.subtitleRes(motionClaim))
     val guards = GuardKind.entries.map { kind ->
+        val monitoring = kind == GuardKind.Motion
         GuardUiModel(
             kind = kind,
             title = stringResource(titleRes(kind)),
-            subtitle = inactiveSubtitle,
-            status = statuses.getValue(kind),
+            subtitle = if (monitoring) motionSubtitle else inactiveSubtitle,
+            status = if (monitoring) {
+                MotionMonitoringPresentation.guardStatus(motionClaim)
+            } else {
+                statuses.getValue(kind)
+            },
             enabled = false,
         )
     }
