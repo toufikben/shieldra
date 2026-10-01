@@ -177,10 +177,15 @@ class MotionCalibrationInstrumentedTest {
             while (SystemClock.elapsedRealtime() - beganAt < windowMs) {
                 Thread.sleep(100)
             }
+            // The sensor thread appends to the same list, and a synchronized list still iterates
+            // unsafely unless the copy itself holds the lock — measured on RMX3910, where reading the
+            // window while events were still arriving threw ConcurrentModificationException.
+            adapter.stopReporting()
+            val arrived = synchronized(collected) { collected.toList() }
             return Stream(
                 startResult = result,
-                samples = collected.map { it.sample }.toList(),
-                arrived = collected.toList(),
+                samples = arrived.map { it.sample },
+                arrived = arrived,
                 deliveredSampleCount = adapter.deliveredSampleCount,
                 clockResolutionDrops = adapter.clockResolutionDrops,
             )
