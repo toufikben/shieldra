@@ -672,6 +672,16 @@ PROTECTION_STEP=app/src/main/kotlin/com/shieldra/app/presentation/screen/onboard
 if grep -q 'R.string.lock_guard_window' "$PROTECTION_STEP" && grep -q 'R.string.attempt_recording_note' "$PROTECTION_STEP"; then
   fail "the protection step prints one sentence twice (lock_guard_window already contains attempt_recording_note)"
 fi
+# Since amendment A-19 the build does run continuous Motion monitoring, so the welcome screen may
+# not say it does not. Found on the A-19 device pass: the sentence survived the service landing.
+for locale in values values-ar; do
+  STRINGS="app/src/main/res/$locale/strings.xml"
+  welcome_body="$(grep -o 'name="welcome_body">[^<]*' "$STRINGS" | sed 's/^[^>]*>//' || true)"
+  [ -n "$welcome_body" ] || fail "$locale has no welcome_body"
+  if printf '%s' "$welcome_body" | grep -qE 'not part of this build|ليست جزءًا من هذا الإصدار'; then
+    fail "$locale welcome_body denies continuous monitoring that amendment A-19 shipped"
+  fi
+done
 pass "onboarding copy claims only what the onboarding screens really do"
 
 # 18. Batch G slice G4/G5 — the pure validation seam and, since amendment A-19, the service that
@@ -798,6 +808,37 @@ for name in a_service_that_is_not_running_renders_the_motion_guard_as_disabled \
     fail "the named Motion projection test is missing: $name"
 done
 pass "A-19's licensed surface stays named: one calibration object, A-9 wording, no permission ask in monitoring, and a claim-derived dashboard"
+
+# 21. Batch G slice G5 — the four presentation-truth defects found on the A-19 device pass. These are
+#     display-path rules only: no threshold, no lifecycle, and no persistence semantics live here.
+READER=app/src/main/kotlin/com/shieldra/app/presentation/guard/PersistedEventReader.kt
+grep -q 'type = persistedEventTypeOf(this.type)' "$READER" \
+  || fail "a persisted row's history type is not read from the row itself, so a Motion event can be filed under another guard (A-19 device pass)"
+if grep -q 'val type: EventType' "$READER"; then
+  fail "PersistedEventLabels still carries one type for every row, which is the fixed-Panic defect"
+fi
+for guard_type in CONFIRMED_SECURITY_EVENT PANIC_ACTIVATION MOTION_CONFIRMED_EVENT; do
+  grep -q "SecurityEventType.$guard_type" "$READER" \
+    || fail "the history-type mapping no longer covers $guard_type, so that row would fall through to a default"
+done
+grep -q 'MotionEventWrites.record(confirmation)' "$SERVICE" \
+  || fail "the monitoring service no longer invalidates the event lists when it writes an event, so a Motion event only appears after a restart"
+grep -q 'MotionEventWrites.state.collectAsState()' "$NAVHOST" \
+  || fail "the app never reads the Motion write token, so the reload it pins a key on is dead"
+grep -Eq 'produceState\(initialValue = emptyList<EventUiModel>\(\)[^)]*motionEventWrites' "$NAVHOST" \
+  || fail "the recent-event load has no Motion-write key, so History and the dashboard keep a stale list"
+DASHBOARD_SCREEN=app/src/main/kotlin/com/shieldra/app/presentation/screen/dashboard/DashboardScreen.kt
+MONITORING_DERIVATIONS="$(grep -c 'val motionMonitoringActive' "$DASHBOARD_SCREEN" || true)"
+[ "$MONITORING_DERIVATIONS" = "1" ] \
+  || fail "the dashboard derives Motion's monitoring state $MONITORING_DERIVATIONS times; one tile, one derivation (A-18)"
+grep -Eq 'dashboardMode\(model.storageInstalled, motionMonitoring = motionMonitoringActive\)' "$DASHBOARD_SCREEN" \
+  || fail "the dashboard disclosure does not follow the same Motion truth the tile and the button follow"
+for name in a_newly_written_motion_event_raises_the_reload_token \
+  a_movement_that_joined_the_open_incident_writes_no_row_so_the_token_stays \
+  the_dashboard_disclosure_stops_denying_monitoring_while_motion_is_monitoring; do
+  grep -rq "fun $name" app/src/test || fail "the named G5 truthfulness test is missing: $name"
+done
+pass "the event list shows each row's own guard, reloads on a real Motion write, and the disclosure follows the published claim"
 
 git diff --check
 pass "git diff check"

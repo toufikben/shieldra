@@ -4,6 +4,7 @@ import com.shieldra.runtime.MonitoringClaim
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 /**
@@ -62,18 +63,41 @@ class SettingsContentTest {
     fun the_dashboard_disclosure_stops_calling_real_storage_a_presentation_demo() {
         assertEquals(
             SettingsContent.DashboardMode.LocalEventsOnly,
-            SettingsContent.dashboardMode(storageInstalled = true),
+            SettingsContent.dashboardMode(storageInstalled = true, motionMonitoring = false),
         )
         assertEquals(
             SettingsContent.DashboardMode.NoStorageYet,
-            SettingsContent.dashboardMode(storageInstalled = false),
+            SettingsContent.dashboardMode(storageInstalled = false, motionMonitoring = false),
+        )
+    }
+
+    // G5 truthfulness fix D: the disclosure line follows the same Motion truth the tile follows, so
+    // it cannot tell the owner monitoring is absent while the monitor is reporting samples.
+    @Test
+    fun the_dashboard_disclosure_stops_denying_monitoring_while_motion_is_monitoring() {
+        assertEquals(
+            SettingsContent.DashboardMode.LocalEventsWithMotion,
+            SettingsContent.dashboardMode(storageInstalled = true, motionMonitoring = true),
+        )
+        assertTrue(
+            SettingsContent.dashboardMode(storageInstalled = true, motionMonitoring = true).claimsMonitoring,
+            "The monitoring mode is the one state the running service really proves",
+        )
+        assertNotEquals(
+            disclosureLabelRes(SettingsContent.DashboardMode.LocalEventsOnly),
+            disclosureLabelRes(SettingsContent.DashboardMode.LocalEventsWithMotion),
+            "An active monitor must not be described by the sentence that denies monitoring",
         )
     }
 
     @Test
-    fun neither_dashboard_mode_claims_monitoring_without_a_detector() {
+    fun only_the_monitoring_mode_claims_monitoring() {
         SettingsContent.DashboardMode.entries.forEach { mode ->
-            assertFalse(mode.claimsMonitoring)
+            assertEquals(
+                SettingsContent.DashboardMode.LocalEventsWithMotion,
+                mode.takeIf { it.claimsMonitoring },
+                "$mode claims monitoring, and only the running Motion monitor may",
+            )
         }
         assertFalse(MonitoringClaim.ExecutionWithoutDetector.claimsProtection)
     }

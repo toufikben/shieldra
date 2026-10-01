@@ -53,7 +53,11 @@ class PersistedEventReaderTest {
 
         val projected = reader.readRecent(limit = 20, now = now).single()
 
-        assertEquals(com.shieldra.app.presentation.model.EventType.Panic, projected.type)
+        assertEquals(
+            com.shieldra.app.presentation.model.EventType.Other,
+            projected.type,
+            "An event of no named guard must not borrow another guard's type",
+        )
         assertTrue(!projected.hasPhoto, "No photo was captured; the projection must not claim one")
         assertTrue(!projected.hasLocation, "No location was captured; the projection must not claim one")
         assertTrue(projected.title.isNotBlank(), "The title must be real text, not blank")
@@ -209,9 +213,104 @@ class PersistedEventReaderTest {
         assertEquals(com.shieldra.app.R.string.status_retrying, eventStateLabelRes(EventState.DEFERRED))
     }
 
-    private fun event(createdAt: Instant, state: EventState): SecurityEvent = SecurityEvent.create(
+    // G5 truthfulness fix A: the History type comes from the row's own persisted guard, so a
+    // Motion event can never be filed under Panic by the filter, the icon, or the reader's labels.
+    @Test
+    fun a_persisted_motion_event_projects_as_motion() {
+        val motion = event(
+            createdAt = now.minus(Duration.ofMinutes(1)),
+            state = EventState.INITIATED,
+            type = SecurityEventType.MOTION_CONFIRMED_EVENT,
+        )
+        val reader = PersistedEventReader(storageInstalled = true, loadRecent = { listOf(motion) })
+
+        val projected = reader.readRecent(limit = 20, now = now).single()
+
+        assertEquals(com.shieldra.app.presentation.model.EventType.Motion, projected.type)
+    }
+
+    @Test
+    fun a_persisted_panic_activation_projects_as_panic() {
+        val panic = event(
+            createdAt = now.minus(Duration.ofMinutes(1)),
+            state = EventState.INITIATED,
+            type = SecurityEventType.PANIC_ACTIVATION,
+        )
+        val reader = PersistedEventReader(storageInstalled = true, loadRecent = { listOf(panic) })
+
+        val projected = reader.readRecent(limit = 20, now = now).single()
+
+        assertEquals(com.shieldra.app.presentation.model.EventType.Panic, projected.type)
+    }
+
+    @Test
+    fun every_persisted_guard_projects_to_its_own_history_type_and_none_to_another_s() {
+        val rows = SecurityEventType.entries.mapIndexed { index, type ->
+            event(
+                createdAt = now.minus(Duration.ofMinutes(index + 1)),
+                state = EventState.INITIATED,
+                type = type,
+            )
+        }
+        val reader = PersistedEventReader(storageInstalled = true, loadRecent = { rows })
+
+        val projected = reader.readRecent(limit = 20, now = now).associateBy { it.id }
+
+        rows.forEach { row ->
+            assertEquals(
+                persistedEventTypeOf(row.type),
+                projected.getValue(row.id.value.toString()).type,
+                "A ${row.type} row must carry the history type its own guard names",
+            )
+        }
+        assertEquals(
+            SecurityEventType.entries.size,
+            projected.values.map { it.type }.distinct().size,
+            "Two different persisted guards must not share one history type",
+        )
+    }
+
+    @Test
+    fun a_reader_wide_label_can_never_retype_a_row() {
+        val motion = event(
+            createdAt = now.minus(Duration.ofMinutes(1)),
+            state = EventState.INITIATED,
+            type = SecurityEventType.MOTION_CONFIRMED_EVENT,
+        )
+        val reader = PersistedEventReader(
+            storageInstalled = true,
+            loadRecent = { listOf(motion) },
+            labels = PersistedEventLabels(title = "حدث أمني"),
+        )
+
+        val projected = reader.readRecent(limit = 20, now = now).single()
+
+        assertEquals(com.shieldra.app.presentation.model.EventType.Motion, projected.type)
+        assertEquals("حدث أمني", projected.title)
+    }
+
+    @Test
+    fun the_event_detail_keeps_the_same_guard_type_as_the_list() {
+        val motion = event(
+            createdAt = now.minus(Duration.ofMinutes(1)),
+            state = EventState.INITIATED,
+            type = SecurityEventType.MOTION_CONFIRMED_EVENT,
+        )
+        val reader = PersistedEventReader(storageInstalled = true, loadRecent = { listOf(motion) })
+
+        val detail = assertNotNull(reader.readOne(motion.id.value.toString(), now = now))
+
+        assertEquals(com.shieldra.app.presentation.model.EventType.Motion, detail.type)
+    }
+
+    private fun event(
+        createdAt: Instant,
+        state: EventState,
+        type: SecurityEventType = SecurityEventType.CONFIRMED_SECURITY_EVENT,
+    ): SecurityEvent = SecurityEvent.create(
         eventId = EventId.from(UUID.randomUUID()),
         createdAt = createdAt,
         state = state,
+        type = type,
     )
 }
