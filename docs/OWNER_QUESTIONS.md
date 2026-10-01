@@ -613,6 +613,16 @@ tripwire fired 0 times while untouched, which says nothing about a real pickup. 
 carry (or a short walk with the phone in a pocket) with the samples logged is what turns the other
 half of this question into a choice between real numbers.
 
+Slice **G3** (CI `36814463442`, RMX3910, adapter class `OK (7 tests)` twice, full suite
+`OK (68 tests)` twice) changed **none** of that. It ran the same resting phone through the real
+adapter path and reported what the stream looks like: 159 samples per 1500 ms, median interval
+**9.0 ms** (**111.1 Hz**), longest gap 10 ms, `clockResolutionDrops = 0`. Those are **timing**
+numbers; the normalizer was fed injected calibration and no magnitude threshold was chosen or
+tested. So the noise-floor half is unchanged, the **strong half still needs the one deliberate
+carry**, and the request now comes with a working collector: logging |‖a‖ − g| during a real carry
+is a measurement, not a guess. See
+`docs/capabilities/motion-detection-requirements.md` ("MEASURED through the G3 adapter").
+
 **Why I am asking instead of choosing:** your rule **G1-02** fixes the **time** side — confirm
 after ~3 seconds of strong/unusual movement, or two suspicious movements within 10 seconds, after
 sensor-quality validation, ignoring isolated noise — and it explicitly leaves *"calibration,

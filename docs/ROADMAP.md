@@ -327,12 +327,15 @@ code):
 | **A-9** | While an FGS really runs it must show a **continuous, accurate** notification: *"SHIELDRA protection is active"*. Never "24/7", never "guaranteed". |
 | **A-10** | **Rejected for now**: no `RECEIVE_BOOT_COMPLETED`, no `BOOT_COMPLETED`. First prove *app opened → user enables → monitoring starts*, then test OEM/reboot behaviour. |
 | **A-11** | Battery restriction is an **optional recommendation**, with the owner's exact wording; it is never presented as a requirement, and the app never claims the system would kill the service without it. |
+| **A-12** | Slice **G3 is signal data only**: the adapter registers the continuous accelerometer (availability lookup for `SIGNIFICANT_MOTION`, never arming it from this layer), the sample rate is **computed from delivered timestamps** because "106 Hz is a test result, not a contract", no measured number may become a constant, and **Signal ≠ Confirmed Security Event**. Its closing sentence is fixed wording, not a claim of accuracy. |
 
 Consequences for the batch order: the **pure** Motion judgement (samples → quality → G1-02
-window) and the honest projection come first; the Android sensor adapter and its on-device
-background-delivery proof come next; **the foreground service and its permission come last, and
-only if the device evidence shows monitoring must continue outside the foreground.** Motion's
-magnitude thresholds are **Q-G1** (an owner decision) and stay injected parameters until measured.
+window) and the honest projection came first (G1), the device evidence second (G2), and the Android
+sensor adapter plus its signal-quality layer third (G3, landed under A-12). What still has to be
+measured before any monitoring claim is the **on-device background-delivery** behaviour; **the
+foreground service and its permission come after that, and only if it shows monitoring must continue
+outside the foreground.** Motion's magnitude thresholds are **Q-G1** (an owner decision) and stay
+injected until measured.
 
 **Slice `G-motion-judgement` is LANDED (CI verified + device no-regression verified, 2026-10-01).**
 `MotionDetection.kt` turns raw samples into the exact `GuardObservation.Motion` the approved engine
@@ -378,11 +381,39 @@ run to completion, g4b + Phase 3 `PASS`, both APKs). On the phone with that run'
 permission, no manifest or screen change; the strong-magnitude half of Q-G1 is still unmeasured
 because no test may carry the phone. See `docs/reports/batch-G2-motion-sensor-evidence.md`.
 
-The next slice is **G3 — the Android adapter**: a continuous accelerometer listener for the burst
-plus a `requestTriggerSensor`/`cancelTriggerSensor` pair for the tripwire, feeding the rule that is
-already tested, with timestamps that survive ~100 Hz. It stays behind *app opened → user enables →
-monitoring starts* (A-8), and the foreground-service decision waits for the screen-off measurement
-this harness could not make.
+**Slice `G-motion-sensor-adapter` is LANDED (CI verified + device verified, 2026-10-01), inside the
+boundary amendment A-12 draws.** `MotionSensorAdapter` registers the continuous accelerometer (and
+only it), stamps samples with the sensor's clock, and unregisters on command;
+`MotionSignalNormalizer` describes that stream — magnitude, the **median interval measured from the
+timestamps that arrived**, the rate derived from it, and `EMPTY` / `INVALID` / `IRREGULAR` / `USABLE`
+with reasons that quote measured numbers. Nothing decides anything: no Security Event, no severity,
+no notification, no Room write, no service, no permission, and `MotionSensorAdapter(` is unreachable
+from the app because the gate fails if it is referenced anywhere else in `app/src/main`.
+
+- **measured through the new path on RMX3910** (logged, never asserted — A-12 rule 2): a 20 000 µs
+  request delivered a **9.0 ms median interval (111.1 Hz)**, 159 samples per 1.5 s window,
+  `clockResolutionDrops=0`, `significant_motion_available=true`;
+- **G2's "the adapter must carry sub-millisecond time" was answered a different way**: the adapter
+  keeps millisecond stamps and *drops plus counts* a reading whose millisecond collides, so the
+  stream that reaches the pure rule is always strictly increasing instead of being rejected whole.
+  Nothing was dropped on this device, but the sample type still cannot express two readings inside
+  one millisecond — if a shipping calibration ever needs every sample, `MotionSample` has to move to
+  microseconds;
+- **CI chain**: `d664783` **RED** `36812820209` (72 errors, confined to the new JVM test) →
+  `2cb1275` `36813397127` ✗ (`abs`/`sqrt` left in `MotionDetection.kt`) → `0b28f6b` `36813935519` ✗
+  (kotlin.test message order at `MotionSignalNormalizerTest.kt:76`) → `c22d9a4` `36814029302` ✗
+  (**same** line-76 error: that commit fixed a reason string, not the argument order) → `742a117`
+  **success** `36814463442` (**270/270 JVM**, lint to completion, Group C + G4-B + Phase 3 `PASS`,
+  both APKs);
+- **on the phone with that run's APKs**: `MotionSensorAdapterInstrumentedTest` **`OK (7 tests)`** ×2
+  and the full instrumented suite **`OK (68 tests)`** ×2 on one install; the dashboard still shows
+  **Motion Guard — "Not monitoring yet"**.
+
+The next slice is **G4 — the layer above signal data** (`Signal → Validation → Confirmation →
+Severity → Confirmed Security Event`, the flow A-12 names). It is gated on two things the owner and
+the device must supply, not on code: the strong-magnitude half of **Q-G1** (one deliberate carry of
+the phone) and the **screen-off / real-background delivery** measurement that decides A-8's
+foreground-service question. Until then Motion may not be shown as `Active` anywhere.
 
 Motion, SIM and Lock detection were explicitly out of Batch F's scope and remain unimplemented.
 
@@ -448,7 +479,7 @@ This is followed, in the owner-mandated order, by:
 | D | Flip `StorageRuntimeApproval.approved = true` in the **same** batch, and only after C's device verification | §11, §14 — **CLOSED** `986cb00`→`36e04c1`→`28d708c`, CI `36745562314` success (213/213 JVM), device `OK (6 tests)` + full suite `OK (48 tests)` **twice on one install** on RMX3910, report `docs/reports/batch-D-storage-runtime-approval.md`. The flip is recorded as amendment **A-5**; g4b now enforces the flipped value so an unrecorded revert fails CI |
 | E | Real local notifications (A-6) + durable Panic activation count with Room v2→v3 (A-7); `POST_NOTIFICATIONS` requested only from the notification setup screen; granted / refused / never-asked kept distinct; a refusal never blocks recording; no local post ever worded as delivered | §16, §23, §31 — **CLOSED** `f16e635`→`…`→`53f0f43`, CI `36771561585` success (231/231 JVM, 0 failures), device `OK (4)` + `OK (3 migration)` + `OK (3 persistence)` + `OK (6 install)`, full suite **`OK (55 tests)` twice on one install** on RMX3910, report `docs/reports/batch-E-local-notifications-and-durable-activation.md`. Exactly one permission is declared; g4b fails a second one, a remote provider in the notification package, any `DELIVERED`/`SENT` name in the local result vocabulary, and a notifier that cannot tell silence from refusal |
 | F | Background-execution **contract** only — no detector, no service, no new permission; five layers separated; `MonitoringClaim` makes a protection claim unrepresentable without a running detector; Batch E's three truthful-copy findings closed | §17 — **CLOSED** `0e767b2`→`1502726`→`cea844b`→`d861922`, CI `36782719559` success (**248/248 JVM**, 0 failures), device full suite **`OK (55 tests)` twice on one install** on RMX3910 + on-screen dumps (Settings/dashboard/onboarding honest, Panic→notification→History intact), report `docs/reports/batch-F-background-execution-contract.md`. **No continuous Guard detector was implemented.** g4b now fails: a second permission, a `<service>` or WorkManager detector before a real guard exists, a delivery row or demo storage figure in Settings, a `Protected`/`Monitoring` claim from the execution layer alone, a missing named Batch F test, and any screen asserting a check that never ran |
-| G | Motion Guard — **slices G1 + G2 LANDED**: pure judgement (`MotionWindowEvaluator` + `MotionGuardObservation`, CI `36789435527` 259/259 JVM, suite `OK (55 tests)` ×2) and on-device sensor evidence (`MotionSensorEvidenceInstrumentedTest`, CI `36793076936` **259/259 JVM**, Motion class **`OK (6 tests)`** and full suite **`OK (61 tests)` ×2** on RMX3910). Measured: the tripwire is reachable **only** through `requestTriggerSensor` (accepted), `registerListener` for it is refused, ~106 Hz delivered for a 50 Hz request, rest noise floor ≤0.52 m/s², and two live samples in one millisecond make the pure rule read `Unreliable`. Thresholds stay injected (Q-G1: rest half measured, strong half needs one carry), no listener exists in `app/src/main`, and no FGS was decided from an upper-bound number. **Next: G3 — the Android adapter**, then the FGS type only if the screen-off evidence demands one | §18 — **IN PROGRESS** |
+| G | Motion Guard — **slices G1 + G2 + G3 LANDED**: pure judgement (`MotionWindowEvaluator` + `MotionGuardObservation`, CI `36789435527` 259/259 JVM, suite `OK (55 tests)` ×2); on-device sensor evidence (`MotionSensorEvidenceInstrumentedTest`, CI `36793076936` **259/259 JVM**, Motion class **`OK (6 tests)`** and full suite **`OK (61 tests)` ×2** on RMX3910); and the **adapter + signal-quality layer inside amendment A-12** (`MotionSensorAdapter` + `MotionSignalNormalizer`, CI `36814463442` **270/270 JVM**, adapter class **`OK (7 tests)`** ×2 and full suite **`OK (68 tests)`** ×2 on one install). Measured through the shipped path: `registerListener` for the accelerometer returns `true`, 159 samples per 1500 ms, median interval **9.0 ms** → **111.1 Hz** computed from delivered timestamps (never asserted as a constant), `clockResolutionDrops=0`, `significant_motion_available=true` with the trigger **never armed**. G3 emits **signal data only** — no Security Event, severity, notification, Room write, service or permission; `MotionSensorAdapter(` is referenced nowhere else in `app/src/main` (g4b section 15). Thresholds stay injected (Q-G1: rest half measured, strong half still needs one deliberate carry), and the dashboard shows **Motion Guard — "Not monitoring yet"**. **Next: G4 — the layer above signal data**, gated on Q-G1's strong half and the screen-off / real-background delivery measurement that decides A-8's foreground-service question | §18 — **IN PROGRESS** |
 | H | Evidence / privacy / permission implementation | §21–§23 |
 | I | SIM Guard — feasibility first, then implementation | §19 |
 | J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |

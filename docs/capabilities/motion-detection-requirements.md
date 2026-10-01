@@ -80,6 +80,44 @@ full suite `OK (61 tests)` twice on one install. These are runtime readings, not
    is the shape of an argument for Q-G1 — but the *strong* level still has no measured support,
    because no test moved the phone.
 
+## MEASURED through the G3 adapter — RMX3910, 2026-10-01 04:10
+
+`MotionSensorAdapterInstrumentedTest`, seven tests, on the APK pair from CI run `36814463442`
+(commit `742a117`); the adapter class ran `OK (7 tests)` twice and the full instrumented suite ran
+`OK (68 tests)` twice on one install. This is the same physical path the app would use
+(`MotionSensorAdapter` → `SensorManager.getDefaultSensor` → `registerListener` on a
+`HandlerThread`), not a hand-fed fixture.
+
+| Measurement | Result |
+|---|---|
+| Availability, no registration | `accelerometer_available=true`, `significant_motion_available=true` — the adapter can see that the trigger **exists** without arming it (A-12 rule 1) |
+| `registerListener` return value | **`true`**, and `registeredSensorType` became `TYPE_ACCELEROMETER` — the continuous half of G2's refused/accepted split now verified from the correct API |
+| Samples delivered for a 20 000 µs request | **159 samples in 1500 ms**, all finite and strictly increasing in time |
+| Rate computed from delivered timestamps | median interval **9.0 ms** → **111.1 Hz**, longest gap **10 ms** — the test compares this against an interval median it computes itself, so it proves the adapter measures rather than assumes |
+| Millisecond collisions dropped by the adapter | `clockResolutionDrops = 0` in these windows |
+| After `stopReporting()` | second callback count frozen, `registeredSensorType = null`, a repeated `stopReporting()` returned `false` |
+| Fresh adapter on a fresh process | unregistered and silent (`deliveredSampleCount = 0`) — the process-recreation case |
+
+### What the adapter readings decide
+
+9. **106 Hz was a good test result, and it reproduced.** The same device, asked the same way,
+   delivered 9.0 ms between samples this time (111.1 Hz against G2's ≈106 Hz). The two readings
+   differ by more than the request's `maxDelay` interpretation would suggest, which is exactly why
+   A-12 rule 3 forbids turning either number into a constant: the rate is an output of the stream,
+   never an input to it.
+10. **G2's sub-millisecond question was answered by *dropping*, not by carrying more precision.**
+    Item 7 asked the adapter to carry `event.timestamp`'s nanoseconds; `MotionSample.elapsedMs` is
+    still a `Long` millisecond, so the adapter converts to ms, and a reading that is not strictly
+    later than the previous one is discarded and counted instead of poisoning the stream. On these
+    windows nothing was dropped (`clockResolutionDrops = 0`), so **the collision path is not
+    proven on this device** — it is proven by JVM tests only, and the two-share-one-millisecond
+    burst that G2 actually observed would now silently cost a sample. That trade-off is recorded as
+    finding 10 in `docs/reports/batch-G3-motion-sensor-adapter.md` and is a real decision for G4.
+11. **What still has no measurement**: the strong-magnitude half of Q-G1 (no test may carry the
+    phone), and delivery with the screen off or a real background state. G2's "no resumed
+    activity" row held the process alive through instrumentation and left the screen on, so it
+    bounds the rate; it does not answer A-8's foreground-service question, and G3 did not either.
+
 ## The approved rule this must implement (G1-02, unchanged)
 
 `SHIELDRA_DECISIONS.md:21`: confirm after strong/unusual movement lasting **≈3 seconds**, or
