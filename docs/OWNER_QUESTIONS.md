@@ -18,6 +18,10 @@ and **Q-C10 was opened** (the Settings row Batch E could not fix without widenin
 **Revised again:** 2026-09-30, after Batch F closed — **Q-C10 is CLOSED** (decided by your Batch F
 directive; CI `36782719559` 248/248 + RMX3910), and **Q-F1 is new** (the delivery claims that
 survived on Premium, the event Detail card, and onboarding's dead "Allow").
+**Revised again:** 2026-10-01, after **G4-A** finished its device campaign — the screen-off measurement
+is closed as evidence (report: `docs/reports/batch-G4A-background-sensor-measurement.md`), **Q-G3 is
+new** (your A-8/foreground-service decision on that evidence), and Batch H is recorded as a
+**decisions-only** package behind it per amendment **A-14**.
 
 > **Open items after the protocol, and none blocks the next batch:**
 > 1. **Q-D5/Q-D7 — ads and billing.** The protocol (§30) contradicts the 2026-09-29
@@ -34,9 +38,20 @@ survived on Premium, the event Detail card, and onboarding's dead "Allow").
 >    noise floor on RMX3910 (≤0.52 m/s²); the **strong** level still needs one deliberate carry
 >    by you, because no test may move the phone.
 >    Your Batch G mechanism rulings are **not** open: they are amendments **A-8 … A-11** (see Q-G2).
+>    A-8's ruling still governs *how* a service may ever be added (never an empty service to defeat a
+>    gate, never permission-only code); what G4-A re-opens is the separate *whether/when* question —
+>    that one is **Q-G3**.
 >    Outside this repository, the published store copy still advertises **"zero Android
 >    permissions"**, which amendment A-6 superseded — the honest sentence is "no permissions
 >    until you need them".
+> 5. **Q-G3 — the A-8 foreground-service decision**, which G4-A's evidence now puts in front of you.
+>    The measurement is finished: valid numbers exist only for lit windows, and every genuinely dark
+>    window ended with the app process given no CPU while the platform kept the subscription and an
+>    undrained queue. That answers "what happened to the sensor path in the dark", not "should
+>    SHIELDRA run a foreground service" — A-14 makes that your call, and four options (decide now /
+>    measure once more, on battery and from the app's own UI / keep A-8 closed and build pure G4 /
+>    drop while-dark motion monitoring) are set out in Q-G3 with no recommendation from me.
+>    **Batch H's camera and location parameters stay deferred behind this one**, per A-14's order.
 >
 > Everything else in section C is answered and quoted to its source.
 
@@ -662,6 +677,50 @@ The one point where your correction changed my reasoning, recorded so it is not 
 battery optimization is documented as an exemption related to **background FGS-start limits**, not
 as a guarantee that the service survives — so "the OEM will usually kill it without this" was too
 strong a claim, and §31 is the reason it matters.
+
+---
+
+## Q-G3 — A-8 / the foreground service: the decision G4-A now puts in front of you (NEW, raised by G4-A)
+
+**What the campaign found, in one paragraph.** On your RMX3910, an accelerometer subscription opened
+while the app is in the foreground **stays registered** when the display goes dark, and the platform
+keeps a **full, undrained queue** for it (`Dropping 1 cached events (4500/4500) …
+app:com.shieldra.app`, up to 521 such lines in one 15-minute run) — but **the app process itself is not
+executing**: across ten genuinely dark windows it advanced **0–22 CPU ticks over 229–1128 seconds**
+(never once in state `R`), while a lit-screen control of the same install advanced at ~2 ticks/s. In
+every dark run the measurement vehicle never reached the point where it publishes its own numbers, so
+**there is no measured sample-delivery rate with the screen off on this device**. Full tables, both
+evidence buckets, and the ten self-adversarial findings:
+`docs/reports/batch-G4A-background-sensor-measurement.md`.
+
+**What the evidence does not say, and I will not make it say.** It does not show the sensor stopped
+producing (the 2.003 s eviction rhythm is ambiguous and I kept both readings). It does not describe a
+production service on battery, under Doze/App Standby or OEM restrictions — every run was an
+instrumented test process on a charging, adb-connected phone (A-13). And **"an FGS is required" is not
+a result of this campaign**; per A-14 that sentence is your architectural decision, which is why it is
+here as a question instead of in a report as a conclusion.
+
+**Your decision.** Options, with what each one buys and costs. **I am not recommending any of them.**
+
+| # | Option | What it rests on | What it costs |
+|---|---|---|---|
+| 1 | **Decide A-8 now, on this evidence**: build the real monitoring service the user starts, perceives and stops, with the A-9 ongoing notification. | The framework side keeps the subscription alive while dark; the consumer is what is missing, and a service the platform treats as foreground is exactly the thing that is not a "cached background process". | Motion becomes a shipping feature before any dark-window delivery rate has ever been measured, and A-13 says that rate is the number nobody has yet produced. Requires an amendment to record the ruling. |
+| 2 | **Order one more measurement before deciding**: the same campaign on **battery** (cable off, adb off or over wireless adb), and/or with monitoring started from the app's own UI rather than from instrumentation. | Keeps A-8's gate honest — you ruled that a mechanism is added only when device evidence demands it. | More device time on you and the phone, and the FGS question stays open through at least one more batch boundary. |
+| 3 | **Keep A-8 closed and continue with pure code only**: build G4's decision layer (`Signal → Validation → Confirmation → Severity → Confirmed Security Event`) with injected calibration, testable on the JVM, while Motion stays "Not monitoring yet". | Everything G4 needs except a threshold is pure judgement, and Q-G1's rest half is already measured. | Motion still cannot be shown as `Active` anywhere; the batch ends without a user-visible detector. |
+| 4 | **Drop continuous/while-dark motion monitoring as a product capability.** | Every dark window measured so far delivered nothing to the app, and A-11 already concedes the OEM "may still apply additional background restrictions". | Motion Guard becomes an app-open-only feature, which changes what the product promises and what the store copy may claim. |
+
+**Answer format:** `Q-G3: الخيار 2` (or another option, or a different ask). If you pick 1 or 4, the
+ruling is recorded as a numbered amendment (**A-15**) before any code changes, and A-8's standing rule
+applies whatever you choose: an approved mechanism is not permission to write an empty service to
+defeat a gate, and `FOREGROUND_SERVICE*` / `specialUse` appear only when a service a user can start,
+see and stop actually exists.
+
+**What I am deliberately not asking yet.** Batch H's camera and location parameters (capture duration,
+photo count, location precision, retention, whether camera is allowed at all — **Q-C5**, plus Q-C3's
+camera sub-question) stay deferred: A-14 fixes the order as *G4-A report → evidence review → A-8/FGS →
+then the H decisions package*, and the gates (`group-c-contract-check.sh`, `g4b-review-check.sh`) still
+forbid any H code until an authority amendment changes them. I have not invented any of those values
+and will not.
 
 ---
 
