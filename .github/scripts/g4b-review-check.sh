@@ -581,6 +581,55 @@ for name in starting_reporting_registers_the_accelerometer_and_nothing_else \
 done
 pass "the G3 adapter and signal layer stay inside amendment A-12: signal data only, measured rates, no tripwire arming"
 
+# 16. Batch G slice G4-A — a measurement campaign, not a feature. Amendment A-13 allows one extra
+#     test-only vehicle and nothing else: it may not gain a wake lock, a battery exemption, a
+#     service, an FGS type or a permission, and it must not become a production monitoring path.
+#     The four phase windows, the test-only delivery_state rule and the evidence line are pinned so
+#     a later edit cannot quietly shorten the campaign or invent a different "stopped" definition.
+G4A=app/src/androidTest/kotlin/com/shieldra/detection/MotionBackgroundMeasurementInstrumentedTest.kt
+[ -s "$G4A" ] || fail "the G4-A measurement vehicle is missing"
+for name in phase_a_baseline_with_the_screen_on_measures_the_reference_rate \
+  phase_b_screen_off_sixty_seconds_measures_whether_delivery_survives_the_screen_going_dark \
+  phase_c_screen_off_five_minutes_measures_whether_delivery_survives_a_longer_interval \
+  phase_d_screen_off_fifteen_minutes_looks_for_degradation_or_cessation_over_a_long_interval; do
+  grep -qE "fun $name\(" "$G4A" || fail "the G4-A phase test $name was removed or renamed"
+done
+for window in 'PHASE_A_WINDOW_MS = 60_000L' 'PHASE_B_WINDOW_MS = 60_000L' \
+  'PHASE_C_WINDOW_MS = 300_000L' 'PHASE_D_WINDOW_MS = 900_000L'; do
+  grep -q "$window" "$G4A" || fail "G4-A lost an owner-approved phase duration ($window)"
+done
+for state in 'NO_DATA' 'CONTINUING' 'INTERRUPTED' 'STALL_TOLERANCE_FACTOR = 3.0' 'G4A_JSON=' \
+  'clockResolutionDrops' 'screen_off_confirmed_before_window'; do
+  grep -q "$state" "$G4A" || fail "the G4-A evidence no longer carries $state"
+done
+
+G4A_CODE="$(grep -hvE '^[[:space:]]*(/\*|\*|//)' "$G4A")"
+if printf '%s\n' "$G4A_CODE" | grep -qE 'SecurityEvent|EventId|Panic|Notification|Room|Evidence|Camera|Location|Sms|Mail|firebase|WorkManager|RequestQueue|cool[A-Za-z]*down'; then
+  fail "the G4-A vehicle reaches a decision, a channel, or storage; A-13 allows measurement only"
+fi
+# 'confirm' is deliberately not on this list: the vehicle must say whether the screen was *confirmed*
+# asleep, and that word is evidence about the experiment, not a security confirmation.
+
+# A-13: the campaign must run under today's execution conditions, so nothing that would change them
+# may appear anywhere in the app's sources — a wake lock in particular would answer a different
+# question than the one the owner asked.
+for forbidden in 'WAKE_LOCK' 'WakeLock' 'newWakeLock' 'IGNORE_BATTERY_OPTIMIZATIONS' \
+  'requestIgnoreBatteryOptimizations' 'isIgnoringBatteryOptimizations' 'setSustainedPerformanceMode'; do
+  if grep -RIn "$forbidden" app/src --include='*.kt' --include='*.xml' ; then
+    fail "$forbidden appeared while G4-A is only a measurement (A-13 forbids changing execution conditions)"
+  fi
+done
+for forbidden in '<service' 'FOREGROUND_SERVICE' 'RECEIVE_BOOT_COMPLETED' 'BOOT_COMPLETED'; do
+  if grep -q "$forbidden" app/src/main/AndroidManifest.xml; then
+    fail "$forbidden appeared during the G4-A measurement; A-8/A-10/A-13 hold it back"
+  fi
+done
+
+# The vehicle stays a vehicle: nothing in the running app may reference it.
+MAIN_G4A="$(grep -RIn 'MotionBackgroundMeasurement' app/src/main --include='*.kt' --include='*.xml' || true)"
+[ -z "$MAIN_G4A" ] || fail "the G4-A measurement vehicle is wired into production code: $MAIN_G4A"
+pass "the G4-A vehicle stays a measurement: four owner phases, fixed evidence rule, no wake lock, no FGS, no production path"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"
