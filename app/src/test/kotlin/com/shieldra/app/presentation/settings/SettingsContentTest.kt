@@ -94,8 +94,8 @@ class SettingsContentTest {
     fun only_the_monitoring_mode_claims_monitoring() {
         SettingsContent.DashboardMode.entries.forEach { mode ->
             assertEquals(
-                SettingsContent.DashboardMode.LocalEventsWithMotion,
-                mode.takeIf { it.claimsMonitoring },
+                mode == SettingsContent.DashboardMode.LocalEventsWithMotion,
+                mode.claimsMonitoring,
                 "$mode claims monitoring, and only the running Motion monitor may",
             )
         }
