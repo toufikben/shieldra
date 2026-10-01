@@ -132,7 +132,7 @@ field() { sed -n "s/.*\"$1\":\"\{0,1\}\([^,}\"]*\)\"\{0,1\}.*/\1/p" "$2" | head 
 
 run_one() {
   local phase="$1" run="$2"
-  local window_ms method wants_off log_dir json_file
+  local window_ms method wants_off log_dir json_file sensor_drops
   window_ms="$(phase_window_ms "$phase")"
   method="$(phase_method "$phase")"
   wants_off="$(phase_wants_screen_off "$phase")"
@@ -199,7 +199,7 @@ run_one() {
   adb_sh dumpsys deviceidle > "$log_dir/post-deviceidle.txt" || true
   adb_sh dumpsys power | grep -E 'mWakefulness|mState|mScreenOn|Interactive' > "$log_dir/post-power.txt" || true
 
-  local result samples median rate maxgap drops contamination sensor_drops
+  local result samples median rate maxgap drops contamination
   if [ ! -s "$json_file" ]; then
     result="NO_EVIDENCE"
     samples=""; median=""; rate=""; maxgap=""; drops=""; contamination="instrument exit $instrument_status"
