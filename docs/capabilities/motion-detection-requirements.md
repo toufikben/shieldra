@@ -42,7 +42,10 @@ Device features include `android.hardware.sensor.accelerometer`. Battery saver w
    should therefore take is: `SIGNIFICANT_MOTION` fires → a short accelerometer burst samples
    the movement → the approved G1-02 rule decides → a Security Event is persisted through the
    existing pipeline. **The API that shape must use is `SensorManager.requestTriggerSensor`, not
-   `registerListener`** — measured, see the next section.
+   `registerListener`** — measured, see the next section. **That shape is still not built**: under
+   amendment A-12 slice G3 ships only the continuous accelerometer adapter and its signal-quality
+   layer, so the trigger remains an availability lookup here. Arming it is a later slice, and the
+   `Signal → Confirmation → Security Event` half belongs to G4.
 
 ## MEASURED by the instrumented harness — RMX3910, 2026-10-01 00:56
 
