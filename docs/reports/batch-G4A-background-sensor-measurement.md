@@ -38,6 +38,7 @@ delivering samples after the display goes dark?
 | Vehicle | `app/src/androidTest/kotlin/com/shieldra/detection/MotionBackgroundMeasurementInstrumentedTest.kt` — registers `MotionSensorAdapter` **before** the screen goes dark, waits for `PowerManager.isInteractive` to say false (settle deadline 120 s), closes the window on `elapsedRealtime` (the clock the samples carry), counts interactive polls inside the window, then publishes one `G4A_JSON=` evidence line **from the main thread**. Classification is A-13's: `NO_DATA` / `CONTINUING` / `INTERRUPTED`, plus a contamination flag whenever the display was interactive during any poll. |
 | Driver | `scripts/run-g4a-device-campaign.sh` at `3320c1e` — installs the CI pair, runs one method at a time, sends `keyevent 224` then `keyevent 223` after 8 s for the dark phases, keeps `logcat` for the vehicle tag **and** `SensorService:W`, carries its own wall-clock deadline (`window_ms/1000 + 240 s`), and on breach force-stops both packages and writes `driver-timeout.json` (schema `shieldra-g4a-driver-timeout-v1`) while leaving `evidence.json` empty. Crossing that deadline is labelled `TIMEOUT_NO_DATA`, never folded into `INTERRUPTED` — the owner's explicit instruction. |
 | Phases | A = 60 s with the display lit (reference rate). B = 60 s dark. C = 300 s dark. D = 900 s dark. Three runs each = the 12 runs the owner ordered. |
+| Campaigns | **20 device runs in total**: campaign-1 (4 runs, before the driver deadline and the main-thread evidence fix), campaign-2 (the ordered 12), campaign-3 (3 runs, A-14's clean re-run of B), campaign-4 (1 lit control). Every row of all four appears in one of the two buckets below. |
 | Independent witnesses | `logcat -b events -s screen_toggled` (survives the driver's per-run `logcat -c`), `post-power.txt` (`mWakefulness` / `mIsInteractive` / `mHalInteractiveModeEnabled` / last interactive hint), `SensorService` cached-event evictions attributed to `app:com.shieldra.app`, and a passive `/proc` observer (`shieldra-g4a-evidence/observe-process-scheduling.sh`) that samples the measured process's kernel counters every 15 s and writes nothing to the device. |
 
 The observer exists because of a hole in the vehicle's own design: a process that is never scheduled
@@ -149,8 +150,8 @@ sampled every 15 s, three campaigns:
 | **campaign-4 A 1 (60 s lit control)** | 28495 | 2 | 16 s | **+23** | **+9** | all `S` | **Awake 1/1** |
 
 In the lit control the counters advance at ~2 ticks/s; in every dark run they advance 0–22 ticks over
-spans of 229–1128 s, i.e. 0.00–0.08 ticks/s — 25 to 300 times less, and four runs advanced by exactly
-nothing. No sample was ever `R`. `runnable_other` (the kernel's 1-minute load average) stayed at
+spans of 229–1128 s, i.e. 0.00–0.08 ticks/s — 25 to 300 times less, and two runs (campaign-2 D 3 and
+campaign-3 B 1) advanced by exactly nothing. No sample was ever `R`. `runnable_other` (the kernel's 1-minute load average) stayed at
 21–25 throughout, so the SoC as a whole kept executing other work while this process accumulated
 essentially no CPU. *(Ticks are `/proc/<pid>/stat` fields 14/15; converting them to seconds assumes
 USER_HZ = 100, the usual Linux/Android value, and was **not verified** on this kernel — so the tick
