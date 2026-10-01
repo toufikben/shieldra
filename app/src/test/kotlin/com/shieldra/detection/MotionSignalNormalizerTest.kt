@@ -74,8 +74,8 @@ class MotionSignalNormalizerTest {
         assertEquals(null, none.measuredRateHz)
         for (signal in listOf(one, none)) {
             assertTrue(
-                "${signal.qualityReasons} must say nothing was measured, which is not the same as a still device",
                 signal.qualityReasons.any { it.contains("Nothing was measured", ignoreCase = true) },
+                "${signal.qualityReasons} must say nothing was measured, which is not the same as a still device",
             )
         }
     }
