@@ -147,7 +147,7 @@ run_one() {
   # Phase A is left exactly as the phone is configured: no keyevent, no wake lock, no setting
   # changed. If its own screen-timeout puts the display to sleep mid-baseline, the evidence line
   # says so through screen_interactive_polls_during_window and the report states it.
-  adb logcat -c || true
+  "$ADB_BIN" -s "$SER" logcat -c || true
   "$ADB_BIN" -s "$SER" logcat -v threadtime "$TAG:I" '*:S' > "$log_dir/logcat.txt" 2>&1 &
   local logcat_pid=$!
   sleep 1

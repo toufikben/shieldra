@@ -32,6 +32,16 @@ import java.util.Collections
  * interrupted delivery and read as an answer about foreground services. The worker keeps the
  * measurement honest about the question it is actually asking.
  *
+ * The window is closed by elapsedRealtime rather than by a count of sleeps, and the difference
+ * between elapsedRealtime and the process's own monotonic clock is reported as ap_suspend_ms. The
+ * reason is a measured property of RMX3910: `dumpsys sensorservice` lists sc7a20 ACCELEROMETER as
+ * non-wakeUp, so incoming samples do not wake the application processor, and a sleeping processor
+ * makes both Thread.sleep and monotonic time stand still. Counting sleeps therefore stretched a
+ * 60 s phase to hours without an evidence line. ap_suspend_ms keeps that visible in the evidence:
+ * a large value says the processor was asleep for that long inside the window, which is the
+ * CPU-sleep half of the ambiguity amendment A-13 and section 10 of the G4-A brief tell us to report
+ * instead of resolving by adding a wake lock to the measurement.
+ *
  * What this cannot show, and A-13 says so in advance: instrumentation keeps the process alive and
  * gives it test-process priority, so these numbers describe an instrumented process, not a
  * production background service under Doze, App Standby or OEM restrictions. Continued delivery is
@@ -92,6 +102,7 @@ class MotionBackgroundMeasurementInstrumentedTest {
         val deliveredSampleCount: Int,
         val clockResolutionDrops: Int,
         val reportingAfterStop: Boolean,
+        val windowMonotonicMs: Long,
         val exception: String?,
     )
 
@@ -131,6 +142,8 @@ class MotionBackgroundMeasurementInstrumentedTest {
         var startWallClockMs = 0L
         var endWallClockMs = 0L
         var actualElapsedMs = 0L
+        var monotonicStartMs = 0L
+        var monotonicEndMs = 0L
         var polls = 0
         var interactivePolls = 0
         var raised: String? = null
@@ -152,16 +165,20 @@ class MotionBackgroundMeasurementInstrumentedTest {
 
             windowStartMs = SystemClock.elapsedRealtimeNanos() / NANOS_PER_MILLI
             startWallClockMs = System.currentTimeMillis()
-            var remaining = windowMs
-            while (remaining > 0) {
-                val slice = minOf(pollMs, remaining)
-                Thread.sleep(slice)
-                remaining -= slice
+            monotonicStartMs = System.nanoTime() / NANOS_PER_MILLI
+            // The window is closed by elapsedRealtime — the clock the sensor timestamps are stamped
+            // with — not by a count of nominal sleeps. Thread.sleep is measured against a clock that
+            // stands still while the application processor suspends, so counting sleeps stretched a
+            // 60 s window to hours on RMX3910 and the run never reported at all.
+            while (elapsedSince(windowStartMs) < windowMs) {
+                val remainingMs = windowMs - elapsedSince(windowStartMs)
+                Thread.sleep(minOf(pollMs, maxOf(remainingMs, MIN_POLL_SLICE_MS)))
                 polls++
                 if (powerManager.isInteractive) interactivePolls++
             }
             endWallClockMs = System.currentTimeMillis()
             windowEndMs = SystemClock.elapsedRealtimeNanos() / NANOS_PER_MILLI
+            monotonicEndMs = System.nanoTime() / NANOS_PER_MILLI
             actualElapsedMs = endWallClockMs - startWallClockMs
         } catch (thrown: Throwable) {
             raised = "${thrown.javaClass.name}: ${thrown.message}"
@@ -193,11 +210,15 @@ class MotionBackgroundMeasurementInstrumentedTest {
                 deliveredSampleCount = adapter.deliveredSampleCount,
                 clockResolutionDrops = adapter.clockResolutionDrops,
                 reportingAfterStop = adapter.isReporting,
+                windowMonotonicMs = monotonicEndMs - monotonicStartMs,
                 exception = raised,
             ),
         )
         return raised
     }
+
+    /** Milliseconds of elapsedRealtime since `startMs` — the clock the samples are stamped with. */
+    private fun elapsedSince(startMs: Long): Long = SystemClock.elapsedRealtimeNanos() / NANOS_PER_MILLI - startMs
 
     private fun stopQuietly(adapter: MotionSensorAdapter) {
         try {
@@ -251,6 +272,7 @@ class MotionBackgroundMeasurementInstrumentedTest {
             "requested_period_us" to observation.requestedPeriodUs,
             "requested_duration_ms" to observation.phase.windowMs,
             "actual_elapsed_ms" to observation.actualElapsedMs,
+            "ap_suspend_ms" to (windowDurationMs - observation.windowMonotonicMs),
             "settle_waited_ms" to observation.settleWaitedMs,
             "screen_off_confirmed_before_window" to observation.screenOffBeforeWindow,
             "screen_interactive_polls_during_window" to observation.interactivePolls,
@@ -362,6 +384,7 @@ class MotionBackgroundMeasurementInstrumentedTest {
         const val DEFAULT_REQUESTED_PERIOD_US = 20_000
         const val DEFAULT_SETTLE_DEADLINE_MS = 120_000L
         const val DEFAULT_POLL_MS = 5_000L
+        const val MIN_POLL_SLICE_MS = 250L
         const val SETTLE_POLL_MS = 250L
         const val SETTLE_AFTER_STOP_MS = 500L
         const val JOIN_MARGIN_MS = 180_000L
