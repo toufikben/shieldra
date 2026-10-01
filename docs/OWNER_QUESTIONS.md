@@ -596,6 +596,13 @@ conflict** — and per §14 I do not resolve an open decision by deleting the te
    while `ShieldraNavHost.kt:164` passes `onAllow = { defer() }`. §32 says a control must work, be
    honestly disabled, or be removed — and §23 forbids requesting a permission before the feature
    that needs it exists, so "make it work" is not the right fix here.
+   **Update from the device pass on `adf68cc` (2026-10-01):** tapping that **Continue** on the phone
+   really does nothing but show *"This action is intentionally deferred in Phase 3."* — and the step
+   also told the user *"SHIELDRA asks for it only here"*, which is false (the only request site is the
+   A-6 Settings screen, `ShieldraNavHost.kt:271`). The **false sentence was fixed** in slice
+   `F2a` (`docs/reports/batch-F2-onboarding-copy-truthfulness.md`): onboarding now has its own copy
+   pointing at Settings, and a gate section 17 keeps it there. **The dead button is still yours to
+   decide** — remove the step, or keep it as an explanation-only step.
 
 | Option | Rule | Consequence |
 |---|---|---|

@@ -66,6 +66,7 @@
     <string name="step_of">الخطوة %1$d من %2$d</string>
     <string name="notifications">الإشعارات</string>
     <string name="permission_notification_reason">يسجّل SHIELDRA الأحداث الأمنية على هذا الهاتف. ولإظهار إشعار عند حدوث أحدها، يحتاج أندرويد إلى إذنك. يطلبه SHIELDRA هنا فقط، وتُسجَّل أحداثك الأمنية في الحالتين.</string>
+    <string name="onboarding_notification_reason">يسجّل SHIELDRA الأحداث الأمنية على هذا الهاتف. ولإظهار إشعار عند حدوث أحدها، يحتاج أندرويد إلى إذنك. يطلب SHIELDRA هذا الإذن من الإعدادات، وتُسجَّل أحداثك الأمنية في الحالتين.</string>
     <string name="notification_channel_security_events">الأحداث الأمنية</string>
     <string name="notification_channel_security_events_description">إشعارات محلية للأحداث التي سجّلها SHIELDRA على هذا الهاتف.</string>
     <string name="notification_event_title">تم تسجيل حدث أمني</string>
@@ -82,7 +83,6 @@
     <string name="protection_setup_question">يستخدم حارس القفل قاعدة الحماية المعتمدة.</string>
     <string name="lock_guard_threshold">تؤكد %1$d محاولتان فاشلتان حدثًا أمنيًا</string>
     <string name="lock_guard_window">يجب أن تحدث المحاولتان خلال دقيقتين. تُسجل المحاولة الفاشلة الأولى كإشارة، لكنها لا تنشئ حدثًا أمنيًا مؤكدًا.</string>
-    <string name="attempt_recording_note">تُسجل المحاولة الفاشلة الأولى كإشارة، لكنها لا تنشئ حدثًا أمنيًا مؤكدًا.</string>
     <string name="silent_panic">الذعر الصامت</string>
     <string name="trigger_emergency_event">تفعيل حدث طوارئ</string>
     <string name="details">التفاصيل</string>

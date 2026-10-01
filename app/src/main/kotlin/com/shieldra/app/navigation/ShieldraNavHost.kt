@@ -160,7 +160,7 @@ fun ShieldraNavHost(
                     totalSteps = 1,
                     icon = Icons.Filled.Settings,
                     title = stringResource(R.string.notifications),
-                    reason = stringResource(R.string.permission_notification_reason),
+                    reason = stringResource(R.string.onboarding_notification_reason),
                     onAllow = { defer() },
                     onNotNow = {
                         navController.navigate(ShieldraRoutes.ONBOARDING_PROTECTION)

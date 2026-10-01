@@ -630,6 +630,28 @@ MAIN_G4A="$(grep -RIn 'MotionBackgroundMeasurement' app/src/main --include='*.kt
 [ -z "$MAIN_G4A" ] || fail "the G4-A measurement vehicle is wired into production code: $MAIN_G4A"
 pass "the G4-A vehicle stays a measurement: four owner phases, fixed evidence rule, no wake lock, no FGS, no production path"
 
+# 17. Onboarding copy must say what the onboarding screens actually do. Found on the device
+#     pass over `adf68cc`: the permission step reused the A-6 Settings sentence that claims
+#     SHIELDRA asks for the notification permission "only here", while that step's Continue is
+#     `defer()` (ShieldraNavHost.kt) and never asks; and the protection step printed the same
+#     sentence twice, because lock_guard_window already contains attempt_recording_note.
+for locale in values values-ar; do
+  STRINGS="app/src/main/res/$locale/strings.xml"
+  onboarding_reason="$(grep -o 'name="onboarding_notification_reason">[^<]*' "$STRINGS" | sed 's/^[^>]*>//' || true)"
+  [ -n "$onboarding_reason" ] || fail "$locale has no onboarding_notification_reason for the deferred onboarding step"
+  if printf '%s' "$onboarding_reason" | grep -qE 'only here|هنا فقط'; then
+    fail "$locale onboarding copy claims the permission is asked on a screen whose Continue is deferred"
+  fi
+done
+grep -q 'reason = stringResource(R.string.onboarding_notification_reason)' \
+  app/src/main/kotlin/com/shieldra/app/navigation/ShieldraNavHost.kt \
+  || fail "the onboarding permission step still borrows the A-6 Settings claim"
+PROTECTION_STEP=app/src/main/kotlin/com/shieldra/app/presentation/screen/onboarding/ProtectionSetupScreen.kt
+if grep -q 'R.string.lock_guard_window' "$PROTECTION_STEP" && grep -q 'R.string.attempt_recording_note' "$PROTECTION_STEP"; then
+  fail "the protection step prints one sentence twice (lock_guard_window already contains attempt_recording_note)"
+fi
+pass "onboarding copy claims only what the onboarding screens really do"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"
