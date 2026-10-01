@@ -36,6 +36,15 @@ calibration numbers**, confirmation of the reviewed type, and the G5 design itse
 `specialUse` is **confirmed** with the `health` correction accepted, and `minEpisodeMs` is separated from
 G1-02's confirmation policy by ruling. **The open list is back to three items (Q-D5/Q-D7, Q-C8, Q-F1),
 and what is left of mine is one thing: the G5 design, for your approval before any code.**
+**Revised again:** 2026-10-01, after you **approved the G5 design** and answered its three decisions —
+recorded as **amendment A-18**: `stallToleranceFactor = 11.0` (the calibration is now **six numbers,
+complete**), **fail closed** when the ongoing notification cannot be seen (`<33 NotRequired → start`,
+`≥33 Granted → start`, `Denied → do not start`, `NotRequested → route to the request`), **Motion-scoped**
+same-event reuse with no cooldown and no new number, **one** adapter owner (the `Service`, never a second
+instance in `MotionRuntime`), truth read from the real service state + `adapter.isReporting`, and
+start-latency/CPU/battery/screen-off measured as a **separate** campaign rather than made a precondition
+for G5. **No question of mine is open now.** The gate move is **A-19** and lands in the same commit as the
+service code. Adopted as the working principle for the batches ahead: **التسريع المنضبط**.
 
 > **Open items after the protocol, and none blocks the next batch:**
 > 1. **Q-D5/Q-D7 — ads and billing.** The protocol (§30) contradicts the 2026-09-29
@@ -55,7 +64,7 @@ and what is left of mine is one thing: the G5 design, for your approval before a
 >    *episode definition/assembly*, the ~3 s / 2-in-10 s rule is the *confirmation policy* — neither
 >    substitutes for the other. **What this closes and what it does not:** no calibration number is open
 >    any more, and a `MotionCalibration` shipping default may now exist — but only inside one named
->    calibration object, in the same commit as a real service, behind a new gate amendment (**A-18**).
+>    calibration object, in the same commit as a real service, behind a new gate amendment (**A-19**, renumbered once A-18 became the G5 decision record).
 >    **A-17 licenses no code by itself**; the next step is the G5 design on your screen, then your yes.
 >    Your Batch G mechanism rulings are **not** open: they are amendments **A-8 … A-11** (see Q-G2).
 >    A-8's ruling still governs *how* a service may ever be added (never an empty service to defeat a
@@ -793,8 +802,40 @@ that it is excluded on its **documented purpose** (fitness/health), not on the s
 it needs. Choosing an FGS type by comparing permissions while misdescribing the use case is the failure
 mode A-8 forbids. The Play-facing `<property>` explanation is in that file, still labelled DRAFT until
 it ships with the service. **No FGS code exists yet and no gate has moved** — the gate move is a
-separate amendment (**A-18**) that lands in the same commit as the real service.
+separate amendment (**A-19**, renumbered from the A-18 slot) that lands in the same commit as the real service.
 
+
+---
+
+## Q-G5 — the three G5 design decisions: **ANSWERED 2026-10-01 (amendment A-18)**
+
+The G5 design was presented in full and you approved it with three rulings and three corrections; all
+six are recorded as **amendment A-18**. Nothing here is open any more — the summary, in the words the
+code will be tested against:
+
+| Asked | Your ruling |
+|---|---|
+| **Q-G5-a** — `stallToleranceFactor`, the one number `MotionSignalNormalizer` requires that is not part of `MotionCalibration` | **`11.0`** — accepted because it is *derived from the measured path*, not picked: at a median of ≈9 ms it decides at ≈99 ms, matching the approved `maxSampleGapMs = 100`. If a device's median rises, **the absolute 100 ms ceiling stays the governor**. `20_000 µs` unchanged. The calibration is now **six numbers, complete** — a seventh needs a new amendment |
+| **Q-G5-b** — may monitoring start when `POST_NOTIFICATIONS` is denied? | **Fail closed**, by API level: `< 33 → NotRequired → start allowed` · `≥ 33 → Granted → allowed` · `Denied → do not start`, with a clear reason and a route to notification setup · `NotRequested → route the user to requesting it`. **The reason is a product reason**: Android does keep an FGS running with the permission denied, but its notification never reaches the drawer, and A-15(3) requires monitoring the user can perceive — so **we do not start monitoring and leave the user without the notification we promised.** Panic recording is untouched (A-6) |
+| **Q-G5-c** — a confirmed Motion event when a non-terminal event already exists | **Reuse the same `EventId`, Motion-scoped.** Binding is allowed only to an active non-terminal **MOTION** event; you explicitly rejected the general `first non-terminal event` form, because once Lock/SIM/Motion are all live a Motion surge must not attach itself to a Lock or SIM incident. After a terminal event, a new `EventId`. **No cooldown and no new number** |
+
+**Your three design corrections (also A-18):** (1) **one adapter owner** — `MotionMonitoringService`
+owns the `MotionSensorAdapter`, and `MotionRuntime` owns monitoring state/control only and holds **no
+second adapter**, so `isReporting` cannot diverge and unregister cannot double; (2) **`MotionRuntime` is
+not the source of truth** — the protection claim comes from the actual service state plus the actual
+`adapter.isReporting`, never from "the user pressed Start"; (3) **measurement is not a precondition** —
+G5's correctness is proven by `start → FGS → registration → notification → real Motion state → stop` on
+RMX3910, and start latency / sample continuity / CPU / battery / screen-off behaviour are measured
+afterwards as a **separate** campaign, not folded into correctness tests.
+
+**Working principle you set for the batches ahead: "التسريع المنضبط" (governed acceleration)** — verify
+what touches architectural correctness or user safety, then add no new barrier without benefit.
+
+**What still gates the code:** the gate move is **A-19**, and it lands in the **same commit as the service**
+(§18's FGS ban, the "exactly one `<uses-permission>`" assertion → three named ones, §15's constant list
+narrowed to the named calibration object). Until then every gate stays exactly as it is. Sequence you
+fixed: **A-17 → G5 design approved (A-18) → RED → GREEN → RMX3910 verification → CPU/battery/screen-off
+measurement**, and your explicit instruction was *"ابدأ مرحلة RED للاختبارات، وليس GREEN مباشرة"*.
 
 ---
 

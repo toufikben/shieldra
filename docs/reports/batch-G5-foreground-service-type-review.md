@@ -111,7 +111,7 @@ Play-facing copy, offered so the owner can edit the claim rather than write it f
 with the `250 ms` proposal rejected) and confirmed this review's outcome (`specialUse`), with one
 correction: `health` also opens through `HIGH_SAMPLING_RATE_SENSORS`, so it is excluded on documented
 *purpose*, not on permission shape. A shipping `MotionCalibration` default may now exist — but only
-inside one named calibration object, in the same commit as the real service, behind amendment A-18.
+inside one named calibration object, in the same commit as the real service, behind amendment A-19 (A-18 became the G5 decision record).
 Original note, kept for the record:** `MotionCalibration` needs `strongDeltaMs2` (approved:
   4.6), `noiseFloorDeltaMs2`, `minEpisodeMs` and `maxSampleGapMs`, and the adapter still takes an
   injected `requestedReportPeriodUs`. A-16 leaves those to the owner, so no shipping

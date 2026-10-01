@@ -601,11 +601,22 @@ IN FULL — amendment A-17:** the shipping calibration is `4.6 / 0.8 / 500 / 100
 proposal rejected for `100 ms`, ≈10× the worst measured gap), `specialUse` is **confirmed** with the
 owner's `health` correction applied (it also opens via `HIGH_SAMPLING_RATE_SENSORS`; excluded on
 documented *purpose*, not permission shape), and `minEpisodeMs` is ruled **episode definition**, distinct
-from G1-02's **confirmation policy**, which is untouched. **No FGS code exists and no gate has moved** —
-the gate move is **A-18**, and it lands in the same commit as the real service, not before it. Next: the
-**G5 design**, presented for the owner's approval before any code. The Foreground Service remains
+from G1-02's **confirmation policy**, which is untouched.
+**THE G5 DESIGN IS APPROVED — amendment A-18 (2026-10-01):** the three decisions it still needed are
+answered (`stallToleranceFactor = 11.0`, derived from the measured path so it decides at ≈99 ms against
+the approved 100 ms ceiling, which stays the governor if a device's median rises; monitoring **fails
+closed** when `POST_NOTIFICATIONS` is denied on API 33+ because an invisible ongoing notification would
+break A-15(3), while Android itself would keep the service running; and confirmed Motion reuses the
+active non-terminal **MOTION** event's `EventId` and **never** a Lock/SIM/Battery/Panic one, with no
+cooldown invented), and the design took three corrections (one adapter owner — the `Service`, with
+`MotionRuntime` holding no second instance; the truth read from real service state + `adapter.isReporting`
+and never from a Start press; and start-latency/CPU/battery/screen-off measured as a separate campaign,
+not as a precondition for G5). **The calibration is now six numbers and complete.** **No FGS code exists
+and no gate has moved** —
+the gate move is **A-19** (renumbered once A-18 became the G5 decision record), and it lands in the same commit as the real service, not before it. Next:
+**G5 RED** (failing JVM tests for the approved seam), then GREEN with A-19, then RMX3910 verification. The Foreground Service remains
 unimplemented by §2. See
-`docs/reports/batch-G4-seam-and-QG1-harness.md` | §18 — **IN PROGRESS** (calibration CLOSED, service DESIGN pending owner approval) |
+`docs/reports/batch-G4-seam-and-QG1-harness.md` | §18 — **IN PROGRESS** (calibration CLOSED, G5 design APPROVED, RED next) |
 | H | Evidence / privacy / permission implementation | §21–§23 |
 | I | SIM Guard — feasibility first, then implementation | §19 |
 | J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |
