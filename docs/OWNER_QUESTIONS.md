@@ -596,13 +596,22 @@ conflict** — and per §14 I do not resolve an open decision by deleting the te
    while `ShieldraNavHost.kt:164` passes `onAllow = { defer() }`. §32 says a control must work, be
    honestly disabled, or be removed — and §23 forbids requesting a permission before the feature
    that needs it exists, so "make it work" is not the right fix here.
-   **Update from the device pass on `adf68cc` (2026-10-01):** tapping that **Continue** on the phone
-   really does nothing but show *"This action is intentionally deferred in Phase 3."* — and the step
-   also told the user *"SHIELDRA asks for it only here"*, which is false (the only request site is the
-   A-6 Settings screen, `ShieldraNavHost.kt:271`). The **false sentence was fixed** in slice
-   `F2a` (`docs/reports/batch-F2-onboarding-copy-truthfulness.md`): onboarding now has its own copy
-   pointing at Settings, and a gate section 17 keeps it there. **The dead button is still yours to
-   decide** — remove the step, or keep it as an explanation-only step.
+   **Update from the device pass on `1babdbd` (2026-10-01):** that commit's own CI APK pair was
+   installed (run `36871617120` **success**, plain `adb install -r` so no permission was pre-granted)
+   and the step was re-read on screen: it now says the permission is asked for **in Settings**, and the
+   protection step prints its sentence once. Suite re-run twice on that install: **`OK (68 tests)`** in
+   19.365 s and 19.112 s. **The dead button is still yours to decide** — remove the step, or keep it as
+   an explanation-only step.
+4. **The dashboard lists a fifth guard: `Battery` (NEW, found on the `1babdbd` re-walk).**
+   `LockGuardDashboardFactory.kt:27` builds the guard list by mapping over `GuardKind.entries`, and
+   `GuardKind` (`PresentationModels.kt:11`) is `Lock, Motion, Sim, Panic, Battery`. So the real
+   dashboard shows **"Battery — Not monitoring yet"** even though no batch has ever scoped a battery
+   guard and no detector exists.
+   This is **not** a §31 violation the way item 1 is: the row is disabled and says plainly that nothing
+   is monitoring, so it promises nothing. It is a **product-surface** question — the app presents a
+   protection category that is not on the roadmap — which is why it is listed here instead of deleted
+   silently. Fixing it means either dropping `Battery` from `GuardKind` (it is also used by the History
+   filters and `EventType`, so that is a wider edit) or scoping a battery guard.
 
 | Option | Rule | Consequence |
 |---|---|---|

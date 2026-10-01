@@ -1,6 +1,8 @@
 # Batch F2 — onboarding copy says what the onboarding screens actually do
 
 **Date:** 2026-10-01 · **Slices:** `F2a-onboarding-permission-claim`, `F2b-protection-step-duplicate-sentence`
+**Status:** **CLOSED** — commit `1babdbd`, CI `36871617120` **success**, and both fixes re-read on the
+RMX3910 with that run's own APK pair (`OK (68 tests)` ×2 on the install). Verdicts at the bottom.
 **Authority:** protocol §16 (a screen may claim only what really happened) and §23 (no new permission
 behaviour in a copy fix); Batch F's precedent that shipped copy is a truthfulness surface.
 **Amendment needed?** No. Nothing here changes a decision, a permission, or a mechanism — it removes two
@@ -73,13 +75,45 @@ the event Detail screen) are **unchanged** — item 1 is pitch copy whose correc
 unanswered Q-D5/Q-D7 ads-and-billing conflict, and §14 forbids resolving an open decision by deleting
 the text it might still need.
 
+## VERDICTS AFTER WRITING THE ABOVE
+
+**CI for this commit — `36871617120`, conclusion `success`.** The workflow ran the full command
+(`clean test lint assembleDebug assembleDebugAndroidTest`) plus all three contract scripts, so
+section 17 passed in CI and not only locally.
+
+**Device re-check — done, on the APK pair from that same run** (`1babdbd`), installed over plain
+`adb install -r` after uninstalling both packages, with `runtime permissions:` confirmed empty so the
+permission flow was not pre-granted:
+
+| Step | What was looked at | What was actually seen |
+|---|---|---|
+| Instrumented suite, pass 1 | the same 14 classes, vehicle excluded | **`OK (68 tests)`** in 19.365 s |
+| Instrumented suite, pass 2 | same install, same classes | **`OK (68 tests)`** in 19.112 s |
+| Onboarding permission step | the fix from Finding 1 | renders *"… SHIELDRA asks for it **in Settings**, and your security events are recorded either way."* — the false "only here" sentence is gone |
+| Onboarding protection step | the fix from Finding 2 | the sentence appears **once**: *"The attempts must occur within 2 minutes. The first failed attempt is recorded as a signal, but does not create a confirmed security event."* |
+| Dashboard after onboarding | regressions | the guard list still says **"Not monitoring yet"** for every row, `Last check · —`, `Network · Offline` — five rows, not four (see below) |
+
+Screenshots: `f2-onboarding-permission-step.png`, `f2-protection-step.png`, `f2-dashboard.png`
+(written outside the repo, under the session evidence directory).
+
+One thing the re-walk surfaced that is **not** a regression from this slice and was **not** changed
+here: the dashboard has a **fifth** guard row, `Battery / Not monitoring yet`. `LockGuardDashboardFactory.kt:27`
+maps over `GuardKind.entries`, and `GuardKind` (PresentationModels.kt:11) has `Battery` next to Lock,
+Motion, Sim and Panic. The row is honest — disabled, "Not monitoring yet" — so it breaks no §31 rule
+by itself, but it advertises a guard that has no detector and is in no batch, which is the same
+product-surface question as Q-F1 item 1. Raised as **Q-F1 item 4** rather than deleted silently.
+
 ## WHAT IS NOT CLAIMED
 
-- **CI: NOT RUN at the time of writing** for this commit — the verdict is appended below once the run
-  for it concludes.
-- **Device re-check: NOT RUN** — the two fixes have not yet been looked at on the phone. They are copy
-  changes, and copy changes have been wrong on this project before, so the flow is re-walked and
-  re-photographed with the APK pair from this commit's own run before this slice is called done.
-- Nothing about Motion, storage, notifications delivery, permissions or the manifest changed. No
-  permission was added, requested, or revoked; `POST_NOTIFICATIONS` still has exactly one request site.
-- The 68-test result is a re-verification of the **previous** commit's APK pair, not of this one.
+- Nothing about Motion, storage, notification delivery, permissions or the manifest changed. No
+  permission was added, requested, or revoked; `POST_NOTIFICATIONS` still has exactly one request
+  site (`ShieldraNavHost.kt:271`), and `onAllow` on the onboarding step is still `defer()` —
+  the deferred button is Q-F1 item 3 and remains the owner's decision.
+- The Q-F1 items **1** and **2** findings are still open on screen: the Premium tab still shows
+  "Email · WhatsApp · Telegram", "Advanced delivery receipts" and the free-plan summary naming
+  Motion/SIM/Lock guards, and the event Detail screen still renders an empty `DELIVERY` card. This
+  slice fixed only the two onboarding-sentence defects.
+- The 68-test figures in the "HOW THIS WAS FOUND" table are from the **previous** commit's pair
+  (`adf68cc`, run `36868131863`); the pair directly below is what verified this commit.
+- Neither 68-test run was ever executed in CI: androidTest is compiled there, never instrumented
+  (see the ROADMAP gate notes). The only device evidence is this RMX3910 pair.
