@@ -18,7 +18,7 @@ Not by reading the code. By installing the CI pair of the *previous* commit (`ad
 | Instrumented suite, pass 1 (fresh install) | 14 classes, the G4-A measurement vehicle excluded | **`OK (68 tests)`** in 23.476 s |
 | Instrumented suite, pass 2 (same install) | same 14 classes | **`OK (68 tests)`** in 21.391 s |
 | First-run flow | `Get started` → notification step → protection step → dashboard | two copy defects visible, screenshots below |
-| Dashboard guards | after onboarding | Lock / Motion / SIM / Panic all **"Not monitoring yet"**, banner reads *"No continuous monitoring is running yet"*, `Last check · —` |
+| Dashboard guards | after onboarding | banner reads *"No continuous monitoring is running yet"*, `Last check · —`. **This row under-reported at the time:** it transcribed four guards (Lock / Motion / SIM / Panic), but the factory had already emitted **five** — Battery was missing from my note, found on the `1babdbd` re-walk below |
 
 The G4-A vehicle's own 4 tests are deliberately not in the 68: they are exercised by the campaign
 driver, which controls the screen, not by a suite pass.
@@ -68,12 +68,13 @@ Local gates after the fix: `G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS
 
 ## WHAT THIS SLICE DELIBERATELY DID NOT TOUCH
 
-`Q-F1` lists three surfaces. Only the copy half of item 3 is fixed here, because it was a statement the
+`Q-F1` carries four items now — three from Batch F plus the `Battery` row that this slice's own re-walk
+surfaced. Only the copy half of item 3 is fixed here, because it was a statement the
 app contradicted on screen. Item **1** (the Premium screen's `Email · WhatsApp · Telegram`,
-"Advanced delivery receipts", and the free-plan summary) and item **2** (the empty `DELIVERY` card on
-the event Detail screen) are **unchanged** — item 1 is pitch copy whose correctness depends on the
-unanswered Q-D5/Q-D7 ads-and-billing conflict, and §14 forbids resolving an open decision by deleting
-the text it might still need.
+"Advanced delivery receipts", and the free-plan summary), item **2** (the empty `DELIVERY` card on
+the event Detail screen) and item **4** (the unscheduled fifth guard row) are **unchanged** — item 1 is
+pitch copy whose correctness depends on the unanswered Q-D5/Q-D7 ads-and-billing conflict, and §14
+forbids resolving an open decision by deleting the text it might still need.
 
 ## VERDICTS AFTER WRITING THE ABOVE
 
