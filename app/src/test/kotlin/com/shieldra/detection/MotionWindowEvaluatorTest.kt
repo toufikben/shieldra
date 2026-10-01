@@ -47,8 +47,13 @@ class MotionWindowEvaluatorTest {
     private fun flat(delta: Double, count: Int, startMs: Long = 0, stepMs: Long = 20): List<MotionSample> =
         (0 until count).map { MotionSample(elapsedMs = startMs + it * stepMs, x = 0.0, y = 0.0, z = 9.80665 + delta) }
 
+    /**
+     * These tests exercise what the evaluator decided about its own samples, so the stream is
+     * declared trustworthy here; [MotionStreamQualityTest] covers the refusals a stream the signal
+     * layer could not believe produce.
+     */
     private fun reading(reading: MotionReading): GuardObservation.Motion =
-        MotionGuardObservation.of(reading)
+        MotionGuardObservation.of(reading, MotionSignalQuality.USABLE)
 
     private fun confirm(observation: GuardObservation.Motion) =
         engine.evaluate(GuardSignal(GuardKind.MOTION, observedAt, observation), clock, identities)
@@ -96,7 +101,7 @@ class MotionWindowEvaluatorTest {
                 flat(delta = 5.0, count = 40, startMs = 11_000),
         )
         assertEquals(2, (readingValue as MotionReading.Movements).episodes.size)
-        val observation = MotionGuardObservation.of(readingValue)
+        val observation = MotionGuardObservation.of(readingValue, MotionSignalQuality.USABLE)
         assertEquals(
             1,
             observation.suspiciousOccurrences,
@@ -117,15 +122,26 @@ class MotionWindowEvaluatorTest {
             MotionSample(elapsedMs = 2_000, x = Double.NaN, y = 0.0, z = 9.80665)
         val readingValue = evaluator.read(broken)
         assertTrue(readingValue is MotionReading.Unreliable)
-        assertEquals(SensorQuality.NOISY, MotionGuardObservation.of(readingValue).sensorQuality)
-        assertEquals(GuardConfirmationStatus.SIGNAL_ONLY, confirm(MotionGuardObservation.of(readingValue)).confirmation.status)
+        // The stream is deliberately declared trustworthy: this test is about the evaluator's own
+        // refusal, and it must fail closed even when nobody vouches against it.
+        assertEquals(SensorQuality.NOISY, MotionGuardObservation.of(readingValue, MotionSignalQuality.USABLE).sensorQuality)
+        assertEquals(
+            GuardConfirmationStatus.SIGNAL_ONLY,
+            confirm(MotionGuardObservation.of(readingValue, MotionSignalQuality.USABLE)).confirmation.status,
+        )
     }
 
     @Test
     fun no_samples_are_insufficient_and_are_never_reported_as_a_still_device() {
         assertEquals(MotionReading.Insufficient, evaluator.read(emptyList()))
-        assertEquals(SensorQuality.UNAVAILABLE, MotionGuardObservation.of(MotionReading.Insufficient).sensorQuality)
-        assertEquals(GuardConfirmationStatus.SIGNAL_ONLY, confirm(MotionGuardObservation.of(MotionReading.Insufficient)).confirmation.status)
+        assertEquals(
+            SensorQuality.UNAVAILABLE,
+            MotionGuardObservation.of(MotionReading.Insufficient, MotionSignalQuality.USABLE).sensorQuality,
+        )
+        assertEquals(
+            GuardConfirmationStatus.SIGNAL_ONLY,
+            confirm(MotionGuardObservation.of(MotionReading.Insufficient, MotionSignalQuality.USABLE)).confirmation.status,
+        )
     }
 
     @Test
