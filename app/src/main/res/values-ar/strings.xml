@@ -10,7 +10,6 @@
 
     <string name="tab_dashboard">الرئيسية</string>
     <string name="tab_history">السجل</string>
-    <string name="tab_premium">بريميوم</string>
     <string name="tab_settings">الإعدادات</string>
 
     <string name="nav_back">رجوع</string>
@@ -44,10 +43,6 @@
     <string name="delivery_retrying">· إعادة المحاولة</string>
     <string name="delivery_expired">· منتهي</string>
 
-    <string name="premium_title">شيلدرا بريميوم</string>
-    <string name="premium_tagline">دفعة واحدة. مدى الحياة.</string>
-    <string name="premium_buy_lifetime">شراء مدى الحياة</string>
-    <string name="premium_restore">استعادة الشراء</string>
 
     <string name="settings_section_security">الأمان</string>
     <string name="settings_section_notifications">الإشعارات</string>
@@ -164,7 +159,6 @@
     <string name="event_photo">صورة</string>
     <string name="event_location">موقع</string>
     <string name="channel_invalid_recipient">المستلم غير صالح</string>
-    <string name="premium_buy_lifetime_price">شراء مدى الحياة — %1$s</string>
     <string name="protection_protected">محمية</string>
     <string name="protection_protected_accessibility">الحماية مفعلة</string>
     <string name="protection_suspicious">مريب</string>
@@ -198,15 +192,7 @@
     <string name="demo_time_detail">اليوم · ١٤:٣٢:٠٨</string>
     <string name="demo_receipt_time">١٤:٣٢</string>
     <string name="demo_network_wifi">واي فاي</string>
-    <string name="demo_premium_price">٩٫٩٩</string>
     <string name="demo_invalid_recipient">المستلم غير صالح</string>
-    <string name="premium_feature_channels">قنوات تسليم متعددة</string>
-    <string name="premium_feature_channels_detail">البريد الإلكتروني · واتساب · تيليجرام</string>
-    <string name="premium_feature_history">سجل موسع</string>
-    <string name="premium_feature_history_detail">90 يومًا · 500 حدث</string>
-    <string name="premium_feature_receipts">إيصالات تسليم متقدمة</string>
-    <string name="premium_feature_no_ads">بدون إعلانات</string>
-    <string name="premium_free_summary">المجاني يشمل: حارس القفل · حارس الحركة · حارس SIM · الذعر · تسليم البريد الإلكتروني.</string>
     <string name="settings_protection">الحماية</string>
     <string name="settings_guards_summary">حارس القفل · الحراس</string>
     <string name="settings_app_lock">قفل التطبيق</string>

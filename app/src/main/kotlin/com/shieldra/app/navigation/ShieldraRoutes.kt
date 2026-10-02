@@ -7,7 +7,6 @@ object ShieldraRoutes {
 
     const val DASHBOARD = "main/dashboard"
     const val HISTORY = "main/history"
-    const val PREMIUM = "main/premium"
     const val SETTINGS = "main/settings"
     /** Notification setup (amendment A-6): the only place the permission is requested. */
     const val NOTIFICATION_SETUP = "main/settings/notifications"
@@ -21,6 +20,5 @@ object ShieldraRoutes {
 enum class BottomTab(val route: String) {
     Dashboard(ShieldraRoutes.DASHBOARD),
     History(ShieldraRoutes.HISTORY),
-    Premium(ShieldraRoutes.PREMIUM),
     Settings(ShieldraRoutes.SETTINGS),
 }

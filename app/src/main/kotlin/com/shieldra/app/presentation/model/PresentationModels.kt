@@ -97,17 +97,6 @@ data class HistoryFilterState(
     val status: HistoryStatusFilter = HistoryStatusFilter.All,
 )
 
-data class PremiumFeatureUiModel(
-    val title: String,
-    val subtitle: String? = null,
-)
-
-data class PremiumUiModel(
-    val priceLabel: String?,
-    val features: List<PremiumFeatureUiModel>,
-    val freeTierSummary: String,
-)
-
 enum class SettingsSection { Security, Notifications, Appearance, PrivacyData, SecurityApp, About }
 enum class SettingsIcon { Security, Notifications, Lock, Theme, Language, Storage, Retention, Info, Help }
 

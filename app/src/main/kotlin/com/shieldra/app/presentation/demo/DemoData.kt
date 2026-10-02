@@ -96,16 +96,4 @@ object DemoData {
         )
         else -> null
     }
-
-    @Composable
-    fun premium(): PremiumUiModel = PremiumUiModel(
-        priceLabel = stringResource(R.string.demo_premium_price),
-        features = listOf(
-            PremiumFeatureUiModel(stringResource(R.string.premium_feature_channels), stringResource(R.string.premium_feature_channels_detail)),
-            PremiumFeatureUiModel(stringResource(R.string.premium_feature_history), stringResource(R.string.premium_feature_history_detail)),
-            PremiumFeatureUiModel(stringResource(R.string.premium_feature_receipts)),
-            PremiumFeatureUiModel(stringResource(R.string.premium_feature_no_ads)),
-        ),
-        freeTierSummary = stringResource(R.string.premium_free_summary),
-    )
 }

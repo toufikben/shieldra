@@ -10,7 +10,6 @@
 
     <string name="tab_dashboard">Home</string>
     <string name="tab_history">History</string>
-    <string name="tab_premium">Premium</string>
     <string name="tab_settings">Settings</string>
 
     <string name="nav_back">Back</string>
@@ -44,10 +43,6 @@
     <string name="delivery_retrying">· Retrying</string>
     <string name="delivery_expired">· Expired</string>
 
-    <string name="premium_title">Shieldra Premium</string>
-    <string name="premium_tagline">One payment. Lifetime.</string>
-    <string name="premium_buy_lifetime">Buy Lifetime</string>
-    <string name="premium_restore">Restore purchase</string>
 
     <string name="settings_section_security">SECURITY</string>
     <string name="settings_section_notifications">NOTIFICATIONS</string>
@@ -164,7 +159,6 @@
     <string name="event_photo">Photo</string>
     <string name="event_location">Location</string>
     <string name="channel_invalid_recipient">Invalid recipient</string>
-    <string name="premium_buy_lifetime_price">Buy Lifetime — %1$s</string>
     <string name="protection_protected">PROTECTED</string>
     <string name="protection_protected_accessibility">Protection is active</string>
     <string name="protection_suspicious">SUSPICIOUS</string>
@@ -198,15 +192,7 @@
     <string name="demo_time_detail">Today · 14:32:08</string>
     <string name="demo_receipt_time">14:32</string>
     <string name="demo_network_wifi">Wi-Fi</string>
-    <string name="demo_premium_price">9.99</string>
     <string name="demo_invalid_recipient">Invalid recipient</string>
-    <string name="premium_feature_channels">Multiple delivery channels</string>
-    <string name="premium_feature_channels_detail">Email · WhatsApp · Telegram</string>
-    <string name="premium_feature_history">Extended history</string>
-    <string name="premium_feature_history_detail">90 days · 500 events</string>
-    <string name="premium_feature_receipts">Advanced delivery receipts</string>
-    <string name="premium_feature_no_ads">No ads</string>
-    <string name="premium_free_summary">Free includes: Lock Guard · Motion Guard · SIM Guard · Panic · Email delivery.</string>
     <string name="settings_protection">Protection</string>
     <string name="settings_guards_summary">Lock Guard · Guards</string>
     <string name="settings_app_lock">App lock</string>

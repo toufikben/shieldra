@@ -5,7 +5,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -58,8 +57,6 @@ import com.shieldra.app.presentation.screen.history.HistoryCallbacks
 import com.shieldra.app.presentation.screen.history.HistoryScreen
 import com.shieldra.app.presentation.screen.onboarding.ProtectionSetupScreen
 import com.shieldra.app.presentation.screen.onboarding.WelcomeScreen
-import com.shieldra.app.presentation.screen.premium.PremiumCallbacks
-import com.shieldra.app.presentation.screen.premium.PremiumScreen
 import com.shieldra.app.presentation.settings.SettingsContent
 import com.shieldra.app.presentation.settings.SettingsRowTarget
 import com.shieldra.app.presentation.settings.honestSettingsRows
@@ -290,15 +287,6 @@ fun ShieldraNavHost(
                     ),
                 )
             }
-            composable(ShieldraRoutes.PREMIUM) {
-                PremiumScreen(
-                    model = DemoData.premium(),
-                    callbacks = PremiumCallbacks(
-                        onBuy = { defer() },
-                        onRestore = { defer() },
-                    ),
-                )
-            }
             composable(ShieldraRoutes.SETTINGS) {
                 SettingsScreen(
                     rows = honestSettingsRows(
@@ -447,13 +435,11 @@ private fun ShieldraBottomBar(
 private fun BottomTab.icon(): ImageVector = when (this) {
     BottomTab.Dashboard -> Icons.Filled.Home
     BottomTab.History -> Icons.Filled.History
-    BottomTab.Premium -> Icons.Filled.Star
     BottomTab.Settings -> Icons.Filled.Settings
 }
 
 private fun BottomTab.labelRes(): Int = when (this) {
     BottomTab.Dashboard -> R.string.tab_dashboard
     BottomTab.History -> R.string.tab_history
-    BottomTab.Premium -> R.string.tab_premium
     BottomTab.Settings -> R.string.tab_settings
 }
