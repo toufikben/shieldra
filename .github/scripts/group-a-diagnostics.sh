@@ -53,7 +53,7 @@ check_cmd "ADB" "command -v adb; adb version"
 check_cmd "Git" "command -v git; git --version"
 check_cmd "GitHub Actions environment" "printf 'GITHUB_ACTIONS=%s\\nRUNNER_OS=%s\\nRUNNER_ARCH=%s\\nImageVersion=%s\\n' \"${GITHUB_ACTIONS:-}\" \"${RUNNER_OS:-}\" \"${RUNNER_ARCH:-}\" \"${ImageVersion:-}\""
 check_cmd "Android/Gradle toolchain compatibility evidence" "java -version; gradle --version; sdkmanager --version; adb version"
-check_cmd "Modern Android platform constraints evidence" "sdkmanager --list_installed | grep -E 'platform-tools|platforms;android-35|build-tools;35\\.'"
+check_cmd "Modern Android platform constraints evidence" "sdkmanager --list_installed | grep -E 'platform-tools|platforms;android-36|build-tools;36\\.'"
 
 {
   echo "## Overall result"
