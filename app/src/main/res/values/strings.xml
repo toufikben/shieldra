@@ -37,7 +37,7 @@
     <string name="delivery_section">DELIVERY</string>
     <string name="delivery_delivered">✓ Delivered</string>
     <string name="delivery_failed">✗ Failed</string>
-    <string name="delivery_skipped">— Skipped</string>
+    <string name="delivery_not_attempted">— Not attempted</string>
     <string name="delivery_sending">· Sending</string>
     <string name="delivery_ready">· Ready</string>
     <string name="delivery_retrying">· Retrying</string>
@@ -85,9 +85,8 @@
     <string name="motion_monitoring_stopped">Motion monitoring stopped.</string>
     <string name="motion_monitoring_no_storage">Monitoring was not started: this build has no installed storage to record what it confirms.</string>
     <string name="lock_guard">Lock Guard</string>
-    <string name="protection_setup_question">Lock Guard uses the approved protection rule.</string>
-    <string name="lock_guard_threshold">%1$d failed attempts confirm a security event</string>
-    <string name="lock_guard_window">The attempts must occur within 2 minutes. The first failed attempt is recorded as a signal, but does not create a confirmed security event.</string>
+    <string name="protection_setup_question">Lock Guard does not run in this build yet.</string>
+    <string name="protection_step_inert">Continuing from this screen changes no setting.</string>
     <string name="silent_panic">Silent Panic</string>
     <string name="trigger_emergency_event">Trigger an emergency event</string>
     <string name="details">DETAILS</string>
@@ -106,7 +105,7 @@
     <string name="status_retrying">Retrying</string>
     <string name="status_failed">Failed</string>
     <string name="status_expired">Expired</string>
-    <string name="status_skipped">Skipped</string>
+    <string name="status_not_attempted">Not attempted</string>
     <string name="event_type">Type</string>
     <string name="event_timestamp">Timestamp</string>
     <string name="event_battery">Battery</string>
@@ -196,7 +195,7 @@
     <string name="settings_protection">Protection</string>
     <string name="settings_guards_summary">Lock Guard · Guards</string>
     <string name="settings_app_lock">App lock</string>
-    <string name="settings_require_authentication">Require authentication</string>
+    <string name="settings_app_lock_not_enforced">Not enforced in this build</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_match_system">Match system</string>
     <string name="settings_language">Language</string>
@@ -204,7 +203,8 @@
     <string name="settings_storage_in_use">Local storage is in use on this phone</string>
     <string name="settings_storage_none">No local storage on this phone yet</string>
     <string name="settings_retention">Retention policy</string>
-    <string name="settings_retention_pending">Policy pending</string>
+    <string name="settings_retention_windows">Applied: 90-day events, 30-day evidence</string>
+    <string name="settings_retention_no_data">Nothing stored on this phone yet</string>
     <string name="settings_about_shieldra">About Shieldra</string>
     <string name="settings_help">Help</string>
     <string name="guard_premium_feature">Premium feature</string>
@@ -216,11 +216,7 @@
     <string name="guard_subtitle_inactive">Not monitoring yet</string>
     <string name="guard_subtitle_motion_active">Motion monitoring is active</string>
     <string name="event_security_event">Security event</string>
-    <string name="event_age_days">%1$d days ago</string>
-    <string name="event_age_hours">%1$d hours ago</string>
-    <string name="event_age_minutes">%1$d minutes ago</string>
-    <string name="event_age_seconds">%1$d seconds ago</string>
-    <string name="status_network_unknown">Network unavailable</string>
+    <string name="status_network_unknown">Not measured</string>
 
     <string name="location_source_gps">GPS</string>
     <string name="location_source_fused">Fused</string>

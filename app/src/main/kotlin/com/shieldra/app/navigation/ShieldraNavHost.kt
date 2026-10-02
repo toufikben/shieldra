@@ -33,11 +33,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.shieldra.app.presentation.demo.DemoData
 import com.shieldra.app.ShieldraApp
-import com.shieldra.app.presentation.guard.AgeParts
 import com.shieldra.app.presentation.guard.LockGuardDecision
 import com.shieldra.app.presentation.guard.PersistedEventLabels
 import com.shieldra.app.presentation.guard.StorageEventReader
 import com.shieldra.app.presentation.guard.ageParts
+import com.shieldra.app.presentation.guard.ageQuantityRes
 import com.shieldra.app.presentation.guard.eventStateLabelRes
 import com.shieldra.app.presentation.guard.lockGuardDashboard
 import com.shieldra.app.presentation.model.EventUiModel
@@ -81,6 +81,9 @@ fun ShieldraNavHost(
     startDestination: String = ShieldraRoutes.ONBOARDING_WELCOME,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+    // Leaving onboarding is a recorded fact, not a navigation detail: without it every cold start
+    // after a process kill would put the welcome page in front of a returning owner (Q-K-7, A-27).
+    onOnboardingCompleted: () -> Unit = {},
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -166,6 +169,7 @@ fun ShieldraNavHost(
                         navController.navigate(ShieldraRoutes.ONBOARDING_PERMISSIONS)
                     },
                     onSkip = {
+                        onOnboardingCompleted()
                         navController.navigate(ShieldraRoutes.DASHBOARD) {
                             popUpTo(ShieldraRoutes.ONBOARDING_WELCOME) { inclusive = true }
                         }
@@ -189,6 +193,7 @@ fun ShieldraNavHost(
             composable(ShieldraRoutes.ONBOARDING_PROTECTION) {
                 ProtectionSetupScreen(
                     onContinue = {
+                        onOnboardingCompleted()
                         navController.navigate(ShieldraRoutes.DASHBOARD) {
                             popUpTo(ShieldraRoutes.ONBOARDING_WELCOME) { inclusive = true }
                         }
@@ -373,24 +378,19 @@ private fun persistedEventLabels(): PersistedEventLabels {
 }
 
 /**
- * Resolves the localized "x ago" wording. The template strings are captured
- * here because [stringResource] is composable, while the returned lambda is
- * called later from a plain projection function.
+ * Resolves the localized "x ago" wording. The Android resources handle is captured
+ * here because [stringResource] is composable while the returned lambda is called
+ * later from a plain projection function; the quantity itself has to reach
+ * `getQuantityString`, because a fixed-form template was what made this read
+ * "1 hours ago" (F-K11).
  */
 @Composable
 private fun ageLabelFormatter(): (Instant, Instant) -> String {
-    val days = stringResource(R.string.event_age_days)
-    val hours = stringResource(R.string.event_age_hours)
-    val minutes = stringResource(R.string.event_age_minutes)
-    val seconds = stringResource(R.string.event_age_seconds)
+    val resources = LocalContext.current.resources
     return { now, createdAt ->
         val parts = ageParts(now, createdAt)
-        when (parts) {
-            is AgeParts.Days -> days.format(parts.value)
-            is AgeParts.Hours -> hours.format(parts.value)
-            is AgeParts.Minutes -> minutes.format(parts.value)
-            is AgeParts.Seconds -> seconds.format(parts.value)
-        }
+        val count = parts.value.toInt()
+        resources.getQuantityString(ageQuantityRes(parts), count, count)
     }
 }
 

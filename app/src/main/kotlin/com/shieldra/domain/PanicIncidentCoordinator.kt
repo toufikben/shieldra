@@ -1,6 +1,7 @@
 package com.shieldra.domain
 
 import java.time.Clock as JavaClock
+import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -25,11 +26,16 @@ sealed interface PanicActivation {
 /**
  * Turns an explicit user activation into exactly one confirmed event.
  *
- * Panic has no attempt counter, no confirmation delay, no cooldown, and no
- * time window: while a Panic event is non-terminal every further press binds to
- * that same event, and only a terminal event starts a new one. The event is
- * persisted before anything else happens, so a press that could not be stored
- * is reported as a rejection rather than as a recorded incident.
+ * Panic has no attempt counter, no confirmation delay, and no cooldown. What it
+ * does have is a reuse window (amendment A-28): a press joins the open Panic
+ * incident only while that incident is at most [PANIC_REUSE_WINDOW_MINUTES] old
+ * measured from its own start, and past the window a press becomes a new incident
+ * even when the old one never reached a terminal state. Without the window an
+ * event that never terminated would absorb every later press forever, and the
+ * bounded scan would only hide the newest ones rather than bound the incident.
+ *
+ * The event is persisted before anything else happens, so a press that could not
+ * be stored is reported as a rejection rather than as a recorded incident.
  *
  * Amendment A-7: the activation count is persisted beside the event through
  * [PanicActivationStore] when the repository supports it, so a restart recovers
@@ -56,13 +62,20 @@ class PanicIncidentCoordinator(
 
     @Synchronized
     fun activate(): PanicActivation {
+        val at = clock.now()
         // Only a Panic incident may absorb a Panic press. Without the type
         // filter, the first non-terminal event of any future guard would be
-        // adopted here and its counters corrupted (amendment A-7).
+        // adopted here and its counters corrupted (amendment A-7). The age test
+        // is what stops an incident that never terminated from staying open
+        // forever (amendment A-28), and it reads the incident's own persisted
+        // start, so a process restart cannot extend it.
         val active = repository.listRecent(activeEventScanLimit)
-            .firstOrNull { it.type == SecurityEventType.PANIC_ACTIVATION && !it.state.isTerminal() }
+            .firstOrNull {
+                it.type == SecurityEventType.PANIC_ACTIVATION &&
+                    !it.state.isTerminal() &&
+                    withinReuseWindow(it, at)
+            }
         if (active != null) {
-            val at = clock.now()
             val durable = store
             if (durable == null) {
                 val next = (activations[active.id]?.count ?: 0) + 1
@@ -82,8 +95,17 @@ class PanicIncidentCoordinator(
             }
         }
 
-        return activateNewIncident(clock.now())
+        return activateNewIncident(at)
     }
+
+    /**
+     * True while [SecurityEvent.createdAt] is at most [PANIC_REUSE_WINDOW_MINUTES]
+     * behind [at]. The boundary is inclusive, and an event stamped in the future
+     * (a clock that moved backwards) is inside the window: it is reusable, never
+     * silently replaced by a second open incident.
+     */
+    private fun withinReuseWindow(event: SecurityEvent, at: Instant): Boolean =
+        Duration.between(event.createdAt, at) <= PANIC_REUSE_WINDOW
 
     private fun activateNewIncident(at: Instant): PanicActivation {
         val evaluation = engine.evaluate(
@@ -151,5 +173,13 @@ class PanicIncidentCoordinator(
     private companion object {
         /** A panic incident is the newest active event; the list is bounded well below this. */
         const val ACTIVE_EVENT_SCAN_LIMIT = 100
+
+        /**
+         * The owner-approved reuse window for Panic (Q-K-8, amendment A-28). Kept as a named
+         * constant so no call site can restate a different deadline.
+         */
+        const val PANIC_REUSE_WINDOW_MINUTES: Long = 10L
+
+        val PANIC_REUSE_WINDOW: Duration = Duration.ofMinutes(PANIC_REUSE_WINDOW_MINUTES)
     }
 }

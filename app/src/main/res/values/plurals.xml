@@ -1,7 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The age of a persisted event, as a quantity resource.
+
+  These were fixed-form strings, which is how the owner's phone came to read
+  "1 hours ago" (F-K11, Q-K-4). An age is a count, so it is declared as one and
+  every locale answers it with its own plural forms rather than one English
+  sentence with an "s" bolted on.
+-->
 <resources>
-    <plurals name="demo_active_attempts">
-        <item quantity="one">Active · %1$d attempt</item>
-        <item quantity="other">Active · %1$d attempts</item>
+    <plurals name="event_age_days">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
+    <plurals name="event_age_hours">
+        <item quantity="one">%1$d hour ago</item>
+        <item quantity="other">%1$d hours ago</item>
+    </plurals>
+    <plurals name="event_age_minutes">
+        <item quantity="one">%1$d minute ago</item>
+        <item quantity="other">%1$d minutes ago</item>
+    </plurals>
+    <plurals name="event_age_seconds">
+        <item quantity="one">%1$d second ago</item>
+        <item quantity="other">%1$d seconds ago</item>
     </plurals>
 </resources>

@@ -314,14 +314,21 @@ grep -q 'persists no metadata keys' "$ROOM_REPO" ||
   fail "Room updateState must reject metadata it cannot persist instead of dropping it"
 pass "unpersistable metadata fails closed instead of disappearing"
 
-# 5. Panic is an explicit activation with no counter, delay, cooldown or window.
+# 5. Panic is an explicit activation with no counter, delay, cooldown or invented window.
 #    The prohibition is checked on code, not prose: the KDoc states the same
-#    words to explain what the coordinator must not do.
+#    words to explain what the coordinator must not do. Amendment A-28 (Q-K-8) is the one
+#    window the owner named, so a Duration is legal only as that window — built from the
+#    named constant and measured against the incident's persisted start. Every other
+#    counter, delay or threshold stays forbidden.
 [ -s "$PANIC" ] || fail "panic incident coordinator is missing"
 PANIC_CODE="$(grep -vE '^[[:space:]]*(\*|//|/\*)' "$PANIC")"
-if grep -qiE 'cooldown|attemptThreshold|confirmationDelay|timeWindow|debounce|Duration\.of' <<<"$PANIC_CODE"; then
-  fail "panic introduced an invented counter, delay, cooldown or time window"
+if grep -qiE 'cooldown|attemptThreshold|confirmationDelay|timeWindow|debounce' <<<"$PANIC_CODE"; then
+  fail "panic introduced an invented counter, delay or cooldown"
 fi
+INVENTED_DURATIONS="$(grep -oE 'Duration\.[a-zA-Z]+\([^)]*\)' <<<"$PANIC_CODE" |
+  grep -v '^Duration.ofMinutes(PANIC_REUSE_WINDOW_MINUTES)$' |
+  grep -v '^Duration.between(event.createdAt, at)$' || true)"
+[ -z "$INVENTED_DURATIONS" ] || fail "panic built a Duration outside A-28's named reuse window: $INVENTED_DURATIONS"
 if grep -qE 'Thread\.sleep|delay\(' "$PANIC"; then
   fail "panic must confirm immediately, not after a wait"
 fi
@@ -330,11 +337,11 @@ grep -q 'GuardKind.PANIC' "$PANIC" || fail "panic must be confirmed through the 
 # so accept either the original local name or the Panic-tagged one introduced by
 # amendment A-7; both persist the event as the first action.
 grep -qE 'repository\.save\((event|panicked)\)' "$PANIC" || fail "the panic event must be persisted before any response work"
-grep -q 'isTerminal()' "$PANIC" || fail "the incident boundary must be the event lifecycle, not a time window"
+grep -q 'isTerminal()' "$PANIC" || fail "the incident boundary must stay the event lifecycle, which A-28's window only bounds in time"
 if grep -q 'EventPipeline\|InMemoryEventPipeline' "$PANIC"; then
   fail "the panic coordinator must not run pipeline stages that have not been implemented"
 fi
-pass "panic confirms, persists first, and bounds the incident by lifecycle only"
+pass "panic confirms, persists first, and bounds the incident by its lifecycle plus A-28's window"
 
 # 5b. Amendment A-7: the activation count is durable metadata on the Panic event,
 # not a session tally, and it must never be smuggled through the generic metadata
@@ -897,6 +904,118 @@ for name in a_newly_written_motion_event_raises_the_reload_token \
   grep -rq "fun $name" app/src/test || fail "the named G5 truthfulness test is missing: $name"
 done
 pass "the event list shows each row's own guard, reloads on a real Motion write, and the disclosure follows the published claim"
+
+# 22. Batch K Q-K-4/Q-K-7/Q-K-8 — the owner's decision batch. Every rule here is a display-path or
+#     reuse-path rule: no threshold, no crypto policy, and no new persistence semantics. The batch
+#     fixed wording that claimed facts this build cannot prove (F-K6/F-K7/F-K9/F-K10/F-K11), made
+#     onboarding survive a process kill (A-27), and gave Panic the ten-minute reuse window (A-28).
+STRINGS_EN=app/src/main/res/values/strings.xml
+STRINGS_AR=app/src/main/res/values-ar/strings.xml
+
+# (أ) Q-K-4: the release-facing vocabulary that was withdrawn stays withdrawn. A shipped string is
+#     the claim, so only <string> entries are searched, never a comment.
+BANNED_CLAIMS="$(grep -RInE 'Policy pending|قيد التحديد|Require authentication|يتطلب المصادقة|Skipped|تم التخطي' "$STRINGS_EN" "$STRINGS_AR" | grep '<string' || true)"
+[ -z "$BANNED_CLAIMS" ] || fail "a withdrawn Q-K-4 claim is back in the shipped wording: $BANNED_CLAIMS"
+#     The app-lock row must keep the interface matching the policy, not the policy matching the
+#     interface: EvidenceKeyPolicy is the one that says no authentication is required (A-26).
+grep -Eq 'requireUserAuthentication = false' app/src/main/kotlin/com/shieldra/storage/EvidenceKeyPolicy.kt \
+  || fail "EvidenceKeyPolicy no longer states requireUserAuthentication = false; the app-lock wording was written against this fact (A-26)"
+grep -q '<string name="settings_app_lock_not_enforced">Not enforced in this build</string>' "$STRINGS_EN" \
+  || fail "the app-lock row no longer says the interface truth: no lock is enforced in this build (F-K9)"
+# (ب) F-K7: "Offline" is a measurement, so it is reachable only from the state that measured it.
+if grep -rn 'networkOk' app/src/main/kotlin app/src/test app/src/androidTest --include='*.kt'; then
+  fail "a boolean network field is back; an unmeasured state must not collapse into the offline claim (F-K7)"
+fi
+OFFLINE_FILES="$(grep -rIl 'status_network_offline' app/src/main/kotlin || true)"
+[ -n "$OFFLINE_FILES" ] || fail "nothing reaches the offline wording any more, so the tri-state seam is gone"
+if printf '%s\n' "$OFFLINE_FILES" | grep -qvE 'presentation/guard/HonestWording\.kt$|design/components/domain/LiveStatusStrip\.kt$'; then
+  fail "the offline wording is referenced outside the network seam and its Offline branch: $OFFLINE_FILES"
+fi
+grep -q 'NetworkStatus.Offline -> R.string.status_network_offline' \
+  app/src/main/kotlin/com/shieldra/app/presentation/guard/HonestWording.kt \
+  || fail "the offline label is no longer the only non-null branch of the network seam (F-K7)"
+grep -q 'networkStatus = NetworkStatus.Unknown' app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDashboardFactory.kt \
+  || fail "the dashboard stopped declaring its network state as unmeasured (F-K7)"
+# (ج) F-K11/Q-K-4: an age is a count, so it is a quantity resource in both locales, never a fixed
+#     sentence that a number has to decline itself.
+for locale_dir in values values-ar; do
+  if grep -q 'name="event_age_' "app/src/main/res/$locale_dir/strings.xml"; then
+    fail "an event age is a fixed <string> again in $locale_dir, which is how this read \"1 hours ago\" (F-K11)"
+  fi
+  for age in event_age_days event_age_hours event_age_minutes event_age_seconds; do
+    grep -q "plurals name=\"$age\"" "app/src/main/res/$locale_dir/plurals.xml" \
+      || fail "$locale_dir lost the $age quantity resource (F-K11)"
+  done
+done
+grep -q 'resources.getQuantityString(ageQuantityRes(parts), count, count)' "$NAVHOST" \
+  || fail "the age label no longer goes through the locale's own plural forms (F-K11)"
+# (د) A-1's three windows stay the numbers the retention row prints; the row may not invent a fourth.
+POLICY=app/src/main/kotlin/com/shieldra/storage/EvidenceRetentionPolicy.kt
+EVENT_DAYS="$(grep -oE 'EVENT_METADATA_RETENTION_DAYS: Long = [0-9]+L' "$POLICY" | grep -oE '[0-9]+' | head -1 || true)"
+EVIDENCE_DAYS="$(grep -oE 'EVIDENCE_RETENTION_DAYS: Long = [0-9]+L' "$POLICY" | grep -oE '[0-9]+' | head -1 || true)"
+[ -n "$EVENT_DAYS" ] && [ -n "$EVIDENCE_DAYS" ] || fail "the retention policy no longer names its two shipped windows (F-K6)"
+EN_RETENTION="$(grep '<string name="settings_retention_windows">' "$STRINGS_EN" || true)"
+AR_RETENTION="$(grep '<string name="settings_retention_windows">' "$STRINGS_AR" || true)"
+case "$EN_RETENTION" in
+  *"${EVENT_DAYS}-day events"*"${EVIDENCE_DAYS}-day evidence"*) ;;
+  *) fail "the retention row's English numbers no longer match EvidenceRetentionPolicy ($EVENT_DAYS/$EVIDENCE_DAYS): $EN_RETENTION" ;;
+esac
+case "$AR_RETENTION" in
+  *"${EVENT_DAYS}"*"${EVIDENCE_DAYS}"*) ;;
+  *) fail "the retention row's Arabic numbers no longer match EvidenceRetentionPolicy ($EVENT_DAYS/$EVIDENCE_DAYS): $AR_RETENTION" ;;
+esac
+# (هـ) A-28: the ten-minute window is the owner's number, measured from the incident's own persisted
+#     start, and the scan still filters by type so Panic can never bind to another guard's event.
+PANIC=app/src/main/kotlin/com/shieldra/domain/PanicIncidentCoordinator.kt
+grep -Eq 'const val PANIC_REUSE_WINDOW_MINUTES: Long = 10L' "$PANIC" \
+  || fail "Q-K-8's reuse window is no longer ten minutes (A-28)"
+grep -q 'withinReuseWindow(it, at)' "$PANIC" \
+  || fail "the reuse scan no longer applies the window, so an old ACTIVE incident is open forever (A-28)"
+grep -q 'Duration.between(event.createdAt, at)' "$PANIC" \
+  || fail "the window is no longer measured from the incident's persisted start, so a restart could extend it (A-28)"
+grep -q 'SecurityEventType.PANIC_ACTIVATION' "$PANIC" \
+  || fail "the reuse scan dropped its type filter, so Panic can absorb another guard's event (A-7/A-28)"
+# (و) A-27: onboarding completion is one app-private boolean, asked of no network, service, or the
+#     event store, and read on every cold start.
+ONB=app/src/main/kotlin/com/shieldra/app/navigation/OnboardingState.kt
+[ -s "$ONB" ] || fail "the onboarding completion seam is missing (A-27)"
+grep -q 'getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)' "$ONB" \
+  || fail "onboarding completion is no longer app-private preference state (A-27)"
+ONB_CODE="$(grep -hvE '^[[:space:]]*(/\*|\*|//)' "$ONB")"
+if printf '%s\n' "$ONB_CODE" | grep -qE 'OkHttp|firebase|WorkManager|Connectivity|Service|Room|SecurityEvent|EventId'; then
+  fail "onboarding persistence reaches a network, a service or the event store; Q-K-7 forbids that (A-27)"
+fi
+grep -q 'OnboardingState.startDestination(onboarding.isCompleted())' app/src/main/kotlin/com/shieldra/app/MainActivity.kt \
+  || fail "the cold start no longer reads the recorded completion (A-27)"
+grep -q 'onOnboardingCompleted = onboarding::markCompleted' app/src/main/kotlin/com/shieldra/app/MainActivity.kt \
+  || fail "nothing records the completion, so onboarding reopens on the next cold start (A-27)"
+[ "$(grep -c 'onOnboardingCompleted()' "$NAVHOST")" = "2" ] \
+  || fail "onboarding records its completion $(grep -c 'onOnboardingCompleted()' "$NAVHOST") times; both the skip and the protection step must record it (A-27)"
+# (ح) F-K12: the onboarding protection step described a Lock Guard rule the build does not run and
+#     discarded the number it asked for. The wording is now the truth about the step; whether the
+#     step itself stays is an open owner question (Q-K-9), so no flow structure is pinned here.
+for removed in lock_guard_threshold lock_guard_window; do
+  if grep -RIn "name=\"$removed\"" app/src/main/res --include='strings.xml'; then
+    fail "onboarding brought back $removed, which states a Lock Guard rule no code enforces (F-K12)"
+  fi
+  if grep -RIn "R.string.$removed" app/src/main --include='*.kt'; then
+    fail "a production screen still reads $removed (F-K12)"
+  fi
+done
+grep -q 'R.string.protection_step_inert' "$PROTECTION_STEP" \
+  || fail "the protection step no longer states what it actually does (F-K12)"
+# (ط) The named tests are the contract for everything above; a deleted test is a withdrawn promise.
+for name in qk4_an_unmeasured_network_state_never_reaches_the_offline_wording \
+  qk4_an_event_that_was_recorded_but_never_offered_for_delivery_is_not_called_skipped \
+  qk4_the_three_network_states_are_the_only_thing_the_slot_can_report \
+  qk7_a_first_run_starts_at_the_welcome_screen \
+  qk7_a_cold_start_after_onboarding_starts_at_the_dashboard \
+  a_press_after_the_window_starts_a_new_incident_even_while_the_old_one_is_still_active \
+  the_window_is_measured_from_the_incident_start_not_from_the_last_press \
+  a_panic_press_never_binds_to_an_open_event_of_another_guard; do
+  grep -rq "fun $name" app/src/test || fail "the named Q-K test is missing: $name"
+done
+pass "Q-K-4/Q-K-7/Q-K-8 hold: no withdrawn claim in the shipped wording, offline reachable only from a measurement, ages as quantities, retention numbers matching the policy, a ten-minute Panic window, and onboarding completion recorded locally"
 
 git diff --check
 pass "git diff check"

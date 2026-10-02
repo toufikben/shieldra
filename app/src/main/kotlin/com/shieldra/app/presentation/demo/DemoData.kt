@@ -30,6 +30,7 @@ object DemoData {
         recentEvents(),
         84,
         stringResource(R.string.demo_network_wifi),
+        NetworkStatus.Online,
         true,
         true,
     )

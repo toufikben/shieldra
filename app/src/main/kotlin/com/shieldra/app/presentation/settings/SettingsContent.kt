@@ -16,10 +16,10 @@ import com.shieldra.notification.NotificationPermissionState
 enum class SettingsSubtitleKind {
     GuardsSummary,
     NotificationState,
-    AuthenticationRequired,
+    AppLockNotEnforced,
     MatchSystem,
     StorageState,
-    RetentionPending,
+    RetentionWindows,
     None,
 }
 
@@ -106,8 +106,11 @@ object SettingsContent {
             R.string.settings_app_lock,
             SettingsIcon.Lock,
             SettingsSection.SecurityApp,
-            requiresAuth = true,
-            subtitle = SettingsSubtitleKind.AuthenticationRequired,
+            // F-K9: the row used to read "Require authentication" above a key policy that requires
+            // none (EvidenceKeyPolicy.requireUserAuthentication = false), and the flag rendered
+            // nothing. The interface now says what the policy does, and no row claims a gate it
+            // does not enforce (Q-K-4, A-26).
+            subtitle = SettingsSubtitleKind.AppLockNotEnforced,
         ),
         SettingsRowSpec(
             "theme",
@@ -129,8 +132,7 @@ object SettingsContent {
             R.string.settings_retention,
             SettingsIcon.Retention,
             SettingsSection.PrivacyData,
-            requiresAuth = true,
-            subtitle = SettingsSubtitleKind.RetentionPending,
+            subtitle = SettingsSubtitleKind.RetentionWindows,
         ),
         SettingsRowSpec("about", R.string.settings_about_shieldra, SettingsIcon.Info, SettingsSection.About),
         SettingsRowSpec("help", R.string.settings_help, SettingsIcon.Help, SettingsSection.About),
@@ -168,6 +170,25 @@ internal fun storageRowSubtitleRes(state: SettingsContent.StorageRowState): Int 
     SettingsContent.StorageRowState.InUse -> R.string.settings_storage_in_use
 }
 
+/**
+ * The app-lock row's subtitle (F-K9). The evidence key policy sets
+ * `requireUserAuthentication = false`, so the honest sentence is that no lock is
+ * enforced. The interface was changed to match the policy; the policy was not
+ * changed to match the interface.
+ */
+@StringRes
+internal fun appLockSubtitleRes(): Int = R.string.settings_app_lock_not_enforced
+
+/**
+ * The retention row's subtitle (F-K6). §5.4 with amendment A-1 fixed the windows
+ * and Q-K-2 made the sweeps run, so "Policy pending" described a decision that has
+ * long been made. While the storage gate installed nothing there is also nothing
+ * to retain, and the row says that instead.
+ */
+@StringRes
+internal fun retentionSubtitleRes(storageInstalled: Boolean): Int =
+    if (storageInstalled) R.string.settings_retention_windows else R.string.settings_retention_no_data
+
 /** The notification row carries the live A-6 permission state as its subtitle. */
 @StringRes
 internal fun notificationStateRes(state: NotificationPermissionState): Int = when (state) {
@@ -186,9 +207,9 @@ internal fun settingsSubtitleRes(
 ): Int? = when (kind) {
     SettingsSubtitleKind.None -> null
     SettingsSubtitleKind.GuardsSummary -> R.string.settings_guards_summary
-    SettingsSubtitleKind.AuthenticationRequired -> R.string.settings_require_authentication
+    SettingsSubtitleKind.AppLockNotEnforced -> appLockSubtitleRes()
     SettingsSubtitleKind.MatchSystem -> R.string.settings_match_system
-    SettingsSubtitleKind.RetentionPending -> R.string.settings_retention_pending
+    SettingsSubtitleKind.RetentionWindows -> retentionSubtitleRes(storageInstalled)
     SettingsSubtitleKind.NotificationState -> notificationStateRes(notificationState)
     SettingsSubtitleKind.StorageState ->
         storageRowSubtitleRes(SettingsContent.storageRowState(storageInstalled))

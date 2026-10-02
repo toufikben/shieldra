@@ -52,16 +52,10 @@ fun ProtectionSetupScreen(
         )
         Spacer(Modifier.height(spacing.xxxl))
         Text(
-            text = stringResource(R.string.lock_guard_threshold, displayed),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(spacing.m))
-        Text(
-            text = stringResource(R.string.lock_guard_window),
+            text = stringResource(R.string.protection_step_inert),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(spacing.xxxl))
         ShieldraFullWidthButton(

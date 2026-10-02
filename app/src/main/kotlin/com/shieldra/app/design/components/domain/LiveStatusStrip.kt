@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
@@ -33,20 +34,26 @@ import androidx.compose.ui.unit.dp
 import com.shieldra.app.R
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
+import com.shieldra.app.presentation.model.NetworkStatus
+import com.shieldra.app.presentation.guard.networkSlotLabelRes
 
 @Composable
 fun LiveStatusStrip(
     lastCheckLabel: String,
     batteryPercent: Int?,
     networkLabel: String,
-    networkOk: Boolean,
+    networkStatus: NetworkStatus,
     modifier: Modifier = Modifier,
 ) {
     val spacing = ShieldraTheme.spacing
-    val networkDescription = if (networkOk) {
-        stringResource(R.string.status_network_connected, networkLabel)
-    } else {
-        stringResource(R.string.status_network_offline)
+    // The offline wording is only reachable from a reading that measured it; an
+    // unmeasured state keeps the caller's own "not measured" label (F-K7).
+    val overrideRes = networkSlotLabelRes(networkStatus)
+    val shownNetworkLabel = if (overrideRes == null) networkLabel else stringResource(overrideRes)
+    val networkDescription = when (networkStatus) {
+        NetworkStatus.Online -> stringResource(R.string.status_network_connected, shownNetworkLabel)
+        NetworkStatus.Offline -> stringResource(R.string.status_network_offline)
+        NetworkStatus.Unknown -> shownNetworkLabel
     }
     val batteryDescription = batteryPercent?.let {
         stringResource(R.string.status_battery_percent, it)
@@ -83,8 +90,14 @@ fun LiveStatusStrip(
         )
         VerticalDivider()
         StatusSlot(
-            icon = if (networkOk) Icons.Filled.Wifi else Icons.Filled.WifiOff,
-            primary = if (networkOk) networkLabel else stringResource(R.string.status_network_offline),
+            icon = when (networkStatus) {
+                NetworkStatus.Online -> Icons.Filled.Wifi
+                NetworkStatus.Offline -> Icons.Filled.WifiOff
+                // Nothing has measured the network, so no glyph may draw a
+                // conclusion the label does not make (F-K7).
+                NetworkStatus.Unknown -> Icons.Filled.HelpOutline
+            },
+            primary = shownNetworkLabel,
             secondary = stringResource(R.string.status_network),
         )
     }
@@ -136,8 +149,8 @@ private fun LiveStatusStripPreview() {
         LiveStatusStrip(
             lastCheckLabel = "12s ago",
             batteryPercent = 84,
-            networkLabel = "Wi-Fi",
-            networkOk = true,
+            networkLabel = "Not measured",
+            networkStatus = NetworkStatus.Unknown,
             modifier = Modifier.padding(16.dp),
         )
     }

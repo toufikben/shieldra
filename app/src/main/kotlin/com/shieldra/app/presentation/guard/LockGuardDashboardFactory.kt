@@ -8,6 +8,7 @@ import com.shieldra.app.presentation.model.DashboardUiModel
 import com.shieldra.app.presentation.model.EventUiModel
 import com.shieldra.app.presentation.model.GuardKind
 import com.shieldra.app.presentation.model.GuardUiModel
+import com.shieldra.app.presentation.model.NetworkStatus
 import com.shieldra.runtime.MonitoringClaim
 
 /**
@@ -49,7 +50,7 @@ fun lockGuardDashboard(
         recentEvents = recentEvents,
         batteryPercent = null,
         networkLabel = stringResource(R.string.status_network_unknown),
-        networkOk = false,
+        networkStatus = NetworkStatus.Unknown,
         showAds = false,
         storageInstalled = state == LockGuardState.StorageIdle,
     )

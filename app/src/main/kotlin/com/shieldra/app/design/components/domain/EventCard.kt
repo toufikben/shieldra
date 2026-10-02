@@ -34,6 +34,7 @@ import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.design.tokens.ShieldraPillShape
 import com.shieldra.app.presentation.demo.DemoData
 import com.shieldra.app.presentation.model.DeliveryStatus
+import com.shieldra.app.presentation.guard.deliveryChipLabelRes
 import com.shieldra.app.presentation.model.EventType
 import com.shieldra.app.presentation.model.EventUiModel
 
@@ -45,19 +46,16 @@ private fun deliveryColor(status: DeliveryStatus): Color = when (status) {
     DeliveryStatus.Ready -> MaterialTheme.colorScheme.onSurfaceVariant
     DeliveryStatus.Failed -> MaterialTheme.colorScheme.error
     DeliveryStatus.Expired -> MaterialTheme.colorScheme.onSurfaceVariant
-    DeliveryStatus.Skipped -> MaterialTheme.colorScheme.onSurfaceVariant
+    DeliveryStatus.NotAttempted -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
+/**
+ * The chip's sentence comes from the pure decision beside the model, so a recorded
+ * event that no delivery ever claimed is worded as "not attempted" instead of the
+ * "Skipped" this build could not prove (Q-K-4, F-K10).
+ */
 @Composable
-private fun deliveryLabel(status: DeliveryStatus): String = stringResource(when (status) {
-    DeliveryStatus.Ready -> R.string.status_ready
-    DeliveryStatus.Delivering -> R.string.status_sending
-    DeliveryStatus.Delivered -> R.string.status_delivered
-    DeliveryStatus.Deferred -> R.string.status_retrying
-    DeliveryStatus.Failed -> R.string.status_failed
-    DeliveryStatus.Expired -> R.string.status_expired
-    DeliveryStatus.Skipped -> R.string.status_skipped
-})
+private fun deliveryLabel(status: DeliveryStatus): String = stringResource(deliveryChipLabelRes(status))
 
 @Composable
 fun EventCard(

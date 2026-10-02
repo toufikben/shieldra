@@ -7,8 +7,8 @@ import com.shieldra.app.presentation.guard.eventStateLabelRes
 import com.shieldra.app.presentation.guard.toDeliveryStatus
 import com.shieldra.app.presentation.model.DeliveryStatus
 import com.shieldra.app.presentation.model.NetworkStatus
-import com.shieldra.app.presentation.model.deliveryChipLabelRes
-import com.shieldra.app.presentation.model.networkSlotLabelRes
+import com.shieldra.app.presentation.guard.deliveryChipLabelRes
+import com.shieldra.app.presentation.guard.networkSlotLabelRes
 import com.shieldra.app.presentation.settings.SettingsContent
 import com.shieldra.app.presentation.settings.SettingsSubtitleKind
 import com.shieldra.app.presentation.settings.appLockSubtitleRes

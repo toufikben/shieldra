@@ -91,7 +91,7 @@ fun DashboardScreen(
                     ?: stringResource(R.string.last_check_none),
                 batteryPercent = model.batteryPercent,
                 networkLabel = model.networkLabel,
-                networkOk = model.networkOk,
+                networkStatus = model.networkStatus,
                 modifier = Modifier.padding(horizontal = spacing.l),
             )
         }

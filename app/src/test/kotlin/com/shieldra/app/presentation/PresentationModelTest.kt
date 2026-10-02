@@ -62,7 +62,7 @@ class PresentationModelTest {
             EventUiModel("motion", EventType.Motion, "", "", "", DeliveryStatus.Deferred, false, false),
             EventUiModel("sim", EventType.SimChange, "", "", "", DeliveryStatus.Failed, false, false),
             EventUiModel("panic", EventType.Panic, "", "", "", DeliveryStatus.Ready, false, false),
-            EventUiModel("battery", EventType.Battery, "", "", "", DeliveryStatus.Skipped, false, false),
+            EventUiModel("battery", EventType.Battery, "", "", "", DeliveryStatus.NotAttempted, false, false),
         )
 
         val expectedByType = mapOf(

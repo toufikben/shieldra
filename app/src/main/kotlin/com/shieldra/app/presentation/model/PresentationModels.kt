@@ -32,8 +32,29 @@ data class LocationUiModel(
     val source: String? = null,
 )
 
+/**
+ * What the History chip is allowed to say about delivery.
+ *
+ * [NotAttempted] replaced `Skipped` (F-K10, Q-K-4): a stored event that was recorded and
+ * never offered for delivery has not been skipped by anything — no delivery decision was
+ * taken at all — and naming it "skipped" stated a decision the row does not carry.
+ */
 enum class DeliveryStatus {
-    Ready, Delivering, Delivered, Deferred, Failed, Expired, Skipped
+    Ready, Delivering, Delivered, Deferred, Failed, Expired, NotAttempted
+}
+
+/**
+ * What the dashboard's network slot actually knows (F-K7, Q-K-4).
+ *
+ * Nothing in this build reads connectivity, so [Unknown] is the value the dashboard
+ * reports today. It is separated from [Offline] because "we did not measure this" and
+ * "this is offline" are different claims, and only the second one may use the offline
+ * wording.
+ */
+enum class NetworkStatus {
+    Unknown,
+    Offline,
+    Online,
 }
 
 enum class ChannelId { Email, WhatsApp, Telegram }
@@ -83,7 +104,8 @@ data class DashboardUiModel(
     val recentEvents: List<EventUiModel>,
     val batteryPercent: Int?,
     val networkLabel: String,
-    val networkOk: Boolean,
+    /** F-K7: what the slot really knows about connectivity, not a colour to render it with. */
+    val networkStatus: NetworkStatus,
     val showAds: Boolean,
     /** Whether this process really opened local storage; decides the disclosure line. */
     val storageInstalled: Boolean = false,

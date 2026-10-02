@@ -37,7 +37,7 @@
     <string name="delivery_section">التسليم</string>
     <string name="delivery_delivered">✓ تم التسليم</string>
     <string name="delivery_failed">✗ فشل</string>
-    <string name="delivery_skipped">— تم التخطي</string>
+    <string name="delivery_not_attempted">— لم تُحاول الإرسال</string>
     <string name="delivery_sending">· قيد الإرسال</string>
     <string name="delivery_ready">· جاهز</string>
     <string name="delivery_retrying">· إعادة المحاولة</string>
@@ -85,9 +85,8 @@
     <string name="motion_monitoring_stopped">توقفت مراقبة الحركة.</string>
     <string name="motion_monitoring_no_storage">لم تبدأ المراقبة: لا تخزين مثبَّت في هذا البناء ليسجّل ما تؤكده.</string>
     <string name="lock_guard">حارس القفل</string>
-    <string name="protection_setup_question">يستخدم حارس القفل قاعدة الحماية المعتمدة.</string>
-    <string name="lock_guard_threshold">تؤكد %1$d محاولتان فاشلتان حدثًا أمنيًا</string>
-    <string name="lock_guard_window">يجب أن تحدث المحاولتان خلال دقيقتين. تُسجل المحاولة الفاشلة الأولى كإشارة، لكنها لا تنشئ حدثًا أمنيًا مؤكدًا.</string>
+    <string name="protection_setup_question">حارس القفل لا يعمل في هذا الإصدار بعد.</string>
+    <string name="protection_step_inert">المتابعة من هذه الشاشة لا تُغيّر أي إعداد.</string>
     <string name="silent_panic">الذعر الصامت</string>
     <string name="trigger_emergency_event">تفعيل حدث طوارئ</string>
     <string name="details">التفاصيل</string>
@@ -106,7 +105,7 @@
     <string name="status_retrying">إعادة المحاولة</string>
     <string name="status_failed">فشل</string>
     <string name="status_expired">منتهي</string>
-    <string name="status_skipped">تم التخطي</string>
+    <string name="status_not_attempted">لم تُحاول الإرسال</string>
     <string name="event_type">النوع</string>
     <string name="event_timestamp">الطابع الزمني</string>
     <string name="event_battery">البطارية</string>
@@ -196,7 +195,7 @@
     <string name="settings_protection">الحماية</string>
     <string name="settings_guards_summary">حارس القفل · الحراس</string>
     <string name="settings_app_lock">قفل التطبيق</string>
-    <string name="settings_require_authentication">يتطلب المصادقة</string>
+    <string name="settings_app_lock_not_enforced">غير مطبَّق في هذا الإصدار</string>
     <string name="settings_theme">المظهر</string>
     <string name="settings_match_system">مطابقة النظام</string>
     <string name="settings_language">اللغة</string>
@@ -204,7 +203,8 @@
     <string name="settings_storage_in_use">التخزين المحلي مستخدم على هذا الهاتف</string>
     <string name="settings_storage_none">لا يوجد تخزين محلي على هذا الهاتف بعد</string>
     <string name="settings_retention">سياسة الاحتفاظ</string>
-    <string name="settings_retention_pending">السياسة قيد التحديد</string>
+    <string name="settings_retention_windows">مطبَّقة: الأحداث 90 يومًا والأدلة 30 يومًا</string>
+    <string name="settings_retention_no_data">لا توجد بيانات محفوظة على هذا الهاتف بعد</string>
     <string name="settings_about_shieldra">حول شيلدرا</string>
     <string name="settings_help">المساعدة</string>
     <string name="guard_premium_feature">ميزة بريميوم</string>
@@ -216,11 +216,7 @@
     <string name="guard_subtitle_inactive">لم تبدأ المراقبة بعد</string>
     <string name="guard_subtitle_motion_active">مراقبة الحركة نشِطة</string>
     <string name="event_security_event">حدث أمني</string>
-    <string name="event_age_days">قبل %1$d يوم</string>
-    <string name="event_age_hours">قبل %1$d ساعة</string>
-    <string name="event_age_minutes">قبل %1$d دقيقة</string>
-    <string name="event_age_seconds">قبل %1$d ثانية</string>
-    <string name="status_network_unknown">الشبكة غير متاحة</string>
+    <string name="status_network_unknown">غير مقاسة</string>
     <string name="location_source_gps">GPS</string>
     <string name="location_source_fused">مُدمج</string>
 </resources>

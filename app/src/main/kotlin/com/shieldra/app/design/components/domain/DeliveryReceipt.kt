@@ -40,7 +40,7 @@ private fun statusColor(status: DeliveryStatus): Color = when (status) {
 private fun statusLabel(status: DeliveryStatus): String = when (status) {
     DeliveryStatus.Delivered -> stringResource(R.string.delivery_delivered)
     DeliveryStatus.Failed -> stringResource(R.string.delivery_failed)
-    DeliveryStatus.Skipped -> stringResource(R.string.delivery_skipped)
+    DeliveryStatus.NotAttempted -> stringResource(R.string.delivery_not_attempted)
     DeliveryStatus.Delivering -> stringResource(R.string.delivery_sending)
     DeliveryStatus.Ready -> stringResource(R.string.delivery_ready)
     DeliveryStatus.Deferred -> stringResource(R.string.delivery_retrying)
