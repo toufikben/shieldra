@@ -425,7 +425,8 @@ pass "event state labels claim only what the state really did"
 [ -s app/src/test/kotlin/com/shieldra/domain/PanicIncidentCoordinatorTest.kt ] ||
   fail "panic coordinator tests are missing"
 for name in first_panic_creates_exactly_one_real_event_id \
-  repeated_panic_while_the_event_is_not_terminal_reuses_the_same_event_id \
+  repeated_panic_within_the_reuse_window_reuses_the_same_event_id \
+  a_press_after_the_window_starts_a_new_incident_even_while_the_old_one_is_still_active \
   repeated_panic_does_not_start_duplicate_delivery_or_evidence_work \
   activation_count_and_last_activation_stay_consistent_with_the_presses \
   a_new_panic_after_the_previous_event_is_terminal_creates_a_new_event_id \

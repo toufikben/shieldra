@@ -78,20 +78,22 @@ class PanicActivationDurabilityTest {
         val repository = CountingEventRepository()
         val before = coordinator(repository)
         assertIs<PanicActivation.Recorded>(before.activate())
-        instant = Instant.parse("2026-09-30T10:15:30Z")
+        // Inside the ten-minute reuse window (A-28), so this press still belongs to the first
+        // incident and the stored instant is the one being read back.
+        instant = Instant.parse("2026-09-30T09:00:30Z")
         val second = assertIs<PanicActivation.BoundToActive>(before.activate())
 
         // The instant is stored, not merely held by the coordinator instance.
         assertEquals(
-            Instant.parse("2026-09-30T10:15:30Z"),
+            Instant.parse("2026-09-30T09:00:30Z"),
             repository.lastActivationAtFor(second.event.id),
         )
 
         val afterRestart = coordinator(repository)
-        instant = Instant.parse("2026-09-30T11:00:00Z")
+        instant = Instant.parse("2026-09-30T09:01:00Z")
         val resumed = assertIs<PanicActivation.BoundToActive>(afterRestart.activate())
         assertEquals(
-            Instant.parse("2026-09-30T11:00:00Z"),
+            Instant.parse("2026-09-30T09:01:00Z"),
             repository.lastActivationAtFor(resumed.event.id),
             "the newest activation must overwrite the stored instant",
         )
