@@ -15,6 +15,9 @@ Every claim below carries one of these labels:
 **REPO** (read from this repository at `c3b2a4a`),
 **NOT RUN** (not proven; nobody should repeat this report as if it were).
 
+CI for the two commits carrying this report is in **§12**, and for a docs-only batch it proves only
+that nothing moved a gate — see the caveat there.
+
 ---
 
 ## 1. Bottom line
@@ -590,8 +593,10 @@ grep -n "unauthorized access or interference" play_16559646.txt   # proves the b
 - Device admin deprecation — https://developers.google.com/android/work/device-admin-deprecation
 - `DeviceAdminReceiver` reference — https://developer.android.com/reference/android/app/admin/DeviceAdminReceiver
 
-Device probes (read-only; the working copies under `%TEMP%` were deleted after reading, and these
-commands reproduce them):
+Device probes (read-only). Their working copies (`framework-res.apk`, the sibling APK, the stripped
+page text, the re-downloaded AOSP files) live in this session's `%TEMP%` and **nothing downloaded or
+binary is committed to this repository**; they are removed when the batch closes, and these commands
+reproduce them:
 
 ```sh
 export MSYS_NO_PATHCONV=1
@@ -607,3 +612,22 @@ grep -n "ACTION_PASSWORD_FAILED\|BIND_DEVICE_ADMIN" that-dump
 ```
 
 Repository state read for §2.6, §7, §8: commit `c3b2a4a777dc29cb4349f3e72d67c0b98969fd13`.
+
+---
+
+## 12. Verification record
+
+Workflow **"Group A diagnostics"**, branch `main`, both runs re-read from the run object with
+`gh run view <id> --json status,conclusion,headSha` (not from a `gh run watch` message).
+
+| Commit | CI run | Verdict | Evidence lines from that run's log |
+|---|---|---|---|
+| `2af44dd9d14ea2e52ca4e730ec5a20c908369a00` (this report, §1–§11 as first written) | `36969193282` | **success** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped`; `BUILD SUCCESSFUL in 7m 24s`; `Group C boundary scan passed.`; `G4-B LOCAL REVIEW PASS — runtime/device evidence still required`; `PHASE 3 STATIC REVIEW PASS` |
+| `40219d3100c4c0fa721d35ce00d69663e85e9b08` (adversarial re-read: §3.4 misattribution, two dangling §6.2 refs, the nonexistent protocol section reference, the framework-res line conflation, the Stalkerware range, the dual Accessibility citation, plus §5.2's 2.2.4 escape, §5.3's line 1467 exemption and the positive-control paragraph) | `36969781894` | **success** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped`; `BUILD SUCCESSFUL in 7m 39s`; `Group C boundary scan passed.`; `G4-B LOCAL REVIEW PASS — runtime/device evidence still required`; `PHASE 3 STATIC REVIEW PASS` |
+
+**What these runs do and do not prove.** This batch changed **only files under `docs/`**, and §8
+already records that no gate script scans `docs/`. So a green run here proves exactly two things:
+the repository still compiles and tests at `332/332`, and **nothing in this batch moved a gate, a
+permission, a manifest entry or a constant**. It proves **nothing** about Lock Guard — no observability
+claim in §2 was re-derived by CI, and the receipt question stays **NOT RUN** (§10.1). Anyone reading
+this table must read it as "the docs-only batch did not disturb the build", which is all it is.
