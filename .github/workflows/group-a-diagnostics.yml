@@ -75,6 +75,9 @@ jobs:
       - name: Publish the device APK pair to the rolling draft release
         if: success()
         shell: bash
+        env:
+          # The GitHub CLI does not read the job token implicitly inside a run step.
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/publish-device-apks.sh
 
       # The artifact copy stays, but it is no longer the authority: it cannot upload while GitHub's
