@@ -3,16 +3,19 @@
 **Date:** 2026-10-02
 **Owner input:** the five-answer decision message of 2026-10-02 (Q-K-1 … Q-K-5), recorded as amendments
 **A-20 … A-24** in `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` §17.
-**Verification target:** `main` at `a9c6f33` (CI run `37041822709`: **341 tests, 341 passed, 0 failures, 0
-errors, 0 skipped**, and its release step printed
-`PASS: the device APK pair is published on draft release device-apks for a9c6f3305c09c76afb9830f35e0b72f7678c92a4`).
-`a9c6f33` and its parent `c8343fe` are docs-only, so the production code they name is `902f15c`'s, whose own
+**Verification target:** `main` at `9f4b861` (CI run `37047571432`: **341 tests, 341 passed, 0 failures, 0
+errors, 0 skipped**, `Group C boundary scan passed`, `G4-B LOCAL REVIEW PASS — runtime/device evidence still
+required`, `PHASE 3 STATIC REVIEW PASS`, and its release step printed
+`PASS: the device APK pair is published on draft release device-apks for 9f4b861d46ad17d705fc6dd610b21711ad4d148a`).
+The three same-run `Failed to CreateArtifact` lines are still there — the artifact quota is unresolved (F-K5),
+which is why the release channel is the authority. `9f4b861` and its parents `a9c6f33` and `c8343fe` are
+docs-only, so the production code they name is `902f15c`'s, whose own
 run `37034116024` is green with the same 341/341 and the same PASS line.
 **What this report is:** the execution record for those five answers — what landed, which CI run proves
 each part, what was measured on the phone today, and what is still owed. It gives **no security sign-off.**
-It also raises two new owner questions, **Q-K-6** (§7.3) and **Q-K-8** (§7.5), and five findings that came
-off the phone rather than off the source: **F-K7** (§7.2), **F-K8** (§7.4), and **F-K9 / F-K10 / F-K11**
-(§7.5).
+It also raises **three** new owner questions, **Q-K-6** (§7.3), **Q-K-7** (§7.4) and **Q-K-8** (§7.5), and
+five findings that came off the phone rather than off the source: **F-K7** (§7.2), **F-K8** (§7.4), and
+**F-K9 / F-K10 / F-K11** (§7.5).
 
 ---
 
@@ -663,8 +666,9 @@ Panic path — that is new behaviour, not a wording fix, and no amendment author
 
 ### F-K11 / Q-K-8 — new, from row 4: a Panic press two hours later recorded nothing
 
-`PanicIncidentCoordinator.kt:62-64` binds a press to the first non-terminal `PANIC_ACTIVATION` event, with
-**no time window** — the only exit is the event reaching a terminal state, and per F-K10 the Panic path never
+`PanicIncidentCoordinator.kt:62-64` binds a press to the first non-terminal `PANIC_ACTIVATION` event in a scan
+of the **100 most recent** events (`ACTIVE_EVENT_SCAN_LIMIT = 100`, `:153`), with **no time window** — the only
+exit is the event reaching a terminal state, and per F-K10 the Panic path never
 advances the state. Pressing `Silent Panic` at 19:00 on an event created at ~17:00 therefore produced no new
 row, no new event, and one more activation counted against the two-hour-old incident. That is A-7's dedup
 design working as written; the open part is the *duration*, which A-7 does not bound. Raised as **Q-K-8**:
