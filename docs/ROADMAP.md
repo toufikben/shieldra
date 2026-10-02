@@ -343,7 +343,8 @@ resumability, failure semantics (§27), factory reset (§28), and the retention 
 > landed (`8da7686`, and the release channel in §6.5 below), and Q-K-3 is additionally **closed on the device**
 > except landscape (NOT RUN) and 16 KB page size (not exercisable on a 4 KB phone). K cannot be *closed* while
 > the H, I, J and K answers are outstanding, and **three K items are now new and open: Q-K-6, Q-K-7 and
-> Q-K-8.** They came off the phone, not off the source: Q-K-7 is F-K8 (cold start re-shows onboarding), Q-K-8
+> Q-K-8.** *(each was answered later the same day — the last paragraph of this blockquote records which
+> amendment each became, and what it still leaves unverified)* They came off the phone, not off the source: Q-K-7 is F-K8 (cold start re-shows onboarding), Q-K-8
 > is F-K11 (a Panic press binds to the first incident forever, because the bind has no window and the Panic
 > path never advances the event's state). The passes also produced **F-K9** (Settings says "App lock — Require
 > authentication" over a key policy that deliberately requires none) and **F-K10** (History labels the only row
