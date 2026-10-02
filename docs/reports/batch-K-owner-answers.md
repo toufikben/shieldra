@@ -3,9 +3,12 @@
 **Date:** 2026-10-02
 **Owner input:** the five-answer decision message of 2026-10-02 (Q-K-1 … Q-K-5), recorded as amendments
 **A-20 … A-24** in `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` §17.
-**Verification target:** `main` at `8da7686`.
+**Verification target:** `main` at `902f15c` (CI run `37034116024`: **341 tests, 341 passed, 0 failures, 0
+errors, 0 skipped**, and its release step printed
+`PASS: the device APK pair is published on draft release device-apks for 902f15c0f968f9a52e5f12aa2dddf39af41f1f6e`).
 **What this report is:** the execution record for those five answers — what landed, which CI run proves
 each part, what was measured on the phone today, and what is still owed. It gives **no security sign-off.**
+It also raises one new owner question, **Q-K-6** (§7.3).
 
 ---
 
@@ -13,11 +16,11 @@ each part, what was measured on the phone today, and what is still owed. It give
 
 | Answer | Landed as | CI proof | Really proved | Still owed |
 |---|---|---|---|---|
-| **Q-K-1** remove the Premium tab and route | `e8bb16e` (RED) → `d0573bf` (GREEN) | `36991054611` (RED) · `36994802842` (GREEN) | the tab and route are gone and a test fails if any declared route names a premium screen again | the on-device "Premium state after Q-K-1" observation — the delivery block is gone (§6.5); now only the locked phone |
-| **Q-K-2** retention executes | `e8bb16e` (RED) → `d34ed86` (GREEN) | `36993925242` · `36994802842` | the 30/30/90 windows decide real deletions in the pure planner, and the three authorized execution points are wired | `EvidenceRetentionSweepInstrumentedTest` — **NOT RUN** (needs the phone unlocked, §6.5) |
-| **Q-K-3** API 36 | `d06cfc8` (RED gate) → `8da7686` (GREEN) | `36994944518` (RED) · `36995812606` (GREEN) | the release compiles and targets 36, every gate passes, 341/341 JVM | Android 16 runtime behaviour on `RMX3910` — **NOT RUN** (needs the phone unlocked, §6.5) |
-| **Q-K-4** listing vocabulary | amendment **A-23** | docs-only | the allowed and forbidden sentences are written down | the Play Console text itself — a Batch L submission-time task |
-| **Q-K-5** CI artifacts | `e78694e` + `589f4a5`/`a147bef` (§6.5) | `36989921551` · `37003070708` | a missing required APK now fails the run visibly, and future APKs expire in 14 days | closed for delivery: the pair now publishes to a required release channel, so the quota no longer blocks a download — **nothing was deleted**, §6.5 |
+| **Q-K-1** remove the Premium tab and route | `e8bb16e` (RED) → `d0573bf` (GREEN) | `36991054611` (RED) · `36994802842` (GREEN) · re-verified on `902f15c` by `37034116024` | the tab and route are gone and a test fails if any declared route names a premium screen again, **and the phone now shows a three-item tab bar (Home · History · Settings) on a build carrying the removal** — §7.2 | nothing for this answer; the F-K1 screen-side half is closed |
+| **Q-K-2** retention executes | `e8bb16e` (RED) → `d34ed86` (GREEN) | `36993925242` · `36994802842` · `37034116024` | the 30/30/90 windows decide real deletions in the pure planner, the three authorized execution points are wired, **and two device tests removed real ciphertext from `no_backup/` on the RMX3910** — §7.3 | HEAD's own version of the third test to run green on a phone, which is Q-K-6, and the Settings "Policy pending" wording (F-K6) |
+| **Q-K-3** API 36 | `d06cfc8` (RED gate) → `8da7686` (GREEN) | `36994944518` (RED) · `36995812606` (GREEN) · `37034116024` | the release compiles and targets 36, every gate passes, 341/341 JVM, **and a `targetSdk=36` build installs and runs on this Android 16 / API 36 phone with every screen rendering and notifications posting** — §7.2 | the item-by-item Android 16 behaviour list in §3, which was not probed deliberately |
+| **Q-K-4** listing vocabulary | amendment **A-23** | docs-only | the allowed and forbidden sentences are written down | the Play Console text itself — a Batch L submission-time task, **plus F-K7, the dashboard's unmeasured "Offline" (§7.2)** |
+| **Q-K-5** CI artifacts | `e78694e` + `589f4a5`/`a147bef` (§6.5) | `36989921551` · `37003070708` | a missing required APK now fails the run visibly, and future APKs expire in 14 days | closed for delivery: the pair now publishes to a required release channel, so the quota no longer blocks a download — **nothing was deleted**, §6.5. The pair for `902f15c` was downloaded and hash-verified in §7.3 |
 
 ---
 
@@ -344,17 +347,171 @@ Neither is a false "protection" claim today, and neither blocks a gate.
 
 ---
 
+## 7.2 The same pass, on the build that carries the answers — MEASURED 16:30–17:02
+
+The phone came back unlocked at ~14:18 and the pair published by the new `device-apks` release was installed
+then, so the pass §7 could only run against `18cc745` was run a second time against a build that contains
+Q-K-1, Q-K-2 and Q-K-3. Screenshots are under `%TEMP%\kshot4\` (38 PNGs + their `uiautomator` dumps, not
+committed); capture window `16:30` → `17:02` on the phone's clock.
+
+**What is on the phone, read back after the pass (17:34 local):**
+
+```
+$ adb shell dumpsys package com.shieldra.app
+versionCode=1 minSdk=26 targetSdk=36
+versionName=0.1.0
+firstInstallTime=2026-10-02 14:18:08   lastUpdateTime=same   installerPackageName=null
+
+$ adb shell getprop ro.build.version.release ro.build.version.sdk ro.product.model
+16
+36
+RMX3910        (build RMX391023703_16.0.5.1201(EX01))
+```
+
+`firstInstallTime == lastUpdateTime` means the 14:18 install replaced the §7 install **with its data wiped**,
+so every reading below belongs to this build and this data directory, not to the earlier one.
+
+**Which commit.** The pair downloadable at 13:18Z was the one published by run `37004923649`, i.e. `253ce07`;
+that is an inference from publish times, not a read from the device. The hard check is what separates that
+commit from HEAD: `git diff --name-only 253ce07..902f15c` returns **one** file,
+`app/src/androidTest/…/EvidenceRetentionSweepInstrumentedTest.kt`, and **0** files under `app/src/main`. So the
+production code on the phone is identical to HEAD's, and this pass is a valid screen-side check of Q-K-1,
+Q-K-2 and Q-K-3.
+
+**Android 16, measured.** The RMX3910 runs Android 16 / API 36, so this install is the first time a
+`targetSdk=36` build has been *run* rather than compiled: it installed, every screen rendered, Motion
+monitoring started and stopped, notifications posted, and the Room/Keystore paths were exercised by the
+instrumented run in §7.3. That is the device half of §3's "Android 16 verification items" — it is **not** a
+behavioural audit of every item on that list.
+
+| # | Screen | Exactly what was seen |
+|---|---|---|
+| 1 | First run (`01`, 16:30) | Shieldra mark, "Security events are recorded on this phone.", "What you trigger is recorded and stored here, on this device. You can start Motion monitoring from the dashboard.", `Get started` / `Skip for now` — unchanged from §7 row 1, so the A-6 onboarding wording holds on the new build |
+| 2 | Dashboard, stopped (`05`, 16:32) | "ATTENTION / No check yet"; "Security events are recorded and stored on this phone. **No continuous monitoring is running yet.**"; status row "No check yet · Last check", "— · Battery", "**Offline** · Network"; `Silent Panic`; GUARDS Lock/Motion "Not monitoring yet"; button "Start Motion monitoring". **Tab bar: Home · History · Settings** |
+| 3 | Dashboard, active (`21`, 16:50) | Body sentence "Security events are recorded and stored on this phone. **Motion monitoring is running.**"; Motion tile "Motion Guard / Motion monitoring is active" with the green indicator; Lock tile still "Not monitoring yet"; header still "ATTENTION / No check yet"; same three-item tab bar |
+| 4 | Guards grid (`38`, 17:02) | Lock "Not monitoring yet", **Motion "Motion monitoring is active"**, SIM "Not monitoring yet", Panic "Not monitoring yet", Battery "Not monitoring yet"; button "Stop Motion monitoring". A Panic event had already been recorded at 16:51 and the Panic tile still says "Not monitoring yet" — the tile reports monitoring, not history, and it does not inflate itself |
+| 5 | Panic → History (`22`, `23`, 16:50–16:51) | After the Panic press, History shows one row "Security event / 0 seconds ago / `Skipped`" **without restarting the app** |
+| 6 | History, Panic filter (`33`, 16:57) | The same row is still listed with **Panic** selected (chip green) → the persisted row's own type is Panic on a build where `persistedEventTypeOf` maps `PANIC_ACTIVATION → EventType.Panic`. This is §7 row 8's claim re-measured on the shipped code, and it is the screen-side proof Q-K-1's sibling fix (A) needed |
+| 7 | Event Detail (`24`, `26`, 16:51–16:53) | "Security event" · "No photo available" · "LOCATION / Location unavailable" · "DETAILS Type: Security event / Timestamp: 58 seconds ago / **Event ID 8c75b077-94de-439b-a6e2-fc9fa91741df**" · an empty DELIVERY section · `Delete` / `Export`; Export shows the snackbar "This action is intentionally deferred in Phase 3." — F-K3's no-op, seen on screen |
+| 8 | Settings (`34`, `35`, `36`, `37`, 16:58–17:00) | "Protection — Lock Guard · Guards"; "Notifications — **Allowed**"; Theme "Match system" (and the theme + language pickers, `35`–`37`); "Storage — Local storage is in use on this phone"; "**Retention policy — Policy pending**"; "App lock — Require authentication" |
+| 9 | **Premium** | **There is no Premium screen to photograph.** The route, the tab and the strings are gone from the build, and the tab bar measured in rows 2, 3, 5, 6 and 8 has exactly three items. §7 row 11 was F-K1 photographed on `18cc745`; this is F-K1 photographed as closed |
+
+**One §7 reading did NOT reproduce, and the reason matters.** The earlier install showed
+`POST_NOTIFICATIONS: granted=true, flags=[ USER_SET\|… ]`, which §7 used as the proof that the runtime prompt
+really reached a human. This install shows `granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED\|USER_SENSITIVE_WHEN_DENIED ]`
+— **no `USER_SET`**. What *is* proven here is that the app's own request path ran on this install:
+`shared_prefs/shieldra_notification.xml` holds `permission_requested=true` with an mtime of **16:41**, inside
+this pass. What is *not* provable from this install is that a user tapped Allow, because the flag the earlier
+install carried is absent. So Q-K-4's "1 prompted" sentence rests on the `18cc745` install's `USER_SET` flag,
+and this install may only be quoted as "the request path executed". Nobody re-asked the owner to answer a
+permission dialog to recover the stronger reading.
+
+**The rest of §7 reproduced on this install, unchanged:** `install permissions` = `FOREGROUND_SERVICE`,
+`FOREGROUND_SERVICE_SPECIAL_USE` + the AGP-injected signature-level `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`
+(3 declared, 1 runtime, same as §5); `head -c 16 databases/shieldra.db` = `SQLite format 3\0` — still
+plaintext at rest; `dumpsys activity services` → **0** `ServiceRecord`;
+`dumpsys deviceidle whitelist | grep -ci shieldra` → **0**.
+
+**New, and stronger than §7's notification row:** `dumpsys notification --noredact` now lists **3**
+`NotificationRecord`s for the package, all on channel `shieldra_security_events` at `importance=4`, and one of
+them is tagged `8c75b077-94de-439b-a6e2-fc9fa91741df` — the exact Event ID read off the Event Detail screen in
+row 7. So the device shows the whole A-6 chain at once: an event was persisted, its detail screen names that
+ID, and a notification tagged with the same ID was posted on the audible channel. The Motion notice's own
+channel (`shieldra_motion_monitoring`) appears only in the channel settings, never as a record — monitoring is
+stopped, so §7's "no ongoing notice left behind" holds even with three real event notifications in the shade.
+
+### F-K7 — new, from row 2 and row 3: the Network tile asserts a state nothing measured
+
+The dashboard's third status tile reads **"Offline"** with a Wi-Fi-off icon in *both* the stopped and the
+active screenshot, while the phone's own status bar in the same pictures shows 4G and Wi-Fi. Nothing in the
+build performs a connectivity check, and the projection layer knows that:
+`LockGuardDashboardFactory.kt:51-52` passes `networkLabel = stringResource(R.string.status_network_unknown)`
+("Network unavailable") together with `networkOk = false`. The strip then throws the honest label away —
+`LiveStatusStrip.kt:87`: `primary = if (networkOk) networkLabel else stringResource(R.string.status_network_offline)`
+— and `:86` swaps the icon to `Icons.Filled.WifiOff`. The "unknown" string is referenced exactly once, by the
+factory that is never allowed to say it.
+
+Why it belongs in a security audit: protocol `:753` forbids labelling a thing on evidence that does not exist,
+and "Offline" is a *definite negative* about the device's network — the same class as the claims Batch F2 and
+G5 fixed, reached on every dashboard view. It is also the kind of sentence a Play reviewer can photograph.
+The fix is display-only (render the unknown state as unknown, and keep "Offline" for a measured negative), it
+needs no new permission and no connectivity API, and it is scheduled under **Q-K-4**, whose rule is to correct
+claims that are contradicted by the implementation. Recorded, not silently patched, because the wording is a
+release-facing claim.
+
+### 7.3 The retention sweep, run on the device — 17:44 and 17:47
+
+§8 of this file said `EvidenceRetentionSweepInstrumentedTest` was **NOT RUN**. It has now run, twice, on the
+Android 16 install above, without needing the screen unlocked (it touches Room and files, not UI):
+
+```
+$ adb shell am instrument -w -e class com.shieldra.storage.EvidenceRetentionSweepInstrumentedTest \
+    com.shieldra.app.test/androidx.test.runner.AndroidJUnitRunner
+Tests run: 3,  Failures: 1        (identical at 17:44 and at 17:47)
+```
+
+**Two of the three passed on real files and a real database**, and those two are the device half of Q-K-2:
+`expired_event_and_its_payload_are_removed_while_a_young_pair_survives` (a 91-day row and its ciphertext
+disappear, a 1-day row and its ciphertext stay, the reference row goes with them) and
+`quarantined_file_past_its_thirty_day_window_is_removed_and_a_young_one_is_kept`. Deletion is no longer a
+plan computed in a JVM test — it removed real bytes from `no_backup/` on the owner's phone.
+
+**The one failure is the stale expectation, not the sweeper** — and its message is the best measurement in the
+section:
+
+```
+java.lang.AssertionError: expected:<RetentionSweepReport(deletedEventRows=0, deletedEvidenceFileIds=[], …)>
+                 but was:<RetentionSweepReport(deletedEventRows=0, deletedEvidenceFileIds=[evidence-young], …)>
+  at …EvidenceRetentionSweepInstrumentedTest.nothing_expired_leaves_every_row_and_payload_in_place(…kt:123)
+```
+
+The installed test APK is the `253ce07` pair, so its copy of that test still saves an owning row **89 days**
+old and then asserts nothing expired. With the approved 30/30/90 windows, an 89-day owner *does* expire its
+payload, and the sweeper said exactly that: `deletedEventRows=0` (the row is inside its 90-day window) while
+`deletedEvidenceFileIds=[evidence-young]` (the payload is outside the 30-day one). That is the 30/30
+asymmetry observed on a device, produced by a test that was wrong about it — which is why HEAD `902f15c`
+changed that line to `now - day` and added a fourth test that asserts this behaviour instead of denying it.
+The failure is therefore **expected on this install and already fixed at HEAD**; nothing in
+`EvidenceRetentionSweeper` or `EvidenceRetentionPolicy` is implicated.
+
+**Why HEAD's version could not be run here, and why that is an owner call.** The HEAD pair is published and
+was downloaded and verified — `sha256 072e571f3f1cc97c8f5038c50dff5ffccc08461f7dcb6464fd2ad1cfbbb59707`
+(`app-debug-androidTest.apk`, 627,305 B) and
+`sha256 ece1a76cdcf4c54882ab57e79d44092a6b088f93bdd9005abd70265434e98163` (`app-debug.apk`, 18,505,786 B),
+matching the release digests, with `target_commitish = 902f15c0f968f9a52e5f12aa2dddf39af41f1f6e`. Installing
+just the test APK is refused:
+
+```
+$ adb install -r -t app-debug-androidTest.apk
+Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package com.shieldra.app.test signatures do not
+match newer version; ignoring!]
+```
+
+Each CI runner signs with its own debug keystore, so a test APK from a different run cannot join the app
+already on the phone, and the app cannot be replaced either without uninstalling it. Uninstalling would
+destroy the install this batch's device evidence rests on: the `POST_NOTIFICATIONS` grant, `shieldra.db` with
+the 16:51 Panic row, the two notification channels, the Keystore aliases and the lifecycle record. That is a
+one-way trade of evidence for a test count, so it is raised as **Q-K-6** in `docs/OWNER_QUESTIONS.md`
+(and in the audit report's §8) rather than resolved with a quiet `adb uninstall`.
+
+---
+
 ## 8. What this report does not claim
 
 - No **G6 / Batch K sign-off**. Protocol §38 is honoured by not signing; the string "G6 PASS" does not
   appear in this file.
-- API 36 is verified as **compile + gates + JVM**, not as device compatibility. No Android 16 behaviour
-  from §3 has been measured on the RMX3910.
-- The retention sweep is verified as **pure-plan behaviour + wiring that compiles**, not as a deletion
-  observed on a phone: `EvidenceRetentionSweepInstrumentedTest` is **NOT RUN**.
-- Q-K-1's removal is verified as **route/tab absent + 341/341 + gates green**, not as a screen observed
-  after the change.
-- Nothing in §7 was measured on a build containing this batch's code, because no such APK exists to
-  install. Every §7 row is the `18cc745` build, labelled as such.
-- Batch K cannot be called CLOSED: §6.4 is open, and H-1…H-12, Q-I-1…Q-I-6, Q-J-1…Q-J-6 remain
-  unanswered, which is what decides what the audit is allowed to claim about camera/location, SIM and Lock.
+- API 36 is verified as **compile + gates + JVM + "the build installs and runs on an Android 16 phone and
+  every screen renders"** (§7.2). It is **not** a per-item behavioural audit of §3's Android 16 list — no
+  edge-to-edge, no new media-permission, no telemetry-behaviour item was probed deliberately.
+- The retention sweep is verified as **two device-passing deletion tests + the third's measured output**
+  (§7.3), not as HEAD's version of that class running green on a phone: the installed test APK predates
+  `902f15c`, and installing HEAD's pair is refused on signature grounds (Q-K-6).
+- Q-K-1's removal is verified as **route/tab absent + 341/341 + gates green + a three-item tab bar
+  photographed on the shipped build** (§7.2 rows 2, 3, 5, 6, 8). What is *not* claimed is that any user
+  ever saw the Premium screen on this build — it does not exist here.
+- §7's rows are the `18cc745` build and §7.2's rows are the `253ce07`-code build; the two installs are not
+  mixed in either table, and the one reading that did not reproduce between them (`USER_SET` on
+  `POST_NOTIFICATIONS`) is called out rather than averaged away.
+- Batch K cannot be called CLOSED: §6.4 is open, **Q-K-6** (§7.3) is open, F-K7 (§7.2) is a release-facing
+  wording fix still to be made under Q-K-4, and H-1…H-12, Q-I-1…Q-I-6, Q-J-1…Q-J-6 remain unanswered, which
+  is what decides what the audit is allowed to claim about camera/location, SIM and Lock.

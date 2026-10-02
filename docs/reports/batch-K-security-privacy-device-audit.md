@@ -1,16 +1,17 @@
 # Batch K — Security / Privacy / Device audit (protocol §38: the point for security sign-off)
 
-**Status: STATIC HALF DELIVERED. DEVICE HALF PARTIALLY MEASURED — the storage, permission, service,
-notification-channel and battery-exemption probes ran on the RMX3910 and were re-run to confirm them (§7);
-the UI screenshot pass did NOT, because the phone's keyguard is secure (`mInputRestricted=true`, re-checked
-after the device returned to `adb`). NO SIGN-OFF IS GIVEN.**
+**Status: STATIC HALF DELIVERED. DEVICE HALF MEASURED TWICE — the storage, permission, service,
+notification-channel and battery-exemption probes ran on the RMX3910 and were re-run to confirm them (§7), and
+the UI screenshot pass ran twice: once on the build that predates the owner's answers
+(`batch-K-owner-answers.md` §7) and once on the build that carries them (§7.2 there). NO SIGN-OFF IS GIVEN.**
 
-**A second, non-device blocker appeared while this report was being verified:** the GitHub Actions
-artifact-storage quota is exhausted, so CI can no longer upload the APK pair (§11, finding **F-K5**). The
-screenshot pass needs a UI-unlocked phone; a *re-built* APK pass additionally needed that quota worked
-around — which happened the same day, by the owner's choice of an alternate delivery path: the APK pair now
-publishes to the required draft release `device-apks` (§11.1, and `batch-K-owner-answers.md` §6.5) with
-nothing deleted. The device half is blocked on the keyguard only.
+**A second, non-device blocker appeared while this report was being verified, and has since been worked
+around:** the GitHub Actions artifact-storage quota is exhausted, so CI cannot upload the APK pair (§11,
+finding **F-K5**). The owner chose an alternate delivery path the same day: the APK pair now publishes to the
+required draft release `device-apks` (§11.1, and `batch-K-owner-answers.md` §6.5) with nothing deleted. That
+unblocked the screenshot pass, which ran; what it did **not** fix is signing — each runner uses its own debug
+keystore, so a newer pair cannot be installed over an existing one, and that is now the device half's blocker
+(`batch-K-owner-answers.md` §7.3, **Q-K-6**).
 
 This report deliberately does **not** say "G6 PASS" anywhere. §24-§25's rule — cite the exact official
 source, never an old summary — is applied to the release-policy finding in §6, and every repository
@@ -44,34 +45,51 @@ plus the backup and device-transfer exclusions, **not** by encryption, and no UI
 deterministic length-prefixed AAD, no software-key fallback, and a runtime StrongBox probe that fails
 closed; key rotation really does run on every approved process start.
 
-**Not clean, and these are the reasons there is no sign-off:**
+**What the audit found, and where each finding stands now.** The five findings were written against
+`f844ffb`; the owner answered four of them the same day, so each line below keeps the original finding and
+adds the disposition that is true at `902f15c`. Full execution record:
+`docs/reports/batch-K-owner-answers.md`.
 
-1. The **Premium tab is a live, false advertisement** (§3). It shows a price, a "Buy Lifetime" button and
-   five feature claims, of which **none** exists in the code — including a free-tier sentence that names
-   Lock Guard, SIM Guard and Email delivery.
-2. **Retention is decided, coded, tested — and never executed** (§4). No production file reads the
-   retention policy, and `app/src/main/kotlin` contains **zero delete calls of any kind**, so nothing
-   ever expires.
-3. **The export gate has no consumer** (§4.3). Export does not happen because a button no-ops, not
-   because the six-gate policy is consulted.
-4. **Play will reject this build today** (§6). The current official target-API requirement has been in
-   force since 2026-08-31 and `targetSdk = 35`.
-5. The device half of the audit is **only partly measured** (§7): the storage, permission, service,
-   notification-channel and battery-exemption probes ran on the phone and were re-run to confirm them, but
-   the **screenshot pass did not** — the keyguard is secure (`mInputRestricted=true` on the latest check),
-   and no agent may guess the PIN. A security sign-off cannot be written on a reading of source alone.
-6. **CI can no longer publish the APK pair** (§11.1, F-K5). The GitHub Actions artifact-storage quota is
+1. The **Premium tab was a live, false advertisement** (§3). It showed a price, a "Buy Lifetime" button and
+   five feature claims, of which **none** existed in the code — including a free-tier sentence that named
+   Lock Guard, SIM Guard and Email delivery. → **Closed by Q-K-1 / A-20** (`d0573bf`): route, tab and the
+   seven strings are gone, a test fails if any declared route names a premium screen, and the phone now
+   photographs a three-item tab bar (owner-answers §7.2).
+2. **Retention was decided, coded, tested — and never executed** (§4). No production file read the retention
+   policy, and `app/src/main/kotlin` contained **zero delete calls of any kind**. → **Closed by Q-K-2 / A-21**
+   (`d34ed86`): the windows now drive `EvidenceRetentionSweeper` at three authorized points, and two device
+   tests removed real ciphertext from `no_backup/` (owner-answers §7.3).
+3. **The export gate had no consumer** (§4.3). Export did not happen because a button no-oped, not because
+   the six-gate policy was consulted. → **Closed** (`6ab41f2` + the fixture proof in §4.3): a static gate now
+   forbids an export path that bypasses `EvidenceExportPolicy`.
+4. **Play would reject the build** (§6). The current official target-API requirement has been in force since
+   2026-08-31 and the build was `targetSdk = 35`. → **Closed by Q-K-3 / A-22** (`8da7686`): compile and target
+   are 36, and the resulting build installs and runs on this Android 16 / API 36 phone (owner-answers §7.2).
+5. The device half of the audit was **only partly measured** (§7): the probes ran but the screenshot pass did
+   not, because the keyguard is secure and no agent may guess the PIN. → **Measured twice** (owner-answers §7
+   on the pre-answers build, §7.2 on the build that carries the four answers above), and the phone is locked
+   again as of `17:34` (`mInputRestricted=true`). A sign-off still cannot be written from a reading of source
+   alone — but the readings are no longer the only evidence.
+6. **CI could no longer publish the APK pair** (§11.1, F-K5). The GitHub Actions artifact-storage quota was
    exhausted — and it already was at the **first** commit of this report: all four of the batch's runs
    finished **success** with `332 tests, 332 passed`, and **all four** also logged three
    `Failed to CreateArtifact: Artifact storage quota has been hit` errors each, so not one of them left an
-   `apks-*`, `unit-test-results-*` or `group-a-evidence-*` artifact behind. This is not a security defect —
-   it is the verification pipeline losing its device half for future **code** commits, which Batch L and any
-   rebuilt-APK device pass would need.
+   `apks-*`, `unit-test-results-*` or `group-a-evidence-*` artifact behind. → **Worked around by Q-K-5 / the
+   owner's fourth way** (§11.1): the pair now publishes to a required draft release, and the `902f15c` pair
+   was downloaded and hash-verified. The quota itself is untouched and F-K5's warning stays true.
+7. **New, from the second screenshot pass: F-K7** — the dashboard's Network tile reads "Offline" for a state
+   nothing measures (owner-answers §7.2). The projection layer passes an honest "unknown" label and the strip
+   discards it. Display-only, scheduled under Q-K-4, recorded rather than silently patched because it is a
+   release-facing claim a Play reviewer can photograph.
+8. **New, and it is what the device half now waits on: Q-K-6.** Each CI runner signs with its own debug
+   keystore, so a newer APK pair cannot be installed over the install that carries this batch's device
+   evidence; running HEAD's version of the sweep test means uninstalling the app and losing the permission
+   grant, the database, the channels and the Keystore aliases (owner-answers §7.3).
 
-Items 1, 2, 4 and the sign-off itself need owner decisions (§8). Item 3 is ordinary engineering and is
-recorded as a finding without a question, because the outcome today is already correct. Item 6 needs one
-owner decision (§8, Q-K-5) because every fix for it either deletes shared CI history or changes the
-workflow.
+Of the eight, **1–4 and 6 are closed** and each keeps its original finding text above so the audit trail is
+not rewritten into success. What still stands between this batch and a sign-off is the sign-off decision
+itself (§8), item 5's remaining device work now that it is limited by Q-K-6, item 7's wording, and the
+unanswered H/I/J questions that decide what may be claimed about camera, location, SIM and Lock.
 
 ---
 
@@ -290,14 +308,19 @@ rather than silently bumped in a Batch-K commit.
 
 ---
 
-## 7. DEVICE HALF: measured on `IR7X5DJ7KZGEHMS8`, screenshot pass BLOCKED
+## 7. DEVICE HALF: measured on `IR7X5DJ7KZGEHMS8` — probes here, screenshot pass in §7.2/§7.3 of the answers file
+
+Everything below was measured on the install that was on the phone when this report was written
+(`apks-36939853591`, commit `18cc745`, `targetSdk=35`). The screenshot pass this section recorded as NOT RUN
+has since run — twice, once on this install and once on a `targetSdk=36` build — and the retention sweep has
+run on the device; those records are `docs/reports/batch-K-owner-answers.md` §7, §7.2 and §7.3, and §7.2 also
+re-ran the probes below against the newer install.
 
 The phone came back on `adb` mid-batch (`IR7X5DJ7KZGEHMS8 device` after having been `offline`), so the
-storage, permission, service and exemption probes below ran for real. The screenshot pass did not: the
-keyguard is **secure** (`dumpsys window` → `mInputRestricted=true`, `deviceHasKeyguard=true`), so no
-agent-side swipe can reach the UI. The device has since returned to `adb` — re-checked at
-`10/2/26 8:11:30 AM` on the phone's clock, `mInputRestricted=true` again — so the blocker is the lock
-screen, not the cable. Nobody guessed a PIN and no bypass was attempted.
+storage, permission, service and exemption probes below ran for real. The screenshot pass did not, at the time
+this section was written: the keyguard was **secure** (`dumpsys window` → `mInputRestricted=true`,
+`deviceHasKeyguard=true`), so no agent-side swipe could reach the UI. Nobody guessed a PIN and no bypass was
+attempted; the owner unlocked it later the same day.
 
 **Re-run note (method correction).** After this report was committed, every §7 device probe was run a
 second time on the same install (`dumpsys package` permissions, `run-as ls -R`, the `head -c 16` database
@@ -334,9 +357,11 @@ the one on the phone.
 
 **NOT RUN (and why):**
 
-- **Screenshots of every runtime screen, including the Premium tab and Event Detail** — blocked by the
-  secure keyguard. This is the one item that would make F-K1's severity visible rather than argued, so it
-  is the item the batch still owes.
+- ~~**Screenshots of every runtime screen, including the Premium tab and Event Detail**~~ — **RUN, twice.**
+  Once on this install (`batch-K-owner-answers.md` §7, which is where F-K1's severity became visible rather
+  than argued: the Premium screen photographed with its price and its five claims) and once on the
+  `targetSdk=36` build that carries the answers (§7.2, 38 screens, where the tab is gone and the Event Detail
+  and its event-ID-tagged notification are read together).
 - **The Keystore alias list after a real production run.** Not enumerable here: `dumpsys keystore` answers
   `Can't find service: keystore`, and `/data/misc/keystore` needs root. Alias existence on this device
   remains proven the way it was before — by the instrumented encrypt/decrypt round-trips of earlier
@@ -348,6 +373,9 @@ the one on the phone.
   for many minutes per window, which is why device passes of the suite have excluded it before
   (`68 vs 72 tests`). No `OK (n tests)` line was produced, so this batch claims **no** suite count on
   this build; CI's 332 JVM tests are the only executed-test evidence here, and they are JVM-only.
+  **Since then one class has run on the newer install** — `EvidenceRetentionSweepInstrumentedTest`,
+  `Tests run: 3, Failures: 1` twice, with the failure being the stale expectation HEAD already fixed
+  (owner-answers §7.3). A whole-suite count on a `targetSdk=36` build is still NOT RUN.
 - **`pm clear` / `pm grant` are refused on this phone** (`SecurityException: … does not have permission
   android.permission.CLEAR_APP_USER_DATA`, and `Neither user 2000 nor current process has
   GRANT_RUNTIME_PERMISSIONS`). Consequence for the audit: a *fresh-install* state cannot be produced from
@@ -358,20 +386,27 @@ the one on the phone.
 
 Everything in §2 labelled REPO is a source reading, not a measurement; per
 `docs/reports/batch-J-lock-feasibility.md` §12 a green CI does not convert a reading into a measurement.
-**The remaining device item is the screenshot pass, and it needs the owner to unlock the phone.** The
-10-step sequence agreed in the G5 directive applies unchanged once it is unlocked.
+**What the device half now waits on is not the keyguard but the keystore:** HEAD's APK pair cannot be
+installed over the evidence-bearing install (owner-answers §7.3), which is **Q-K-6** below. The phone is
+locked again (`mInputRestricted=true` at `17:34`), and no agent may guess the PIN. The 10-step sequence
+agreed in the G5 directive applies unchanged once it is unlocked.
 
 ---
 
 ## 8. Owner decisions this audit needs (no invented policy)
+
+**Q-K-1 … Q-K-5 were answered on 2026-10-02** as amendments A-20 … A-24 and executed; the rows below are kept
+verbatim as the questions that were asked, with their answers in
+`docs/reports/batch-K-owner-answers.md` §1. **Q-K-6 is new and open.**
 
 | id | Question | Why it cannot be answered here |
 |---|---|---|
 | **Q-K-1** | What happens to the Premium tab before launch: **remove the route+tab**, keep it with copy that states nothing is purchasable yet, or build real billing (§30 currently forbids the SDK)? | Product/revenue + §30/§31 claim decision. F-K1 lists the exact seven strings involved |
 | **Q-K-2** | Is automatic expiry **in scope for launch**? If yes, what triggers the sweep, given A-10 (no boot receiver), the G5 "no polling/no timer/no WorkManager" ruling, and the fact that a dark screen starves the process on this phone? If no, the approved retention table and the Settings "Policy pending" row must both be re-worded to "deletion is not performed by this build" | Decides whether F-K2 is a launch blocker or a documented limit. The only trigger that already exists is process start (that is how rotation works) |
 | **Q-K-3** | Raise `compileSdk`/`targetSdk` to 36 now as a Batch-L slice, or request the Console extension to 2026-11-01? | F-K4. Touches the frozen FGS/notification policy area, so it needs your explicit go and a device re-verification afterwards |
-| **Q-K-4** | Confirm the listing vocabulary after A-6 and after this batch: 3 declared permissions (plus the AGP-injected signature-level one, §5), 1 prompted, and no claim of continuous protection or "zero permissions" | Play one-way door; needs the same care as the package ids. §7 now supplies the measured side of it: `POST_NOTIFICATIONS: granted=true, flags=[USER_SET|…]`, **no** `dumpsys deviceidle whitelist` entry, and no service or notification surviving a force-stop — so "runs 24/7 in the background, exempt from battery optimisation" is unsupportable in three separate ways |
+| **Q-K-4** | Confirm the listing vocabulary after A-6 and after this batch: 3 declared permissions (plus the AGP-injected signature-level one, §5), 1 prompted, and no claim of continuous protection or "zero permissions" | Play one-way door; needs the same care as the package ids. §7 now supplies the measured side of it: `POST_NOTIFICATIONS: granted=true, flags=[USER_SET|…]`, **no** `dumpsys deviceidle whitelist` entry, and no service or notification surviving a force-stop — so "runs 24/7 in the background, exempt from battery optimisation" is unsupportable in three separate ways. **Correction from the second install:** on the `targetSdk=36` build the same probe reads `granted=true` with **no** `USER_SET` flag, so the "the prompt really reached a user" proof rests on the `18cc745` install alone; the newer install proves only that the request path ran (`shared_prefs/shieldra_notification.xml`, `permission_requested=true`, mtime inside the pass). Use the conservative sentence (owner-answers §7.2) |
 | **Q-K-5** | CI artifact storage is exhausted (§11.1: 301 artifacts ≈ 1,215 MiB, of which 69 `apks-*` ≈ 1,211 MiB). Choose one: **delete old `apks-*` artifacts** (irreversible, and some are cited as evidence by earlier batch reports), **add `retention-days` to the three `upload-artifact` steps** (edits the CI/CD pipeline), **raise the plan's storage**, or **accept that future code commits cannot be device-verified** | A new platform-capability decision under §7. It does not block this batch's screenshot pass (the needed pair is already on the phone), it blocks Batch L and every rebuilt-APK pass afterwards |
+| **Q-K-6** (new) | Running HEAD's instrumented tests on this phone requires **uninstalling the app**, because each CI runner signs with its own debug keystore and `adb install -r -t` is refused with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` on `com.shieldra.app.test`. Choose: **accept the loss** (the install carrying today's permission grant, `shieldra.db`, the two channels, the Keystore aliases and the lifecycle record goes away, and `pm clear` is refused so it cannot even be reproduced cleanly), **pin one signing keystore for the device pair** (a CI/CD change, and it puts signing material somewhere the §2 secret scan has never looked), or **leave HEAD's sweep test unrun on device** and treat §7.3's two passing deletion tests plus the measured third as enough | Only you can trade audit evidence for a test count. Nothing was uninstalled to find this out |
 
 F-K3 (export policy has no consumer) is **not** a question: the fix is to make a future export slice
 consult `EvidenceExportPolicy`, or to add a static gate forbidding an export path that bypasses it. It is
@@ -382,21 +417,24 @@ scheduled as ordinary work, and recorded here so it is not inherited as "protect
 
 ## 9. What would let this batch close
 
-1. The **screenshot pass** of §7 on RMX3910 — one screenshot per runtime screen, including the Premium tab
-   and Event Detail. The storage, permission, service and exemption probes already ran; this item needs
-   the phone **unlocked by the owner**, because the keyguard is secure and no agent may guess the PIN.
-   Optionally the same pass re-run with the instrumented suite minus the measurement vehicle, which would
-   turn "no suite count claimed on this build" into a number.
-2. Answers to Q-K-1…Q-K-5 — and the still-open **H-1…H-12**, **Q-I-1…Q-I-6**, **Q-J-1…Q-J-6**, because an
-   unanswered policy question is an open finding, not a passed gate.
-3. A decision on whether the three stale-wording Q-G4 findings and Q-F1 are closed or deferred.
+1. ~~The **screenshot pass** of §7~~ — **done twice** (owner-answers §7 and §7.2), including Event Detail and
+   the Premium screen before and after its removal. What the device half still owes is narrower now:
+   **Q-K-6** (HEAD's instrumented tests cannot be installed without losing this evidence) and, if you want
+   it, the full instrumented suite minus the measurement vehicle on a `targetSdk=36` build, which would turn
+   "no suite count claimed" into a number.
+2. Answers to Q-K-1…Q-K-5 — **delivered 2026-10-02** as A-20…A-24 and executed — and the still-open
+   **H-1…H-12**, **Q-I-1…Q-I-6**, **Q-J-1…Q-J-6**, because an unanswered policy question is an open finding,
+   not a passed gate.
+3. A decision on whether the three stale-wording Q-G4 findings and Q-F1 are closed or deferred, plus the two
+   wording items this batch produced: **F-K6** (Settings "Retention policy — Policy pending" now understates
+   the build) and **F-K7** (the dashboard's unmeasured "Offline", owner-answers §7.2).
 4. Only then: the G6 sign-off sentence, and Batch L (release hardening: signing, `versionName 0.1.0` →
-   real versioning, minify/resource shrinking, Play Console declarations). **Batch L cannot be
-   device-verified until Q-K-5 is settled**, because its commits are code commits and their APK will not
-   upload.
+   real versioning, minify/resource shrinking, Play Console declarations). Batch L **can** now be
+   device-verified for downloads — the `device-apks` release carries a hash-verified pair per run — but not
+   for *installs over an existing build*, which is Q-K-6.
 
-Until those exist the status of G6 stays **APPROVED PROCESS / STATIC AUDIT + DEVICE PROBES DELIVERED —
-SCREENSHOT PASS NOT RUN, NO SIGN-OFF** (`docs/ROADMAP.md` row G6) and nothing in this report may be quoted
+Until those exist the status of G6 stays **APPROVED PROCESS / STATIC AUDIT + DEVICE PROBES AND SCREENSHOT
+PASSES DELIVERED, NO SIGN-OFF** (`docs/ROADMAP.md` row G6) and nothing in this report may be quoted
 as "audited" or "verified".
 
 ---
