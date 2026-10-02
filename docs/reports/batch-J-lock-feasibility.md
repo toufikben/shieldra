@@ -617,7 +617,7 @@ Repository state read for §2.6, §7, §8: commit `c3b2a4a777dc29cb4349f3e72d67c
 
 ## 12. Verification record
 
-Workflow **"Group A diagnostics"**, branch `main`, both runs re-read from the run object with
+Workflow **"Group A diagnostics"**, branch `main`, every run below re-read from the run object with
 `gh run view <id> --json status,conclusion,headSha` (not from a `gh run watch` message).
 
 | Commit | CI run | Verdict | Evidence lines from that run's log |
@@ -631,3 +631,10 @@ the repository still compiles and tests at `332/332`, and **nothing in this batc
 permission, a manifest entry or a constant**. It proves **nothing** about Lock Guard — no observability
 claim in §2 was re-derived by CI, and the receipt question stays **NOT RUN** (§10.1). Anyone reading
 this table must read it as "the docs-only batch did not disturb the build", which is all it is.
+
+The commit that added this table (`e66ffcd0452c3fd48be93adfff75a3eadf93482c`) is itself verified:
+run `36970962525` → **success**. It is not listed in the table above, and no further docs-only commit
+will embed its own run id — a table cannot contain the record of the commit that wrote the table. The
+last verified SHA of Batch J is therefore the parent of whatever run id is current when this batch is
+read; `gh run list --workflow "Group A diagnostics" --limit 1 --json headSha,status,conclusion` answers
+that question without editing this file.
