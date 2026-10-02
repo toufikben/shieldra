@@ -57,11 +57,13 @@ closed; key rotation really does run on every approved process start.
    notification-channel and battery-exemption probes ran on the phone and were re-run to confirm them, but
    the **screenshot pass did not** — the keyguard is secure (`mInputRestricted=true` on the latest check),
    and no agent may guess the PIN. A security sign-off cannot be written on a reading of source alone.
-6. **CI can no longer publish the APK pair** (§11, F-K5). The GitHub Actions artifact-storage quota is
-   exhausted: the report commit's run finished **success** with `332 tests, 332 passed`, but also with
-   three `Failed to CreateArtifact: Artifact storage quota has been hit` errors. This is not a security
-   defect — it is the verification pipeline losing its device half for future **code** commits, which
-   Batch L and any rebuilt-APK device pass would need.
+6. **CI can no longer publish the APK pair** (§11.1, F-K5). The GitHub Actions artifact-storage quota is
+   exhausted — and it already was at the **first** commit of this report: all four of the batch's runs
+   finished **success** with `332 tests, 332 passed`, and **all four** also logged three
+   `Failed to CreateArtifact: Artifact storage quota has been hit` errors each, so not one of them left an
+   `apks-*`, `unit-test-results-*` or `group-a-evidence-*` artifact behind. This is not a security defect —
+   it is the verification pipeline losing its device half for future **code** commits, which Batch L and any
+   rebuilt-APK device pass would need.
 
 Items 1, 2, 4 and the sign-off itself need owner decisions (§8). Item 3 is ordinary engineering and is
 recorded as a finding without a question, because the outcome today is already correct. Item 6 needs one
@@ -439,18 +441,24 @@ until this batch closes as proof of the §6 method note) are **not** committed t
 ## 11. CI record for this batch
 
 Read back from the run object itself (`gh run view 36974410187 --json status,conclusion,headSha`), not
-from a watch message:
+from a watch message. The upload column was counted two ways, and both agree: `gh run view <run-id> | grep -c
+"Failed to CreateArtifact"` → **3 for every one of the four runs**, and
+`gh api repos/toufikben/shieldra/actions/artifacts` (pages 1–4, `total_count` = 301) → **no artifact whose
+name contains any of these four run ids**.
 
 | Commit | Run | Verdict | Quoted output |
 |---|---|---|---|
-| `dd7cb1b0ad5b75961431eb7286704f83ed913a35` (this report + Q-K-1…Q-K-4 + ROADMAP rows K/G6/G7) | `36974410187` | **success** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 7m 46s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS` |
-| `f1454c6c5c254acd3ef8dfaa5ec188548d0a9664` (the §7 device probes, the corrected §1/§2 database claim, §11 itself) | `36976932429` | **success, with three artifact-upload failures** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 7m 37s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS` — **and** `X Failed to CreateArtifact: Artifact storage quota has been hit. Unable to upload any new artifacts. Usage is recalculated every 6-12 hours.` ×3 (annotations `…github#20` ×2, `…github#24`), read from `gh run view 36976932429` after the job list showed the run `completed`/`success`, started `07:07:30Z`, updated `07:16:06Z` |
-| `6e473e73a374c841be8a1ffe1b0606aae33d2ced` (the §7 re-run note, the corrected notification probe, F-K5 / Q-K-5) | `36978663360` | **success, with the same three artifact-upload failures** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 6m 4s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS`, plus `Failed to CreateArtifact: Artifact storage quota has been hit` ×3 — **F-K5 reproduced on a second consecutive run**, so it is a standing state and not a one-off (`gh run view 36978663360 --json headSha,status,conclusion` → the SHA above) |
+| `dd7cb1b0ad5b75961431eb7286704f83ed913a35` (this report + Q-K-1…Q-K-4 + ROADMAP rows K/G6/G7) | `36974410187` | **success, with three artifact-upload failures** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 7m 46s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS` · `Failed to CreateArtifact` ×3 — so the quota was **already** exhausted when this batch's first run published: no `apks-36974410187` exists |
+| `f1454c6c5c254acd3ef8dfaa5ec188548d0a9664` (the §7 device probes, the corrected §1/§2 database claim, §11 itself) | `36976932429` | **success, with the same three artifact-upload failures** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 7m 37s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS` — **and** `X Failed to CreateArtifact: Artifact storage quota has been hit. Unable to upload any new artifacts. Usage is recalculated every 6-12 hours.` ×3 (annotations `…github#20` ×2, `…github#24`), read from `gh run view 36976932429` after the job list showed the run `completed`/`success`, started `07:07:30Z`, updated `07:16:06Z` |
+| `6e473e73a374c841be8a1ffe1b0606aae33d2ced` (the §7 re-run note, the corrected notification probe, F-K5 / Q-K-5) | `36978663360` | **success, with the same three artifact-upload failures** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 6m 4s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS`, plus `Failed to CreateArtifact: Artifact storage quota has been hit` ×3 (`gh run view 36978663360 --json headSha,status,conclusion` → the SHA above) |
+| `691056df2c304d68cc9c67faaa401cc6b6edffb8` (records the `6e473e7` verdict) | `36979575104` | **success, with the same three artifact-upload failures** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 7m 1s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS` · `Failed to CreateArtifact` ×3 |
 
-The row immediately above is added by a commit later than `6e473e7`, and that commit's own verdict cannot be
-quoted inside this file for the §12 reason; it is carried into the next batch's report.
+**The recording stops here.** This table's rows are `dd7cb1b`, `f1454c6`, `6e473e7` and `691056d`, each read
+back from its own run object; the commit that adds this line is the fifth docs commit of the batch, and
+quoting its verdict would require a sixth, so its result is carried into the next batch's report instead of
+chasing itself — the §12 limit named below, applied once and closed.
 
-What that proves, and what it does not: all three are **docs-only** commits, so the runs show that no gate,
+What that proves, and what it does not: all four are **docs-only** commits, so the runs show that no gate,
 permission, constant or claim was moved by them. They prove nothing about the findings in §1, and they are
 not the device half — the `G4-B LOCAL REVIEW PASS` line says so itself ("runtime/device evidence still
 required"). The 332 tests are JVM tests; the instrumented suite was **not** completed on this build (§7).
@@ -459,15 +467,18 @@ commit's own verdict out of this table.
 
 ### 11.1 F-K5 — the CI artifact quota is exhausted (measured; HIGH for verification, not for security)
 
-**MEASURED (CI).** The run above finished green and still could not publish its outputs. From
-`gh api repos/toufikben/shieldra/actions/artifacts`:
+**MEASURED (CI).** All four runs above finished green, and **all four failed every upload step** — 3
+`Failed to CreateArtifact` errors each — so the quota was already exhausted at the moment this batch's first
+report commit was verified. From `gh api repos/toufikben/shieldra/actions/artifacts`:
 
 | Reading | Value |
 |---|---|
 | Artifacts in the repository | `total_count` = **301** |
 | Space they occupy | `537343374 + 442473186 + 293971108 + 2256` bytes = **1,273,789,924 B ≈ 1,215 MiB** |
 | Of which `apks-*` bundles | **69 artifacts ≈ 1,211 MiB** — i.e. the APK pairs are essentially the entire quota |
-| Upload result on runs `36976932429` and `36978663360` | 3 × `Failed to CreateArtifact: Artifact storage quota has been hit` on **each** — one per upload step, on two consecutive runs, so this is a standing state rather than a transient one. Each run still reported `success` because all three steps are declared `continue-on-error: true` (`.github/workflows/…:72`, `:83`, `:92`), so a refused upload cannot fail CI. **That is the trap**: a green run no longer guarantees an APK exists |
+| Upload result on **all four** runs `36974410187`, `36976932429`, `36978663360`, `36979575104` | 3 × `Failed to CreateArtifact: Artifact storage quota has been hit` on **each** — one per upload step, on four runs inside **69 minutes** (`36974410187` created `06:37:02Z` → `36979575104`
+updated `07:45:47Z`), so this is a standing state rather than a transient one — and it is the state the
+quota message itself describes ("Usage is recalculated every 6-12 hours"). Cross-checked the other way: the artifacts listing (301 entries, 4 pages) contains **no** artifact named after any of these four run ids. Each run still reported `success` because all three steps are declared `continue-on-error: true` (`.github/workflows/…:72`, `:83`, `:92`), so a refused upload cannot fail CI. **That is the trap**: a green run no longer guarantees an APK exists |
 | Workflow retention | `.github/workflows/…` calls `actions/upload-artifact@v4` at `:73` (`apks-<run-id>`), `:84` (`unit-test-results-…`), `:93` (`group-a-evidence-…`) with **no `retention-days`** anywhere in the directory (`grep -rn retention-days .github/workflows/` → 0 matches), so every run uploads at the repository default |
 | Newest `apks-*` still present | `apks-36939853591` (18,532,050 B, `expired: false`) — the exact pair installed on the phone (§7) |
 
