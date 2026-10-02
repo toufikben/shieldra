@@ -433,6 +433,15 @@ of little value to someone whose phone was just stolen.
 Stop, Doze, and OEM battery killers all defeat any approach. G3-01 requires this limitation
 to be *documented in the app*, not hidden.
 
+> **UPDATE 2026-10-02 (raised by Batch I):** option 1's mechanism **now exists and is
+> device-verified** — the Motion guard runs a user-started `specialUse` foreground service with the
+> ongoing notification "SHIELDRA protection is active" (G5 closure, CI `36939853591`). So answering
+> this question costs no new engineering; what it decides is whether a guard is **allowed to observe
+> only while that service runs**. For SIM this question is now *decisive rather than advisory*:
+> `docs/reports/batch-I-sim-feasibility.md` §4 shows the two zero-permission SIM routes both die with
+> the measured dark-screen starvation, and the only route that survives a force-stop needs the boot
+> permission A-10 refuses. See **Q-I1 … Q-I6** below.
+
 **Your answer:** _____________
 
 ---
@@ -948,6 +957,80 @@ remain forbidden, the static gates stay unrelaxed, and the dashboard must still 
 
 ---
 
+## Q-I1 … Q-I6 — Batch I (SIM) feasibility came back: what is provable, and the six decisions that are yours alone (raised by Batch I, 2026-10-02)
+
+**No SIM code, no permission, no manifest line and no gate movement was written by this batch** — A-14's
+rule applies to I the same way it applies to H, and G1-03's condition (*"Android API/device limitations
+must be documented before implementation"*) is what this answers. Full evidence, sources and the NOT RUN
+list: `docs/reports/batch-I-sim-feasibility.md`.
+
+**The measured facts, in one table** (STUB = the platform's own `@RequiresPermission` tables for API 35
+and 36.1; DEVICE = read-only `adb` on your RMX3910):
+
+| What SHIELDRA could observe | Permission needed | Source |
+|---|---|---|
+| SIM present / absent / PIN-locked (`getSimState()`, and `getSimState(slot)` per slot) | **none** | STUB — the getters carry only an `@IntDef`, no `@RequiresPermission` |
+| Carrier identity (MCC/MNC, operator name, country) | **none** | STUB |
+| Which subscription sits in which slot | **`READ_PHONE_STATE`** — measured on your phone as `prot=dangerous` (a runtime dialog + a Play declaration) | STUB + DEVICE |
+| **The card's serial (ICCID), IMSI, IMEI** | `READ_PRIVILEGED_PHONE_STATE` — **unreachable for any Play app** | STUB |
+| Push event on SIM change | `android.intent.action.SIM_STATE_CHANGED` — your phone really emits it (`ss=LOADED`, `SLOT_INDEX=0`, `SUBSCRIPTION_INDEX=28`) and your build declares it `<protected-broadcast>` **with no receiver permission** (framework-res.apk, manifest line 759) | DEVICE |
+
+**Three findings that change what the product may claim:**
+
+1. **SIM *removal* is detectable with zero new permissions. SIM *swap* is not detectable as a fact** —
+   the only field that identifies a card (ICCID) is privileged-only. A swap can be *inferred* (state goes
+   to `ABSENT`, or the carrier numeric changes), never proven. Any store or in-app wording that says
+   "detects a SIM swap" would be a §31 violation.
+2. **There is no SIM callback in the framework.** `TelephonyCallback` exposes 21 listeners on API 36 and
+   none is a SIM-state listener; `PhoneStateListener` has no `LISTEN_SIM*` constant left. So detection is
+   either a *read* (poll from the running guard) or *the broadcast*. Nothing else exists.
+3. **Your phone is a dual-SIM device** (`persist.radio.multisim.config = dsds`, `ro.boot.opt_sim_count = 2`)
+   and its modem is live (Djezzy, MCC 603 / MNC 02, LTE in service). This **corrects**
+   `docs/reports/batch-4b-device-execution-preflight.md:19`, which still says "SIM/eSIM device NOT
+   ATTACHED", and it means device-test profiles J (single SIM) and K (dual slot) are now testable on the
+   phone you already own. `PHASE4_GUARD_RULE_PROPOSAL.md:28`'s "multi-SIM behavior UNKNOWN" is now partly
+   measured; **eSIM/MEP remains UNKNOWN — nothing here establishes it.**
+
+**And the constraint that decides everything:** the two zero-permission routes only observe while the
+user-started guard is running, and on this phone a dark screen starves that process — measured
+**+2/+0 ticks over 1128 s** (`batch-G4A-background-sensor-measurement.md:103`). The route that could
+survive a force-stop is the manifest-receiver-plus-boot route, and **A-10 refuses `BOOT_COMPLETED`**. The
+broadcast also carries `FLAG_EXCLUDE_STOPPED_PACKAGES`, so a swiped-away app receives nothing by design.
+
+### Your six decisions (`PROPOSED — REQUIRES OWNER ANSWER`; I am not choosing any of them)
+
+| # | Question | The options as measured |
+|---|---|---|
+| **Q-I-1** | What does "SIM Guard" **mean**? | (a) **removal only** — provable, zero permission; (b) removal **+ carrier-change proxy** — still zero permission, but the wording must say "the network/SIM changed", not "your card was swapped"; (c) **subscription/slot identity** — needs `READ_PHONE_STATE` |
+| **Q-I-2** | Is **`READ_PHONE_STATE`** acceptable at all? | It would be SHIELDRA's first *runtime, sensitive, Play-declared* permission: the Play help page states an app with "high-risk or sensitive permissions … may be required to complete the Permissions Declaration Form and receive approval", that "any new permissions" force a **revised** declaration, and that review "may require up to several weeks". It also contradicts the listing's current "zero Android permissions" sentence. Yes / no / only behind an explicit opt-in |
+| **Q-I-3** | Which persisted **event type** does a SIM event use? | `SecurityEventType` has no SIM value and the G5 protocol said *"Do not invent new event types"*. Reusing `CONFIRMED_SECURITY_EVENT` renders it in History as **"Other"** today (`PersistedEventReader.kt:76-80`), even though a `Sim` filter chip and a Sim icon already exist. Options: accept "Other" / approve a `SIM_CONFIRMED_EVENT` type (domain + presentation + the `g4b-review-check.sh:820-823` pin) / remove the Sim chip until it has a real type |
+| **Q-I-4** | **This is Q-C6, still blank** — must SIM detection work when the app is closed? | For SIM it is not advisory: answer it and Q-I-1's real scope is decided. The mechanism in Q-C6 option 1 already exists and is device-verified, so no new engineering is waiting on this answer |
+| **Q-I-5** | **Multi-slot semantics** on this now-proven DSDS phone | Is pulling the SIM from slot 1 while slot 2 stays live a confirmed event? Does a SIM *returning* (insertion) produce an event at all? G1-03 says "state change" and approves severity HIGH — it does not say which direction or which slot |
+| **Q-I-6** | A **claim defect** Batch I surfaced and did *not* fix (it is outside G5's four allowed fixes, and it is your wording, not mine) | `premium_free_summary` in **both** locales (`values/strings.xml:209`, `values-ar/strings.xml:209`) reads *"Free includes: Lock Guard · Motion Guard · SIM Guard · Panic · Email delivery."* Only Motion monitors; Lock and SIM have no detector; email delivery is barred by §30. One sentence, four claims the code cannot prove (§31) |
+
+**What is NOT a question** (ordinary engineering, no owner policy involved):
+`GuardObservation.SimSubscriptionChanged` is currently a bare `data object` with **no payload**, so the
+approved rule ("state change") cannot yet distinguish removal from insertion from PIN-locked. Giving it
+the observed state is a domain-contract change that implementation would make — see report §8.
+
+**Gates a SIM implementation would trip** (named now so a future amendment moves them in the *same
+commit* as the code, the A-19 way): `g4b-review-check.sh:330-335` (permission-set **equality** —
+`READ_PHONE_STATE` fails the build instantly), `:409-418` (exactly one `<service>`), `:505-507`+`:577-581`
++`:644-648` (boot tokens), `:695-696` (FGS tokens outside the three allowed files), `:780-781`
+(**any** new file under `detection/`/`runtime/` containing numerals like `100L`/`500L` fails — a real trap
+for a polling-interval constant), `:792-794` (permission requests live only in the Settings path),
+`:820-823` (the three-name History mapping), and `group-c-contract-check.sh:27-29` (no `SecurityEvent`
+construction inside `detection/`). Note what is **not** gated: no script greps `TelephonyManager`,
+`SubscriptionManager`, `READ_PHONE_STATE`, `BroadcastReceiver` or `SIM` at all — so a removal-only,
+no-permission design would trip **nothing**, which is exactly why Q-I-1…Q-I-4 must be answered **before**
+code rather than discovered after it.
+
+**Answer order:** **Q-I-4** (= Q-C6) and **Q-I-1** first; Q-I-2 falls out of them; Q-I-3, Q-I-5 and Q-I-6
+can wait for the slice that uses them. Batch J (Lock) does **not** depend on any of these, so the sequence
+continues now.
+
+---
+
 # D. DEFERRED QUESTIONS — answer when that phase is reached
 
 These do not block the next batch. They are listed so nothing is forgotten.
@@ -1046,6 +1129,7 @@ becomes a numbered amendment under §17 of the decision record before any code c
 | 2026-09-29 | Roadmap implied G4's rotation work was complete | The rotation **algorithm** is device-verified; the rotation **trigger** does not exist (`rotationDue()` has zero production callers) and there is **no retirement code at all** | — |
 | 2026-09-29 | Register said "no ads" / "no billing" as settled | Superseded 2026-09-29 by the store-launch decision, then re-opened by protocol §30 — now recorded as an explicit CONFLICT in D.2 rather than a default | — |
 | 2026-09-29 | Register treated "zero permissions" as a permanent promise | It is pre-launch copy that Batch E legitimately invalidates; §23's incremental rule is the binding constraint | — |
+| 2026-10-02 | `docs/reports/batch-4b-device-execution-preflight.md:19` still reads "SIM/eSIM device **NOT ATTACHED**", and `PHASE4_GUARD_RULE_PROPOSAL.md:28` treats multi-SIM behaviour as wholly unknown | Measured on the same phone: `persist.radio.multisim.config = dsds`, `ro.boot.opt_sim_count = 2`, live Djezzy registration (MCC 603/MNC 02) and a real `SIM_STATE_CHANGED` dispatch with `SLOT_INDEX=0`. Device-test profiles **J and K are satisfiable**; **eSIM/MEP is still UNKNOWN**. The historical reports are left as written; the correction lives in `docs/reports/batch-I-sim-feasibility.md` §5 | — |
 
 **Common corrections that are already recorded and do not need repeating:**
 
@@ -1074,7 +1158,7 @@ this reconciliation; it is in progress now.
 | **F** | Background / active-guard execution (legitimate mechanism, no 24/7 promise) | **CLOSED** — `0e767b2`→`d861922`, CI `36782719559` (248/248 JVM), plus **F2** onboarding-copy follow-up on `1babdbd` (CI `36871617120`, `OK (68 tests)` ×2). Reports: `batch-F-background-execution-contract.md`, `batch-F2-onboarding-copy-truthfulness.md` |
 | **G** | **Motion Guard** (3 s strong movement, or two suspicious movements in 10 s) | **CLOSED 2026-10-02 (slice G5)** — judgement `9adde73`, adapter `17bc8a4` with amendment **A-19**, truthfulness fixes `93a885f`→**`18cc745`** (CI `36939853591`, **332/332 JVM**), **10/10 points device-verified on RMX3910**. Reports: `batch-G4-seam-and-QG1-harness.md`, `batch-G5-foreground-service-type-review.md`, `batch-G5-closure.md`. Three stale-wording findings raised as **Q-G4**, not fixed |
 | **H** | Evidence / privacy / permission implementation | **DECISIONS PACKAGE DELIVERED 2026-10-02 — awaiting the owner's answers.** `docs/reports/batch-H-decisions-package.md` presents **H-1…H-12**, all `PROPOSED — REQUIRES OWNER ANSWER`, and writes **no code, no permission and no gate relaxation** (A-14 bars both). Read H-1 (is the camera allowed at all), H-2 (which guards may capture) and H-5 (last-fix vs background location) first — they decide most of the rest |
-| **I** | **SIM Guard** — feasibility first, implement only if technically and policy feasible | §19 |
+| **I** | **SIM Guard** — feasibility first, implement only if technically and policy feasible | **FEASIBILITY DELIVERED 2026-10-02 — implementation blocked on the owner.** `docs/reports/batch-I-sim-feasibility.md` reports the five required dimensions separately (API / permission / background / device-OEM / Play). Headline: **removal is detectable with zero new permissions; a SIM *swap* is not detectable as a fact** (ICCID is privileged-only); the two zero-permission routes only observe while the user-started guard runs, and that process is starved by a dark screen on this phone. **Q-I-1…Q-I-6 are open; Q-I-4 (= Q-C6) and Q-I-1 decide whether a slice is buildable at all.** No code, no permission, no gate relaxed (A-14) |
 | **J** | **Lock Guard** feasibility + **current** official Play policy review, cited exactly | §24–§25, deferred by the owner |
 | **K** | Full security / privacy / device audit (§15's seven gates, G6) | required before any production or security claim |
 | **L** | Release hardening | last |

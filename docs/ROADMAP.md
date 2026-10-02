@@ -149,7 +149,7 @@ a PASS.
 | G4 — Storage/security | **SUBSTANTIALLY DEVICE-VERIFIED / NOT PRODUCTION-APPROVED** | AAD-v1, mandatory AAD, alias policy, StrongBox runtime detection, AES-GCM on real Keystore, key rotation algorithm, **rotation trigger and old-key retirement (§9/§10 — Batch B, CI `36612265938` + device `OK (40 tests)`)**, migration/recovery, evidence lifecycle, failure semantics, storage wiring gate, persisted read path — all IMPLEMENTED, CI VERIFIED, and DEVICE VERIFIED | Retirement **destroys nothing**: Q-C8 is still an open owner decision, the §15 install gate is open (amendment **A-5**, Batch D) so rotation is reachable at runtime, and the approved successor chain stops at v2. What remains for G4: independent security review, threat model, OEM matrix beyond one device, and sign-off |
 | G5 — External services | **DEFERRED — REAFFIRMED 2026-09-29** | Keep provider interfaces only where already justified | §30 of the owner protocol explicitly prohibits adding **Firebase, cloud backend, accounts, analytics, ads, WhatsApp, Telegram, SMS, email** during these core batches. This overrides the earlier note that AdMob/IAP were "authorized" — see the correction in `docs/OWNER_QUESTIONS.md` |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit (protocol Batch K) |
-| G7 — Implementation | **READY FOR PLATFORM BATCHES** | The pure-engine and storage foundations are closed; Panic Guard end-to-end is authorized as the next product batch (protocol §12–§15) | Each subsequent guard remains capability-gated in protocol order |
+| G7 — Implementation | **MOTION CLOSED; NEXT GUARD IS OWNER-DECISION-BLOCKED** | Panic (C/D), notifications (E), background contract (F) and **Motion end-to-end (G, slice G5)** are delivered and device-verified. Batch **H** shipped its decisions package and Batch **I** shipped its feasibility report — **both now wait on owner answers, not on engineering** (H-1…H-12, Q-I-1…Q-I-6). What the pure engine and storage already provide for any next guard: `GuardKind.SIM`/`LOCK` wiring in `ProtectionStateEngine`, the encrypted evidence substrate, and one approved foreground service | Each subsequent guard remains capability-gated **and decision-gated** in protocol order: **J (Lock) is the next batch to run**, because it is independent of H's and I's answers |
 
 ## Phases and batches
 
@@ -305,6 +305,15 @@ resumability, failure semantics (§27), factory reset (§28), and the retention 
 (`Evidence`/`Quarantine` 30 days per A-1, event metadata 90 days).
 
 ## Required next batch
+
+> **STATUS 2026-10-02 (read this first).** The section below is the **Batch-G-era plan, kept for the
+> record** — it is no longer the current instruction. The actual position: **Batch G is CLOSED**
+> (slice G5, CI `36939853591` 332/332 JVM + 10/10 RMX3910 points, `docs/reports/batch-G5-closure.md`);
+> **Batch H's decisions package is DELIVERED and implementation is blocked on 12 owner answers**
+> (`docs/reports/batch-H-decisions-package.md`, Q-C5 update); **Batch I's SIM feasibility is DELIVERED
+> and blocked on 6 owner answers** (`docs/reports/batch-I-sim-feasibility.md`, **Q-I1 … Q-I6**);
+> **the next batch is J — Lock Guard feasibility + the current official Play/Android requirements,
+> cited exactly, before any code** (protocol §38). H's and I's answers are not prerequisites for J.
 
 **Batch G — Motion Guard** (§18) is the current batch, and its first deliverable — *the detector's
 real Android requirements* — is now **MEASURED, not assumed**:
@@ -624,11 +633,12 @@ process** (pid 26771, started 01:36:34) typed **Motion**, while the Panic row st
 stale-wording findings (two "demo events" empty states and a detail row labelled "Type" that prints the
 title) were recorded and deliberately **not** fixed, because they are outside the four authorized fixes.
 **G5 claims no 24/7 reliability and no OEM survivability**, and the CPU/battery/screen-off campaign stays
-evidence, not a gate. Report: `docs/reports/batch-G5-closure.md`. Next: **Batch H — the decisions package
-only**, with no camera or location code and no invented owner policy. See
+evidence, not a gate. Report: `docs/reports/batch-G5-closure.md`. Next at the time of writing: **Batch H — the decisions package
+only**, with no camera or location code and no invented owner policy (delivered — see the H row below),
+then I, J, K, L per protocol §38. See
 `docs/reports/batch-G4-seam-and-QG1-harness.md` and `docs/reports/batch-G5-foreground-service-type-review.md` | §18 — **CLOSED** (Motion monitors, persists, dedupes, notifies, and the UI now says only what is true) |
 | H | Evidence / privacy / permission implementation | §21–§23 — **DECISIONS PACKAGE DELIVERED, IMPLEMENTATION BLOCKED ON THE OWNER** (`docs/reports/batch-H-decisions-package.md`): the encrypted evidence substrate is already shipped and device-verified (`EncryptedEvidenceFileStore`, `EvidenceReference` + its Room table, 30/90/30 retention, export disabled), so what is missing is policy, not plumbing. **12 decisions (H-1…H-12) are presented and none is answered** — starting with whether camera evidence is allowed at all and which guards may capture. **No camera or location code, no permission, no manifest line and no gate relaxation was written**, because A-14 bars inventing H decisions and bars relaxing `group-c-contract-check.sh:24-25`, `g4b-review-check.sh:330-334`/`420-422` and `phase3-review-check.sh:35/45-52` implicitly to admit code. Batch I and J do not depend on these answers |
-| I | SIM Guard — feasibility first, then implementation | §19 |
+| I | SIM Guard — feasibility first, then implementation | §19 — **FEASIBILITY DELIVERED 2026-10-02, IMPLEMENTATION BLOCKED ON THE OWNER** (`docs/reports/batch-I-sim-feasibility.md`): the five required dimensions reported separately (API / permission / background / device-OEM / Play). Evidence is the platform's own `@RequiresPermission` tables for API 35 + 36.1 and read-only `adb` on the owner's RMX3910, not a documentation summary — one doc fetch returned only page navigation and the retrieval model **fabricated** an answer (`getSimState()` "requires READ_PHONE_STATE"), which is recorded and rejected in that report's method note. Headline verdicts: **SIM removal is detectable with zero new permissions**; a **SIM swap is not detectable as a fact** (ICCID/IMSI/IMEI are `READ_PRIVILEGED_PHONE_STATE`-only, unreachable for a Play app); the framework has **no SIM callback at all** (21 `TelephonyCallback` listeners, `PhoneStateListener` has no `LISTEN_SIM*`), so detection is a read or the `SIM_STATE_CHANGED` broadcast, which this build really emits as a `<protected-broadcast>` with **no receiver permission** but with `FLAG_EXCLUDE_STOPPED_PACKAGES`. Both zero-permission routes observe only while the user-started guard runs, and a dark screen starves that process (`+2/+0` ticks over 1128 s); the force-stop-surviving route needs the boot permission **A-10** refuses. **Corrections forced by measurement:** `batch-4b-device-execution-preflight.md:19` ("SIM/eSIM device NOT ATTACHED") is stale — the phone is `dsds`, `opt_sim_count = 2`, live Djezzy registration — so device-test profiles J and K are now satisfiable; eSIM/MEP remains UNKNOWN. **Q-I-1…Q-I-6 are open** (answer Q-I-4 = Q-C6 and Q-I-1 first); **no SIM code, no telephony import, no permission, no gate relaxation was written** (A-14) |
 | J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |
 | K | Full security/privacy/device audit | §33–§34 |
 | L | Release hardening | §38 |
