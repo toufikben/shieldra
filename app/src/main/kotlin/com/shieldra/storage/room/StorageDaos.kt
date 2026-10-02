@@ -57,6 +57,25 @@ interface SecurityEventDao {
         """,
     )
     fun incrementPanicActivation(eventId: String, activatedAtEpochMs: Long): Int
+
+    /**
+     * Every stored event, oldest decision included (Q-K-2).
+     *
+     * The sweep needs the whole table because a 90-day-old event is by
+     * definition not in the newest page the UI reads.
+     */
+    @Query("SELECT * FROM security_events")
+    fun findAll(): List<SecurityEventEntity>
+
+    /**
+     * Drops the events whose metadata window closed (§5.4, Q-K-2).
+     *
+     * The ids come from the retention plan, never from a window restated in SQL,
+     * so 90 days stays decided in exactly one place. Callers must clear the child
+     * rows first and must pass a non-empty list.
+     */
+    @Query("DELETE FROM security_events WHERE event_id IN (:eventIds)")
+    fun deleteByIds(eventIds: List<String>): Int
 }
 
 @Dao
@@ -91,6 +110,35 @@ interface EvidenceReferenceDao {
         keyVersion: String,
         aadVersion: String,
     ): Int
+
+    /**
+     * Removes the evidence rows of events whose metadata window closed.
+     *
+     * Cleared explicitly rather than left to the foreign-key cascade, so the
+     * sweep does not depend on whether the platform enforces cascades. Callers
+     * must pass a non-empty list.
+     */
+    @Query("DELETE FROM event_evidence_refs WHERE event_id IN (:eventIds)")
+    fun deleteForEvents(eventIds: List<String>): Int
+
+    /**
+     * Every stored payload with the age of the event that owns it (Q-K-2).
+     *
+     * The evidence row's own captured_at column is null for every row this app
+     * has written, and the payload's file timestamp is not a retention clock: a
+     * key rotation rewrites the file and moves that timestamp forward, which
+     * would buy an expired record another full window. The event's creation
+     * stamp is written once and never rewritten, so it is the age that holds.
+     */
+    @Query(
+        """
+        SELECT refs.evidence_id AS evidenceId,
+               events.created_at_epoch_ms AS createdAtEpochMs
+        FROM event_evidence_refs AS refs
+        INNER JOIN security_events AS events ON events.event_id = refs.event_id
+        """,
+    )
+    fun findAllWithEventAges(): List<EvidenceAgeRow>
 }
 
 @Dao
@@ -100,4 +148,8 @@ interface DeliveryAttemptDao {
 
     @Query("SELECT * FROM event_delivery_attempts WHERE event_id = :eventId")
     fun findForEvent(eventId: String): List<DeliveryAttemptEntity>
+
+    /** Removes the attempt rows of expired events. Callers must pass a non-empty list. */
+    @Query("DELETE FROM event_delivery_attempts WHERE event_id IN (:eventIds)")
+    fun deleteForEvents(eventIds: List<String>): Int
 }

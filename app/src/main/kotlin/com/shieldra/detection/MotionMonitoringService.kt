@@ -68,13 +68,17 @@ class MotionMonitoringService : Service(), MotionMonitor {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val repository = (applicationContext as? ShieldraApp)?.installedStorage?.eventRepository
-        if (repository == null) {
+        val storage = (applicationContext as? ShieldraApp)?.installedStorage
+        val repository = storage?.eventRepository
+        if (repository == null || storage == null) {
             // Monitoring that cannot record what it confirms must not claim protection, and it does
             // not publish itself, so the UI keeps saying it is not monitoring.
             stopSelf()
             return START_NOT_STICKY
         }
+        // Q-K-2's second authorized execution point. Dispatched, never inline: the
+        // sweep is a Room read and a Room write, and this callback is the main thread.
+        storage.scheduleRetentionSweep()
         val controller = wire(repository)
         when (controller.start()) {
             is StartResult.Started, StartResult.AlreadyRunning -> MotionRuntime.publish(this)

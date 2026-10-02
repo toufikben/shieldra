@@ -1,6 +1,28 @@
 package com.shieldra.storage
 
 /**
+ * One stored thing, with the only fact the retention windows need: when it was
+ * stored. [storedAtEpochMs] is null when the age could not be read, and an
+ * artifact of unknown age is never a deletion candidate — expiry authorizes
+ * irreversible deletion, and "we could not tell how old this is" is not evidence
+ * that it is old.
+ */
+data class RetainedArtifact(
+    val id: String,
+    val storedAtEpochMs: Long?,
+)
+
+/**
+ * The ids whose window has closed, separated by the kind of stored thing they
+ * are, because each kind is deleted through a different mechanism.
+ */
+data class RetentionDeletions(
+    val evidenceIds: Set<String>,
+    val quarantineIds: Set<String>,
+    val eventIds: Set<String>,
+)
+
+/**
  * Centralized evidence retention policy (decision §5.4, amendment A-1).
  *
  * §5.4 requires the retention policy to be centralized and adjustable in a
@@ -38,6 +60,37 @@ data class EvidenceRetentionPolicy(
 
     fun isEventMetadataExpired(storedAtMs: Long, nowMs: Long): Boolean =
         isExpired(storedAtMs, nowMs, eventMetadataRetentionDays)
+
+    /**
+     * The one place a retention window decides a deletion (Q-K-2, §5.4).
+     *
+     * Every caller asks this instead of comparing dates itself, so no call site
+     * can restate a window and drift from the approved 30/30/90. Nothing here
+     * deletes; it only names what has served its full window. An artifact whose
+     * age could not be read is left out, and a clock that moved backwards lists
+     * nothing, because each expiry predicate refuses to compare against a stamp
+     * in the future.
+     */
+    fun planExpired(
+        evidenceFiles: List<RetainedArtifact>,
+        quarantinedFiles: List<RetainedArtifact>,
+        eventRows: List<RetainedArtifact>,
+        nowMs: Long,
+    ): RetentionDeletions = RetentionDeletions(
+        evidenceIds = expiredIds(evidenceFiles, nowMs, ::isEvidenceExpired),
+        quarantineIds = expiredIds(quarantinedFiles, nowMs, ::isQuarantineExpired),
+        eventIds = expiredIds(eventRows, nowMs, ::isEventMetadataExpired),
+    )
+
+    private fun expiredIds(
+        artifacts: List<RetainedArtifact>,
+        nowMs: Long,
+        hasExpired: (Long, Long) -> Boolean,
+    ): Set<String> = artifacts
+        .mapNotNull { artifact -> artifact.storedAtEpochMs?.let { artifact.id to it } }
+        .filter { (_, storedAtMs) -> storedAtMs >= 0L && hasExpired(storedAtMs, nowMs) }
+        .map { (id, _) -> id }
+        .toSet()
 
     private fun isExpired(storedAtMs: Long, nowMs: Long, retentionDays: Long): Boolean {
         require(storedAtMs >= 0) { "Stored timestamp cannot be negative" }

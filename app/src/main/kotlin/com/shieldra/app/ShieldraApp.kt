@@ -2,6 +2,7 @@ package com.shieldra.app
 
 import android.app.Application
 import com.shieldra.storage.LocalShieldraStorage
+import com.shieldra.storage.RetentionSweepReport
 import com.shieldra.storage.RotationRunReport
 import com.shieldra.storage.StorageInstallDecision
 import com.shieldra.storage.StorageRuntimeApproval
@@ -43,6 +44,14 @@ class ShieldraApp : Application() {
     var lastRotationFailure: Throwable? = null
         private set
 
+    /** What the startup retention sweep removed (Q-K-2); null until it completes. */
+    var lastRetentionReport: RetentionSweepReport? = null
+        private set
+
+    /** A retention sweep that could not read the stored set. Kept, not swallowed (§6). */
+    var lastRetentionFailure: Throwable? = null
+        private set
+
     override fun onCreate() {
         super.onCreate()
         val decision = decideStorageInstall(
@@ -67,6 +76,15 @@ class ShieldraApp : Application() {
      */
     private fun checkEvidenceRotation(storage: LocalShieldraStorage) {
         Thread {
+            // Q-K-2's first authorized execution point, run before the rotation
+            // check and on this same thread: expiry is judged against the stored
+            // ages, and a rotation rewrites payloads. Sweeping afterwards would
+            // read freshly written files as new.
+            try {
+                lastRetentionReport = storage.sweepExpiredEvidence()
+            } catch (error: Exception) {
+                lastRetentionFailure = error
+            }
             try {
                 lastRotationReport = storage.rotateEvidenceIfNeeded(manual = false)
             } catch (error: Exception) {

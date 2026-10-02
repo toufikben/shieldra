@@ -18,9 +18,36 @@ class LocalShieldraStorage private constructor(
     val eventRepository: RoomEventRepository,
     val evidenceFiles: EncryptedEvidenceFileStore,
     private val rotation: EvidenceRotationOrchestrator,
+    private val retention: EvidenceRetentionSweeper,
 ) : AutoCloseable {
     fun reconcileEvidence(): EvidenceReconciliationReport =
         evidenceFiles.reconcile(database.evidenceReferenceDao().findAll().map { it.evidenceId }.toSet())
+
+    /**
+     * Q-K-2: the last sweep's outcome, or null if none has finished. Kept as
+     * state rather than logged away, the same way a failed rotation check is
+     * kept — an expiry run that could not read the stored set is information.
+     */
+    val lastRetentionReport: RetentionSweepReport? get() = retention.lastReport
+
+    /** A retention sweep that could not run at all. */
+    val lastRetentionFailure: Throwable? get() = retention.lastFailure
+
+    /**
+     * Runs the approved retention windows now. Callers must be off the main
+     * thread; the sweep is a Room read plus Room writes and file deletions.
+     */
+    fun sweepExpiredEvidence(): RetentionSweepReport = retention.sweep()
+
+    /**
+     * Q-K-2 authorized execution point. Dispatches the sweep off the calling
+     * thread, because two of the three points can be on the main thread and Room
+     * throws for a query there. There is no scheduler behind this: the sweep runs
+     * when the app is already running, and never at a wall-clock instant.
+     */
+    fun scheduleRetentionSweep() {
+        retention.schedule()
+    }
 
     /**
      * Runs the approved rotation for the whole evidence set (owner protocol §9/§10).
@@ -86,11 +113,20 @@ class LocalShieldraStorage private constructor(
                 nowMillis = { System.currentTimeMillis() },
             )
 
+            val evidenceFiles = EncryptedEvidenceFileStore(evidenceDirectory, evidenceCipher, evidenceIdProvider)
+
+            // Q-K-2: retention is given the same composition root as rotation, and
+            // the repository is told to notify it whenever it commits a record.
+            // Nothing here schedules a run: the sweep happens at an execution point
+            // that already exists, not on a clock.
+            val retention = EvidenceRetentionSweeper(database, evidenceFiles)
+
             return LocalShieldraStorage(
                 database = database,
-                eventRepository = RoomEventRepository(database),
-                evidenceFiles = EncryptedEvidenceFileStore(evidenceDirectory, evidenceCipher, evidenceIdProvider),
+                eventRepository = RoomEventRepository(database, onRecordPersisted = retention::schedule),
+                evidenceFiles = evidenceFiles,
                 rotation = rotation,
+                retention = retention,
             )
         }
 

@@ -104,3 +104,14 @@ data class DeliveryAttemptEntity(
     @ColumnInfo(name = "failure_reason")
     val failureReason: String?,
 )
+
+/**
+ * One stored payload with the creation stamp of the event that owns it. A query
+ * projection, not a table: the retention sweep reads ages, never writes them.
+ */
+data class EvidenceAgeRow(
+    @ColumnInfo(name = "evidenceId")
+    val evidenceId: String,
+    @ColumnInfo(name = "createdAtEpochMs")
+    val createdAtEpochMs: Long,
+)

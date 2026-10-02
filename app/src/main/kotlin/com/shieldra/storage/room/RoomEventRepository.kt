@@ -24,6 +24,8 @@ import java.util.UUID
 class RoomEventRepository(
     private val database: ShieldraDatabase,
     private val clock: Clock = Clock.systemUTC(),
+    /** Q-K-2's third execution point. Must only dispatch: a save can arrive on the main thread. */
+    private val onRecordPersisted: () -> Unit = {},
 ) : EventRepository, PanicActivationStore {
     private val events = database.securityEventDao()
     private val evidence = database.evidenceReferenceDao()
@@ -58,6 +60,7 @@ class RoomEventRepository(
         } catch (error: IllegalStateException) {
             return RepositoryResult.Rejected(error.message ?: "Child row persistence failed")
         }
+        if (inserted) onRecordPersisted()
         return if (inserted) RepositoryResult.Applied else RepositoryResult.AlreadyExists
     }
 
@@ -96,6 +99,7 @@ class RoomEventRepository(
         val id = eventId.value.toString()
         if (events.find(id) == null) return RepositoryResult.NotFound
         val inserted = evidence.insert(reference.toEntity(id))
+        if (inserted != -1L) onRecordPersisted()
         return if (inserted != -1L) RepositoryResult.Applied else RepositoryResult.AlreadyExists
     }
 

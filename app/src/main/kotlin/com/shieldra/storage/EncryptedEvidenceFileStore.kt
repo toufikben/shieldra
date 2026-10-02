@@ -119,10 +119,46 @@ class EncryptedEvidenceFileStore(
         }
     }
 
-    fun delete(evidenceId: String) {
+    /**
+     * Removes one evidence payload. True when a file was actually deleted, false
+     * when there was nothing there to delete — a retention sweep must be able to
+     * tell the two apart instead of reporting a deletion that did not happen.
+     */
+    fun delete(evidenceId: String): Boolean {
         validateEvidenceId(evidenceId)
-        deleteIfExists(fileFor(evidenceId), "Evidence delete failed")
+        return deleteIfExists(fileFor(evidenceId), "Evidence delete failed")
     }
+
+    /**
+     * Removes one quarantined payload (§5.4, Q-K-2). Confined to the quarantine
+     * directory by construction, so no id can reach an active evidence file.
+     */
+    fun deleteQuarantined(evidenceId: String): Boolean {
+        validateEvidenceId(evidenceId)
+        return deleteIfExists(quarantineFileFor(evidenceId), "Quarantined evidence delete failed")
+    }
+
+    /**
+     * Top-level payloads with the age signal the store actually has: the file's
+     * own modification time, which is when the payload was written. A time the
+     * filesystem refuses to report becomes a null age, which the retention plan
+     * treats as undeletable rather than guessing.
+     */
+    fun evidenceAges(): List<RetainedArtifact> = storedAges(rootDirectory)
+
+    /** Quarantined payloads and their ages; quarantining is a rename, so the write time survives. */
+    fun quarantinedAges(): List<RetainedArtifact> = storedAges(File(rootDirectory, QUARANTINE_DIRECTORY))
+
+    private fun storedAges(directory: File): List<RetainedArtifact> = directory
+        .listFiles()
+        .orEmpty()
+        .filter { Files.isRegularFile(it.toPath(), NOFOLLOW_LINKS) && it.name.endsWith(FILE_SUFFIX) }
+        .map { file ->
+            RetainedArtifact(
+                id = file.name.removeSuffix(FILE_SUFFIX),
+                storedAtEpochMs = file.lastModified().takeIf { it > 0L },
+            )
+        }
 
     fun orphanedEvidence(referencedIds: Set<String>): Set<String> = rootDirectory
         .listFiles()
@@ -166,11 +202,14 @@ class EncryptedEvidenceFileStore(
 
     private fun fileFor(evidenceId: String): File = File(rootDirectory, "$evidenceId$FILE_SUFFIX")
 
+    private fun quarantineFileFor(evidenceId: String): File =
+        File(File(rootDirectory, QUARANTINE_DIRECTORY), "$evidenceId$FILE_SUFFIX")
+
     private fun quarantine(evidenceId: String): Boolean {
         val quarantineDirectory = File(rootDirectory, QUARANTINE_DIRECTORY)
         if (!quarantineDirectory.exists() && !quarantineDirectory.mkdirs()) return false
         val source = fileFor(evidenceId)
-        val target = File(quarantineDirectory, "$evidenceId$FILE_SUFFIX")
+        val target = quarantineFileFor(evidenceId)
         if (target.exists()) {
             throw EvidenceUnavailableException(
                 "Quarantine target already exists and will not be replaced: ${target.name}",
