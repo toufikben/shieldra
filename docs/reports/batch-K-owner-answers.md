@@ -3,14 +3,16 @@
 **Date:** 2026-10-02
 **Owner input:** the five-answer decision message of 2026-10-02 (Q-K-1 … Q-K-5), recorded as amendments
 **A-20 … A-24** in `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` §17.
-**Verification target:** `main` at `c8343fe` (CI run `37037762042`: **341 tests, 341 passed, 0 failures, 0
+**Verification target:** `main` at `a9c6f33` (CI run `37041822709`: **341 tests, 341 passed, 0 failures, 0
 errors, 0 skipped**, and its release step printed
-`PASS: the device APK pair is published on draft release device-apks for c8343feec3390d43646e8d8a76083727c664373e`).
-`c8343fe` is docs-only, so the production code it names is `902f15c`'s, whose own run `37034116024` is green
-with the same 341/341 and the same PASS line.
+`PASS: the device APK pair is published on draft release device-apks for a9c6f3305c09c76afb9830f35e0b72f7678c92a4`).
+`a9c6f33` and its parent `c8343fe` are docs-only, so the production code they name is `902f15c`'s, whose own
+run `37034116024` is green with the same 341/341 and the same PASS line.
 **What this report is:** the execution record for those five answers — what landed, which CI run proves
 each part, what was measured on the phone today, and what is still owed. It gives **no security sign-off.**
-It also raises one new owner question, **Q-K-6** (§7.3), and one wording finding, **F-K7** (§7.2).
+It also raises two new owner questions, **Q-K-6** (§7.3) and **Q-K-8** (§7.5), and five findings that came
+off the phone rather than off the source: **F-K7** (§7.2), **F-K8** (§7.4), and **F-K9 / F-K10 / F-K11**
+(§7.5).
 
 ---
 
@@ -21,7 +23,7 @@ It also raises one new owner question, **Q-K-6** (§7.3), and one wording findin
 | **Q-K-1** remove the Premium tab and route | `e8bb16e` (RED) → `d0573bf` (GREEN) | `36991054611` (RED) · `36994802842` (GREEN) · re-verified on `902f15c` by `37034116024` | the tab and route are gone and a test fails if any declared route names a premium screen again, **and the phone now shows a three-item tab bar (Home · History · Settings) on a build carrying the removal** — §7.2 | nothing for this answer; the F-K1 screen-side half is closed |
 | **Q-K-2** retention executes | `e8bb16e` (RED) → `d34ed86` (GREEN) | `36993925242` · `36994802842` · `37034116024` | the 30/30/90 windows decide real deletions in the pure planner, the three authorized execution points are wired, **and two device tests removed real ciphertext from `no_backup/` on the RMX3910** — §7.3 | HEAD's own version of the third test to run green on a phone, which is Q-K-6, and the Settings "Policy pending" wording (F-K6) |
 | **Q-K-3** API 36 | `d06cfc8` (RED gate) → `8da7686` (GREEN) | `36994944518` (RED) · `36995812606` (GREEN) · `37034116024` · `37037762042` | the release compiles and targets 36, every gate passes, 341/341 JVM, **a `targetSdk=36` build installs and runs on this Android 16 / API 36 phone with every screen rendering and notifications posting** (§7.2), **and §3's item list was then probed one by one** — edge-to-edge by bounds on four screens, back by two measured pops, the FGS type read as `specialUse` with its ongoing notice, 3 declared / 1 runtime permission, `sw360dp` under the 600 dp threshold (§7.4) | landscape, which this phone refused to rotate into (**NOT RUN**, §7.4), and the 16 KB page-size item, which a 4096-byte-page phone cannot test either way |
-| **Q-K-4** listing vocabulary | amendment **A-23** | docs-only | the allowed and forbidden sentences are written down | the Play Console text itself — a Batch L submission-time task, **plus F-K7, the dashboard's unmeasured "Offline" (§7.2)** |
+| **Q-K-4** listing vocabulary | amendment **A-23** | docs-only | the allowed and forbidden sentences are written down | the Play Console text itself — a Batch L submission-time task, **plus the four in-app labels this campaign measured rather than guessed: F-K7 (§7.2, "Offline" for an unmeasured network state), F-K6 (§7, "Policy pending"), F-K9 (§7.5, "App lock — Require authentication" over a row that authenticates nothing) and F-K10 (§7.5, a "Skipped" chip on an event whose notification is in the shade) — with the fixed-form age string riding along (read from `values/strings.xml:220` and its Arabic twin, not photographed)** |
 | **Q-K-5** CI artifacts | `e78694e` + `589f4a5`/`a147bef` (§6.5) | `36989921551` · `37003070708` | a missing required APK now fails the run visibly, and future APKs expire in 14 days | closed for delivery: the pair now publishes to a required release channel, so the quota no longer blocks a download — **nothing was deleted**, §6.5. The pair for `902f15c` was downloaded and hash-verified in §7.3 |
 
 ---
@@ -591,6 +593,93 @@ whenever a database already exists — is the owner's call. It is raised as **Q-
 
 ---
 
+## 7.5 Every reachable control, pressed one by one — MEASURED 18:41–19:03
+
+§7.2 walked the screens and §7.4 probed the platform items. This pass asked the narrower question the owner
+keeps asking: **does each thing on screen actually do the thing it says?** So every control reachable on the
+installed build was tapped once, and the result was read from the screen *and* from the platform, not
+inferred. Same install as §7.4 (the 14:18 pair, run `37004923649`, code `253ce07`-era production bytes);
+nothing was reinstalled, because §7.3 shows that costs the evidence (Q-K-6). `mCurrentFocus` was checked
+before every dump — and unlike the 17:5x–18:2x window in §7.4, **no other app held the screen during this
+pass**, so no waiting was needed and nothing was interrupted.
+
+| # | Control, as labelled on screen | What was measured after pressing it | Verdict |
+|---|---|---|---|
+| 1 | Cold start from the launcher | welcome page again, with `Get started` / `Skip for now` | **F-K8 reproduced**, second independent observation (18:42) |
+| 2 | `Skip for now` | dashboard renders: shield, `ATTENTION / No check yet`, three status tiles, `Silent Panic`, `GUARDS`, three-item tab bar | works |
+| 3 | (read) status strip | visible: `— / Battery`, `Offline / Network`; the node's own `content-desc` reads **"Last check No check yet. Battery unknown. Offline"** — and the system status bar in the same frame shows 4G and Wi-Fi | **F-K7 confirmed**, now with the accessibility string as the app's own admission that it knows nothing |
+| 4 | `Silent Panic` | no new History row: still **one** row, aged to "2 hours ago"; the shade still holds exactly one `com.shieldra.app` `NotificationRecord`, tagged with the *existing* event ID | **binds, does not record** — see F-K11 / Q-K-8 |
+| 5 | `History` tab, then the row | filters `All/Lock/Motion/SIM/Panic` + `Any status/Delivered/Deferred/Failed`; row chip reads `Skipped`; detail shows `No photo available`, `Location unavailable`, `Type/Timestamp/Event ID 8c75b077-…` | works; two label problems, F-K10 and the `%1$d hours ago` plural |
+| 6 | `Export` on Event Detail | snackbar: **"This action is intentionally deferred in Phase 3."** — no chooser, no share sheet, nothing left the phone | F-K3's premise holds on device: there is no reachable export path to bypass the policy |
+| 7 | `Delete` on Event Detail | not pressed — the row is the evidence §7.2–§7.4 rest on. Source says it is wired to the same `defer()` (`ShieldraNavHost.kt:344`), so it cannot delete | recorded as **read from source**, not measured |
+| 8 | system back ×2 | Detail → History → Dashboard, each pop read off a fresh dump | predictive-back path intact (matches §7.4) |
+| 9 | `Settings` tab, then `Retention policy` | snackbar "…intentionally deferred…"; row still reads `Policy pending` | **F-K6 confirmed live** |
+| 10 | `App lock` row | snackbar "…intentionally deferred…" — and no authentication was asked for, then or ever | **F-K9 — new** |
+| 11 | `Protection` row | snackbar "…intentionally deferred…" | consistent with the row's `NotAvailable` target |
+| 12 | `Storage` row label | reads `Local storage is in use on this phone` — true, and provable: the event in History came from this install | honest |
+| 13 | `Start Motion monitoring` | `ServiceRecord{… MotionMonitoringService} isForeground=true foregroundId=20002 types=0x40000000 … channel=shieldra_motion_monitoring flags=ONGOING_EVENT\|FOREGROUND_SERVICE`; the posted title read `SHIELDRA protection is active`; the button flipped to `Stop Motion monitoring` and the tile subtitle to `Motion monitoring is active` | works, and the UI state follows the service rather than the press |
+| 14 | `Stop Motion monitoring` | `dumpsys activity services` → **0** `MotionMonitoringService` records; `NotificationRecord…com.shieldra.app` → **0**; button back to `Start Motion monitoring` | works; nothing lingered |
+
+**End state, as the owner asked for it:** `HOME`, then `am force-stop com.shieldra.app`, then the card was
+swiped out of the recents UI (`dumpsys activity recents` still lists the stopped task record `#22082`, which
+is this ROM's behaviour, not a running app). `pidof` returns nothing. **The app was not uninstalled** —
+`pm list packages` still shows `com.shieldra.app` and `com.shieldra.app.test`, because uninstalling is the
+trade Q-K-6 puts in the owner's hands, not in an audit's.
+
+### F-K9 — new, from row 10: Settings states an authentication requirement the app does not have
+
+The row reads **"App lock — Require authentication"**, and pressing it authenticates nothing: the click
+handler discards the flag (`ShieldraNavHost.kt:296`, `SettingsCallbacks { id, _ ->`) and routes the row to
+`SettingsRowTarget.NotAvailable -> defer()`. There is no `BiometricPrompt` and no device-owner/PIN
+interaction anywhere in `app/src/main` — the only authentication code in the tree is Keystore key policy,
+and `EvidenceKeyPolicy.kt:71-77` deliberately turns it **off** for evidence keys, with the reason written
+down: *"No user authentication required (background event capture must work without a BiometricPrompt
+interaction)"* (`requireUserAuthentication = false`).
+
+So the screen and the storage policy disagree in writing, and the disagreement is reachable by a user who
+opens Settings. It is not a claim about a feature that exists somewhere else: `SettingsContent.kt:84-87`
+states the intent for this screen — "A row with no destination stays visible and honestly labelled rather
+than dressed up as a feature that exists" — and this row's label is the exception.
+
+**What was not done:** the string was not changed. `settings_require_authentication` is one of the
+release-facing labels Q-K-4/A-23 owns, and the honest replacement ("Not available yet", or dropping the
+subtitle) is a wording decision the owner makes once, not one an audit pass makes per screenshot. It joins
+**F-K6** and **F-K7** under Q-K-4.
+
+### F-K10 — new, from row 5: the History chip says "Skipped" about an event whose notification is in the shade
+
+The only row reads `Security event / 2 hours ago / **Skipped**`. `Skipped` is not a delivery outcome the app
+measured — it is what `PersistedEventReader.kt:109` maps `INITIATED`/`COLLECTING` to, i.e. "the pipeline
+never ran this event forward". Meanwhile `dumpsys notification` on the same phone at the same minute shows a
+posted `NotificationRecord … tag=8c75b077-94de-439b-a6e2-fc9fa91741df` — that event's own ID — because the
+Panic path posts through `LocalEventNotifier` directly and never hands the event to
+`InMemoryEventPipeline`, whose `READY → DELIVERING → DELIVERED` transitions are what would have produced
+`Delivered`. Two consequences, both measured: the user-visible label describes an internal stage rather
+than what the person's notification shade says, and the filter chips offer `Delivered/Deferred/Failed` with
+no way to select the one state the only row actually has.
+
+**What was not done:** neither the mapping nor the chip was changed, and the pipeline was not wired to the
+Panic path — that is new behaviour, not a wording fix, and no amendment authorizes it.
+
+### F-K11 / Q-K-8 — new, from row 4: a Panic press two hours later recorded nothing
+
+`PanicIncidentCoordinator.kt:62-64` binds a press to the first non-terminal `PANIC_ACTIVATION` event, with
+**no time window** — the only exit is the event reaching a terminal state, and per F-K10 the Panic path never
+advances the state. Pressing `Silent Panic` at 19:00 on an event created at ~17:00 therefore produced no new
+row, no new event, and one more activation counted against the two-hour-old incident. That is A-7's dedup
+design working as written; the open part is the *duration*, which A-7 does not bound. Raised as **Q-K-8**:
+should a Panic press after N minutes start a new incident (and if so, N is the owner's number), or should the
+current forever-binding stand?
+
+**Minor, same row — a source reading, not a measured rendering:** the age string is `event_age_hours` =
+`"%1$d hours ago"` (`values/strings.xml:220`) and `قبل %1$d ساعة` (`values-ar/strings.xml:220`), and
+`ShieldraNavHost.kt:383` formats that one string with the hour count. Neither locale has plural forms, so one
+hour reads "1 hours ago" and Arabic uses the same shape for 1, 2 and 20. The row on the phone this pass read
+"2 hours ago", which is correct English, so the defect was **not** photographed — it is what the resource file
+says. Worth folding into the Q-K-4 pass, which owns release-facing labels.
+
+---
+
 ## 8. What this report does not claim
 
 - No **G6 / Batch K sign-off**. Protocol §38 is honoured by not signing; the string "G6 PASS" does not
@@ -613,7 +702,21 @@ whenever a database already exists — is the owner's call. It is raised as **Q-
 - §7's rows are the `18cc745` build and §7.2's rows are the `253ce07`-code build; the two installs are not
   mixed in either table, and the one reading that did not reproduce between them (`USER_SET` on
   `POST_NOTIFICATIONS`) is called out rather than averaged away.
-- Batch K cannot be called CLOSED: §6.4 is open, **Q-K-6** (§7.3) and **Q-K-7** (F-K8, §7.4) are open, F-K7
-  (§7.2) is a release-facing wording fix still to be made under Q-K-4, and H-1…H-12, Q-I-1…Q-I-6,
+- §7.5 is a **press-and-read pass on one install**, not a functional test suite: it records what each
+  reachable control visibly did and what the platform reported afterwards, and it deliberately stopped short
+  of three things. *Delete* is recorded as **read from source**, not measured — pressing it would have
+  destroyed the only row the earlier passes rest on. *Export* is verified as **deferred**, not as correct —
+  the snackbar proves there is no reachable export path, it proves nothing about a future one. *The app was
+  not uninstalled* — `pm list packages` still shows both packages, because uninstalling is the trade Q-K-6
+  puts in the owner's hands, not in an audit's. The force-stopped task record `#22082` that still appears in
+  `dumpsys activity recents` is this ROM's bookkeeping after the card was swiped away, not a running process
+  (`pidof` empty).
+- Batch K cannot be called CLOSED: §6.4 is open, **Q-K-6** (§7.3), **Q-K-7** (F-K8, §7.4) and **Q-K-8**
+  (F-K11, §7.5) are open, and the wording set still to be decided under Q-K-4 has grown from one finding to
+  four: **F-K7** (§7.2, the unmeasured "Offline"), **F-K6** (§7.3, "Policy pending"), **F-K9** (§7.5, "App
+  lock — Require authentication" over a key policy that ships `requireUserAuthentication = false`) and
+  **F-K10** (§7.5, the "Skipped" chip on an event whose notification is in the shade), together with the
+  `%1$d hours ago` plural. F-K10 and F-K11 are not both wording: the chip's mapping and the unbounded Panic
+  binding are behaviour, and no amendment authorizes changing either. H-1…H-12, Q-I-1…Q-I-6,
   Q-J-1…Q-J-6 remain unanswered, which is what decides what the audit is allowed to claim about
   camera/location, SIM and Lock.
