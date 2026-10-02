@@ -1,9 +1,13 @@
 # Batch K — Security / Privacy / Device audit (protocol §38: the point for security sign-off)
 
-**Status: STATIC HALF DELIVERED. DEVICE HALF PARTIALLY MEASURED — the storage, permission, service and
-battery-exemption probes ran on the RMX3910 (§7); the UI screenshot pass did NOT, because the phone's
-keyguard is secure (`mInputRestricted=true`) and the device then dropped off `adb`. NO SIGN-OFF IS
-GIVEN.**
+**Status: STATIC HALF DELIVERED. DEVICE HALF PARTIALLY MEASURED — the storage, permission, service,
+notification-channel and battery-exemption probes ran on the RMX3910 and were re-run to confirm them (§7);
+the UI screenshot pass did NOT, because the phone's keyguard is secure (`mInputRestricted=true`, re-checked
+after the device returned to `adb`). NO SIGN-OFF IS GIVEN.**
+
+**A second, non-device blocker appeared while this report was being verified:** the GitHub Actions
+artifact-storage quota is exhausted, so CI can no longer upload the APK pair (§11, finding **F-K5**). The
+screenshot pass needs a UI-unlocked phone; a *re-built* APK pass additionally needs that quota resolved.
 
 This report deliberately does **not** say "G6 PASS" anywhere. §24-§25's rule — cite the exact official
 source, never an old summary — is applied to the release-policy finding in §6, and every repository
@@ -49,12 +53,20 @@ closed; key rotation really does run on every approved process start.
    because the six-gate policy is consulted.
 4. **Play will reject this build today** (§6). The current official target-API requirement has been in
    force since 2026-08-31 and `targetSdk = 35`.
-5. The device half of the audit is **only partly measured** (§7): the storage, permission, service and
-   battery-exemption probes ran on the phone, but the **screenshot pass did not** — the keyguard is secure
-   and the device then left `adb`. A security sign-off cannot be written on a reading of source alone.
+5. The device half of the audit is **only partly measured** (§7): the storage, permission, service,
+   notification-channel and battery-exemption probes ran on the phone and were re-run to confirm them, but
+   the **screenshot pass did not** — the keyguard is secure (`mInputRestricted=true` on the latest check),
+   and no agent may guess the PIN. A security sign-off cannot be written on a reading of source alone.
+6. **CI can no longer publish the APK pair** (§11, F-K5). The GitHub Actions artifact-storage quota is
+   exhausted: the report commit's run finished **success** with `332 tests, 332 passed`, but also with
+   three `Failed to CreateArtifact: Artifact storage quota has been hit` errors. This is not a security
+   defect — it is the verification pipeline losing its device half for future **code** commits, which
+   Batch L and any rebuilt-APK device pass would need.
 
 Items 1, 2, 4 and the sign-off itself need owner decisions (§8). Item 3 is ordinary engineering and is
-recorded as a finding without a question, because the outcome today is already correct.
+recorded as a finding without a question, because the outcome today is already correct. Item 6 needs one
+owner decision (§8, Q-K-5) because every fix for it either deletes shared CI history or changes the
+workflow.
 
 ---
 
@@ -262,8 +274,21 @@ rather than silently bumped in a Batch-K commit.
 The phone came back on `adb` mid-batch (`IR7X5DJ7KZGEHMS8 device` after having been `offline`), so the
 storage, permission, service and exemption probes below ran for real. The screenshot pass did not: the
 keyguard is **secure** (`dumpsys window` → `mInputRestricted=true`, `deviceHasKeyguard=true`), so no
-agent-side swipe can reach the UI, and the device then left `adb` again
-(`List of devices attached` → empty). Nobody guessed a PIN and no bypass was attempted.
+agent-side swipe can reach the UI. The device has since returned to `adb` — re-checked at
+`10/2/26 8:11:30 AM` on the phone's clock, `mInputRestricted=true` again — so the blocker is the lock
+screen, not the cable. Nobody guessed a PIN and no bypass was attempted.
+
+**Re-run note (method correction).** After this report was committed, every §7 device probe was run a
+second time on the same install (`dumpsys package` permissions, `run-as ls -R`, the `head -c 16` database
+header, the lifecycle record, the SharedPrefs file, `dumpsys activity services`, `dumpsys deviceidle
+whitelist`, `dumpsys notification`). All readings reproduced except one: the "live notification" probe
+recorded below as `grep -ic shieldra` on the notification dump returned **0** the first time and **15**
+the second. That command counts *any* line naming the package — channel definitions, `AppSettings`
+entries, the ranking log — not posted notifications, so its first reading was not a safe measurement. The
+probe has been replaced with one that names the object it claims to count
+(`grep -c "NotificationRecord.*com.shieldra"`) and that now returns **0**; the conclusion ("no ongoing
+notification is left behind while monitoring is stopped") is restated against the corrected probe, and the
+discrepancy itself is kept here as the method note §25 asks for.
 
 **Built and installed:** the pair from run `36939853591` (`debug/app-debug.apk` +
 `androidTest/debug/app-debug-androidTest.apk`) installed with `adb install -r -t` and again with `-g`,
@@ -277,13 +302,14 @@ the one on the phone.
 | Probe | Reading |
 |---|---|
 | Declared vs granted permissions | `dumpsys package com.shieldra.app`: requested = `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` + the AGP-injected signature-level `com.shieldra.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`; install-granted = the two FGS ones + that auto one; runtime = `android.permission.POST_NOTIFICATIONS: granted=true, flags=[ USER_SET\|… ]`. **`USER_SET` is the proof the runtime prompt really reached the user**, and the count is 3 declared / 1 runtime — the number §5 and Q-K-4 are about |
-| Evidence + database layout | `run-as com.shieldra.app ls -R` → `no_backup/shieldra-evidence/` (empty at this moment), `no_backup/shieldra-key-lifecycle.bin`, `databases/shieldra.db`+`-shm`+`-wal`, `shared_prefs/shieldra_notification.xml` |
+| Evidence + database layout | `run-as com.shieldra.app ls -R` → `no_backup/shieldra-evidence/` (empty at this moment), `no_backup/shieldra-key-lifecycle.bin`, `databases/shieldra.db`+`-shm`+`-wal`, `shared_prefs/shieldra_notification.xml`, plus `files/profileInstalled`. The re-run additionally listed four `cache/persisted-reading-<uuid>.db.lck`, one `cache/shieldra.db.lck`, and an empty `app_dxmaker_cache/`. The `persisted-reading-` name is generated only in `app/src/androidTest/…/PersistedEventReadingInstrumentedTest.kt:144` (throwaway test databases; `git grep -n "persisted-reading-" app/src` matches no `main/` source), so that residue belongs to the aborted instrumented pass recorded below, not to the production storage path. `app_dxmaker_cache` appears nowhere in the repository and is not attributed by this audit. `.db.lck` files carry no data |
 | Database encrypted at rest? | **No.** `head -c 16 databases/shieldra.db` = `SQLite format 3\0`; the WAL yields the full plaintext schema. Only evidence payloads are encrypted (§2 row) |
 | Lifecycle record contents | `active=v1`, `retired=`, `lastRotationEpochMs=…`, `createdEpochMs=…` — no key material |
 | SharedPrefs contents | one boolean, `permission_requested=true` — no event data, no identifier |
 | Anything running after force-stop | `dumpsys activity services com.shieldra.app` → **no `ServiceRecord`**; `ps -A \| grep shieldra` → nothing. The app does not resurrect itself |
-| Battery exemption claimed? | `dumpsys deviceidle whitelist \| grep -c shieldra` → **0**. The build asks for no Doze/battery whitelist entry, so no listing may imply it survives everything |
-| Live notification | `dumpsys notification --noredact \| grep -ic shieldra` → **0** while monitoring is stopped, i.e. the ongoing "SHIELDRA protection is active" notice is not left behind |
+| Battery exemption claimed? | `dumpsys deviceidle whitelist \| grep -ci shieldra` → **0**. The same dump lists other packages (`system-excidle,com.android.vending,…`), so 0 is "not in the list", not "the command failed". The build asks for no Doze/battery whitelist entry, so no listing may imply it survives everything |
+| Notification currently posted? | `dumpsys notification --noredact \| grep -c "NotificationRecord.*com.shieldra"` → **0** (the Notification List at that moment held only `com.android.systemui`, `com.masarat.salati`, `com.google.android.googlequicksearchbox`, `com.oplus.battery`, `android`). With monitoring stopped there is **no** ongoing "SHIELDRA protection is active" notice left behind — the corrected probe for this claim, see the re-run note above |
+| Notification channels that exist on the phone | Same dump, `AppSettings: com.shieldra.app (10859) importance=DEFAULT userSet=true` and two channels: `shieldra_security_events` (name "Security events", **`mImportance=4`**, sound, `mShowBanner=true`) and `shieldra_motion_monitoring` (name "Motion monitoring", **`mImportance=2`**, `mShowBanner=false`, `mVibrationEnabled=false`). The ongoing-notice channel is measured **low-importance/silent**, and the event channel is the audible one — the two are not the same channel, which is the device side of the A-9/A-6 notification policy |
 
 **NOT RUN (and why):**
 
@@ -324,6 +350,7 @@ Everything in §2 labelled REPO is a source reading, not a measurement; per
 | **Q-K-2** | Is automatic expiry **in scope for launch**? If yes, what triggers the sweep, given A-10 (no boot receiver), the G5 "no polling/no timer/no WorkManager" ruling, and the fact that a dark screen starves the process on this phone? If no, the approved retention table and the Settings "Policy pending" row must both be re-worded to "deletion is not performed by this build" | Decides whether F-K2 is a launch blocker or a documented limit. The only trigger that already exists is process start (that is how rotation works) |
 | **Q-K-3** | Raise `compileSdk`/`targetSdk` to 36 now as a Batch-L slice, or request the Console extension to 2026-11-01? | F-K4. Touches the frozen FGS/notification policy area, so it needs your explicit go and a device re-verification afterwards |
 | **Q-K-4** | Confirm the listing vocabulary after A-6 and after this batch: 3 declared permissions (plus the AGP-injected signature-level one, §5), 1 prompted, and no claim of continuous protection or "zero permissions" | Play one-way door; needs the same care as the package ids. §7 now supplies the measured side of it: `POST_NOTIFICATIONS: granted=true, flags=[USER_SET|…]`, **no** `dumpsys deviceidle whitelist` entry, and no service or notification surviving a force-stop — so "runs 24/7 in the background, exempt from battery optimisation" is unsupportable in three separate ways |
+| **Q-K-5** | CI artifact storage is exhausted (§11.1: 301 artifacts ≈ 1,215 MiB, of which 69 `apks-*` ≈ 1,211 MiB). Choose one: **delete old `apks-*` artifacts** (irreversible, and some are cited as evidence by earlier batch reports), **add `retention-days` to the three `upload-artifact` steps** (edits the CI/CD pipeline), **raise the plan's storage**, or **accept that future code commits cannot be device-verified** | A new platform-capability decision under §7. It does not block this batch's screenshot pass (the needed pair is already on the phone), it blocks Batch L and every rebuilt-APK pass afterwards |
 
 F-K3 (export policy has no consumer) is **not** a question: the fix is to make a future export slice
 consult `EvidenceExportPolicy`, or to add a static gate forbidding an export path that bypasses it. It is
@@ -338,11 +365,13 @@ scheduled as ordinary work, and recorded here so it is not inherited as "protect
    the phone **unlocked by the owner**, because the keyguard is secure and no agent may guess the PIN.
    Optionally the same pass re-run with the instrumented suite minus the measurement vehicle, which would
    turn "no suite count claimed on this build" into a number.
-2. Answers to Q-K-1…Q-K-4 — and the still-open **H-1…H-12**, **Q-I-1…Q-I-6**, **Q-J-1…Q-J-6**, because an
+2. Answers to Q-K-1…Q-K-5 — and the still-open **H-1…H-12**, **Q-I-1…Q-I-6**, **Q-J-1…Q-J-6**, because an
    unanswered policy question is an open finding, not a passed gate.
 3. A decision on whether the three stale-wording Q-G4 findings and Q-F1 are closed or deferred.
 4. Only then: the G6 sign-off sentence, and Batch L (release hardening: signing, `versionName 0.1.0` →
-   real versioning, minify/resource shrinking, Play Console declarations).
+   real versioning, minify/resource shrinking, Play Console declarations). **Batch L cannot be
+   device-verified until Q-K-5 is settled**, because its commits are code commits and their APK will not
+   upload.
 
 Until those exist the status of G6 stays **APPROVED PROCESS / STATIC AUDIT + DEVICE PROBES DELIVERED —
 SCREENSHOT PASS NOT RUN, NO SIGN-OFF** (`docs/ROADMAP.md` row G6) and nothing in this report may be quoted
@@ -369,6 +398,16 @@ sed -e 's/></>\n</g' tsdk.html | sed -e 's/<[^>]*>//g' | grep -v '^[[:space:]]*$
 grep -n "Starting August 31 2026\|API level 36" tsdk.txt      # lines 3555+
 # §7 code identity of the APK pair that IS installed on the phone
 git diff --name-only 18cc745..HEAD | grep -vc '^docs/'        # 0
+# §11 the CI verdicts, read from the run objects themselves
+gh run view 36974410187 --json status,conclusion,headSha
+gh run view 36976932429 --json status,conclusion,headSha
+gh run view 36976932429 --log | grep -E "CI TEST SUMMARY|BUILD SUCCESSFUL|boundary scan|REVIEW PASS"
+# §11.1 the artifact quota
+gh api repos/toufikben/shieldra/actions/artifacts --jq '{total_count: .total_count}'
+gh api repos/toufikben/shieldra/actions/artifacts --jq '[.artifacts[].size_in_bytes] | add' --paginate
+gh api repos/toufikben/shieldra/actions/artifacts \
+  --jq '[.artifacts[] | select(.name|startswith("apks-"))] | {n: length, mb: ((map(.size_in_bytes)|add)/1048576|floor)}' --paginate
+grep -n "retention-days" .github/workflows/*.yml             # no match
 ```
 
 The §7 device probes, in the order they were run (`A` = `…/Android/Sdk/platform-tools/adb.exe`, with
@@ -384,8 +423,9 @@ The §7 device probes, in the order they were run (`A` = `…/Android/Sdk/platfo
 "$A" shell run-as com.shieldra.app head -c 96 no_backup/shieldra-key-lifecycle.bin | xxd
 "$A" shell run-as com.shieldra.app cat shared_prefs/shieldra_notification.xml
 "$A" shell dumpsys activity services com.shieldra.app
-"$A" shell dumpsys notification --noredact | grep -ic shieldra
-"$A" shell dumpsys deviceidle whitelist | grep -c shieldra
+"$A" shell dumpsys notification --noredact | grep -c "NotificationRecord.*com.shieldra"   # posted = 0
+"$A" shell dumpsys notification --noredact | grep -in shieldra | cut -c1-90               # channels + logs
+"$A" shell dumpsys deviceidle whitelist | grep -ci shieldra
 "$A" shell dumpsys window | grep -E "mCurrentFocus|mInputRestricted"   # the keyguard blocker
 ```
 
@@ -404,10 +444,38 @@ from a watch message:
 | Commit | Run | Verdict | Quoted output |
 |---|---|---|---|
 | `dd7cb1b0ad5b75961431eb7286704f83ed913a35` (this report + Q-K-1…Q-K-4 + ROADMAP rows K/G6/G7) | `36974410187` | **success** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 7m 46s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS` |
+| `f1454c6c5c254acd3ef8dfaa5ec188548d0a9664` (the §7 device probes, the corrected §1/§2 database claim, §11 itself) | `36976932429` | **success, with three artifact-upload failures** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 7m 37s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS` — **and** `X Failed to CreateArtifact: Artifact storage quota has been hit. Unable to upload any new artifacts. Usage is recalculated every 6-12 hours.` ×3 (annotations `…github#20` ×2, `…github#24`), read from `gh run view 36976932429` after the job list showed the run `completed`/`success`, started `07:07:30Z`, updated `07:16:06Z` |
 
-What that proves, and what it does not: it is a **docs-only** commit, so the run shows that no gate,
-permission, constant or claim was moved by it. It proves nothing about the five findings in §1, and it is
+What that proves, and what it does not: both are **docs-only** commits, so the runs show that no gate,
+permission, constant or claim was moved by them. They prove nothing about the findings in §1, and they are
 not the device half — the `G4-B LOCAL REVIEW PASS` line says so itself ("runtime/device evidence still
 required"). The 332 tests are JVM tests; the instrumented suite was **not** completed on this build (§7).
-The commit that adds this table is later than `dd7cb1b`, so its own CI verdict cannot appear inside this
-table — same limit recorded in `docs/reports/batch-J-lock-feasibility.md` §12.
+The commit that adds the second row is later than `f1454c6`, so its own verdict cannot appear in this table
+either — same limit recorded in `docs/reports/batch-J-lock-feasibility.md` §12.
+
+### 11.1 F-K5 — the CI artifact quota is exhausted (measured; HIGH for verification, not for security)
+
+**MEASURED (CI).** The run above finished green and still could not publish its outputs. From
+`gh api repos/toufikben/shieldra/actions/artifacts`:
+
+| Reading | Value |
+|---|---|
+| Artifacts in the repository | `total_count` = **301** |
+| Space they occupy | `537343374 + 442473186 + 293971108 + 2256` bytes = **1,273,789,924 B ≈ 1,215 MiB** |
+| Of which `apks-*` bundles | **69 artifacts ≈ 1,211 MiB** — i.e. the APK pairs are essentially the entire quota |
+| Upload result on run `36976932429` | 3 × `Failed to CreateArtifact: Artifact storage quota has been hit` — one per upload step. The run still reported `success` because all three steps are declared `continue-on-error: true` (`.github/workflows/…:72`, `:83`, `:92`), so a refused upload cannot fail CI. **That is the trap**: a green run no longer guarantees an APK exists |
+| Workflow retention | `.github/workflows/…` calls `actions/upload-artifact@v4` at `:73` (`apks-<run-id>`), `:84` (`unit-test-results-…`), `:93` (`group-a-evidence-…`) with **no `retention-days`** anywhere in the directory (`grep -rn retention-days .github/workflows/` → 0 matches), so every run uploads at the repository default |
+| Newest `apks-*` still present | `apks-36939853591` (18,532,050 B, `expired: false`) — the exact pair installed on the phone (§7) |
+
+What it blocks and what it does not: JVM tests, lint, both builds and the static gates keep working — a
+**docs** commit verifies normally. What stops working is any future **code** commit that needs its APK on
+the phone: the upload will fail, so the device half of the verification cycle (§7's install-and-look step,
+a rebuilt-APK instrumented pass, Batch L's release-candidate check) has no artifact to download. The
+already-installed pair is code-identical to HEAD, so **the screenshot pass does not depend on this** — it
+depends only on the owner unlocking the phone.
+
+Why no fix was applied here: every available remedy is an owner call, not an engineering default.
+Deleting artifacts destroys shared CI history that earlier batch reports cite as their evidence
+(`apks-36939853591` is one of them) and is irreversible; adding `retention-days` to the workflow edits the
+CI/CD pipeline; raising the storage quota is a billing change. Recorded as **Q-K-5** in §8 rather than
+silently resolved.

@@ -1121,7 +1121,7 @@ blank, because they decide what the audit is allowed to claim.
 
 ---
 
-## Q-K-1 … Q-K-4 — Batch K (final security / privacy audit) came back: what is clean, what is not, and the four decisions that are yours alone (raised by Batch K, 2026-10-02)
+## Q-K-1 … Q-K-5 — Batch K (final security / privacy audit) came back: what is clean, what is not, and the five decisions that are yours alone (raised by Batch K, 2026-10-02)
 
 **Evidence report:** `docs/reports/batch-K-security-privacy-device-audit.md`. Read at
 `f844ffb35dc798cdb1bf21263ecf61cab1b00d8b`. Every "clean" row in its §2 is a re-run grep or a `file:line`
@@ -1139,9 +1139,13 @@ produce `Protected`, `Active`, or a `lastCheckSeconds` reading.
 **What is not correct, and is the reason there is no sign-off:** the Premium tab (§3), retention that is
 never executed (§4.1), an export gate with no consumer (§4.3), `targetSdk = 35` against a Play rule that
 took effect 2026-08-31 (§6), and the **screenshot pass of the device audit NOT RUN** (§7): the phone came
-back on `adb` mid-batch, so the storage, permission, service and battery-exemption probes all ran for
-real, but the keyguard is **secure** (`mInputRestricted=true`) and no screen could be reached — nobody
-guessed a PIN. **This item needs you to unlock the phone.**
+back on `adb` mid-batch, so the storage, permission, service, notification-channel and battery-exemption
+probes all ran for real and were then re-run to confirm them, but the keyguard is **secure**
+(`mInputRestricted=true`, still true on the latest check) and no screen could be reached — nobody guessed a
+PIN. **This item needs you to unlock the phone.** A second blocker appeared while the report was being
+CI-verified: GitHub's **artifact-storage quota is exhausted**, so CI no longer uploads the APK pair (§11.1,
+F-K5) — that one does not block the screenshot pass, but it blocks every later *code* commit's device
+verification, including Batch L's.
 
 **One fact the device probes produced that is worth reading before Q-K-4:** the Room database is
 **plaintext SQLite** on the real install (`head -c 16 databases/shieldra.db` → `SQLite format 3`, and the
@@ -1151,14 +1155,23 @@ extraction by `allowBackup="false"` and the backup/device-transfer exclusions, *
 string claims encryption today (`grep -i encrypt res/values/strings.xml` → no match), so this is not a
 false claim; it is the boundary of what "encrypted" may ever mean in the listing.
 
-### Your four decisions (`PROPOSED — REQUIRES OWNER ANSWER`; I am not choosing any of them)
+**The measurement that corrected my own earlier probe:** `dumpsys notification --noredact | grep -c shieldra`
+is **not** a count of notifications on screen — it also matches the channel definitions and the ranking log,
+so the same phone state returned `0` once and `15` later. The specific probe
+(`grep -c "NotificationRecord.*com.shieldra"`) returns **0**: nothing is posted while monitoring is stopped.
+The same dump does show the two channels the build creates, and they are the device side of the A-9/A-6
+notification policy: `shieldra_motion_monitoring` at `mImportance=2` (silent, `mShowBanner=false`) and
+`shieldra_security_events` at `mImportance=4` (sound, banner). Report §7 carries the correction.
+
+### Your five decisions (`PROPOSED — REQUIRES OWNER ANSWER`; I am not choosing any of them)
 
 | # | Question | Why it is yours, and what is already decided around it |
 |---|---|---|
 | **Q-K-1** | **The Premium tab before launch**: remove the route and the tab, keep it with copy that states plainly nothing is purchasable yet, or build real billing? | F-K1 (HIGH). `ShieldraNavHost.kt:293-301` is a live route showing `DemoData.premium()` (`:100-110`): a price, "Buy Lifetime", and five feature claims of which **none** exists — including `premium_free_summary` naming Lock Guard, SIM Guard and Email delivery while those same guards' own tiles honestly read "Not monitoring yet". §30 currently bars the billing SDK, so "build it" means amending §30 first. **This is the same premium sentence Q-F1 and Q-J-6 already point at — answer it once, here, and both follow.** |
 | **Q-K-2** | **Is automatic expiry in scope for launch?** If yes: what triggers the sweep, given A-10 (no boot receiver), the G5 ruling "Do not add polling. Do not add a timer. Do not add WorkManager", and the measured `RMX3910` dark-screen starvation? If no: the approved retention table and the Settings row must both be re-worded to "this build performs no deletion" | F-K2 (MEDIUM, privacy). The 30/30/90 windows are approved (A-1) and coded (`EvidenceRetentionPolicy.kt:50-52`), and **zero** production code reads them — `app/src/main/kotlin` contains no delete call of any kind outside the §5.7 test vehicle. Today the promise "evidence disappears after 30 days" is a design document, not a behaviour. The only trigger that already exists is process start, which is how rotation runs |
 | **Q-K-3** | **Raise `compileSdk`/`targetSdk` to 36 now** as a Batch-L slice, **or** request the Console extension to 2026-11-01? | F-K4 (HIGH). Source: `developer.android.com/google/play/requirements/target-sdk`, fetched 2026-10-02, quoted verbatim in report §6 — "New apps and app updates must target **Android 16 (API level 36)** or higher to be submitted to Google Play", in force since 2026-08-31. `app/build.gradle.kts:9` = 35, `:14` = 35. Bumping 35→36 changes runtime behaviour on Android 16 in the exact area the DO-NOT-TOUCH list freezes (FGS type, FGS permissions, notification policy), so it needs your explicit go **and** a device re-verification afterwards. §25: no community interpretation was used; the page text is quoted with its line number |
-| **Q-K-4** | **Confirm the listing vocabulary** after A-6 and after this batch: 3 declared permissions, 1 prompted, no "zero permissions", and no claim of continuous protection | Play package ids and listing text are a one-way door. A-6 already replaced "zero permissions" with a *relative* promise; this audit adds the fact that the count moved from 1 to 3 with the Motion service. Any "anti-theft protection" line must also be reconciled with the measured background-starvation evidence and with Batch J §1, which shows a Lock guard cannot promise it will notice anything |
+| **Q-K-4** | **Confirm the listing vocabulary** after A-6 and after this batch: 3 declared permissions, 1 prompted, no "zero permissions", and no claim of continuous protection | Play package ids and listing text are a one-way door. A-6 already replaced "zero permissions" with a *relative* promise; this audit adds the fact that the count moved from 1 to 3 with the Motion service. Any "anti-theft protection" line must also be reconciled with the measured background-starvation evidence and with Batch J §1, which shows a Lock guard cannot promise it will notice anything. Now also measured on the phone: the ongoing-notice channel is low-importance and silent by design, and no notification is posted while monitoring is stopped |
+| **Q-K-5** | **The CI artifact quota is full — which release do you give?** delete old `apks-*` artifacts, add `retention-days` to the three upload steps, raise the plan's storage, or accept that later code commits cannot be device-verified? | F-K5 (HIGH for verification, none for security), measured in report §11.1: **301 artifacts ≈ 1,215 MiB**, of which **69 `apks-*` ≈ 1,211 MiB**; run `36976932429` finished `success` with three `Failed to CreateArtifact: Artifact storage quota has been hit` errors, and `.github/workflows/…:73,84,93` upload with no `retention-days`. I did not delete anything: several APK artifacts are cited by earlier batch reports as the evidence for their device passes, and removing shared CI history is irreversible. Editing the workflow changes the CI/CD pipeline, and storage is a billing item — both yours |
 
 **What is NOT a question:** the export gate having no production consumer (F-K3). The user-visible
 behaviour is already honest — `onExport = { defer() }` at `ShieldraNavHost.kt:357`, and `isAllowed` is
@@ -1168,8 +1181,10 @@ Batch L does not inherit it as "export is protected by policy".
 
 **Answer order:** Q-K-3 is the only one that blocks *submission* (nothing reaches Play at 35). Q-K-1 blocks
 the listing and is the sharpest §31/`:753` claim defect in the build. Q-K-2 decides whether F-K2 is a
-launch blocker or a documented limit. Q-K-4 is a wording confirmation. **None of them blocks the device
-half of this audit** — that half needs only the phone back on `adb`.
+launch blocker or a documented limit. Q-K-4 is a wording confirmation. Q-K-5 does not block this batch's
+screenshot pass — the APK pair the phone needs is already installed and still downloadable — but it blocks
+Batch L and every rebuilt-APK device pass after it. **None of the five blocks the device half of this
+audit**: the phone is back on `adb`, and that half needs only the screen unlocked.
 
 **Until §7 is run end-to-end on the RMX3910 with a screenshot per runtime screen (including the Premium
 tab and Event Detail), this batch has no sign-off, and no sentence in it may be quoted as "audited" or
