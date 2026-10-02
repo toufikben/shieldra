@@ -445,13 +445,17 @@ from a watch message:
 |---|---|---|---|
 | `dd7cb1b0ad5b75961431eb7286704f83ed913a35` (this report + Q-K-1…Q-K-4 + ROADMAP rows K/G6/G7) | `36974410187` | **success** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 7m 46s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS` |
 | `f1454c6c5c254acd3ef8dfaa5ec188548d0a9664` (the §7 device probes, the corrected §1/§2 database claim, §11 itself) | `36976932429` | **success, with three artifact-upload failures** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 7m 37s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS` — **and** `X Failed to CreateArtifact: Artifact storage quota has been hit. Unable to upload any new artifacts. Usage is recalculated every 6-12 hours.` ×3 (annotations `…github#20` ×2, `…github#24`), read from `gh run view 36976932429` after the job list showed the run `completed`/`success`, started `07:07:30Z`, updated `07:16:06Z` |
+| `6e473e73a374c841be8a1ffe1b0606aae33d2ced` (the §7 re-run note, the corrected notification probe, F-K5 / Q-K-5) | `36978663360` | **success, with the same three artifact-upload failures** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 6m 4s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS`, plus `Failed to CreateArtifact: Artifact storage quota has been hit` ×3 — **F-K5 reproduced on a second consecutive run**, so it is a standing state and not a one-off (`gh run view 36978663360 --json headSha,status,conclusion` → the SHA above) |
 
-What that proves, and what it does not: both are **docs-only** commits, so the runs show that no gate,
+The row immediately above is added by a commit later than `6e473e7`, and that commit's own verdict cannot be
+quoted inside this file for the §12 reason; it is carried into the next batch's report.
+
+What that proves, and what it does not: all three are **docs-only** commits, so the runs show that no gate,
 permission, constant or claim was moved by them. They prove nothing about the findings in §1, and they are
 not the device half — the `G4-B LOCAL REVIEW PASS` line says so itself ("runtime/device evidence still
 required"). The 332 tests are JVM tests; the instrumented suite was **not** completed on this build (§7).
-The commit that adds the second row is later than `f1454c6`, so its own verdict cannot appear in this table
-either — same limit recorded in `docs/reports/batch-J-lock-feasibility.md` §12.
+The same §12 limit recorded in `docs/reports/batch-J-lock-feasibility.md` §12 is what leaves the last
+commit's own verdict out of this table.
 
 ### 11.1 F-K5 — the CI artifact quota is exhausted (measured; HIGH for verification, not for security)
 
@@ -463,7 +467,7 @@ either — same limit recorded in `docs/reports/batch-J-lock-feasibility.md` §1
 | Artifacts in the repository | `total_count` = **301** |
 | Space they occupy | `537343374 + 442473186 + 293971108 + 2256` bytes = **1,273,789,924 B ≈ 1,215 MiB** |
 | Of which `apks-*` bundles | **69 artifacts ≈ 1,211 MiB** — i.e. the APK pairs are essentially the entire quota |
-| Upload result on run `36976932429` | 3 × `Failed to CreateArtifact: Artifact storage quota has been hit` — one per upload step. The run still reported `success` because all three steps are declared `continue-on-error: true` (`.github/workflows/…:72`, `:83`, `:92`), so a refused upload cannot fail CI. **That is the trap**: a green run no longer guarantees an APK exists |
+| Upload result on runs `36976932429` and `36978663360` | 3 × `Failed to CreateArtifact: Artifact storage quota has been hit` on **each** — one per upload step, on two consecutive runs, so this is a standing state rather than a transient one. Each run still reported `success` because all three steps are declared `continue-on-error: true` (`.github/workflows/…:72`, `:83`, `:92`), so a refused upload cannot fail CI. **That is the trap**: a green run no longer guarantees an APK exists |
 | Workflow retention | `.github/workflows/…` calls `actions/upload-artifact@v4` at `:73` (`apks-<run-id>`), `:84` (`unit-test-results-…`), `:93` (`group-a-evidence-…`) with **no `retention-days`** anywhere in the directory (`grep -rn retention-days .github/workflows/` → 0 matches), so every run uploads at the repository default |
 | Newest `apks-*` still present | `apks-36939853591` (18,532,050 B, `expired: false`) — the exact pair installed on the phone (§7) |
 
