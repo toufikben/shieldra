@@ -1,0 +1,35 @@
+package com.shieldra.app.navigation
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+/**
+ * Q-K-1 (owner answer, 2026-10-02): the Premium tab and its route leave this
+ * release. Nothing is purchasable, so no reachable screen may look purchasable.
+ *
+ * These assertions hold the shape of the released surface: three tabs, and no
+ * declared destination that names a premium screen.
+ */
+class ReleaseNavigationSurfaceTest {
+    @Test
+    fun qk1_released_tab_bar_has_exactly_dashboard_history_settings() {
+        assertEquals(
+            setOf(ShieldraRoutes.DASHBOARD, ShieldraRoutes.HISTORY, ShieldraRoutes.SETTINGS),
+            BottomTab.entries.map { it.route }.toSet(),
+        )
+    }
+
+    @Test
+    fun qk1_no_declared_route_names_a_premium_screen() {
+        val routes = ShieldraRoutes::class.java.declaredFields
+            .map { it.get(null) }
+            .filterIsInstance<String>()
+        assertTrue(routes.isNotEmpty(), "the route table declares no destinations")
+        assertFalse(
+            routes.any { it.contains("premium", ignoreCase = true) },
+            "a premium destination is still declared: $routes",
+        )
+    }
+}

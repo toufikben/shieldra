@@ -69,6 +69,24 @@ grep -q 'GuardStatus.Disabled' "$GUARD" || fail "guards must not be projected as
 grep -q 'ProtectionVisualState.Disabled' "$GUARD" || fail "the not-active state must map to Disabled, never Protected"
 pass "runtime guard projection is honest (no fabricated protection)"
 
+# Q-K-1 (owner answer 2026-10-02): the Premium tab and its route leave this
+# release. The screen showed a price, "Buy Lifetime" and five feature claims that
+# no code implements, while §30 bars the billing SDK that would make any of it
+# real — a reachable false advertisement (§31). Forbidden, not discouraged: the
+# tab must be gone, the NavHost must not reference it, and no price string may
+# come back without a purchase flow behind it.
+ROUTES=app/src/main/kotlin/com/shieldra/app/navigation/ShieldraRoutes.kt
+if grep -Eq 'PremiumScreen\(|DemoData\.premium\(|ShieldraRoutes\.PREMIUM' "$NAVHOST"; then
+  fail "NavHost renders the Premium screen the owner removed from this release (Q-K-1)"
+fi
+if grep -qi 'premium' "$ROUTES"; then
+  fail "the released bottom tab bar still carries a Premium destination (Q-K-1)"
+fi
+if grep -q 'demo_premium_price' app/src/main/res/values/strings.xml; then
+  fail "a Premium price string is shipped with no purchase flow behind it (Q-K-1)"
+fi
+pass "no purchasable-looking Premium surface is reachable in this release"
+
 # Persisted events must reach the UI through the pure reader, and the Room
 # read must be dispatched off the main thread (Room throws if queried there).
 READER=app/src/main/kotlin/com/shieldra/app/presentation/guard/PersistedEventReader.kt
