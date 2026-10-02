@@ -31,7 +31,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.shieldra.app.presentation.demo.DemoData
 import com.shieldra.app.ShieldraApp
 import com.shieldra.app.presentation.guard.LockGuardDecision
 import com.shieldra.app.presentation.guard.PersistedEventLabels

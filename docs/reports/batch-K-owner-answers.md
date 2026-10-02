@@ -724,3 +724,156 @@ says. Worth folding into the Q-K-4 pass, which owns release-facing labels.
   binding are behaviour, and no amendment authorizes changing either. H-1…H-12, Q-I-1…Q-I-6,
   Q-J-1…Q-J-6 remain unanswered, which is what decides what the audit is allowed to claim about
   camera/location, SIM and Lock.
+
+  *Every clause of that bullet was true when it was written. **§9** records what changed later the same day:
+  Q-K-4's wording set landed as **A-26**, Q-K-7 as **A-27**, Q-K-8 as **A-28** and Q-K-6 as the verification
+  restriction **A-29** — so the four findings and the plural listed above are no longer "still to be decided",
+  and §6.4 had already been answered by way 3 (§6.5) when this bullet named it open. What survives is the
+  opposite direction of the same rule: **nothing in §9 releases a claim §8 withholds**, because A-29 forbids
+  the only device step that would have proved the new behaviour on this phone, so §9.6 keeps it NOT RUN.*
+
+---
+
+## 9. Q-K-4, Q-K-7 and Q-K-8 executed the same day — what landed and what each run proved
+
+The owner answered the three remaining questions on 2026-10-02 and, for Q-K-4, added the boundary that
+governed the whole pass: *"لا تغيّر سياسة Keystore/crypto فقط لجعل النص يطابق الواجهة. عدّل الواجهة لتطابق
+السياسة الحالية"*, *"لا تخترع delivery success"*, and for Q-K-8 *"Panic incident reuse window = 10 minutes"*.
+Q-K-6's answer was a restriction on verification, not a change request: *"لا uninstall. لا pm clear. لا
+تغيّر signing architecture الآن."* Nothing in this section is a security sign-off.
+
+### 9.1 The chain of commits and what each run said
+
+| commit | run | verdict | the failure, verbatim | whose defect |
+|---|---|---|---|---|
+| `1b99bcc` (RED: tests only) | `37054018816` | failure **by design** | `> Task :app:compileDebugUnitTestKotlin FAILED` — `Unresolved reference 'OnboardingState'`, `'OnboardingCompletionRecord'`, `'NetworkStatus'`, `'NotAttempted'`, `'deliveryChipLabelRes'`, `'networkSlotLabelRes'`, `'appLockSubtitleRes'`, `'retentionSubtitleRes'`, `'ageQuantityRes'`, `'event_age_days'`/`_hours`/`_minutes`/`_seconds` | none — every line names a symbol the batch then had to introduce, which is the proof the demanded behaviour did not exist |
+| `9a77732` (GREEN: 22 files) | `37060056809` | failure | `e: …DemoData.kt:13:111 Unresolved reference 'demo_active_attempts'` | **mine** — I wrote `values/plurals.xml` and `values-ar/plurals.xml` instead of appending to them, deleting a plural that already existed in both locales |
+| `1cf4803` (repair: the two demo plurals restored verbatim from `git show HEAD~1`) | `37061080839` | failure | `##[error]…ShieldraNavHost.kt:393: Error: Expected resource of type plurals [ResourceType]` → `> Task :app:lintDebug FAILED`, `Lint found 1 error, 33 warnings and 2 hints` | **mine** — `ageQuantityRes` returns an `R.plurals` id but carried `@StringRes`, so `getQuantityString` was a type error lint alone can see |
+| `da501ac` (repair: `@PluralsRes`) | `37062494882` | **success** | — `CI TEST SUMMARY: 359 tests, 359 passed, 0 failures, 0 errors, 0 skipped`, `BUILD SUCCESSFUL in 7m 23s`, `Group C boundary scan passed.`, `G4-B LOCAL REVIEW PASS — runtime/device evidence still required`, `PHASE 3 STATIC REVIEW PASS`, `PASS: the device APK pair is published on draft release device-apks for da501ac823f66cfb93bd9da177258ac66b46ac75` | none — 341/341 before the batch, 359/359 after it, so the 18 added tests are the whole Q-K-4/7/8 contract |
+
+Two lessons are worth keeping in the record rather than in a footnote. The first is that the local gates
+cannot catch a missing resource: `g4b-review-check.sh` and `phase3-review-check.sh` both stayed green through
+`9a77732`, because only the Kotlin compile resolves `R.plurals.*`. The second is that annotation-level
+correctness is invisible to JVM tests too — `1cf4803` passed everything the previous run's failure had been
+about, and lint is what stopped it. No gate, test or assertion was weakened anywhere in this chain: the two
+gates that guard this batch are gate 22 (new) and the transition of gate 5, described in §9.4.
+
+### 9.2 Q-K-4 / A-26 — every sentence that changed, and the policy it now matches
+
+| finding | before | now (EN) | now (AR) | why the new sentence is true |
+|---|---|---|---|---|
+| **F-K9** App lock row | "Require authentication" with a tick | `settings_app_lock_not_enforced` — "Not enforced in this build" | «غير مطبَّق في هذا الإصدار» | `EvidenceKeyPolicy.kt:72` still reads `requireUserAuthentication = false`; the row's `requiresAuth` flag was dropped so the icon cannot imply enforcement. **The UI moved to the policy — the policy did not move.** |
+| **F-K6** Retention row | "Retention policy — Policy pending" | `settings_retention_windows` — "Applied: 90-day events, 30-day evidence"; and `settings_retention_no_data` — "Nothing stored on this phone yet" when storage holds nothing | «مطبَّقة: الأحداث 90 يومًا والأدلة 30 يومًا» / «لا توجد بيانات محفوظة على هذا الهاتف بعد» | Q-K-2 wired the sweep to the three authorized points, so the windows run; the numbers are read out of `EvidenceRetentionPolicy` by gate 22 (د), which compares them case-insensitively in **both** locales — a future policy change breaks the gate instead of silently breaking the sentence |
+| **F-K7** Network tile | `networkOk: Boolean`, rendered "Offline" whenever the flag was false — including when nothing measured anything | `NetworkStatus{Unknown, Offline, Online}`; `networkSlotLabelRes` returns the offline wording **only** for `Offline`, `null` for `Unknown`/`Online`; the factory declares `NetworkStatus.Unknown`; label "Not measured" / «غير مقاسة»; icon `HelpOutline` for Unknown, `WifiOff` only for Offline | «غير مقاسة» | Nothing in the app probes connectivity, so the shipped build can only ever reach "Not measured". A state that was never measured cannot print a measurement. |
+| **F-K10** History chip | "Skipped" / «تم تجاوزها» on `INITIATED`/`COLLECTING` rows | `DeliveryStatus.NotAttempted` → `status_not_attempted` "Not attempted" / «لم تُحاول الإرسال», with the detail line `delivery_not_attempted` | «لم تُحاول الإرسال» | Those two states never offered a delivery, so "skipped" — which presumes an attempt that was passed over — contradicted the row's own state. No delivery success is invented anywhere: `Delivered` remains reachable only from `EventState.DELIVERED` |
+| **F-K11** Age form | four fixed-form strings (`%1$d hours ago`) | four **quantity** resources in both locales, Arabic carrying its six forms (zero/one/two/few/many/other), formatted by `resources.getQuantityString(ageQuantityRes(parts), count, count)` | «قبل %1$d ساعتين» for 2, «قبل %1$d ساعات» for 3–10, etc. | A fixed template cannot decline a number; the locale's own plural rules now answer it |
+| **F-K12** Onboarding step 3 | "Lock Guard uses the approved protection rule", "%d failed attempts confirm a security event", "within 2 minutes …" | `protection_setup_question` — "Lock Guard does not run in this build yet." and `protection_step_inert` — "Continuing from this screen changes no setting." | «حارس القفل لا يعمل في هذا الإصدار بعد.» / «المتابعة من هذه الشاشة لا تُغيّر أي إعداد.» | Batch J's feasibility report is the authority: no detector ships, so no attempt count exists to confirm anything. The screen, its title and its Continue button were left exactly where they were — see Q-K-9 |
+
+Gate 22 (أ) additionally scans every `<string` line in both locales for the withdrawn claims ("24/7",
+"always protected", "zero permissions", "guaranteed", and the rest of the Q-K-4/A-23 list) and **requires**
+`requireUserAuthentication = false` to still be present, so the pass cannot be repeated by a future editor as
+a crypto change smuggled in with the copy.
+
+### 9.3 Q-K-7 / A-27 — a completion is recorded, so a process death stops being a new user
+
+The decision is one boolean, `onboarding_completed`, in
+`getSharedPreferences("shieldra_onboarding", MODE_PRIVATE)` — the same shape as the notification-permission
+record that already existed. `MainActivity.kt:21-25` builds
+`PreferencesOnboardingCompletionRecord(application)` and picks the start destination through
+`OnboardingState.startDestination(onboarding.isCompleted())`, which returns `DASHBOARD` when the flag is set
+and `ONBOARDING_WELCOME` when it is not; `ShieldraNavHost.kt` calls `onOnboardingCompleted()` at exactly two
+places — the welcome screen's skip (`:172`) and the last setup step's Continue (`:196`).
+
+What it deliberately is not: it is not written into Room, not a security fact, and not reachable over the
+network. Gate 22 (و) enforces that by reading the seam's own KDoc-filtered body for
+`OkHttp|firebase|WorkManager|Connectivity|Service|Room|SecurityEvent|EventId` and failing on any hit, and by
+requiring exactly two `onOnboardingCompleted()` call sites. Because the flag lives in app-private storage, a
+reinstall or an app-data reset returns the app to a genuine first run, and the storage layer's own recovery
+behaviour is untouched by it.
+
+**Residual risk, stated rather than smoothed over:** the write goes through `apply()`, which flushes
+asynchronously. A process killed in the milliseconds after Continue could lose it and show onboarding again —
+chosen over a main-thread `commit()` because the flow is not evidence-critical. `OnboardingPersistenceTest`
+covers the mapping in four tests (`qk7_a_first_run_starts_at_the_welcome_screen`,
+`qk7_a_cold_start_after_onboarding_starts_at_the_dashboard`,
+`qk7_a_completed_onboarding_never_starts_inside_the_onboarding_flow`,
+`qk7_the_recorded_flag_drives_the_start_destination`); the write-then-reread-across-process-death half is a
+device measurement and is in §9.6.
+
+### 9.4 Q-K-8 / A-28 — ten minutes, measured from the incident's own start
+
+`PanicIncidentCoordinator.kt:72-76` now selects an open incident only when all three hold: the row is
+`PANIC_ACTIVATION`, `!state.isTerminal()`, and `withinReuseWindow(it, at)`. That last predicate is
+`Duration.between(event.createdAt, at) <= Duration.ofMinutes(PANIC_REUSE_WINDOW_MINUTES)` with
+`PANIC_REUSE_WINDOW_MINUTES = 10L` (`:181`), the boundary inclusive.
+
+Three properties were chosen deliberately, and each is a test rather than a sentence:
+
+- **From the incident's start, not the last press.** `createdAt` is the persisted row's own creation time, so
+  a ColorOS process kill cannot extend the window and a stream of presses cannot slide it forward
+  (`the_window_is_measured_from_the_incident_start_not_from_the_last_press`).
+- **A new incident even while the old one is still `ACTIVE`.** The state test is no longer sufficient on its
+  own (`a_press_after_the_window_starts_a_new_incident_even_while_the_old_one_is_still_active`), which is the
+  exact case §7.5 row 4 measured two hours after the fact.
+- **Still guard-scoped.** The type filter is unchanged, so a Panic press cannot bind to an open Motion, Lock,
+  SIM or Battery event (`a_panic_press_never_binds_to_an_open_event_of_another_guard`), and the reuse inside
+  the window keeps its original behaviour (`a_press_inside_the_reuse_window_binds_to_the_open_incident`,
+  `repeated_panic_within_the_reuse_window_reuses_the_same_event_id`, plus the inclusive-boundary case
+  `a_press_at_exactly_the_window_boundary_binds_because_the_boundary_is_inclusive`).
+
+`ACTIVE_EVENT_SCAN_LIMIT = 100` was left exactly where it is and is still only a lookup bound: the audit's
+point was that 100 rows are not a duration, and the code now says so separately. A clock that runs backwards
+(negative duration) reads as inside the window, which keeps one open incident instead of opening a second one.
+
+**Gate 5 was moved, not relaxed.** It previously forbade any duration arithmetic in this file; it now admits
+precisely `Duration.ofMinutes(PANIC_REUSE_WINDOW_MINUTES)` and `Duration.between(event.createdAt, at)` and
+fails on anything else, and gate 22 (هـ) additionally requires the `PANIC_ACTIVATION` filter and
+`withinReuseWindow(it, at)` to still be in the selection.
+
+### 9.5 What this batch did not touch
+
+The owner's boundary for Q-K-4 was that the interface moves to the policy, never the reverse. Concretely,
+this batch changed **no** Keystore or crypto policy (`EvidenceKeyPolicy.kt:72` still reads
+`requireUserAuthentication = false`), **no** retention number, **no** event state machine, **no** severity or
+evidence policy, **no** notification/FGS architecture, **no** Room schema or migration, and **no** signing
+setup. No new permission, service, scheduler or network call appears anywhere in the diff. `EventState` values
+and their transitions are untouched: only the *sentence* a state may print changed, and only to one that state
+can honour.
+
+### 9.6 What stays NOT RUN, and why that is the honest half
+
+- **HEAD's full instrumented sweep on the RMX3910: NOT RUN.** Per A-29 the app is not to be uninstalled and
+  `pm clear` is refused on this OEM shell, and the test APK is still refused over the existing install on
+  signature grounds (§7.3/Q-K-6). No uninstall was attempted to make a number appear.
+- **The onboarding cold start, the ten-minute window and every reworded sentence have no runtime proof from
+  this batch on the phone that had the problem.** CI green here means: JVM tests, lint, the three static gate
+  scripts, `assembleDebug`, and `assembleDebugAndroidTest` compiling. It does not mean anyone watched the
+  dashboard appear after a force-stop, or pressed Panic twice eleven minutes apart.
+- **The in-place update of the shipped package: attempted at 22:01 device clock and REFUSED — measured, not
+  assumed.** `da501ac`'s pair was downloaded from the `device-apks` release the run itself published to
+  (`PASS: the device APK pair is published on draft release device-apks for
+  da501ac823f66cfb93bd9da177258ac66b46ac75`), hashed (`app-debug.apk`
+  `7184879b74a349a88817d3dc149689ef6c71387957a847672a30038a4b6e68e0`, 18,505,070 B;
+  `app-debug-androidTest.apk` `c44e6baaf829bafd0ad706cbd0cfbb02ef3960efd00a2c8df45f8e3a7f69e3e5`, 627,369 B),
+  and identified with `aapt2 dump badging` as `com.shieldra.app` `versionName 0.1.0`, `targetSdkVersion 36`.
+  `adb install -r` — an update, not a reinstall — was then refused:
+  `Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package com.shieldra.app signatures do not match
+  newer version; ignoring!]`. **This is Q-K-6's premise measured on the app package itself**, where §7.3 had
+  only ever observed it on `com.shieldra.app.test`. Nothing was uninstalled and no data was touched: the same
+  post-attempt probes read `lastUpdateTime=2026-10-02 14:18:08`, `signatures:[37cbe314]`, the three
+  `shieldra.db*` files, the seven `retention-sweep-*` evidence directories plus `shieldra-evidence` and
+  `shieldra-key-lifecycle.bin`, and `shared_prefs` still holding exactly one file
+  (`shieldra_notification.xml`, 127 B, 16:41) — i.e. still the old build, still holding this batch's evidence.
+  The androidTest APK was not attempted: §7.3 already measured its refusal on the same signature rule.
+- **One option Q-K-6 did not list, recorded as an option and deliberately not taken.** A verification-only
+  `applicationId` suffix (`com.shieldra.app.debugk`) would let a new build install *beside* the current one,
+  which is non-destructive and would make cold start, the ten-minute window and the reworded rows observable on
+  hardware. It was not done here because it is a build-configuration decision rather than an engineering step,
+  and because its cost is real: a differently-named package is a different app to the platform (its own
+  permissions, its own data), so what it proves belongs to a variant and not to the shipping package. The
+  owner's call, not the audit's.
+
+- **No security sign-off is given.** G6/Batch K stays open while **Q-K-9** (audit report §8.1),
+  H-1…H-12, Q-I-1…Q-I-6 and Q-J-1…Q-J-6 remain, and protocol §38 is honoured by not signing. §6.4 is *not*
+  on that list: the delivery dependency it isolated was answered the same day by way 3, and §6.5 is the
+  record of it.
