@@ -1,7 +1,9 @@
 # Batch K — Security / Privacy / Device audit (protocol §38: the point for security sign-off)
 
-**Status: STATIC HALF DELIVERED. DEVICE HALF NOT RUN — the owner's RMX3910 was `offline` to `adb` for
-this whole session, so nothing on-device was re-measured. NO SIGN-OFF IS GIVEN.**
+**Status: STATIC HALF DELIVERED. DEVICE HALF PARTIALLY MEASURED — the storage, permission, service and
+battery-exemption probes ran on the RMX3910 (§7); the UI screenshot pass did NOT, because the phone's
+keyguard is secure (`mInputRestricted=true`) and the device then dropped off `adb`. NO SIGN-OFF IS
+GIVEN.**
 
 This report deliberately does **not** say "G6 PASS" anywhere. §24-§25's rule — cite the exact official
 source, never an old summary — is applied to the release-policy finding in §6, and every repository
@@ -9,7 +11,7 @@ claim below was re-opened in the working tree at `f844ffb35dc798cdb1bf21263ecf61
 inherited from an earlier batch report.
 
 Labels: **SOURCE** (official page, quoted with the line in the stripped text), **REPO** (read in this
-repository at `f844ffb`), **DEVICE** (measured on the phone — **there are none in this report**),
+repository at `f844ffb`), **DEVICE** (measured on the owner's RMX3910 `IR7X5DJ7KZGEHMS8` — see §7),
 **NOT RUN** (not proven).
 
 The checklist this report walks is the committed one: protocol
@@ -27,8 +29,11 @@ justified."*
 **Clean, with evidence:** no secret of any kind is in the repository; the permission surface is three
 declared permissions with **no `INTERNET` permission at all** and exactly one of them ever asked in a
 runtime prompt; logging is one call with a
-static reason; backups are off and every backup domain is excluded; evidence and database live in
-`noBackupFilesDir`; the crypto layer can only be built as AES-256-GCM with a namespaced Keystore alias,
+static reason; backups are off and every backup domain is excluded; **evidence files** live under
+`noBackupFilesDir` behind a canonical-path `require`, while the **Room database sits in the ordinary
+`databases/` directory as plaintext SQLite** — it is protected from extraction by `allowBackup="false"`
+plus the backup and device-transfer exclusions, **not** by encryption, and no UI text claims otherwise
+(§2, §7); the crypto layer can only be built as AES-256-GCM with a namespaced Keystore alias,
 deterministic length-prefixed AAD, no software-key fallback, and a runtime StrongBox probe that fails
 closed; key rotation really does run on every approved process start.
 
@@ -44,7 +49,9 @@ closed; key rotation really does run on every approved process start.
    because the six-gate policy is consulted.
 4. **Play will reject this build today** (§6). The current official target-API requirement has been in
    force since 2026-08-31 and `targetSdk = 35`.
-5. The device half of the audit was **NOT RUN** (§7) — which by itself forbids a security sign-off.
+5. The device half of the audit is **only partly measured** (§7): the storage, permission, service and
+   battery-exemption probes ran on the phone, but the **screenshot pass did not** — the keyguard is secure
+   and the device then left `adb`. A security sign-off cannot be written on a reading of source alone.
 
 Items 1, 2, 4 and the sign-off itself need owner decisions (§8). Item 3 is ordinary engineering and is
 recorded as a finding without a question, because the outcome today is already correct.
@@ -65,6 +72,9 @@ recorded as a finding without a question, because the outcome today is already c
 | Logging | `git grep -cnE "Log\.[diveiw]\|println(\|printStackTrace"` over `app/src/main/kotlin` | **exactly one** call site: `detection/MotionMonitoringService.kt:195 Log.w(TAG, "a confirmed Movement could not be recorded: ${confirmation.reason}")`. The reasons interpolated are the static contract strings in `domain/InMemoryEventPipeline.kt:146,155,165` ("Evidence state update conflicted" …) — **no event content, no path, no identifier, no user data** (REPO) |
 | Backup / transfer | `AndroidManifest.xml:26-28` + `res/xml/backup_rules.xml` + `res/xml/data_extraction_rules.xml` | `allowBackup="false"`, `full-backup-content` empty, and `cloud-backup` **and** `device-transfer` each exclude `sharedpref`, `database` and `file` wholesale (REPO) |
 | Storage location | `storage/LocalStorageFactory.kt:48-51` | evidence directory is `File(context.noBackupFilesDir, …)` and creation is guarded by a `canonicalFile.startsWith(noBackupFilesDir)` `require` — a path-traversal attempt fails closed (REPO) |
+| What is on the phone, and in which directory | `adb shell run-as com.shieldra.app ls -R` on a shipped debug install | `no_backup/` holds `shieldra-evidence/` (the encrypted evidence files) and `shieldra-key-lifecycle.bin`; the database is at `databases/shieldra.db` (+`-wal`), i.e. **not** inside `no_backup`; `shared_prefs/` holds one key, `permission_requested=true` (DEVICE) |
+| Database at rest | `run-as … head -c 16 databases/shieldra.db \| xxd`, then the same on `shieldra.db-wal` | first 16 bytes are `53 51 4c 69 74 65 20 66 6f 72 6d 61 74 20 33 00` — **"SQLite format 3"**, i.e. plaintext. The WAL exposes the whole schema and column names (`security_events(event_id, event_type, state, severity, created_at_epoch_ms, …, panic_activation_count, …)`) as readable text. **Event metadata is not encrypted; only evidence payloads are** (no SQLCipher in `app/build.gradle.kts:39-56`, no `SupportFactory` anywhere in `app/src/main`). Mitigation is the backup surface, not crypto — and no UI string claims encryption (`grep -i encrypt res/values/strings.xml` → no match) (DEVICE + REPO) |
+| Lifecycle record carries no key material | `run-as … head -c 96 no_backup/shieldra-key-lifecycle.bin` | plaintext properties: `shieldra-key-lifecycle/1`, `active=v1`, `retired=`, `lastRotationEpochMs=…`, `createdEpochMs=…` — a version label and two timestamps, no key bytes, no alias secret (DEVICE) |
 | Crypto parameters | `storage/EncryptionPolicy.kt:8-33` | `keySizeBits` is `require`d to be exactly 256, transformation is the constant `AES/GCM/NoPadding`, provider `AndroidKeyStore`, `GCM_TAG_BITS = 128`, `GCM_IV_BYTES = 12`, and the class has **no default instance** — "There is intentionally no default instance: product/security review must select and record these values" (REPO) |
 | IV handling | `storage/AndroidKeystoreEncryptor.kt:45-56` | the IV is taken from Keystore after encrypt and `require`d to be 12 bytes; a caller-provided IV is never accepted (the comment at `:46-48` records the real-device rejection) (REPO) |
 | StrongBox | `storage/AndroidKeystoreEncryptor.kt:92-97` | `Build.VERSION.SDK_INT >= P` **and** `hasSystemFeature(FEATURE_STRONGBOX_KEYSTORE)`; with no application context it returns `false` rather than guessing from the SDK level. Preferred at generation (`:148-157`) with silent fall-through to the standard Keystore, exactly the recorded §2.3 decision (REPO) |
@@ -192,10 +202,14 @@ normal engineering — but it must be recorded so Batch L does not inherit it as
 
 The "zero permissions" promise in the Play description was already superseded by amendment A-6
 (`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md:626`, restated at `:731` as a *relative* promise)
-and is tracked as an open listing item. This audit adds one fact to it: the build now declares **three**
-permissions, not one — `POST_NOTIFICATIONS` plus the two foreground-service permissions added with the
-Motion service. The honest sentence remains "no permissions until you need them" (only
-`POST_NOTIFICATIONS` is ever asked in a runtime prompt), but any listing that reads "zero permissions" is
+and is tracked as an open listing item. This audit adds one fact to it, measured on the phone (§7): the
+installed build declares **three** permissions, not one — `POST_NOTIFICATIONS` plus the two
+foreground-service permissions added with the Motion service — and `dumpsys package` additionally shows
+the AGP-injected signature-level `com.shieldra.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which is
+not a permission the app asks the user for but *is* visible in the declared list, so a listing that counts
+permissions should count the three. The honest sentence remains "no permissions until you need them" (only
+`POST_NOTIFICATIONS` is ever asked in a runtime prompt, and on this device it carries `granted=true,
+flags=[USER_SET|…]`, i.e. a real decision was made), but any listing that reads "zero permissions" is
 now further from the truth than when A-6 recorded it, and any listing that reads "anti-theft protection"
 must be reconciled with the measured `RMX3910` background starvation evidence
 (`docs/reports/batch-G4A-background-sensor-measurement.md`) and with §1 of the Lock feasibility report,
@@ -243,28 +257,62 @@ rather than silently bumped in a Batch-K commit.
 
 ---
 
-## 7. DEVICE HALF: NOT RUN
+## 7. DEVICE HALF: measured on `IR7X5DJ7KZGEHMS8`, screenshot pass BLOCKED
 
-`adb devices -l` returned `IR7X5DJ7KZGEHMS8  offline`, then an empty list after `adb kill-server` +
-`adb start-server` + `adb reconnect offline` + six 5-second retries. No install, no instrumented run, no
-screenshot and no `dumpsys` probe was performed in this batch, so:
+The phone came back on `adb` mid-batch (`IR7X5DJ7KZGEHMS8 device` after having been `offline`), so the
+storage, permission, service and exemption probes below ran for real. The screenshot pass did not: the
+keyguard is **secure** (`dumpsys window` → `mInputRestricted=true`, `deviceHasKeyguard=true`), so no
+agent-side swipe can reach the UI, and the device then left `adb` again
+(`List of devices attached` → empty). Nobody guessed a PIN and no bypass was attempted.
 
-- The full instrumented suite was **not** re-run on `f844ffb`. The APK pair *is* code-identical to the last
-  device-verified build: `git diff --name-only 18cc745..f844ffb` contains **0 non-docs files**
-  (verified), and `18cc745`'s run `36939853591` was the last one to publish APKs, whose pair this
-  report's author downloaded to `%TEMP%/k-apks` (`debug/app-debug.apk` + `androidTest/debug/*.apk`)
-  intending to install it. That install never happened.
-- **NOT RUN:** granted-permission state on the phone, the real Keystore alias list after a production
-  run, the contents of `noBackupFilesDir` for the shipped app, whether the DB file is encrypted at rest
-  on a real install (as opposed to under instrumentation), the Motion ongoing-notification wording on
-  this build, and **screenshots of the Premium tab and Event Detail** — which is what would have made
-  F-K1's user-visible severity concrete.
-- Everything in §2 labelled REPO is a source reading, not a device measurement. The strongest device
-  evidence for the crypto layer still comes from the earlier batches' instrumented runs, and per
-  `docs/reports/batch-J-lock-feasibility.md` §12 a green CI does not convert a reading into a measurement.
+**Built and installed:** the pair from run `36939853591` (`debug/app-debug.apk` +
+`androidTest/debug/app-debug-androidTest.apk`) installed with `adb install -r -t` and again with `-g`,
+both `Success`. It is code-identical to this batch's HEAD:
+`git diff --name-only 18cc745..dd7cb1b` contains **0 non-docs files**. Docs-only CI runs publish no APK
+artifact (`gh api …/actions/artifacts` lists `apks-36939853591` as the newest), which is why that pair is
+the one on the phone.
 
-The device half must be re-run before any sign-off sentence is written. Sequence already agreed in the
-G5 directive (10 steps on RMX3910) applies unchanged.
+**MEASURED (DEVICE):**
+
+| Probe | Reading |
+|---|---|
+| Declared vs granted permissions | `dumpsys package com.shieldra.app`: requested = `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` + the AGP-injected signature-level `com.shieldra.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`; install-granted = the two FGS ones + that auto one; runtime = `android.permission.POST_NOTIFICATIONS: granted=true, flags=[ USER_SET\|… ]`. **`USER_SET` is the proof the runtime prompt really reached the user**, and the count is 3 declared / 1 runtime — the number §5 and Q-K-4 are about |
+| Evidence + database layout | `run-as com.shieldra.app ls -R` → `no_backup/shieldra-evidence/` (empty at this moment), `no_backup/shieldra-key-lifecycle.bin`, `databases/shieldra.db`+`-shm`+`-wal`, `shared_prefs/shieldra_notification.xml` |
+| Database encrypted at rest? | **No.** `head -c 16 databases/shieldra.db` = `SQLite format 3\0`; the WAL yields the full plaintext schema. Only evidence payloads are encrypted (§2 row) |
+| Lifecycle record contents | `active=v1`, `retired=`, `lastRotationEpochMs=…`, `createdEpochMs=…` — no key material |
+| SharedPrefs contents | one boolean, `permission_requested=true` — no event data, no identifier |
+| Anything running after force-stop | `dumpsys activity services com.shieldra.app` → **no `ServiceRecord`**; `ps -A \| grep shieldra` → nothing. The app does not resurrect itself |
+| Battery exemption claimed? | `dumpsys deviceidle whitelist \| grep -c shieldra` → **0**. The build asks for no Doze/battery whitelist entry, so no listing may imply it survives everything |
+| Live notification | `dumpsys notification --noredact \| grep -ic shieldra` → **0** while monitoring is stopped, i.e. the ongoing "SHIELDRA protection is active" notice is not left behind |
+
+**NOT RUN (and why):**
+
+- **Screenshots of every runtime screen, including the Premium tab and Event Detail** — blocked by the
+  secure keyguard. This is the one item that would make F-K1's severity visible rather than argued, so it
+  is the item the batch still owes.
+- **The Keystore alias list after a real production run.** Not enumerable here: `dumpsys keystore` answers
+  `Can't find service: keystore`, and `/data/misc/keystore` needs root. Alias existence on this device
+  remains proven the way it was before — by the instrumented encrypt/decrypt round-trips of earlier
+  batches, not by a listing.
+- **The full instrumented suite on this build.** One pass was started and **aborted by me**
+  (`am force-stop`, which ends it as `INSTRUMENTATION_RESULT: shortMsg=Process crashed` — an abort
+  record, not a test failure). Progress before the abort: `PersistedEventReadingInstrumentedTest` 5/5
+  dots, then `MotionBackgroundMeasurementInstrumentedTest` began; that measurement vehicle holds the run
+  for many minutes per window, which is why device passes of the suite have excluded it before
+  (`68 vs 72 tests`). No `OK (n tests)` line was produced, so this batch claims **no** suite count on
+  this build; CI's 332 JVM tests are the only executed-test evidence here, and they are JVM-only.
+- **`pm clear` / `pm grant` are refused on this phone** (`SecurityException: … does not have permission
+  android.permission.CLEAR_APP_USER_DATA`, and `Neither user 2000 nor current process has
+  GRANT_RUNTIME_PERMISSIONS`). Consequence for the audit: a *fresh-install* state cannot be produced from
+  `adb` on the RMX3910, so "first launch with storage absent" is not device-reachable here; the
+  instrumented tests that assert it run inside the test harness instead.
+- **The Motion ongoing-notification wording on this exact build** — needs the UI pass (it was verified on
+  the G5 device pass, on code identical to this build, and is not re-claimed here).
+
+Everything in §2 labelled REPO is a source reading, not a measurement; per
+`docs/reports/batch-J-lock-feasibility.md` §12 a green CI does not convert a reading into a measurement.
+**The remaining device item is the screenshot pass, and it needs the owner to unlock the phone.** The
+10-step sequence agreed in the G5 directive applies unchanged once it is unlocked.
 
 ---
 
@@ -275,7 +323,7 @@ G5 directive (10 steps on RMX3910) applies unchanged.
 | **Q-K-1** | What happens to the Premium tab before launch: **remove the route+tab**, keep it with copy that states nothing is purchasable yet, or build real billing (§30 currently forbids the SDK)? | Product/revenue + §30/§31 claim decision. F-K1 lists the exact seven strings involved |
 | **Q-K-2** | Is automatic expiry **in scope for launch**? If yes, what triggers the sweep, given A-10 (no boot receiver), the G5 "no polling/no timer/no WorkManager" ruling, and the fact that a dark screen starves the process on this phone? If no, the approved retention table and the Settings "Policy pending" row must both be re-worded to "deletion is not performed by this build" | Decides whether F-K2 is a launch blocker or a documented limit. The only trigger that already exists is process start (that is how rotation works) |
 | **Q-K-3** | Raise `compileSdk`/`targetSdk` to 36 now as a Batch-L slice, or request the Console extension to 2026-11-01? | F-K4. Touches the frozen FGS/notification policy area, so it needs your explicit go and a device re-verification afterwards |
-| **Q-K-4** | Confirm the listing vocabulary after A-6 and after this batch: 3 declared permissions, 1 prompted, and no claim of continuous protection or "zero permissions" | Play one-way door; needs the same care as the package ids |
+| **Q-K-4** | Confirm the listing vocabulary after A-6 and after this batch: 3 declared permissions (plus the AGP-injected signature-level one, §5), 1 prompted, and no claim of continuous protection or "zero permissions" | Play one-way door; needs the same care as the package ids. §7 now supplies the measured side of it: `POST_NOTIFICATIONS: granted=true, flags=[USER_SET|…]`, **no** `dumpsys deviceidle whitelist` entry, and no service or notification surviving a force-stop — so "runs 24/7 in the background, exempt from battery optimisation" is unsupportable in three separate ways |
 
 F-K3 (export policy has no consumer) is **not** a question: the fix is to make a future export slice
 consult `EvidenceExportPolicy`, or to add a static gate forbidding an export path that bypasses it. It is
@@ -285,16 +333,20 @@ scheduled as ordinary work, and recorded here so it is not inherited as "protect
 
 ## 9. What would let this batch close
 
-1. The device half (§7) run end-to-end on RMX3910 with a screenshot per runtime screen, including the
-   Premium tab and Event Detail.
+1. The **screenshot pass** of §7 on RMX3910 — one screenshot per runtime screen, including the Premium tab
+   and Event Detail. The storage, permission, service and exemption probes already ran; this item needs
+   the phone **unlocked by the owner**, because the keyguard is secure and no agent may guess the PIN.
+   Optionally the same pass re-run with the instrumented suite minus the measurement vehicle, which would
+   turn "no suite count claimed on this build" into a number.
 2. Answers to Q-K-1…Q-K-4 — and the still-open **H-1…H-12**, **Q-I-1…Q-I-6**, **Q-J-1…Q-J-6**, because an
    unanswered policy question is an open finding, not a passed gate.
 3. A decision on whether the three stale-wording Q-G4 findings and Q-F1 are closed or deferred.
 4. Only then: the G6 sign-off sentence, and Batch L (release hardening: signing, `versionName 0.1.0` →
    real versioning, minify/resource shrinking, Play Console declarations).
 
-Until those exist the status of G6 stays **APPROVED PROCESS / FINAL AUDIT PENDING**
-(`docs/ROADMAP.md:151`) and nothing in this report may be quoted as "audited" or "verified".
+Until those exist the status of G6 stays **APPROVED PROCESS / STATIC AUDIT + DEVICE PROBES DELIVERED —
+SCREENSHOT PASS NOT RUN, NO SIGN-OFF** (`docs/ROADMAP.md` row G6) and nothing in this report may be quoted
+as "audited" or "verified".
 
 ---
 
@@ -315,10 +367,47 @@ curl -sL "https://developer.android.com/google/play/requirements/target-sdk" -o 
 sed -e 's/></>\n</g' tsdk.html | sed -e 's/<[^>]*>//g' | grep -v '^[[:space:]]*$' \
   | sed 's/&nbsp;/ /g; s/&amp;/\&/g; s/&#39;/'"'"'/g; s/&quot;/"/g' | awk 'length($0)<300' > tsdk.txt
 grep -n "Starting August 31 2026\|API level 36" tsdk.txt      # lines 3555+
-# §7 code identity of the un-installed APK pair
+# §7 code identity of the APK pair that IS installed on the phone
 git diff --name-only 18cc745..HEAD | grep -vc '^docs/'        # 0
 ```
 
-Repository read at `f844ffb35dc798cdb1bf21263ecf61cab1b00d8b`. The `%TEMP%` working copies
-(`k-apks/`, `tsdk.html`, `tsdk.txt`, `target.html` — the discarded navigation-only fetch, kept until this
-batch closes as proof of the §6 method note) are **not** committed to this repository.
+The §7 device probes, in the order they were run (`A` = `…/Android/Sdk/platform-tools/adb.exe`, with
+`export MSYS_NO_PATHCONV=1` in Git Bash):
+
+```sh
+"$A" install -r -t -g <debug/app-debug.apk>       # and the androidTest apk
+"$A" shell dumpsys package com.shieldra.app | sed -n '/requested permissions/,/runtime permissions/p'
+"$A" shell dumpsys package com.shieldra.app | sed -n '/runtime permissions/,/User-specific/p'
+"$A" shell run-as com.shieldra.app ls -R
+"$A" shell run-as com.shieldra.app head -c 16 databases/shieldra.db | xxd
+"$A" shell run-as com.shieldra.app cat databases/shieldra.db-wal | tr -c '[:print:]' '\n' | grep "CREATE TABLE"
+"$A" shell run-as com.shieldra.app head -c 96 no_backup/shieldra-key-lifecycle.bin | xxd
+"$A" shell run-as com.shieldra.app cat shared_prefs/shieldra_notification.xml
+"$A" shell dumpsys activity services com.shieldra.app
+"$A" shell dumpsys notification --noredact | grep -ic shieldra
+"$A" shell dumpsys deviceidle whitelist | grep -c shieldra
+"$A" shell dumpsys window | grep -E "mCurrentFocus|mInputRestricted"   # the keyguard blocker
+```
+
+Repository read at `f844ffb35dc798cdb1bf21263ecf61cab1b00d8b`; the §7 measurements were taken with the
+install that matches `dd7cb1b0ad5b75961431eb7286704f83ed913a35`. The `%TEMP%` working copies
+(`k-apks/`, `kshot/`, `tsdk.html`, `tsdk.txt`, `target.html` — the discarded navigation-only fetch, kept
+until this batch closes as proof of the §6 method note) are **not** committed to this repository.
+
+---
+
+## 11. CI record for this batch
+
+Read back from the run object itself (`gh run view 36974410187 --json status,conclusion,headSha`), not
+from a watch message:
+
+| Commit | Run | Verdict | Quoted output |
+|---|---|---|---|
+| `dd7cb1b0ad5b75961431eb7286704f83ed913a35` (this report + Q-K-1…Q-K-4 + ROADMAP rows K/G6/G7) | `36974410187` | **success** | `CI TEST SUMMARY: 332 tests, 332 passed, 0 failures, 0 errors, 0 skipped` · `BUILD SUCCESSFUL in 7m 46s` · `Group C boundary scan passed.` · `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` · `PHASE 3 STATIC REVIEW PASS` |
+
+What that proves, and what it does not: it is a **docs-only** commit, so the run shows that no gate,
+permission, constant or claim was moved by it. It proves nothing about the five findings in §1, and it is
+not the device half — the `G4-B LOCAL REVIEW PASS` line says so itself ("runtime/device evidence still
+required"). The 332 tests are JVM tests; the instrumented suite was **not** completed on this build (§7).
+The commit that adds this table is later than `dd7cb1b`, so its own CI verdict cannot appear inside this
+table — same limit recorded in `docs/reports/batch-J-lock-feasibility.md` §12.

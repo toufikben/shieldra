@@ -1138,8 +1138,18 @@ produce `Protected`, `Active`, or a `lastCheckSeconds` reading.
 
 **What is not correct, and is the reason there is no sign-off:** the Premium tab (§3), retention that is
 never executed (§4.1), an export gate with no consumer (§4.3), `targetSdk = 35` against a Play rule that
-took effect 2026-08-31 (§6), and the **device half of the audit NOT RUN** (§7) because the RMX3910 was
-`offline` to `adb` for the whole session.
+took effect 2026-08-31 (§6), and the **screenshot pass of the device audit NOT RUN** (§7): the phone came
+back on `adb` mid-batch, so the storage, permission, service and battery-exemption probes all ran for
+real, but the keyguard is **secure** (`mInputRestricted=true`) and no screen could be reached — nobody
+guessed a PIN. **This item needs you to unlock the phone.**
+
+**One fact the device probes produced that is worth reading before Q-K-4:** the Room database is
+**plaintext SQLite** on the real install (`head -c 16 databases/shieldra.db` → `SQLite format 3`, and the
+WAL yields the whole schema and every column name). Only the **evidence files** are AES-256-GCM encrypted;
+the event metadata — event type, state, severity, timestamps, `panic_activation_count` — is protected from
+extraction by `allowBackup="false"` and the backup/device-transfer exclusions, **not** by encryption. No UI
+string claims encryption today (`grep -i encrypt res/values/strings.xml` → no match), so this is not a
+false claim; it is the boundary of what "encrypted" may ever mean in the listing.
 
 ### Your four decisions (`PROPOSED — REQUIRES OWNER ANSWER`; I am not choosing any of them)
 
