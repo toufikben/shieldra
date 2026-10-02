@@ -145,7 +145,7 @@ a PASS.
 | G0 — Authority | APPROVED FOR INTERNAL DEVELOPMENT | Continue without historical Product Freeze dependency; internal register is authoritative for this cycle | Later product/release authority may supersede it |
 | G1 — Protection rules | APPROVED FOR PURE CONTRACT CLOSURE | Encode approved Guard semantics in framework-free contracts/tests | Android feasibility, response, evidence, and API limitations |
 | G2 — Evidence/privacy | **ANSWERED / UNBLOCKED for the Panic batch** | Minimum post-confirmation evidence only. Owner protocol §21–§23: **no camera in the Panic batch**, no audio ever approved, no continuous location, no location in the Panic batch unless actually required; permissions requested **incrementally and only for the feature that needs them** | Camera policy, location precision/freshness, redaction, and the consent/privacy text remain for Batch H |
-| G3 — Android monitoring | **CONTRACT LANDED / NO DETECTOR YET** | §16 real notifications after a real event exists (closed in Batch E); §17 a foreground service is acceptable for an active guard; **WorkManager is prohibited as a real-time detector**; no 24/7 guarantee may be claimed; Batch F landed the platform-neutral `BackgroundExecutionController` contract with five separated layers and a `MonitoringClaim` that cannot produce a protection claim without a running detector | The **first real detector** (Batch G): it must name its own Android requirements, from which the foreground-service type and permission are then selected. Doze/OEM/Force Stop/reboot/process-death behaviour stays undocumented *as results* — `docs/capabilities/background-execution-limits.md` lists them as requirements to verify on the owner's device |
+| G3 — Android monitoring | **MOTION DETECTOR LANDED AND DEVICE-VERIFIED (G5 CLOSED)** | §16 real notifications after a real event exists (Batch E); §17 a foreground service for an active guard — **now real**: `MotionMonitoringService` runs as `specialUse`, user-started and user-stopped, with one ongoing notification reading exactly "SHIELDRA protection is active"; **WorkManager is prohibited as a real-time detector**; no 24/7 guarantee may be claimed; Batch F's `BackgroundExecutionController` contract and `MonitoringClaim` still hold, so no screen may claim monitoring the service does not really have | The remaining guards (Lock, SIM) are still capability-gated and read "Not monitoring yet / Disabled" honestly. Doze/OEM/Force Stop/reboot/process-death behaviour stays **measured evidence, not a claimed result**: the RMX3910 campaign shows a dark screen starves the process (0–22 CPU ticks, an undrained 4500-entry queue), which is exactly why no OEM-survivability or 24/7 claim is made anywhere |
 | G4 — Storage/security | **SUBSTANTIALLY DEVICE-VERIFIED / NOT PRODUCTION-APPROVED** | AAD-v1, mandatory AAD, alias policy, StrongBox runtime detection, AES-GCM on real Keystore, key rotation algorithm, **rotation trigger and old-key retirement (§9/§10 — Batch B, CI `36612265938` + device `OK (40 tests)`)**, migration/recovery, evidence lifecycle, failure semantics, storage wiring gate, persisted read path — all IMPLEMENTED, CI VERIFIED, and DEVICE VERIFIED | Retirement **destroys nothing**: Q-C8 is still an open owner decision, the §15 install gate is open (amendment **A-5**, Batch D) so rotation is reachable at runtime, and the approved successor chain stops at v2. What remains for G4: independent security review, threat model, OEM matrix beyond one device, and sign-off |
 | G5 — External services | **DEFERRED — REAFFIRMED 2026-09-29** | Keep provider interfaces only where already justified | §30 of the owner protocol explicitly prohibits adding **Firebase, cloud backend, accounts, analytics, ads, WhatsApp, Telegram, SMS, email** during these core batches. This overrides the earlier note that AdMob/IAP were "authorized" — see the correction in `docs/OWNER_QUESTIONS.md` |
 | G6 — Security review | APPROVED PROCESS / FINAL AUDIT PENDING | Continuous AI/owner review and evidence collection | Dedicated security/privacy/release audit (protocol Batch K) |
@@ -611,12 +611,22 @@ active non-terminal **MOTION** event's `EventId` and **never** a Lock/SIM/Batter
 cooldown invented), and the design took three corrections (one adapter owner — the `Service`, with
 `MotionRuntime` holding no second instance; the truth read from real service state + `adapter.isReporting`
 and never from a Start press; and start-latency/CPU/battery/screen-off measured as a separate campaign,
-not as a precondition for G5). **The calibration is now six numbers and complete.** **No FGS code exists
-and no gate has moved** —
-the gate move is **A-19** (renumbered once A-18 became the G5 decision record), and it lands in the same commit as the real service, not before it. Next:
-**G5 RED** (failing JVM tests for the approved seam), then GREEN with A-19, then RMX3910 verification. The Foreground Service remains
-unimplemented by §2. See
-`docs/reports/batch-G4-seam-and-QG1-harness.md` | §18 — **IN PROGRESS** (calibration CLOSED, G5 design APPROVED, RED next) |
+not as a precondition for G5). **The calibration is now six numbers and complete.**
+**G5 IS CLOSED (2026-10-02).** The Foreground Service is no longer unimplemented: the real
+`MotionMonitoringService` (`specialUse`, user-started, user-stopped, one ongoing notification reading
+exactly "SHIELDRA protection is active") landed as `17bc8a4` with amendment **A-19** moved in that same
+commit (CI `36932332864` success), and the four truthfulness fixes the owner then ordered landed as
+`93a885f`→`3fd8abc`→`2bc6143`→**`18cc745`** (CI **`36939853591` success — 332/332 JVM**, Group C boundary
+scan, G4-B static and Phase 3 static all pass), with **no authority amendment needed or written** and the
+whole do-not-touch list byte-for-byte unchanged. All ten RMX3910 points were verified, including the one
+that matters most: a shaken Motion event appeared in the open History screen **inside the same live
+process** (pid 26771, started 01:36:34) typed **Motion**, while the Panic row stayed **Panic**. Three
+stale-wording findings (two "demo events" empty states and a detail row labelled "Type" that prints the
+title) were recorded and deliberately **not** fixed, because they are outside the four authorized fixes.
+**G5 claims no 24/7 reliability and no OEM survivability**, and the CPU/battery/screen-off campaign stays
+evidence, not a gate. Report: `docs/reports/batch-G5-closure.md`. Next: **Batch H — the decisions package
+only**, with no camera or location code and no invented owner policy. See
+`docs/reports/batch-G4-seam-and-QG1-harness.md` and `docs/reports/batch-G5-foreground-service-type-review.md` | §18 — **CLOSED** (Motion monitors, persists, dedupes, notifies, and the UI now says only what is true) |
 | H | Evidence / privacy / permission implementation | §21–§23 |
 | I | SIM Guard — feasibility first, then implementation | §19 |
 | J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |

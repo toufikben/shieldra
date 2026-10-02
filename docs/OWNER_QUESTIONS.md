@@ -831,11 +831,30 @@ afterwards as a **separate** campaign, not folded into correctness tests.
 **Working principle you set for the batches ahead: "التسريع المنضبط" (governed acceleration)** — verify
 what touches architectural correctness or user safety, then add no new barrier without benefit.
 
-**What still gates the code:** the gate move is **A-19**, and it lands in the **same commit as the service**
-(§18's FGS ban, the "exactly one `<uses-permission>`" assertion → three named ones, §15's constant list
-narrowed to the named calibration object). Until then every gate stays exactly as it is. Sequence you
-fixed: **A-17 → G5 design approved (A-18) → RED → GREEN → RMX3910 verification → CPU/battery/screen-off
-measurement**, and your explicit instruction was *"ابدأ مرحلة RED للاختبارات، وليس GREEN مباشرة"*.
+**What gated the code has now landed:** **A-19 moved the gates in the same commit as the real service**
+(`17bc8a4`, CI `36932332864` success), and the four truthfulness fixes closed G5 on `18cc745`
+(CI `36939853591`, **332/332 JVM**, ten of ten RMX3910 points). The sequence you fixed —
+**A-17 → G5 design approved (A-18) → RED → GREEN → RMX3910 verification** — is complete, and the
+CPU/battery/screen-off campaign stays separate evidence, not a gate. Report:
+`docs/reports/batch-G5-closure.md`.
+
+---
+
+## Q-G4 — three stale-wording findings G5's device pass surfaced, deliberately NOT fixed — **FOR YOUR INFORMATION, no answer needed to proceed** (raised by G5, 2026-10-02)
+
+Your protocol authorized **exactly four** fixes, so these three were written down instead of patched.
+All three are the same family as fixes C and D — UI text that describes a build that no longer exists —
+and all three are §31 problems, so they should land as the next truthfulness slice rather than be
+smuggled into a feature batch.
+
+| # | Where | What it says today | Why it is false now |
+|---|---|---|---|
+| 1 | Dashboard, empty recent-events state | "No events yet" / **"Demo events will appear here when they are provided to the presentation shell."** | Storage is installed (A-5), and real persisted events do appear there — verified on RMX3910. There is no demo provider in the runtime path (removed in Batch C) |
+| 2 | History, filtered-empty state | "Try adjusting the filters for **the demo events provided to this screen**." | Same reason: the list is the real persisted store, filtered |
+| 3 | Event Detail, `EventDetailScreen.kt:157` | The row labelled **"Type"** prints `model.title` | The detail model now carries the correct `type` (pinned by `the_event_detail_keeps_the_same_guard_type_as_the_list`), but the screen never displays it — so a Motion event's detail reads "Type: Security event". This is the only one of the three that is a *widget* fix, not a string fix |
+
+**No action was taken on any of them in G5.** If you want them folded into the next slice rather than a
+dedicated one, say so; otherwise they ride ahead of Batch H as their own short truthfulness commit.
 
 ---
 
@@ -1042,11 +1061,11 @@ this reconciliation; it is in progress now.
 |---|---|---|
 | **A** | Reconcile roadmap / questions / decisions against the actual repository | **DONE** — commit `ba1a224`, CI `36598839725` success |
 | **B** | Close real G4 lifecycle gaps: rotation **trigger**, old-key **retirement**, plus any gap found by trace | **DONE** — commits `f88bdb6`→`22603d2`, CI `36612265938` success (194/194 JVM), device `OK (5 tests)` + full suite `OK (40 tests)` on RMX3910. Report: `docs/reports/batch-4d-rotation-orchestration-and-retirement.md`. **Q-C8 (destroying a retired key) stays unanswered by design** |
-| **C** | **Panic Guard end-to-end** (UI → signal → confirm → EventId → SecurityEvent → pipeline → Room → reload → History → Detail) | approved (§12–§13, §15) |
-| **D** | Flip `StorageRuntimeApproval.approved = true` **inside the same verified Panic batch** | approved (§11, §14) — never a standalone commit |
-| **E** | Real notification path (`POST_NOTIFICATIONS`, granted/denied/disabled handled honestly) | approved (§16) |
-| **F** | Background / active-guard execution (legitimate mechanism, no 24/7 promise) | approved (§17) |
-| **G** | **Motion Guard** (3 s strong movement, or two suspicious movements in 10 s) | approved (§18) |
+| **C** | **Panic Guard end-to-end** (UI → signal → confirm → EventId → SecurityEvent → pipeline → Room → reload → History → Detail) | **CLOSED** — `c3c3a43`→`8cce2d7`, CI `36655321989` (212/212 JVM), device `OK (3)` + full suite `OK (46 tests)`. Report: `batch-C-pipeline-honesty-and-panic-guard.md` |
+| **D** | Flip `StorageRuntimeApproval.approved = true` **inside the same verified Panic batch** | **CLOSED** — `986cb00`→`28d708c`, CI `36745562314` (213/213 JVM), device `OK (6 tests)` ×2 on one install, recorded as amendment **A-5**. Report: `batch-D-storage-runtime-approval.md` |
+| **E** | Real notification path (`POST_NOTIFICATIONS`, granted/denied/disabled handled honestly) | **CLOSED** — CI `36771561585` (231/231 JVM), full suite `OK (55 tests)` ×2 on RMX3910, amendments **A-6/A-7**. Report: `batch-E-local-notifications-and-durable-activation.md` |
+| **F** | Background / active-guard execution (legitimate mechanism, no 24/7 promise) | **CLOSED** — `0e767b2`→`d861922`, CI `36782719559` (248/248 JVM), plus **F2** onboarding-copy follow-up on `1babdbd` (CI `36871617120`, `OK (68 tests)` ×2). Reports: `batch-F-background-execution-contract.md`, `batch-F2-onboarding-copy-truthfulness.md` |
+| **G** | **Motion Guard** (3 s strong movement, or two suspicious movements in 10 s) | **CLOSED 2026-10-02 (slice G5)** — judgement `9adde73`, adapter `17bc8a4` with amendment **A-19**, truthfulness fixes `93a885f`→**`18cc745`** (CI `36939853591`, **332/332 JVM**), **10/10 points device-verified on RMX3910**. Reports: `batch-G4-seam-and-QG1-harness.md`, `batch-G5-foreground-service-type-review.md`, `batch-G5-closure.md`. Three stale-wording findings raised as **Q-G4**, not fixed |
 | **H** | Evidence / privacy / permission implementation | approved in principle, parameters open (Q-C5) |
 | **I** | **SIM Guard** — feasibility first, implement only if technically and policy feasible | §19 |
 | **J** | **Lock Guard** feasibility + **current** official Play policy review, cited exactly | §24–§25, deferred by the owner |
