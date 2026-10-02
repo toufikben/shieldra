@@ -8,6 +8,10 @@
   sentence with an "s" bolted on.
 -->
 <resources>
+    <plurals name="demo_active_attempts">
+        <item quantity="one">Active · %1$d attempt</item>
+        <item quantity="other">Active · %1$d attempts</item>
+    </plurals>
     <plurals name="event_age_days">
         <item quantity="one">%1$d day ago</item>
         <item quantity="other">%1$d days ago</item>
