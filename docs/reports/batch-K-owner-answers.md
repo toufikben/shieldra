@@ -3,12 +3,14 @@
 **Date:** 2026-10-02
 **Owner input:** the five-answer decision message of 2026-10-02 (Q-K-1 … Q-K-5), recorded as amendments
 **A-20 … A-24** in `docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md` §17.
-**Verification target:** `main` at `902f15c` (CI run `37034116024`: **341 tests, 341 passed, 0 failures, 0
+**Verification target:** `main` at `c8343fe` (CI run `37037762042`: **341 tests, 341 passed, 0 failures, 0
 errors, 0 skipped**, and its release step printed
-`PASS: the device APK pair is published on draft release device-apks for 902f15c0f968f9a52e5f12aa2dddf39af41f1f6e`).
+`PASS: the device APK pair is published on draft release device-apks for c8343feec3390d43646e8d8a76083727c664373e`).
+`c8343fe` is docs-only, so the production code it names is `902f15c`'s, whose own run `37034116024` is green
+with the same 341/341 and the same PASS line.
 **What this report is:** the execution record for those five answers — what landed, which CI run proves
 each part, what was measured on the phone today, and what is still owed. It gives **no security sign-off.**
-It also raises one new owner question, **Q-K-6** (§7.3).
+It also raises one new owner question, **Q-K-6** (§7.3), and one wording finding, **F-K7** (§7.2).
 
 ---
 
@@ -18,7 +20,7 @@ It also raises one new owner question, **Q-K-6** (§7.3).
 |---|---|---|---|---|
 | **Q-K-1** remove the Premium tab and route | `e8bb16e` (RED) → `d0573bf` (GREEN) | `36991054611` (RED) · `36994802842` (GREEN) · re-verified on `902f15c` by `37034116024` | the tab and route are gone and a test fails if any declared route names a premium screen again, **and the phone now shows a three-item tab bar (Home · History · Settings) on a build carrying the removal** — §7.2 | nothing for this answer; the F-K1 screen-side half is closed |
 | **Q-K-2** retention executes | `e8bb16e` (RED) → `d34ed86` (GREEN) | `36993925242` · `36994802842` · `37034116024` | the 30/30/90 windows decide real deletions in the pure planner, the three authorized execution points are wired, **and two device tests removed real ciphertext from `no_backup/` on the RMX3910** — §7.3 | HEAD's own version of the third test to run green on a phone, which is Q-K-6, and the Settings "Policy pending" wording (F-K6) |
-| **Q-K-3** API 36 | `d06cfc8` (RED gate) → `8da7686` (GREEN) | `36994944518` (RED) · `36995812606` (GREEN) · `37034116024` | the release compiles and targets 36, every gate passes, 341/341 JVM, **and a `targetSdk=36` build installs and runs on this Android 16 / API 36 phone with every screen rendering and notifications posting** — §7.2 | the item-by-item Android 16 behaviour list in §3, which was not probed deliberately |
+| **Q-K-3** API 36 | `d06cfc8` (RED gate) → `8da7686` (GREEN) | `36994944518` (RED) · `36995812606` (GREEN) · `37034116024` · `37037762042` | the release compiles and targets 36, every gate passes, 341/341 JVM, **a `targetSdk=36` build installs and runs on this Android 16 / API 36 phone with every screen rendering and notifications posting** (§7.2), **and §3's item list was then probed one by one** — edge-to-edge by bounds on four screens, back by two measured pops, the FGS type read as `specialUse` with its ongoing notice, 3 declared / 1 runtime permission, `sw360dp` under the 600 dp threshold (§7.4) | landscape, which this phone refused to rotate into (**NOT RUN**, §7.4), and the 16 KB page-size item, which a 4096-byte-page phone cannot test either way |
 | **Q-K-4** listing vocabulary | amendment **A-23** | docs-only | the allowed and forbidden sentences are written down | the Play Console text itself — a Batch L submission-time task, **plus F-K7, the dashboard's unmeasured "Offline" (§7.2)** |
 | **Q-K-5** CI artifacts | `e78694e` + `589f4a5`/`a147bef` (§6.5) | `36989921551` · `37003070708` | a missing required APK now fails the run visibly, and future APKs expire in 14 days | closed for delivery: the pair now publishes to a required release channel, so the quota no longer blocks a download — **nothing was deleted**, §6.5. The pair for `902f15c` was downloaded and hash-verified in §7.3 |
 
@@ -496,13 +498,112 @@ one-way trade of evidence for a test count, so it is raised as **Q-K-6** in `doc
 
 ---
 
+## 7.4 §3's Android 16 item list, probed one by one — MEASURED 18:04–18:20
+
+§7.2 proved the build installs and runs. §3 asked for something narrower: each behaviour that changes for
+apps targeting 36, checked rather than assumed. That pass ran 18:04→18:20 on the **same 14:18 install** — no
+reinstall was attempted, because §7.3 shows HEAD's pair cannot be installed over it (Q-K-6) — so the APK on
+the phone is still the pair run `37004923649` published for `253ce07`. The attribution to HEAD is the
+diff-based one, re-run against the current tip: `git diff --name-only 902f15c..c8343fe` lists four files, all
+under `docs/`, and `git diff --name-only 253ce07..c8343fe -- app/src/main app/build.gradle.kts .github`
+returns **nothing**. So the production code on the phone is the code at HEAD.
+
+| §3 item | Reading | Verdict |
+|---|---|---|
+| Edge-to-edge (opt-out gone at 36) | `uiautomator` bounds on four screens: window and root nodes `[0,0][720,1604]`, app content `[0,64][720,1356]`, tab bar `[0,1356][720,1516]`, system-reminder strip `[0,1516][720,1604]`. First real content row at y=96 (History filter chips) / y=112 (dashboard shield). `MainActivity.kt:13` calls `enableEdgeToEdge()` and `themes.xml:4-5` already makes both bars transparent | **No regression, and none was possible**: the app was already edge-to-edge at target 35, so removing the opt-out changes nothing it relied on. Nothing is drawn under the 64 px status inset on any of the four screens |
+| Predictive back (`onBackPressed` no longer called) | `grep` over `app/src/main` for `onBackPressed`, `BackHandler`, `OnBackInvoked`, `enableOnBackInvokedCallback` → **0 hits**; the manifest declares no `enableOnBackInvokedCallback`. Measured navigation: History → Event Detail → `KEYCODE_BACK` → History with the three-item tab bar intact and the same row; Settings → back → Home | **Behaviour correct, and the risk was empty.** The app has no back-override code path for the change to disable, so back is handled entirely by the `NavHost` dispatcher. Note honestly that `KEYCODE_BACK` from adb is the *key* path, not the touch gesture — the animation itself was not observed |
+| Adaptive layouts above 600 dp min-width | `dumpsys window` override config reads `sw360dp w360dp h802dp 320dpi … port`; display is 720×1604 px at 320 dpi | **Does not apply** — 360 dp is well under the 600 dp threshold |
+| Fixed-rate scheduling optimisation | No scheduler exists: `grep` for `scheduleAtFixedRate`, `java.util.Timer`, `WorkManager`, `AlarmManager` over `app/src/main` returns only `PlatformBoundaries.kt:5`, which is an empty marker `interface WorkManagerBoundary` | **Not applicable** |
+| Health/fitness permissions replacing a health FGS type | `dumpsys activity services com.shieldra.app` while monitoring: `ServiceRecord{… MotionMonitoringService}`, `isForeground=true foregroundId=20002 types=0x40000000` — that is `SPECIAL_USE` (1<<30), unchanged | **Confirmed unchanged.** The notice is `NotificationRecord(… id=20002 … importance=2 … channel=shieldra_motion_monitoring flags=ONGOING_EVENT\|NO_CLEAR\|FOREGROUND_SERVICE)` with `android.title=SHIELDRA protection is active` |
+| Local-network runtime permission | `dumpsys package com.shieldra.app` → `requested permissions:` `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` + the AGP-injected signature-level `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`; `runtime permissions:` `android.permission.POST_NOTIFICATIONS: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED\|USER_SENSITIVE_WHEN_DENIED ]` | **Still 3 declared / 1 prompted**, and the same `USER_SET`-absent reading as §7.2 — which is what narrows Q-K-4's permission sentence |
+| 16 KB page size / Job-Scheduler quota | `adb shell getconf PAGE_SIZE` → **4096** on this phone; no native libraries in the build; no compatibility dialog appeared across four launches | **Not exercised by this device** — it runs 4 KB pages, so this pass cannot prove or disprove 16 KB behaviour |
+
+**Start and stop, re-measured on this build.** Tapping `Start Motion monitoring` produced the `ServiceRecord`
+and the ongoing notice above, flipped the tile to "Motion monitoring is active" and the button to
+"Stop Motion monitoring"; tapping stop left **0** `ServiceRecord`, **0** `NotificationRecord` for the package
+and **0** `dumpsys deviceidle whitelist` matches. So A-18/A-19's visible contract holds on a `targetSdk=36`
+build, not only on the `18cc745` one.
+
+**One premise in §3 was wrong, and the correction matters more than the row.** §3 asked the device pass to
+"confirm the RMX3910 pass still locks to portrait". There is no lock to confirm: the manifest declares no
+`android:screenOrientation` for `MainActivity`, and `configChanges` includes `orientation|screenSize|
+screenLayout`, so the app neither locks portrait nor recreates on rotation. Setting
+`system/user_rotation=1` (with and without `accelerometer_rotation=1`) did not rotate this ColorOS build at
+all — `dumpsys display` kept `rotation 0` and `dumpsys window` kept `mRotation=ROTATION_0` — so **landscape
+behaviour on this phone is NOT RUN**, by the phone's refusal rather than the app's design. The settings were
+restored to `0`/`0` afterwards. Landscape is therefore a real untested surface for a release that ships an
+orientation-agnostic activity, and it is listed in §8 rather than being called a pass.
+
+**A measurement hazard worth recording, because it produced a false alarm.** At 18:07 a screenshot came back
+showing the launcher and `uiautomator` returned `ERROR: null root node returned by UiTestAutomationBridge`.
+The reading is not a Shieldra crash: `pidof com.shieldra.app` returned **7515** (alive), the `crash` log
+buffer holds **no** Shieldra entry, and the `events` buffer's only Shieldra kills are the three
+`stop com.shieldra.app due to finished inst` lines at 17:25/17:43/17:46 that belong to §7.3's instrumented
+runs. What took the screen was a third app, `com.animai.rafiq`, repeatedly coming to the foreground during
+this window (`mCurrentFocus` alternated between it and Shieldra). Every reading above was therefore taken
+with `mCurrentFocus` checked first, and the walk was re-driven from `am start` when focus was lost.
+
+### F-K8 — new, from the cold-start probe: onboarding is re-shown on every cold start, forever
+
+The last probe of this window was meant to check whether the onboarding screen seen at 18:04 was an artefact
+of how the app was being started. It is not, and the answer came out the other way.
+
+```
+$ adb shell am force-stop com.shieldra.app        # a process death of the kind G4-A measured as routine
+$ adb shell monkey -p com.shieldra.app -c android.intent.category.LAUNCHER 1
+…
+[244,660][476,735]    Shieldra
+[64,751][656,835]     Security events are recorded on this phone.
+[64,867][656,1001]    What you trigger is recorded and stored here, on this device. You can start Motion
+                      monitoring from the dashboard.
+[289,1101][431,1134]  Get started
+[279,1221][441,1254]  Skip for now
+```
+
+After a force-stop and a launcher tap, the first screen is the **welcome page again** — on a phone that has a
+persisted Security Event, has already been through the flow, and whose monitoring state the user last set
+hours earlier. The code says why, and says it is unconditional:
+
+- `ShieldraNavHost.kt:81` — `startDestination: String = ShieldraRoutes.ONBOARDING_WELCOME`. The start
+  destination is a constant, not a decision.
+- `grep` over `app/src/main` for a persisted completion flag returns nothing: the only
+  `getSharedPreferences` call in the whole production tree is `LocalEventNotifier.kt:35`, which stores the
+  notification-permission state. There is no "onboarding seen" value to consult, and no Room table holds it
+  either.
+- The three `popUpTo(ONBOARDING_WELCOME) { inclusive = true }` calls clear the onboarding from the *back
+  stack*; they do not record that it happened.
+
+The contrast that makes this a finding rather than a nitpick is the resume path, measured minutes earlier in
+the same window: `HOME`, then a launcher tap, restored the **scrolled dashboard** with the guard tiles exactly
+where they were. So the app is not "always starts at onboarding" — it is "every time the process dies, the
+user is a new user again". On this phone the process dies on its own (G4-A: a dark screen starves it of CPU
+entirely), which means the cold-start path is the normal path, not the exceptional one.
+
+**What is not claimed:** that this is a lie to the user. The welcome page's copy is true on the day it is
+seen again — events really are recorded on this phone, and monitoring really is not running. The cost is that
+the first screen after any process death is a setup screen instead of the status screen, which is exactly the
+screen a person looks for when they are unsure. And the onboarding flow's own next page is the notification
+permission request, so a returning user is walked toward a permission prompt they already answered.
+
+**What was not done:** nothing was changed. Persisting "onboarding completed" is new behaviour that no
+amendment covers, and deciding whether the release should carry it — or should instead start on the dashboard
+whenever a database already exists — is the owner's call. It is raised as **Q-K-7**.
+
+---
+
 ## 8. What this report does not claim
 
 - No **G6 / Batch K sign-off**. Protocol §38 is honoured by not signing; the string "G6 PASS" does not
   appear in this file.
 - API 36 is verified as **compile + gates + JVM + "the build installs and runs on an Android 16 phone and
-  every screen renders"** (§7.2). It is **not** a per-item behavioural audit of §3's Android 16 list — no
-  edge-to-edge, no new media-permission, no telemetry-behaviour item was probed deliberately.
+  every screen renders"** (§7.2) **+ §3's item list probed one by one** (§7.4): edge-to-edge measured by
+  `uiautomator` bounds on four screens, back navigation measured Detail→History and Settings→Home, the FGS
+  type read as `0x40000000`/`specialUse` with its ongoing notice, the permission set re-read as 3 declared /
+  1 runtime, and `sw360dp` read as under the 600 dp adaptive-layout threshold.
+  **Two items stay open.** *Landscape* is **NOT RUN**: this ColorOS build ignored
+  `system/user_rotation=1`, and the app declares no `screenOrientation` lock, so nothing was ever seen in a
+  rotated frame. *16 KB page size* is **not exercised** — the phone reports `getconf PAGE_SIZE` = 4096, so
+  this device cannot prove or disprove it either way.
 - The retention sweep is verified as **two device-passing deletion tests + the third's measured output**
   (§7.3), not as HEAD's version of that class running green on a phone: the installed test APK predates
   `902f15c`, and installing HEAD's pair is refused on signature grounds (Q-K-6).
@@ -512,6 +613,7 @@ one-way trade of evidence for a test count, so it is raised as **Q-K-6** in `doc
 - §7's rows are the `18cc745` build and §7.2's rows are the `253ce07`-code build; the two installs are not
   mixed in either table, and the one reading that did not reproduce between them (`USER_SET` on
   `POST_NOTIFICATIONS`) is called out rather than averaged away.
-- Batch K cannot be called CLOSED: §6.4 is open, **Q-K-6** (§7.3) is open, F-K7 (§7.2) is a release-facing
-  wording fix still to be made under Q-K-4, and H-1…H-12, Q-I-1…Q-I-6, Q-J-1…Q-J-6 remain unanswered, which
-  is what decides what the audit is allowed to claim about camera/location, SIM and Lock.
+- Batch K cannot be called CLOSED: §6.4 is open, **Q-K-6** (§7.3) and **Q-K-7** (F-K8, §7.4) are open, F-K7
+  (§7.2) is a release-facing wording fix still to be made under Q-K-4, and H-1…H-12, Q-I-1…Q-I-6,
+  Q-J-1…Q-J-6 remain unanswered, which is what decides what the audit is allowed to claim about
+  camera/location, SIM and Lock.

@@ -64,7 +64,10 @@ adds the disposition that is true at `902f15c`. Full execution record:
    forbids an export path that bypasses `EvidenceExportPolicy`.
 4. **Play would reject the build** (§6). The current official target-API requirement has been in force since
    2026-08-31 and the build was `targetSdk = 35`. → **Closed by Q-K-3 / A-22** (`8da7686`): compile and target
-   are 36, and the resulting build installs and runs on this Android 16 / API 36 phone (owner-answers §7.2).
+   are 36, and the resulting build installs and runs on this Android 16 / API 36 phone (owner-answers §7.2),
+   after which §3's item list was probed one item at a time (§7.4): edge-to-edge by bounds, back navigation by
+   two measured pops, the FGS type read live as `specialUse`, the permission set re-read as 3 declared /
+   1 runtime. Landscape stayed **NOT RUN** and the 16 KB page item is untestable on a 4096-byte-page phone.
 5. The device half of the audit was **only partly measured** (§7): the probes ran but the screenshot pass did
    not, because the keyguard is secure and no agent may guess the PIN. → **Measured twice** (owner-answers §7
    on the pre-answers build, §7.2 on the build that carries the four answers above), and the phone is locked
@@ -86,10 +89,17 @@ adds the disposition that is true at `902f15c`. Full execution record:
    evidence; running HEAD's version of the sweep test means uninstalling the app and losing the permission
    grant, the database, the channels and the Keystore aliases (owner-answers §7.3).
 
-Of the eight, **1–4 and 6 are closed** and each keeps its original finding text above so the audit trail is
+9. **New, from the cold-start probe: F-K8 → Q-K-7.** `am force-stop` + a launcher tap puts the **onboarding
+   welcome page** on the screen again, on a phone that already holds a persisted Security Event —
+   `ShieldraNavHost.kt:81` hardcodes `startDestination = ONBOARDING_WELCOME` and no persisted "onboarding
+   completed" value exists anywhere in `app/src/main`. It is not a false claim (the page is true each time it
+   is seen), which is why it is a question and not a fix: owner-answers §7.4.
+
+Of the nine, **1–4 and 6 are closed** and each keeps its original finding text above so the audit trail is
 not rewritten into success. What still stands between this batch and a sign-off is the sign-off decision
-itself (§8), item 5's remaining device work now that it is limited by Q-K-6, item 7's wording, and the
-unanswered H/I/J questions that decide what may be claimed about camera, location, SIM and Lock.
+itself (§8), item 5's remaining device work now that it is limited by Q-K-6, item 7's wording, item 9's
+first-run decision, and the unanswered H/I/J questions that decide what may be claimed about camera, location,
+SIM and Lock.
 
 ---
 
@@ -397,7 +407,7 @@ agreed in the G5 directive applies unchanged once it is unlocked.
 
 **Q-K-1 … Q-K-5 were answered on 2026-10-02** as amendments A-20 … A-24 and executed; the rows below are kept
 verbatim as the questions that were asked, with their answers in
-`docs/reports/batch-K-owner-answers.md` §1. **Q-K-6 is new and open.**
+`docs/reports/batch-K-owner-answers.md` §1. **Q-K-6 and Q-K-7 are new and open.**
 
 | id | Question | Why it cannot be answered here |
 |---|---|---|
@@ -407,6 +417,7 @@ verbatim as the questions that were asked, with their answers in
 | **Q-K-4** | Confirm the listing vocabulary after A-6 and after this batch: 3 declared permissions (plus the AGP-injected signature-level one, §5), 1 prompted, and no claim of continuous protection or "zero permissions" | Play one-way door; needs the same care as the package ids. §7 now supplies the measured side of it: `POST_NOTIFICATIONS: granted=true, flags=[USER_SET|…]`, **no** `dumpsys deviceidle whitelist` entry, and no service or notification surviving a force-stop — so "runs 24/7 in the background, exempt from battery optimisation" is unsupportable in three separate ways. **Correction from the second install:** on the `targetSdk=36` build the same probe reads `granted=true` with **no** `USER_SET` flag, so the "the prompt really reached a user" proof rests on the `18cc745` install alone; the newer install proves only that the request path ran (`shared_prefs/shieldra_notification.xml`, `permission_requested=true`, mtime inside the pass). Use the conservative sentence (owner-answers §7.2) |
 | **Q-K-5** | CI artifact storage is exhausted (§11.1: 301 artifacts ≈ 1,215 MiB, of which 69 `apks-*` ≈ 1,211 MiB). Choose one: **delete old `apks-*` artifacts** (irreversible, and some are cited as evidence by earlier batch reports), **add `retention-days` to the three `upload-artifact` steps** (edits the CI/CD pipeline), **raise the plan's storage**, or **accept that future code commits cannot be device-verified** | A new platform-capability decision under §7. It does not block this batch's screenshot pass (the needed pair is already on the phone), it blocks Batch L and every rebuilt-APK pass afterwards |
 | **Q-K-6** (new) | Running HEAD's instrumented tests on this phone requires **uninstalling the app**, because each CI runner signs with its own debug keystore and `adb install -r -t` is refused with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` on `com.shieldra.app.test`. Choose: **accept the loss** (the install carrying today's permission grant, `shieldra.db`, the two channels, the Keystore aliases and the lifecycle record goes away, and `pm clear` is refused so it cannot even be reproduced cleanly), **pin one signing keystore for the device pair** (a CI/CD change, and it puts signing material somewhere the §2 secret scan has never looked), or **leave HEAD's sweep test unrun on device** and treat §7.3's two passing deletion tests plus the measured third as enough | Only you can trade audit evidence for a test count. Nothing was uninstalled to find this out |
+| **Q-K-7** (new) | **Should onboarding ever be seen twice?** After `am force-stop` + a launcher tap the first screen is the welcome page again, on a phone that already holds a persisted Security Event: `ShieldraNavHost.kt:81` hardcodes `startDestination = ONBOARDING_WELCOME` and no persisted "onboarding completed" flag exists in `app/src/main` (the only `getSharedPreferences` is `LocalEventNotifier.kt:35`, the permission state). `HOME` + a launcher tap, by contrast, restored the scrolled dashboard exactly — so the rule today is "every process death makes the user a new user", and G4-A measured that process death is this phone's normal case. Choose: **persist completion**, **start on the dashboard whenever a database already exists**, or **accept it** | It is not a false claim — the welcome copy is true each time it is seen — so this is a first-run product decision, not one of the four allowed truthfulness fixes, and the G5 directive's frozen list forbids patching it on an audit's own authority (owner-answers §7.4) |
 
 F-K3 (export policy has no consumer) is **not** a question: the fix is to make a future export slice
 consult `EvidenceExportPolicy`, or to add a static gate forbidding an export path that bypasses it. It is
@@ -418,13 +429,14 @@ scheduled as ordinary work, and recorded here so it is not inherited as "protect
 ## 9. What would let this batch close
 
 1. ~~The **screenshot pass** of §7~~ — **done twice** (owner-answers §7 and §7.2), including Event Detail and
-   the Premium screen before and after its removal. What the device half still owes is narrower now:
-   **Q-K-6** (HEAD's instrumented tests cannot be installed without losing this evidence) and, if you want
-   it, the full instrumented suite minus the measurement vehicle on a `targetSdk=36` build, which would turn
-   "no suite count claimed" into a number.
-2. Answers to Q-K-1…Q-K-5 — **delivered 2026-10-02** as A-20…A-24 and executed — and the still-open
-   **H-1…H-12**, **Q-I-1…Q-I-6**, **Q-J-1…Q-J-6**, because an unanswered policy question is an open finding,
-   not a passed gate.
+   the Premium screen before and after its removal, and ~~§3's Android 16 item list probed item by item~~
+   (owner-answers **§7.4**). What the device half still owes is narrower now: **Q-K-6** (HEAD's instrumented
+   tests cannot be installed without losing this evidence), **landscape**, which this phone refused to enter,
+   and, if you want it, the full instrumented suite minus the measurement vehicle on a `targetSdk=36` build,
+   which would turn "no suite count claimed" into a number.
+2. Answers to Q-K-1…Q-K-5 — **delivered 2026-10-02** as A-20…A-24 and executed — the still-open
+   **H-1…H-12**, **Q-I-1…Q-I-6**, **Q-J-1…Q-J-6**, and the two questions this batch produced: **Q-K-6** and
+   **Q-K-7**. An unanswered policy question is an open finding, not a passed gate.
 3. A decision on whether the three stale-wording Q-G4 findings and Q-F1 are closed or deferred, plus the two
    wording items this batch produced: **F-K6** (Settings "Retention policy — Policy pending" now understates
    the build) and **F-K7** (the dashboard's unmeasured "Offline", owner-answers §7.2).
