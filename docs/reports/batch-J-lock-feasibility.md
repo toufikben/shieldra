@@ -72,8 +72,11 @@ Two properties of that declaration matter more than anything else in this report
   (`docs/reports/batch-I-sim-feasibility.md`).
 - **It is a `<protected-broadcast>`** — **SOURCE**, `core/res/AndroidManifest.xml:539` (same ref):
   `<protected-broadcast android:name="android.app.action.ACTION_PASSWORD_FAILED" />`. **DEVICE**,
-  confirmed in this build's own `framework-res.apk` (see §8 for the reproducible commands). A
-  non-system app that tries to broadcast this action is rejected by the platform.
+  confirmed in this build's own `framework-res.apk`, where the element appears as
+  `E: protected-broadcast (line=506)` carrying exactly that action name — a different line number
+  from AOSP `main` because this is realme's build of the framework; the element, not the line, is the
+  evidence (§11 has the `aapt2 dump xmltree` commands). A non-system app that tries to broadcast
+  this action is rejected by the platform.
 
 **Therefore the Signal cannot be forged and cannot be self-generated.** This is precisely the
 constraint `docs/capabilities/lock-guard.md` already imposes ("It must never synthesize a
@@ -247,16 +250,18 @@ The second sentence is a real risk on a device that already has an admin (§3.5)
 not declare any policy we do not use. **The `uses-policies` block must contain exactly `watch-login`
 and nothing else** — no `limit-password`, no `force-lock`, no `wipe-data`, no `disable-keyguard-features`.
 
-The first sentence is the one that collides with Play policy (§6.2).
+The first sentence is the one that collides with Play policy (§5.1's reversibility requirement and
+§5.2's `2.2.1`).
 
 ### 3.4 Reversibility (which is the opposite of ransomware)
 
-The same official page lists device admin's *limitations* as an argument for moving to managed
-device: "Device admin has limitations compared to newer modes like managed device and work profile,
-particularly in areas like trust relationships, secure password reset, and **preventing admin
-removal**." Read the sign: device admin **cannot** prevent removal. The user can always revoke us
-in Settings. That is the property that keeps a Lock Guard inside policy (§6.2) and it is also why
-Lock Guard can never be a *lock*: a thief who knows Android just turns the admin off.
+The **deprecation** page quoted in §3.2 — not the enterprise guide — states device admin's
+*limitations* as its argument for managed device: "Device admin has limitations compared to newer
+modes like managed device and work profile, particularly in areas like trust relationships, secure
+password reset, and **preventing admin removal**." Read the sign: device admin **cannot** prevent
+removal. The user can always revoke us in Settings. That is the property that keeps a Lock Guard
+inside §5.1/§5.2 and it is also why Lock Guard can never be a *lock*: a thief who knows Android just
+turns the admin off.
 
 **NOT RUN:** whether this realme build's Settings offers deactivation as plainly as AOSP does, and
 what the OEM dialog wording is. This must be observed on-device before any claim is shipped.
@@ -386,14 +391,15 @@ here so a later batch does not discover it and read it as a way out.
 > Protect."
 
 **5.7 Clauses that were checked and do not apply**, with the reason stated so nobody re-litigates them:
-- *Stalkerware / "Guidelines for Monitoring Applications"* (lines 1424-1435, `isMonitoringTool`):
+- *Stalkerware / "Guidelines for Monitoring Applications"* (lines 1424-1436, `isMonitoringTool`):
   applies to apps "exclusively designed and marketed for **monitoring another individual**".
   SHIELDRA observes the owner's own device, stores locally, and transmits nothing (§30), so it is
   not a monitoring app and must **not** set `isMonitoringTool`. If a future build ever phones a Lock
   event to anyone else, this clause turns on instantly and §30 is already broken first.
-- *Accessibility Services* (line 1034, "prevent the ability for users to disable or uninstall any
+- *Accessibility Services* (line 1034 of the consolidated policy, and the identical sentence at line
+  816 of the sensitive-APIs page: "prevent the ability for users to disable or uninstall any
   app"): the only "uninstall" language in the sensitive-APIs policy lives in the Accessibility
-  section. **SHIELDRA declares no accessibility service and must not** — `docs/capabilities/lock-guard.md`
+  section — `grep -c uninstall` on that page's stripped text returns exactly 1. **SHIELDRA declares no accessibility service and must not** — `docs/capabilities/lock-guard.md`
   already forbids accessibility as a Lock signal source.
 - *Sensitive Events* (lines 419-424): about capitalising on public tragedies; irrelevant here.
 - *Lockscreen Monetization* (line 1657): "apps may not introduce ads or features that monetize the
@@ -429,7 +435,8 @@ Q-C4 remains open (answered "Option 3 — decide at Batch J"). The corrected evi
 question's shape: the risk is **not** "Play forbids device admin", it is "Play punishes an admin that
 is not easily reversible, that is described better than it is, or that promises more than §4 allows
 it to deliver". A sideloaded build has neither the review nor the listing-contract exposure. This is
-still a single owner call, and §5.7 of the protocol means I present it rather than decide it.
+still a single owner call: **A-14 bars me from inventing it and protocol §7 names exactly this kind of
+product-claim decision as the pause point**, so I present it rather than decide it.
 
 ---
 
