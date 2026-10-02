@@ -101,4 +101,29 @@ class SettingsContentTest {
         }
         assertFalse(MonitoringClaim.ExecutionWithoutDetector.claimsProtection)
     }
+
+    // Q-K-9 (owner directive 2026-10-02): the first row was titled "Protection" and subtitled
+    // "Lock Guard · Guards" above a target that opened nothing, so the Settings screen advertised a
+    // guard the owner could supposedly turn on. The whole row list is pinned, which means neither
+    // that row nor a renamed replacement can come back without this test being edited first.
+    @Test
+    fun qk9_no_settings_row_promises_a_lock_guard_the_owner_cannot_turn_on() {
+        assertFalse(
+            "protection" in SettingsContent.rowIds(),
+            "A Settings row named after a guard the build does not run is a claim, not a setting",
+        )
+        assertEquals(
+            listOf(
+                "notifications",
+                "app_lock",
+                "theme",
+                "language",
+                "storage",
+                "retention",
+                "about",
+                "help",
+            ),
+            SettingsContent.rowIds(),
+        )
+    }
 }
