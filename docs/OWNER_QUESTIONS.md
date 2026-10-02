@@ -1121,6 +1121,52 @@ blank, because they decide what the audit is allowed to claim.
 
 ---
 
+## Q-K-1 … Q-K-4 — Batch K (final security / privacy audit) came back: what is clean, what is not, and the four decisions that are yours alone (raised by Batch K, 2026-10-02)
+
+**Evidence report:** `docs/reports/batch-K-security-privacy-device-audit.md`. Read at
+`f844ffb35dc798cdb1bf21263ecf61cab1b00d8b`. Every "clean" row in its §2 is a re-run grep or a `file:line`
+reading, not an inheritance from an earlier batch.
+
+**What the audit found already correct, so nobody re-opens it:** no secret, keystore, token or credential
+anywhere in the 303 tracked files; **no `INTERNET` permission at all**, so no network path exists to leak
+over; three declared permissions and one ever prompted; one logging call site whose interpolated strings
+are static contract text; backup off with all three backup domains excluded; evidence under
+`noBackupFilesDir` behind a canonical-path `require`; AES-256-GCM only, Keystore-generated 12-byte IV,
+deterministic `AAD-v1`, **no software-key fallback**, runtime StrongBox probe that fails closed; key
+rotation genuinely wired to every approved process start; and the runtime dashboard projection **cannot**
+produce `Protected`, `Active`, or a `lastCheckSeconds` reading.
+
+**What is not correct, and is the reason there is no sign-off:** the Premium tab (§3), retention that is
+never executed (§4.1), an export gate with no consumer (§4.3), `targetSdk = 35` against a Play rule that
+took effect 2026-08-31 (§6), and the **device half of the audit NOT RUN** (§7) because the RMX3910 was
+`offline` to `adb` for the whole session.
+
+### Your four decisions (`PROPOSED — REQUIRES OWNER ANSWER`; I am not choosing any of them)
+
+| # | Question | Why it is yours, and what is already decided around it |
+|---|---|---|
+| **Q-K-1** | **The Premium tab before launch**: remove the route and the tab, keep it with copy that states plainly nothing is purchasable yet, or build real billing? | F-K1 (HIGH). `ShieldraNavHost.kt:293-301` is a live route showing `DemoData.premium()` (`:100-110`): a price, "Buy Lifetime", and five feature claims of which **none** exists — including `premium_free_summary` naming Lock Guard, SIM Guard and Email delivery while those same guards' own tiles honestly read "Not monitoring yet". §30 currently bars the billing SDK, so "build it" means amending §30 first. **This is the same premium sentence Q-F1 and Q-J-6 already point at — answer it once, here, and both follow.** |
+| **Q-K-2** | **Is automatic expiry in scope for launch?** If yes: what triggers the sweep, given A-10 (no boot receiver), the G5 ruling "Do not add polling. Do not add a timer. Do not add WorkManager", and the measured `RMX3910` dark-screen starvation? If no: the approved retention table and the Settings row must both be re-worded to "this build performs no deletion" | F-K2 (MEDIUM, privacy). The 30/30/90 windows are approved (A-1) and coded (`EvidenceRetentionPolicy.kt:50-52`), and **zero** production code reads them — `app/src/main/kotlin` contains no delete call of any kind outside the §5.7 test vehicle. Today the promise "evidence disappears after 30 days" is a design document, not a behaviour. The only trigger that already exists is process start, which is how rotation runs |
+| **Q-K-3** | **Raise `compileSdk`/`targetSdk` to 36 now** as a Batch-L slice, **or** request the Console extension to 2026-11-01? | F-K4 (HIGH). Source: `developer.android.com/google/play/requirements/target-sdk`, fetched 2026-10-02, quoted verbatim in report §6 — "New apps and app updates must target **Android 16 (API level 36)** or higher to be submitted to Google Play", in force since 2026-08-31. `app/build.gradle.kts:9` = 35, `:14` = 35. Bumping 35→36 changes runtime behaviour on Android 16 in the exact area the DO-NOT-TOUCH list freezes (FGS type, FGS permissions, notification policy), so it needs your explicit go **and** a device re-verification afterwards. §25: no community interpretation was used; the page text is quoted with its line number |
+| **Q-K-4** | **Confirm the listing vocabulary** after A-6 and after this batch: 3 declared permissions, 1 prompted, no "zero permissions", and no claim of continuous protection | Play package ids and listing text are a one-way door. A-6 already replaced "zero permissions" with a *relative* promise; this audit adds the fact that the count moved from 1 to 3 with the Motion service. Any "anti-theft protection" line must also be reconciled with the measured background-starvation evidence and with Batch J §1, which shows a Lock guard cannot promise it will notice anything |
+
+**What is NOT a question:** the export gate having no production consumer (F-K3). The user-visible
+behaviour is already honest — `onExport = { defer() }` at `ShieldraNavHost.kt:357`, and `isAllowed` is
+`false` for every `EvidenceExportPolicy` instance. The fix is ordinary engineering (make a future export
+slice consult the policy, or add a static gate forbidding a path that bypasses it), and it is recorded so
+Batch L does not inherit it as "export is protected by policy".
+
+**Answer order:** Q-K-3 is the only one that blocks *submission* (nothing reaches Play at 35). Q-K-1 blocks
+the listing and is the sharpest §31/`:753` claim defect in the build. Q-K-2 decides whether F-K2 is a
+launch blocker or a documented limit. Q-K-4 is a wording confirmation. **None of them blocks the device
+half of this audit** — that half needs only the phone back on `adb`.
+
+**Until §7 is run end-to-end on the RMX3910 with a screenshot per runtime screen (including the Premium
+tab and Event Detail), this batch has no sign-off, and no sentence in it may be quoted as "audited" or
+"verified".**
+
+---
+
 # D. DEFERRED QUESTIONS — answer when that phase is reached
 
 These do not block the next batch. They are listed so nothing is forgotten.
