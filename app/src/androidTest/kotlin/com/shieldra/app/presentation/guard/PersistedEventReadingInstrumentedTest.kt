@@ -49,7 +49,7 @@ class PersistedEventReadingInstrumentedTest {
         assertEquals("30m ago", projected.timestampLabel)
         assertFalse("No photo was stored, so none may be claimed", projected.hasPhoto)
         assertFalse("No location was stored, so none may be claimed", projected.hasLocation)
-        assertEquals(DeliveryStatus.Skipped, projected.deliveryStatus)
+        assertEquals(DeliveryStatus.NotAttempted, projected.deliveryStatus)
         database.close()
         delete(name)
     }

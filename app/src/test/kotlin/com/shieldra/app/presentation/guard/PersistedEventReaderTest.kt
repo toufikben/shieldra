@@ -176,9 +176,10 @@ class PersistedEventReaderTest {
         assertTrue(!projected.hasPhoto, "No evidence was collected, so history must not claim a photo")
         assertTrue(!projected.hasLocation, "No evidence was collected, so history must not claim a location")
         assertEquals(
-            com.shieldra.app.presentation.model.DeliveryStatus.Skipped,
+            com.shieldra.app.presentation.model.DeliveryStatus.NotAttempted,
             projected.deliveryStatus,
-            "An event that never entered delivery must not be projected as sending",
+            "An event that never entered delivery must not be projected as sending, and must not be " +
+                "called skipped either (Q-K-4 / F-K10): nothing decided to skip it.",
         )
         assertEquals(EventState.INITIATED.name, projected.subtitle)
     }

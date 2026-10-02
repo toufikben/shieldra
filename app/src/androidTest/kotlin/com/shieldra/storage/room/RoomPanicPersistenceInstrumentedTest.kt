@@ -130,8 +130,9 @@ class RoomPanicPersistenceInstrumentedTest {
         assertTrue("History must not claim a location that was never taken", !projected.hasLocation)
         assertEquals(EventState.INITIATED.name, projected.subtitle)
         assertEquals(
-            "A recorded event that never entered delivery must not read as delivered",
-            com.shieldra.app.presentation.model.DeliveryStatus.Skipped,
+            "A recorded event that never entered delivery must not read as delivered, and must not " +
+                "be called skipped either (Q-K-4 / F-K10)",
+            com.shieldra.app.presentation.model.DeliveryStatus.NotAttempted,
             projected.deliveryStatus,
         )
         assertTrue("The detail must show no delivery receipt", detail.delivery.isEmpty())
