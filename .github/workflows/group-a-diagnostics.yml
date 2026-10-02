@@ -12,6 +12,11 @@ jobs:
   diagnostics:
     name: Reproducible Android/Gradle environment diagnostics
     runs-on: ubuntu-24.04
+    # Only the device-APK publish step needs this, and it is the single job that runs it:
+    # Q-K-5's required-APK rule is now enforced on a rolling draft release, because Actions
+    # artifact storage is exhausted. No step reads or writes source files with this token.
+    permissions:
+      contents: write
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -67,8 +72,17 @@ jobs:
         shell: bash
         run: cat evidence/group-a-diagnostics.md >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Publish the device APK pair to the rolling draft release
+        if: success()
+        shell: bash
+        run: bash .github/scripts/publish-device-apks.sh
+
+      # The artifact copy stays, but it is no longer the authority: it cannot upload while GitHub's
+      # artifact storage is exhausted (Q-K-5), and the step above already fails the run when the
+      # pair is missing, so a tolerated failure here cannot hide an absent APK.
       - name: Upload built APKs for owner-device execution
         if: success()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: apks-${{ github.run_id }}
