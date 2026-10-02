@@ -87,6 +87,18 @@ if grep -q 'demo_premium_price' app/src/main/res/values/strings.xml; then
 fi
 pass "no purchasable-looking Premium surface is reachable in this release"
 
+# Q-K-3 (owner answer 2026-10-02): raise to API 36 now rather than ask Play for
+# an extension. Google Play requires new apps and updates to target Android 16
+# (API 36) or higher, in force since 2026-08-31
+# (developer.android.com/google-play/requirements/target-sdk, quoted with its
+# line number in the Batch K report §6, per §25). The compile target and the CI
+# image must move together: a build that compiles against 35 cannot be
+# submitted, and a CI image without platform 36 cannot build against 36.
+grep -q 'compileSdk = 36' app/build.gradle.kts || fail "compileSdk is not 36 (Q-K-3)"
+grep -q 'targetSdk = 36' app/build.gradle.kts || fail "targetSdk is not 36, so Play refuses the submission (Q-K-3)"
+grep -q 'platforms;android-36' .github/workflows/group-a-diagnostics.yml || fail "CI does not install the platform the release compiles against (Q-K-3)"
+pass "the release compiles and targets API 36 and CI installs that platform"
+
 # Persisted events must reach the UI through the pure reader, and the Room
 # read must be dispatched off the main thread (Room throws if queried there).
 READER=app/src/main/kotlin/com/shieldra/app/presentation/guard/PersistedEventReader.kt
