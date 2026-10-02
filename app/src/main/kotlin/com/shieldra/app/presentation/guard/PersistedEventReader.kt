@@ -1,6 +1,6 @@
 package com.shieldra.app.presentation.guard
 
-import androidx.annotation.StringRes
+import androidx.annotation.PluralsRes
 import com.shieldra.app.presentation.model.DeliveryStatus
 import com.shieldra.app.presentation.model.EventDetailUiModel
 import com.shieldra.app.presentation.model.EventType
@@ -133,7 +133,7 @@ internal fun eventStateLabelRes(state: EventState): Int = when (state) {
  * "1 hours ago": a fixed template cannot decline a number, so the count is now
  * resolved through the locale's own plural forms.
  */
-@StringRes
+@PluralsRes
 internal fun ageQuantityRes(parts: AgeParts): Int = when (parts) {
     is AgeParts.Days -> com.shieldra.app.R.plurals.event_age_days
     is AgeParts.Hours -> com.shieldra.app.R.plurals.event_age_hours
