@@ -7,7 +7,10 @@ after the device returned to `adb`). NO SIGN-OFF IS GIVEN.**
 
 **A second, non-device blocker appeared while this report was being verified:** the GitHub Actions
 artifact-storage quota is exhausted, so CI can no longer upload the APK pair (§11, finding **F-K5**). The
-screenshot pass needs a UI-unlocked phone; a *re-built* APK pass additionally needs that quota resolved.
+screenshot pass needs a UI-unlocked phone; a *re-built* APK pass additionally needed that quota worked
+around — which happened the same day, by the owner's choice of an alternate delivery path: the APK pair now
+publishes to the required draft release `device-apks` (§11.1, and `batch-K-owner-answers.md` §6.5) with
+nothing deleted. The device half is blocked on the keyguard only.
 
 This report deliberately does **not** say "G6 PASS" anywhere. §24-§25's rule — cite the exact official
 source, never an old summary — is applied to the release-policy finding in §6, and every repository
@@ -511,3 +514,16 @@ Deleting artifacts destroys shared CI history that earlier batch reports cite as
 (`apks-36939853591` is one of them) and is irreversible; adding `retention-days` to the workflow edits the
 CI/CD pipeline; raising the storage quota is a billing change. Recorded as **Q-K-5** in §8 rather than
 silently resolved.
+
+**RESOLVED FOR DELIVERY 2026-10-02 — the owner chose a fourth way, and nothing was deleted.** Asked between
+naming a deletion cut-off, raising the plan, an alternate delivery path, or waiting, the owner picked the
+**alternate delivery path**. Each successful run now publishes the same-run APK pair to a rolling **draft
+release `device-apks`** through a required, fail-closed step (`589f4a5` + `a147bef`); run `37003070708` is
+**success** and its release carries `app-debug.apk` (18,505,786 B) and `app-debug-androidTest.apk`
+(626,877 B) with `targetCommitish` equal to that exact SHA. The quota itself is untouched — 38 `apks-*`
+pairs / 667.7 MiB remain and `apks-37003070708` is still absent from the artifacts listing — so the finding
+stands as a measurement, and F-K5's warning stays true in its original form: **a green run still does not
+prove an artifact exists.** What changed is that a green run now also proves a *downloadable pair* exists,
+because the publish step fails the run if it cannot re-read both asset names from the release. Full record:
+`docs/reports/batch-K-owner-answers.md` §6.5. The screenshot pass now depends only on the owner unlocking
+the phone.

@@ -13,11 +13,11 @@ each part, what was measured on the phone today, and what is still owed. It give
 
 | Answer | Landed as | CI proof | Really proved | Still owed |
 |---|---|---|---|---|
-| **Q-K-1** remove the Premium tab and route | `e8bb16e` (RED) → `d0573bf` (GREEN) | `36991054611` (RED) · `36994802842` (GREEN) | the tab and route are gone and a test fails if any declared route names a premium screen again | the on-device "Premium state after Q-K-1" observation — needs an APK from a run after `d0573bf`, and §6 says none exists |
-| **Q-K-2** retention executes | `e8bb16e` (RED) → `d34ed86` (GREEN) | `36993925242` · `36994802842` | the 30/30/90 windows decide real deletions in the pure planner, and the three authorized execution points are wired | `EvidenceRetentionSweepInstrumentedTest` — **NOT RUN** (blocked on §6) |
-| **Q-K-3** API 36 | `d06cfc8` (RED gate) → `8da7686` (GREEN) | `36994944518` (RED) · `36995812606` (GREEN) | the release compiles and targets 36, every gate passes, 341/341 JVM | Android 16 runtime behaviour on `RMX3910` from that run's APK pair — **NOT RUN** (blocked on §6) |
+| **Q-K-1** remove the Premium tab and route | `e8bb16e` (RED) → `d0573bf` (GREEN) | `36991054611` (RED) · `36994802842` (GREEN) | the tab and route are gone and a test fails if any declared route names a premium screen again | the on-device "Premium state after Q-K-1" observation — the delivery block is gone (§6.5); now only the locked phone |
+| **Q-K-2** retention executes | `e8bb16e` (RED) → `d34ed86` (GREEN) | `36993925242` · `36994802842` | the 30/30/90 windows decide real deletions in the pure planner, and the three authorized execution points are wired | `EvidenceRetentionSweepInstrumentedTest` — **NOT RUN** (needs the phone unlocked, §6.5) |
+| **Q-K-3** API 36 | `d06cfc8` (RED gate) → `8da7686` (GREEN) | `36994944518` (RED) · `36995812606` (GREEN) | the release compiles and targets 36, every gate passes, 341/341 JVM | Android 16 runtime behaviour on `RMX3910` — **NOT RUN** (needs the phone unlocked, §6.5) |
 | **Q-K-4** listing vocabulary | amendment **A-23** | docs-only | the allowed and forbidden sentences are written down | the Play Console text itself — a Batch L submission-time task |
-| **Q-K-5** CI artifacts | `e78694e` | `36989921551` | a missing required APK now fails the run visibly, and future APKs expire in 14 days | the quota is **still exhausted**; freeing it needs a deletion decision — §6.4 |
+| **Q-K-5** CI artifacts | `e78694e` + `589f4a5`/`a147bef` (§6.5) | `36989921551` · `37003070708` | a missing required APK now fails the run visibly, and future APKs expire in 14 days | closed for delivery: the pair now publishes to a required release channel, so the quota no longer blocks a download — **nothing was deleted**, §6.5 |
 
 ---
 
@@ -141,7 +141,16 @@ that did not exist yet. **GREEN** (`d34ed86`, run `36993925242` then `3699480284
 **NOT RUN:** `EvidenceRetentionSweepInstrumentedTest` (three on-device cases: an expired event and its
 payload go while a young pair survives; a quarantined file past 30 days goes and a young one stays;
 nothing expired leaves everything in place). It compiles in CI — `assembleDebugAndroidTest` is green on
-every run above — but has never been executed, because no APK pair has been downloadable since §6.
+every run above — but has never been executed. It could not be, while no APK pair was downloadable (§6);
+the pair is downloadable now (§6.5), so what stands between this test and a result is an unlocked phone.
+
+What a waiting review *could* still prove, without a device: the three cases match the production constants
+they lean on — the test's `.quarantine` directory and `.shieldra` suffix are `EncryptedEvidenceFileStore.kt:266,268`,
+the ids it asserts come from `name.removeSuffix(FILE_SUFFIX)` at `:158`, and the sweeper maps a payload's age
+through the owning event (`EvidenceRetentionSweeper.kt:91-98`), which is the exact thing case 1 exists to
+catch. Each case also opens a uniquely-named database and evidence directory, so the suite can run twice on
+one install without a prior case's rows leaking into the next. What remains device-only is the deletion
+itself and whether `setLastModified` is honoured on this OEM's filesystem.
 
 ---
 
@@ -173,7 +182,9 @@ so the run's overall conclusion is **failure**. A missing APK is now visible, no
 
 The same run also shows why the old green runs lied: its two diagnostic upload steps printed the same
 `Failed to CreateArtifact` error and were still reported **success**, purely because of
-`continue-on-error`. That is visible again in `36995812606`.
+`continue-on-error`. That is visible again in `36995812606`, in this report's own commit
+(`a8ad383` → run `36998736737`: `341 tests, 341 passed`, `BUILD SUCCESSFUL in 8m 23s`, Group C + G4-B +
+Phase 3 all green, **only** the APK upload red), and in the F-K3 gate commit that follows it.
 
 ### 6.2 Current inventory (measured 2026-10-02, `gh api …/actions/artifacts`, 3 pages)
 
@@ -231,6 +242,51 @@ ways forward, in the order I would rank them:
 
 Until one of them lands, `d0573bf`/`d34ed86`/`8da7686` are verified **by CI only**: Q-K-1's screen, Q-K-2's
 instrumented sweep and Q-K-3's Android 16 behaviour all stay open, and Batch K cannot close.
+
+### 6.5 Q-K-5b — the owner picked way 3, and it is now the authority
+
+Asked to choose, the owner picked **"قناة توزيع بديلة"** — an alternate delivery path — over naming a
+deletion cut-off, raising the plan, or waiting. So way 3 shipped and **no artifact was deleted**. The
+inventory above is unchanged in this segment: re-measured at 2026-10-02 after the last run, still **38
+`apks-*` pairs / 667.7 MiB, 0 expired**.
+
+`589f4a5` added `.github/scripts/publish-device-apks.sh`, run by a new **required** step in
+`.github/workflows/group-a-diagnostics.yml`, and `a147bef` fixed the first thing it caught: inside a `run:`
+step the GitHub CLI does not read the job token implicitly, so the step died with
+`gh: To use GitHub CLI in a GitHub Actions workflow, set the GH_TOKEN environment variable` and
+`Process completed with exit code 4` (run `37002080419`). That failure is the gate working as designed — a
+publish that cannot prove the bytes exist fails the run instead of leaving a green lie.
+
+Verified with the exact-SHA check Q-K-5 asked for:
+
+| commit | run | verdict |
+|---|---|---|
+| `6ab41f2` (F-K3 static gate) | `36999879499` | failure — `341 tests, 341 passed`, Group C + G4-B + Phase 3 green, **only** the APK artifact upload red |
+| `589f4a5` (release channel) | `37002080419` | failure at the new publish step (missing `GH_TOKEN`) |
+| `a147bef` (token fix) | `37003070708` | **success, no non-success step** |
+
+`gh release view device-apks` after that run returns `draft=true`, `tagName=device-apks`,
+`targetCommitish=a147bef1a8bc73b60768c3288a0d854e49e765da`, and exactly two assets — `app-debug.apk`
+(18,505,786 B) and `app-debug-androidTest.apk` (626,877 B), both stamped `2026-10-02T11:57:42Z`, i.e. the
+same run. This is the first downloadable Q-K-era APK pair since the five answers landed.
+
+Two properties matter more than the download itself.
+
+**The rule the owner wrote still holds.** Q-K-5 said a missing APK must be *visible as a CI failure*, not
+hidden by `continue-on-error`. The publish step is not tolerant and re-checks its own output
+(`gh release view … --json assets` and a `fail` if either name is absent), so a build that produces no
+downloadable pair now fails the run through a required step. The artifact copy stayed in the workflow,
+still `continue-on-error: true`, demoted to a convenience copy — and it is still failing: `apks-37003070708`
+does not appear in the artifacts listing at all, on a run whose overall conclusion is success. That is
+exactly the quota trap `docs/reports/` has recorded before, which is why the release, not the run colour,
+is the evidence here.
+
+**What is not yet proven.** Release-asset storage has its own account limit; no official figure was fetched
+in this segment, so it is a Batch L item rather than an assumption. The safeguard is the same required step:
+if release storage ever refuses an upload, `gh release upload` fails, the asset re-check never runs, and the
+run goes red — so this channel cannot rot silently the way the artifact channel did.
+
+Q-K-1, Q-K-2 and Q-K-3 therefore move from *blocked on delivery* to *blocked on the phone being unlocked*.
 
 ---
 
