@@ -1200,7 +1200,14 @@ Both are wording about things the owner has not finished deciding (Batch J) or h
 behaviour is already honest — `onExport = { defer() }` at `ShieldraNavHost.kt:357`, and `isAllowed` is
 `false` for every `EvidenceExportPolicy` instance. The fix is ordinary engineering (make a future export
 slice consult the policy, or add a static gate forbidding a path that bypasses it), and it is recorded so
-Batch L does not inherit it as "export is protected by policy".
+Batch L does not inherit it as "export is protected by policy". **Done 2026-10-02 — second branch.** The
+§5.5 scan in `g4b-review-check.sh` covered only `com/shieldra/storage`; it now covers all of
+`app/src/main` for egress primitives (share intent / `EXTRA_STREAM` / `FileProvider` / clipboard / SAF
+document creation / `MediaStore` / HTTP / multipart) and pins every export-affordance wiring to stay
+deferred, forward a callback, or name the policy. Proven with a fixture, not assumed: the old scan **passed**
+a `FileProvider` + `ACTION_SEND` bypass sitting in the presentation package — that is the finding reproduced
+— and the new scan fails it, then fails a wiring-only fixture separately. Both fixtures were deleted, no
+production behaviour changed, and nothing here needs a device pass.
 
 **Answer order:** Q-K-3 is the only one that blocks *submission* (nothing reaches Play at 35). Q-K-1 blocks
 the listing and is the sharpest §31/`:753` claim defect in the build. Q-K-2 decides whether F-K2 is a

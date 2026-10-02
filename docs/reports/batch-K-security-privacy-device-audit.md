@@ -210,6 +210,22 @@ The finding is forward-looking: whoever builds export can do it without ever con
 `EvidenceExportPolicy`, and no static gate would notice. **No owner decision is required** — this is
 normal engineering — but it must be recorded so Batch L does not inherit it as "export is protected".
 
+**CLOSED 2026-10-02, statically.** `g4b-review-check.sh` now enforces §5.5 over the whole production tree
+instead of only the storage package: no evidence-egress primitive (`ACTION_SEND`,
+`ACTION_CREATE_DOCUMENT`, `EXTRA_STREAM`, `FileProvider`, `ClipboardManager`, SAF `CreateDocument`,
+`MediaStore`, an HTTP client or a multipart uploader) may appear anywhere under `app/src/main`, and every
+line that wires the export affordance must stay deferred, forward an existing callback, or name
+`EvidenceExportPolicy` in the same file. The gate was proven against a fixture, not assumed. With a
+temporary presentation-package file that shared evidence through `FileProvider` + `Intent.ACTION_SEND`,
+**the old scan printed `PASS: evidence export is disabled by default with no hidden bypass (§5.5)`** — the
+finding reproduced — while the new one fails with `FAIL: F-K3: an evidence-egress path exists outside the
+export policy:` plus the offending path. A second fixture with a real `onExport = ::exportEventEvidence`
+wiring and no egress primitive failed only the wiring rule, at `FAIL: F-K3: an export affordance is wired
+without the policy:`. Both fixtures were deleted and the clean tree is green again (52 `PASS:` lines, exit 0). No production
+behaviour changed — the shipped wiring is still `{ defer() }`, now at `navigation/ShieldraNavHost.kt:345` —
+so nothing in this closure is owed a device pass. A future export slice must still satisfy the six §5.5
+gates; what it can no longer do is arrive without the policy being named.
+
 ---
 
 ## 5. Store-listing and claims state (inherited, now worse)
@@ -357,6 +373,7 @@ Everything in §2 labelled REPO is a source reading, not a measurement; per
 F-K3 (export policy has no consumer) is **not** a question: the fix is to make a future export slice
 consult `EvidenceExportPolicy`, or to add a static gate forbidding an export path that bypasses it. It is
 scheduled as ordinary work, and recorded here so it is not inherited as "protected by policy".
+**Done 2026-10-02** — the second branch, the static gate, with the fixture proof in §4.3.
 
 ---
 

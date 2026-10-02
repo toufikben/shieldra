@@ -160,13 +160,40 @@ grep -q 'explicit destructive confirmation' app/src/main/kotlin/com/shieldra/sto
 grep -q 'deleteEvidenceKeyIrreversibly' app/src/main/kotlin/com/shieldra/storage/AndroidKeystoreEncryptor.kt || fail "A-2: evidence key deletion entrypoint is missing"
 pass "factory reset requires destructive confirmation and deletes the evidence key (A-2/A-3)"
 
-# §5.5 evidence export is disabled by default, with no hidden bypass
+# §5.5 evidence export is disabled by default. The "no hidden bypass" half of §5.5 is
+# enforced by the F-K3 rules below, which scan the whole production tree.
 [ -s app/src/main/kotlin/com/shieldra/storage/EvidenceExportPolicy.kt ] || fail "evidence export policy (§5.5) is missing"
 grep -q 'val enabled: Boolean = false' app/src/main/kotlin/com/shieldra/storage/EvidenceExportPolicy.kt || fail "§5.5: export must be disabled by default"
-if grep -rEn 'ACTION_SEND|FileProvider|ClipboardManager|Retrofit|OkHttp|MultipartBody|UploadManager' app/src/main/kotlin/com/shieldra/storage >/dev/null 2>&1; then
-  fail "§5.5: a hidden evidence-egress path was found in the storage package"
+pass "evidence export is disabled by default (§5.5)"
+
+# §5.5 / F-K3: the policy must be the only door, not merely the only door looked at.
+# Batch K recorded that EvidenceExportPolicy has no production consumer: the export
+# affordance is honest today only because it is wired to a deferred snackbar, and the
+# scan above watched only the storage package. The owner ruled closing that ordinary
+# engineering, not an owner question, so the gate now covers the whole production tree
+# and the wiring itself:
+#   (a) no evidence-egress primitive may appear anywhere under app/src/main — a share
+#       intent or its stream extra, a FileProvider, a clipboard write, SAF document
+#       creation, direct MediaStore access, or an HTTP/multipart uploader;
+#   (b) every production wiring of the export affordance must stay deferred, forward an
+#       existing callback, or name the policy in the same file, so a real exporter can
+#       only arrive as a deliberate change that also changes this gate.
+EGRESS_PATTERN='ACTION_SEND|ACTION_CREATE_DOCUMENT|EXTRA_STREAM|FileProvider|ClipboardManager|CreateDocument|MediaStore|Retrofit|OkHttp|MultipartBody|UploadManager'
+egress_hits="$(grep -rEl "$EGRESS_PATTERN" app/src/main || true)"
+[ -z "$egress_hits" ] || fail "F-K3: an evidence-egress path exists outside the export policy:$egress_hits"
+pass "no evidence-egress primitive exists anywhere in the production sources (§5.5, F-K3)"
+
+export_wiring="$(grep -rn 'onExport = ' app/src/main/kotlin || true)"
+if [ -n "$export_wiring" ]; then
+  while IFS= read -r hit; do
+    wiring_file="${hit%%:*}"
+    wiring_text="${hit#*:}"
+    grep -qE 'defer\(|EvidenceExportPolicy|callbacks\.onExport|= onExport' <<<"$wiring_text" && continue
+    grep -q 'EvidenceExportPolicy' "$wiring_file" \
+      || fail "F-K3: an export affordance is wired without the policy: $hit"
+  done <<< "$export_wiring"
 fi
-pass "evidence export is disabled by default with no hidden bypass (§5.5)"
+pass "the export affordance is wired only through the deferred path or the policy (F-K3)"
 
 # §6 security failure semantics
 SEMANTICS=app/src/main/kotlin/com/shieldra/storage/SecurityFailureSemantics.kt

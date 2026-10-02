@@ -212,6 +212,8 @@ fetch was served through a proxy URL rather than the canonical docs host, so the
 *re-confirm in Batch L* rather than assumed). If 500 MB applies to this account, then:
 
 - the six provably-non-evidence APK pairs free ~105 MiB → ~564 MiB, **still over**, and
+- a new pair costs ≈ 17.6 MiB (667.7 MiB ÷ 38), so fitting the next upload needs **≥ ~187 MiB gone — about
+  eleven pairs**, not six, and
 - getting under the limit requires deleting **superseded code-build APKs** whose runs are cited in
   reports as build verdicts — bytes that no longer have a documented device role but that would let
   someone re-install an older build.
