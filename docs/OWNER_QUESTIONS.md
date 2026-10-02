@@ -391,6 +391,13 @@ and privacy work in **Batch H**, after Panic (C/D), notifications (E), backgroun
 event + explicit approved evidence policy"*, and the Panic batch must not be made "more
 advanced" by attaching a camera to it.
 
+> **UPDATE 2026-10-02 — Batch H has arrived, and this question is now formally re-asked as
+> H-1…H-12 in `docs/reports/batch-H-decisions-package.md`.** The three numbers below are still
+> the register's proposals, not decisions: nothing was implemented, no permission was declared and
+> no gate was relaxed. Answer **H-1** (is camera evidence allowed at all), **H-2** (which guards may
+> capture) and **H-5** (last-known fix vs a fix obtained in the background) first — H-3, H-4, H-6,
+> H-8 and H-11 largely fall out of those three.
+
 What is already **locked** by the protocol and is therefore no longer a proposal:
 
 | Item | Locked value | Source |
@@ -1066,7 +1073,7 @@ this reconciliation; it is in progress now.
 | **E** | Real notification path (`POST_NOTIFICATIONS`, granted/denied/disabled handled honestly) | **CLOSED** — CI `36771561585` (231/231 JVM), full suite `OK (55 tests)` ×2 on RMX3910, amendments **A-6/A-7**. Report: `batch-E-local-notifications-and-durable-activation.md` |
 | **F** | Background / active-guard execution (legitimate mechanism, no 24/7 promise) | **CLOSED** — `0e767b2`→`d861922`, CI `36782719559` (248/248 JVM), plus **F2** onboarding-copy follow-up on `1babdbd` (CI `36871617120`, `OK (68 tests)` ×2). Reports: `batch-F-background-execution-contract.md`, `batch-F2-onboarding-copy-truthfulness.md` |
 | **G** | **Motion Guard** (3 s strong movement, or two suspicious movements in 10 s) | **CLOSED 2026-10-02 (slice G5)** — judgement `9adde73`, adapter `17bc8a4` with amendment **A-19**, truthfulness fixes `93a885f`→**`18cc745`** (CI `36939853591`, **332/332 JVM**), **10/10 points device-verified on RMX3910**. Reports: `batch-G4-seam-and-QG1-harness.md`, `batch-G5-foreground-service-type-review.md`, `batch-G5-closure.md`. Three stale-wording findings raised as **Q-G4**, not fixed |
-| **H** | Evidence / privacy / permission implementation | approved in principle, parameters open (Q-C5) |
+| **H** | Evidence / privacy / permission implementation | **DECISIONS PACKAGE DELIVERED 2026-10-02 — awaiting the owner's answers.** `docs/reports/batch-H-decisions-package.md` presents **H-1…H-12**, all `PROPOSED — REQUIRES OWNER ANSWER`, and writes **no code, no permission and no gate relaxation** (A-14 bars both). Read H-1 (is the camera allowed at all), H-2 (which guards may capture) and H-5 (last-fix vs background location) first — they decide most of the rest |
 | **I** | **SIM Guard** — feasibility first, implement only if technically and policy feasible | §19 |
 | **J** | **Lock Guard** feasibility + **current** official Play policy review, cited exactly | §24–§25, deferred by the owner |
 | **K** | Full security / privacy / device audit (§15's seven gates, G6) | required before any production or security claim |

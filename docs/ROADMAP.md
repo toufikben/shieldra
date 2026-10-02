@@ -627,7 +627,7 @@ title) were recorded and deliberately **not** fixed, because they are outside th
 evidence, not a gate. Report: `docs/reports/batch-G5-closure.md`. Next: **Batch H — the decisions package
 only**, with no camera or location code and no invented owner policy. See
 `docs/reports/batch-G4-seam-and-QG1-harness.md` and `docs/reports/batch-G5-foreground-service-type-review.md` | §18 — **CLOSED** (Motion monitors, persists, dedupes, notifies, and the UI now says only what is true) |
-| H | Evidence / privacy / permission implementation | §21–§23 |
+| H | Evidence / privacy / permission implementation | §21–§23 — **DECISIONS PACKAGE DELIVERED, IMPLEMENTATION BLOCKED ON THE OWNER** (`docs/reports/batch-H-decisions-package.md`): the encrypted evidence substrate is already shipped and device-verified (`EncryptedEvidenceFileStore`, `EvidenceReference` + its Room table, 30/90/30 retention, export disabled), so what is missing is policy, not plumbing. **12 decisions (H-1…H-12) are presented and none is answered** — starting with whether camera evidence is allowed at all and which guards may capture. **No camera or location code, no permission, no manifest line and no gate relaxation was written**, because A-14 bars inventing H decisions and bars relaxing `group-c-contract-check.sh:24-25`, `g4b-review-check.sh:330-334`/`420-422` and `phase3-review-check.sh:35/45-52` implicitly to admit code. Batch I and J do not depend on these answers |
 | I | SIM Guard — feasibility first, then implementation | §19 |
 | J | Lock Guard — feasibility + **current** official Play policy, cited exactly, before any code | §24–§25 |
 | K | Full security/privacy/device audit | §33–§34 |
