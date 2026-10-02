@@ -112,7 +112,8 @@ class EvidenceRetentionSweepInstrumentedTest {
         val directory = evidenceDirectory()
         val store = evidenceStore(directory)
         store.write(YOUNG_EVIDENCE, "young evidence".toByteArray())
-        RoomEventRepository(database).save(event(youngEventId, YOUNG_EVIDENCE, now - 89 * day))
+        // Inside the widest window, so no kind of stored thing has expired.
+        RoomEventRepository(database).save(event(youngEventId, YOUNG_EVIDENCE, now - day))
 
         val report = EvidenceRetentionSweeper(
             database = database,
@@ -124,6 +125,43 @@ class EvidenceRetentionSweepInstrumentedTest {
         assertTrue(payloadFile(directory, YOUNG_EVIDENCE).isFile)
         assertEquals(1, database.securityEventDao().findAll().size)
         assertEquals(1, database.evidenceReferenceDao().findAll().size)
+        database.close()
+        delete(name, directory)
+    }
+
+    /**
+     * The 30/30/90 asymmetry, measured rather than assumed: a payload expires with its owning
+     * row's age under the 30-day evidence window, while the row itself serves 90. The payload
+     * file is written seconds before the sweep, so only the row's stamp can be what deleted it.
+     * The reference row is what the sweep leaves behind, and this asserts it because that is
+     * what the approved windows do today: between day 30 and day 90 the record names a payload
+     * that is no longer on the disk.
+     */
+    @Test
+    fun payload_expires_at_its_thirty_day_window_while_the_row_that_owns_it_serves_ninety() {
+        val name = databaseName()
+        val database = open(name)
+        val directory = evidenceDirectory()
+        val store = evidenceStore(directory)
+        store.write(YOUNG_EVIDENCE, "young evidence".toByteArray())
+        val repository = RoomEventRepository(database)
+        assertEquals(
+            RepositoryResult.Applied,
+            repository.save(event(youngEventId, YOUNG_EVIDENCE, now - 89 * day)),
+        )
+
+        val report = EvidenceRetentionSweeper(
+            database = database,
+            evidenceFiles = store,
+            nowMillis = { now },
+        ).sweep()
+
+        assertEquals(0, report.deletedEventRows)
+        assertEquals(setOf(YOUNG_EVIDENCE), report.deletedEvidenceFileIds)
+        assertEquals(emptySet<String>(), report.failedIds)
+        assertFalse(payloadFile(directory, YOUNG_EVIDENCE).isFile)
+        assertNotNull(repository.find(youngEventId))
+        assertEquals(1, database.evidenceReferenceDao().findAll().count { it.evidenceId == YOUNG_EVIDENCE })
         database.close()
         delete(name, directory)
     }
