@@ -51,31 +51,27 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = spacing.l, vertical = spacing.l),
     ) {
-        SettingsSectionTitle(stringResource(R.string.settings_section_security))
-        SettingsGroup(grouped[SettingsSection.Security].orEmpty(), callbacks)
-        Spacer(Modifier.height(spacing.xl))
-
-        SettingsSectionTitle(stringResource(R.string.settings_section_notifications))
-        SettingsGroup(grouped[SettingsSection.Notifications].orEmpty(), callbacks)
-        Spacer(Modifier.height(spacing.xl))
-
-        SettingsSectionTitle(stringResource(R.string.settings_section_appearance))
-        SettingsGroup(grouped[SettingsSection.Appearance].orEmpty(), callbacks)
-        Spacer(Modifier.height(spacing.xl))
-
-        SettingsSectionTitle(stringResource(R.string.settings_section_data_privacy))
-        SettingsGroup(grouped[SettingsSection.PrivacyData].orEmpty(), callbacks)
-        Spacer(Modifier.height(spacing.xl))
-
-        SettingsSectionTitle(stringResource(R.string.settings_section_security_app))
-        SettingsGroup(grouped[SettingsSection.SecurityApp].orEmpty(), callbacks)
-        Spacer(Modifier.height(spacing.xl))
-
-        SettingsSectionTitle(stringResource(R.string.settings_section_about))
-        SettingsGroup(grouped[SettingsSection.About].orEmpty(), callbacks)
-        Spacer(Modifier.height(spacing.xxxl))
+        // A section with no rows prints no heading: a title over nothing is a claim too.
+        SECTION_ORDER.forEach { (section, titleRes) ->
+            val sectionRows = grouped[section].orEmpty()
+            if (sectionRows.isNotEmpty()) {
+                SettingsSectionTitle(stringResource(titleRes))
+                SettingsGroup(sectionRows, callbacks)
+                Spacer(Modifier.height(spacing.xl))
+            }
+        }
+        Spacer(Modifier.height(spacing.l))
     }
 }
+
+private val SECTION_ORDER: List<Pair<SettingsSection, Int>> = listOf(
+    SettingsSection.Security to R.string.settings_section_security,
+    SettingsSection.Notifications to R.string.settings_section_notifications,
+    SettingsSection.Appearance to R.string.settings_section_appearance,
+    SettingsSection.PrivacyData to R.string.settings_section_data_privacy,
+    SettingsSection.SecurityApp to R.string.settings_section_security_app,
+    SettingsSection.About to R.string.settings_section_about,
+)
 
 @Composable
 private fun SettingsSectionTitle(text: String) {
