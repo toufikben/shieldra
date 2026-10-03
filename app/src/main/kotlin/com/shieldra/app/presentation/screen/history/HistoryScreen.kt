@@ -83,7 +83,7 @@ fun HistoryScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(spacing.s),
             ) {
-                items(filteredEvents) { event ->
+                items(filteredEvents, key = { it.id }) { event ->
                     EventCard(
                         event = event,
                         onClick = { callbacks.onEventClick(event.id) },
@@ -106,7 +106,7 @@ private fun TypeFilterRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        HistoryTypeFilter.values().forEach { filter ->
+        HistoryTypeFilter.entries.forEach { filter ->
             ShieldraChip(
                 label = filter.displayLabel(),
                 selected = filter == current,
@@ -128,7 +128,7 @@ private fun StatusFilterRow(
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        HistoryStatusFilter.values().forEach { filter ->
+        HistoryStatusFilter.entries.forEach { filter ->
             ShieldraChip(
                 label = filter.displayLabel(),
                 selected = filter == current,

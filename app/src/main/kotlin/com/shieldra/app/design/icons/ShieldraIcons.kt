@@ -3,7 +3,7 @@ package com.shieldra.app.design.icons
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.BatteryAlert
-import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Info
@@ -45,5 +45,5 @@ fun SettingsIcon.icon(): ImageVector = when (this) {
     SettingsIcon.Storage -> Icons.Filled.Storage
     SettingsIcon.Retention -> Icons.Filled.DeleteOutline
     SettingsIcon.Info -> Icons.Filled.Info
-    SettingsIcon.Help -> Icons.Filled.Bolt
+    SettingsIcon.Help -> Icons.AutoMirrored.Filled.HelpOutline
 }

@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryFull
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
@@ -95,7 +95,7 @@ fun LiveStatusStrip(
                 NetworkStatus.Offline -> Icons.Filled.WifiOff
                 // Nothing has measured the network, so no glyph may draw a
                 // conclusion the label does not make (F-K7).
-                NetworkStatus.Unknown -> Icons.Filled.HelpOutline
+                NetworkStatus.Unknown -> Icons.AutoMirrored.Filled.HelpOutline
             },
             primary = shownNetworkLabel,
             secondary = stringResource(R.string.status_network),

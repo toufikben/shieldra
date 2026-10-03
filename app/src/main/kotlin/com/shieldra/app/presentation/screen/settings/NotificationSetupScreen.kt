@@ -45,6 +45,9 @@ fun NotificationSetupScreen(
     onRequest: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenSystemSettings: () -> Unit = {},
+    /** "Cancel" from Settings; "Continue" when the screen is a step of first-run setup. */
+    doneLabel: Int = R.string.action_cancel,
 ) {
     val spacing = ShieldraTheme.spacing
     Column(
@@ -91,14 +94,25 @@ fun NotificationSetupScreen(
             )
         }
         Spacer(Modifier.height(spacing.xl))
-        ShieldraFullWidthButton(
-            text = stringResource(R.string.notification_turn_on),
-            onClick = onRequest,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        when (permissionState) {
+            NotificationPermissionState.NotRequested -> ShieldraFullWidthButton(
+                text = stringResource(R.string.notification_turn_on),
+                onClick = onRequest,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // Android stops showing the dialog after it was refused, so asking again does nothing.
+            // The only place the owner can still allow it is the app's own system settings page.
+            NotificationPermissionState.Denied -> ShieldraFullWidthButton(
+                text = stringResource(R.string.notification_open_settings),
+                onClick = onOpenSystemSettings,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // Already allowed, or nothing to allow on this Android version: no button to press.
+            NotificationPermissionState.Granted, NotificationPermissionState.NotRequired -> Unit
+        }
         Spacer(Modifier.height(spacing.s))
         ShieldraFullWidthButton(
-            text = stringResource(R.string.action_cancel),
+            text = stringResource(doneLabel),
             onClick = onBack,
             variant = ShieldraButtonVariant.Ghost,
             modifier = Modifier.fillMaxWidth(),

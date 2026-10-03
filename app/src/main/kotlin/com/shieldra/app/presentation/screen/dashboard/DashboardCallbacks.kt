@@ -10,4 +10,6 @@ data class DashboardCallbacks(
     val onViewAllEvents: () -> Unit,
     /** Brings Motion monitoring up or down; the state it leaves behind is read back from the service. */
     val onMotionMonitoringToggle: () -> Unit = {},
+    /** A plain tap on Panic, which only explains that Panic needs a press-and-hold. */
+    val onPanicTapHint: () -> Unit = {},
 )

@@ -87,8 +87,10 @@ private fun configFor(state: ProtectionVisualState): ShieldCoreConfig {
             color = semantic.attention,
             ringWidthDp = 4f,
             haloAlpha = 0.20f,
-            pulseMs = ShieldraTheme.motion.standardMs,
-            pulseScale = 1.02f,
+            // Attention is the resting state of most installs, so it holds still: a shield beating at
+            // roughly two pulses a second on the home screen read as an alarm that never ended.
+            pulseMs = 0,
+            pulseScale = 1f,
             label = stringResource(R.string.protection_attention),
             accessibilityLabel = stringResource(R.string.protection_attention_accessibility),
         )

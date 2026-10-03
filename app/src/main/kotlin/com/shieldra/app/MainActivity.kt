@@ -1,16 +1,17 @@
 package com.shieldra.app
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.remember
+import androidx.fragment.app.FragmentActivity
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.navigation.OnboardingState
 import com.shieldra.app.navigation.PreferencesOnboardingCompletionRecord
 import com.shieldra.app.navigation.ShieldraNavHost
 
-class MainActivity : ComponentActivity() {
+/** A FragmentActivity (still a ComponentActivity) because the owner check uses BiometricPrompt. */
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
