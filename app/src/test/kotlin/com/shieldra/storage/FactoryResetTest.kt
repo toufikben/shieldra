@@ -55,6 +55,28 @@ class FactoryResetTest {
     }
 
     @Test
+    fun reset_empties_the_store_s_own_quarantine_and_the_database_wal_and_shm_files() {
+        val dir = evidenceDir()
+        val meta = metadataStore()
+        val quarantine = File(dir, EncryptedEvidenceFileStore.QUARANTINE_DIRECTORY).apply { mkdirs() }
+        val quarantined = File(quarantine, "ev-q.shieldra").apply { writeBytes("ciphertext".toByteArray()) }
+        meta.writeBytes("rows".toByteArray())
+        val wal = File(meta.path + "-wal").apply { writeBytes("recent rows".toByteArray()) }
+        val shm = File(meta.path + "-shm").apply { writeBytes("index".toByteArray()) }
+
+        val result = FactoryReset(
+            evidenceDirectory = dir,
+            metadataDatabase = meta,
+            keyDeletion = { true },
+        ).execute(aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS), confirmed = true)
+
+        assertIs<FactoryResetResult.Completed>(result)
+        assertFalse(quarantined.exists(), "§5.2: quarantined ciphertext must not outlive a reset")
+        assertFalse(wal.exists(), "rows still in the write-ahead log must not outlive a reset")
+        assertFalse(shm.exists(), "the WAL index must not outlive a reset")
+    }
+
+    @Test
     fun reset_is_idempotent_when_storage_is_already_empty() {
         val reset = FactoryReset(
             evidenceDirectory = evidenceDir(),

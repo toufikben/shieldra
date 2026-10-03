@@ -133,9 +133,8 @@ class EvidenceRetentionSweepInstrumentedTest {
      * The 30/30/90 asymmetry, measured rather than assumed: a payload expires with its owning
      * row's age under the 30-day evidence window, while the row itself serves 90. The payload
      * file is written seconds before the sweep, so only the row's stamp can be what deleted it.
-     * The reference row is what the sweep leaves behind, and this asserts it because that is
-     * what the approved windows do today: between day 30 and day 90 the record names a payload
-     * that is no longer on the disk.
+     * The payload's reference row goes with it, so between day 30 and day 90 the event survives
+     * without naming a payload that is no longer on the disk.
      */
     @Test
     fun payload_expires_at_its_thirty_day_window_while_the_row_that_owns_it_serves_ninety() {
@@ -161,7 +160,7 @@ class EvidenceRetentionSweepInstrumentedTest {
         assertEquals(emptySet<String>(), report.failedIds)
         assertFalse(payloadFile(directory, YOUNG_EVIDENCE).isFile)
         assertNotNull(repository.find(youngEventId))
-        assertEquals(1, database.evidenceReferenceDao().findAll().count { it.evidenceId == YOUNG_EVIDENCE })
+        assertEquals(0, database.evidenceReferenceDao().findAll().count { it.evidenceId == YOUNG_EVIDENCE })
         database.close()
         delete(name, directory)
     }

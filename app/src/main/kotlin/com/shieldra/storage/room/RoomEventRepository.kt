@@ -31,11 +31,28 @@ class RoomEventRepository(
     private val evidence = database.evidenceReferenceDao()
     private val delivery = database.deliveryAttemptDao()
 
-    override fun find(eventId: EventId): SecurityEvent? = events.find(eventId.value.toString())?.let(::toDomain)
+    override fun find(eventId: EventId): SecurityEvent? = events.find(eventId.value.toString())?.let { entity ->
+        toDomain(entity, evidence.findForEvent(entity.eventId), delivery.findForEvent(entity.eventId))
+    }
 
+    /**
+     * A page is three queries whatever its size: the events, then the child rows of all of them.
+     * The per-event child reads this replaced made a 100-row page cost 201 queries.
+     */
     override fun listRecent(limit: Int): List<SecurityEvent> {
         require(limit > 0) { "limit must be positive" }
-        return events.findRecent(limit).map(::toDomain)
+        val page = events.findRecent(limit)
+        if (page.isEmpty()) return emptyList()
+        val ids = page.map { it.eventId }
+        val referencesByEvent = evidence.findForEvents(ids).groupBy { it.eventId }
+        val attemptsByEvent = delivery.findForEvents(ids).groupBy { it.eventId }
+        return page.map { entity ->
+            toDomain(
+                entity,
+                referencesByEvent[entity.eventId].orEmpty(),
+                attemptsByEvent[entity.eventId].orEmpty(),
+            )
+        }
     }
 
     override fun save(event: SecurityEvent): RepositoryResult {
@@ -128,14 +145,18 @@ class RoomEventRepository(
         }
     }
 
-    private fun toDomain(entity: SecurityEventEntity): SecurityEvent = SecurityEvent.create(
+    private fun toDomain(
+        entity: SecurityEventEntity,
+        references: List<EvidenceReferenceEntity>,
+        attempts: List<DeliveryAttemptEntity>,
+    ): SecurityEvent = SecurityEvent.create(
         eventId = EventId.from(UUID.fromString(entity.eventId)),
         createdAt = Instant.ofEpochMilli(entity.createdAtEpochMs),
         expiresAt = entity.expiresAtEpochMs?.let(Instant::ofEpochMilli),
         state = EventState.valueOf(entity.state),
         severity = entity.severity?.let(GuardSeverity::valueOf),
-        evidenceReferences = evidence.findForEvent(entity.eventId).map { EvidenceReference(it.evidenceId) },
-        deliveryInformation = delivery.findForEvent(entity.eventId).map { attempt ->
+        evidenceReferences = references.map { EvidenceReference(it.evidenceId) },
+        deliveryInformation = attempts.map { attempt ->
             DeliveryInformation(
                 channel = attempt.channel,
                 status = DeliveryStatus.valueOf(attempt.status),

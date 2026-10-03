@@ -84,20 +84,27 @@ class FactoryReset(
             }
         }
         // §5.2: quarantine is not a valid evidence namespace and must not
-        // survive a reset either.
-        for (quarantined in quarantineDirectory().listFiles().orEmpty()) {
-            try {
-                if (Files.deleteIfExists(quarantined.toPath())) removed++
-            } catch (error: Exception) {
-                failures += "quarantined file ${quarantined.name} could not be removed: ${error.message}"
+        // survive a reset either. The store names it ".quarantine"; this used to
+        // empty "quarantine", so quarantined ciphertext outlived every reset.
+        for (directory in quarantineDirectories()) {
+            for (quarantined in directory.listFiles().orEmpty()) {
+                try {
+                    if (Files.deleteIfExists(quarantined.toPath())) removed++
+                } catch (error: Exception) {
+                    failures += "quarantined file ${quarantined.name} could not be removed: ${error.message}"
+                }
             }
         }
 
-        // Step 4: Room event metadata.
-        try {
-            if (Files.deleteIfExists(metadataDatabase.toPath())) removed++
-        } catch (error: Exception) {
-            failures += "Room database could not be removed: ${error.message}"
+        // Step 4: Room event metadata, with the files SQLite keeps beside it.
+        // Room writes in WAL mode, so recent rows can live in "-wal" until a
+        // checkpoint; deleting only the main file left them readable.
+        for (databaseFile in databaseFiles()) {
+            try {
+                if (Files.deleteIfExists(databaseFile.toPath())) removed++
+            } catch (error: Exception) {
+                failures += "Room database file ${databaseFile.name} could not be removed: ${error.message}"
+            }
         }
 
         // Step 6: Keystore evidence key. A-2: mandatory.
@@ -110,14 +117,17 @@ class FactoryReset(
             }
         }
 
-        // Step 7: verify storage absence — only meaningful after removal.
-        val evidenceStillPresent = evidenceDirectory.listFiles().orEmpty()
-            .any { Files.isRegularFile(it.toPath(), NOFOLLOW_LINKS) }
+        // Step 7: verify storage absence — only meaningful after removal. The
+        // check walks subdirectories too, so nothing in quarantine can hide.
+        val evidenceStillPresent = evidenceDirectory.walkTopDown()
+            .any { it != evidenceDirectory && Files.isRegularFile(it.toPath(), NOFOLLOW_LINKS) }
         if (evidenceStillPresent) {
             failures += "evidence storage is still present after reset"
         }
-        if (metadataDatabase.exists()) {
-            failures += "Room database is still present after reset"
+        for (databaseFile in databaseFiles()) {
+            if (databaseFile.exists()) {
+                failures += "Room database file ${databaseFile.name} is still present after reset"
+            }
         }
 
         return if (failures.isEmpty()) {
@@ -127,5 +137,12 @@ class FactoryReset(
         }
     }
 
-    private fun quarantineDirectory(): File = File(evidenceDirectory, "quarantine")
+    /** The store's quarantine, plus the misspelt one earlier builds emptied, in case it exists. */
+    private fun quarantineDirectories(): List<File> = listOf(
+        File(evidenceDirectory, EncryptedEvidenceFileStore.QUARANTINE_DIRECTORY),
+        File(evidenceDirectory, "quarantine"),
+    )
+
+    private fun databaseFiles(): List<File> = listOf("", "-wal", "-shm", "-journal")
+        .map { suffix -> File(metadataDatabase.path + suffix) }
 }
