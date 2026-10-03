@@ -33,6 +33,7 @@ class ShieldraApp : Application() {
         private set
 
     /** Outcome of the rotation check this process started; null until it completes. */
+    @Volatile
     var lastRotationReport: RotationRunReport? = null
         private set
 
@@ -41,14 +42,17 @@ class ShieldraApp : Application() {
      * instead of swallowed: the 90-day clock is then unknown, and guessing a key
      * version is exactly what §6 forbids.
      */
+    @Volatile
     var lastRotationFailure: Throwable? = null
         private set
 
     /** What the startup retention sweep removed (Q-K-2); null until it completes. */
+    @Volatile
     var lastRetentionReport: RetentionSweepReport? = null
         private set
 
     /** A retention sweep that could not read the stored set. Kept, not swallowed (§6). */
+    @Volatile
     var lastRetentionFailure: Throwable? = null
         private set
 

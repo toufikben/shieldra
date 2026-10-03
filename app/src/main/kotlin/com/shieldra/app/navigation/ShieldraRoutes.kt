@@ -3,6 +3,8 @@ package com.shieldra.app.navigation
 object ShieldraRoutes {
     const val ONBOARDING_WELCOME = "onboarding/welcome"
     const val ONBOARDING_PERMISSIONS = "onboarding/permissions"
+    /** The notification setup screen as a first-run step: same screen, same single request (A-6). */
+    const val ONBOARDING_NOTIFICATIONS = "onboarding/notifications"
     const val ONBOARDING_PROTECTION = "onboarding/protection"
 
     const val DASHBOARD = "main/dashboard"

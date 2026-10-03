@@ -89,8 +89,19 @@ interface EvidenceReferenceDao {
     @Query("SELECT * FROM event_evidence_refs WHERE event_id = :eventId")
     fun findForEvent(eventId: String): List<EvidenceReferenceEntity>
 
+    /** The evidence rows of a page of events in one query, instead of one query per event. */
+    @Query("SELECT * FROM event_evidence_refs WHERE event_id IN (:eventIds) ORDER BY rowid")
+    fun findForEvents(eventIds: List<String>): List<EvidenceReferenceEntity>
+
     @Query("SELECT * FROM event_evidence_refs WHERE evidence_id = :evidenceId LIMIT 1")
     fun findById(evidenceId: String): EvidenceReferenceEntity?
+
+    /**
+     * Removes the rows of payloads the retention sweep really deleted, so the record never names a
+     * file that is gone. Callers must pass a non-empty list.
+     */
+    @Query("DELETE FROM event_evidence_refs WHERE evidence_id IN (:evidenceIds)")
+    fun deleteByIds(evidenceIds: List<String>): Int
 
     /**
      * Marks one evidence row migrated to a new key/AAD version (decision §3.3).
@@ -148,6 +159,10 @@ interface DeliveryAttemptDao {
 
     @Query("SELECT * FROM event_delivery_attempts WHERE event_id = :eventId")
     fun findForEvent(eventId: String): List<DeliveryAttemptEntity>
+
+    /** The attempt rows of a page of events in one query, instead of one query per event. */
+    @Query("SELECT * FROM event_delivery_attempts WHERE event_id IN (:eventIds) ORDER BY rowid")
+    fun findForEvents(eventIds: List<String>): List<DeliveryAttemptEntity>
 
     /** Removes the attempt rows of expired events. Callers must pass a non-empty list. */
     @Query("DELETE FROM event_delivery_attempts WHERE event_id IN (:eventIds)")

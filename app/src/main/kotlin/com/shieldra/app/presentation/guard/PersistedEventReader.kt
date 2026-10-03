@@ -25,6 +25,11 @@ class PersistedEventReader(
     private val storageInstalled: Boolean,
     private val loadRecent: (limit: Int) -> List<SecurityEvent>,
     private val labels: PersistedEventLabels = PersistedEventLabels(),
+    /**
+     * Direct lookup by id. When it is supplied an event is found however old it is; without it the
+     * reader falls back to scanning the newest [LOOKUP_WINDOW] rows, which is what pure tests use.
+     */
+    private val loadOne: ((eventId: String) -> SecurityEvent?)? = null,
 ) {
     fun readRecent(limit: Int, now: Instant): List<EventUiModel> {
         val events = readPersisted(limit) ?: return emptyList()
@@ -32,6 +37,11 @@ class PersistedEventReader(
     }
 
     fun readOne(eventId: String, now: Instant): EventDetailUiModel? {
+        if (!storageInstalled) return null
+        val direct = loadOne
+        if (direct != null) {
+            return runCatching { direct(eventId) }.getOrNull()?.toDetailUiModel(now)
+        }
         val events = readPersisted(LOOKUP_WINDOW) ?: return null
         return events.firstOrNull { it.id.value.toString() == eventId }?.toDetailUiModel(now)
     }
@@ -44,7 +54,7 @@ class PersistedEventReader(
     private fun SecurityEvent.toUiModel(now: Instant): EventUiModel = EventUiModel(
         id = id.value.toString(),
         type = persistedEventTypeOf(this.type),
-        title = labels.title,
+        title = labels.titleFor(this.type),
         subtitle = labels.stateLabel(state),
         timestampLabel = labels.ageLabel(now, createdAt),
         deliveryStatus = state.toDeliveryStatus(),
@@ -55,8 +65,11 @@ class PersistedEventReader(
     private fun SecurityEvent.toDetailUiModel(now: Instant): EventDetailUiModel = EventDetailUiModel(
         id = id.value.toString(),
         type = persistedEventTypeOf(this.type),
-        title = labels.title,
+        title = labels.titleFor(this.type),
         timestampLabel = labels.ageLabel(now, createdAt),
+        statusLabel = labels.stateLabel(state),
+        // A-7's durable count, shown only for the Panic incidents that carry one.
+        activationCount = panicActivationCount,
         batteryPercent = null,
         hasPhoto = false,
         location = LocationUiModel(kind = LocationKind.Unavailable),
@@ -87,6 +100,8 @@ internal fun persistedEventTypeOf(type: SecurityEventType): EventType = when (ty
 data class PersistedEventLabels(
     val title: String = "Security event",
     val stateLabels: Map<EventState, String> = emptyMap(),
+    /** A guard-specific title per stored type; a type with none keeps the generic [title]. */
+    val typeTitles: Map<SecurityEventType, String> = emptyMap(),
     val ageLabel: (now: Instant, createdAt: Instant) -> String = { now, createdAt ->
         val parts = ageParts(now, createdAt)
         when (parts) {
@@ -98,6 +113,8 @@ data class PersistedEventLabels(
     },
 ) {
     fun stateLabel(state: EventState): String = stateLabels[state] ?: state.name
+
+    fun titleFor(type: SecurityEventType): String = typeTitles[type] ?: title
 }
 
 internal fun EventState.toDeliveryStatus(): DeliveryStatus = when (this) {

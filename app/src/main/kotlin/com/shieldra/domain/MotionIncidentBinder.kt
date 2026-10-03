@@ -1,6 +1,7 @@
 package com.shieldra.domain
 
 import java.time.Clock as JavaClock
+import java.time.Duration
 import java.time.Instant
 
 /** What one Movement report produced (amendment A-18). */
@@ -25,8 +26,17 @@ sealed interface MotionConfirmation {
  * threshold and owns no confirmation rule, so G1-02's three-second/ten-second
  * policy has one home. What is added here is lifetime: while a non-terminal
  * `MOTION_CONFIRMED_EVENT` exists, a further confirmation binds to that same
- * event, and only a terminal one starts a new incident. There is no cooldown and
- * no new number, because the event's own lifecycle is the boundary.
+ * event, and only a terminal one starts a new incident. There is no cooldown.
+ *
+ * The lifecycle alone was not enough: nothing in the shipping app moves a Motion
+ * event to a terminal state, so the first incident absorbed every later Movement
+ * for as long as it existed and the guard recorded exactly one event. The same
+ * defect was closed for Panic by A-28's reuse window, and the same window bounds
+ * Motion here: a Movement joins the open incident only while that incident is at
+ * most [MOTION_REUSE_WINDOW_MINUTES] old, measured from its own persisted start.
+ *
+ * The open incident is remembered between calls, so a repeat costs one primary-key
+ * read instead of a scan of the newest rows on the sensor thread.
  *
  * The type filter is the point of the whole design (the hazard A-7 named, seen
  * from the other side): a plain "newest non-terminal event" rule would attach a
@@ -45,6 +55,9 @@ class MotionIncidentBinder(
     private val clock: Clock = Clock { Instant.now(JavaClock.systemUTC()) },
     private val activeEventScanLimit: Int = ACTIVE_EVENT_SCAN_LIMIT,
 ) {
+    /** The incident the last call bound to or recorded; re-read from storage before it is trusted. */
+    private var openIncident: SecurityEvent? = null
+
     @Synchronized
     fun confirm(signal: GuardSignal): MotionConfirmation {
         val evaluation = engine.evaluate(signal, clock, identityProvider)
@@ -54,13 +67,20 @@ class MotionIncidentBinder(
         val confirmed = evaluation.event
             ?: return MotionConfirmation.NotConfirmed("A confirmed Movement produced no event to persist")
 
-        val active = repository.listRecent(activeEventScanLimit)
-            .firstOrNull { it.type == SecurityEventType.MOTION_CONFIRMED_EVENT && !it.state.isTerminal() }
-        if (active != null) return MotionConfirmation.BoundToActive(active)
+        val at = clock.now()
+        val active = rememberedIncident(at) ?: repository.listRecent(activeEventScanLimit)
+            .firstOrNull { it.isOpenMotionIncident(at) }
+        if (active != null) {
+            openIncident = active
+            return MotionConfirmation.BoundToActive(active)
+        }
 
         val motion = confirmed.asMotionConfirmation()
         return when (val saved = repository.save(motion)) {
-            is RepositoryResult.Applied -> MotionConfirmation.Recorded(motion)
+            is RepositoryResult.Applied -> {
+                openIncident = motion
+                MotionConfirmation.Recorded(motion)
+            }
             is RepositoryResult.AlreadyExists ->
                 MotionConfirmation.BoundToActive(repository.find(motion.id) ?: motion)
             is RepositoryResult.Conflict ->
@@ -70,6 +90,22 @@ class MotionIncidentBinder(
             is RepositoryResult.Rejected -> MotionConfirmation.Rejected(saved.reason)
         }
     }
+
+    /**
+     * The remembered incident, re-read by id so a state change made elsewhere is seen. Anything that
+     * is gone, terminal, or past the window is forgotten and the caller falls back to the scan.
+     */
+    private fun rememberedIncident(at: Instant): SecurityEvent? {
+        val remembered = openIncident ?: return null
+        val current = repository.find(remembered.id)?.takeIf { it.isOpenMotionIncident(at) }
+        if (current == null) openIncident = null
+        return current
+    }
+
+    private fun SecurityEvent.isOpenMotionIncident(at: Instant): Boolean =
+        type == SecurityEventType.MOTION_CONFIRMED_EVENT &&
+            !state.isTerminal() &&
+            Duration.between(createdAt, at) <= MOTION_REUSE_WINDOW
 
     /**
      * Tags the engine's event as Motion before the first write, so a crash
@@ -92,5 +128,14 @@ class MotionIncidentBinder(
     private companion object {
         /** The active Motion incident is the newest one; history is bounded well below this. */
         const val ACTIVE_EVENT_SCAN_LIMIT = 100
+
+        /**
+         * The same ten minutes the owner approved for Panic (Q-K-8, A-28), applied to Motion for the
+         * same reason. Named once so no call site can restate a different deadline; a Motion-specific
+         * value is an owner decision and changes only here.
+         */
+        const val MOTION_REUSE_WINDOW_MINUTES: Long = 10L
+
+        val MOTION_REUSE_WINDOW: Duration = Duration.ofMinutes(MOTION_REUSE_WINDOW_MINUTES)
     }
 }

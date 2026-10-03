@@ -4,7 +4,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.provider.Settings as AndroidSettings
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import com.shieldra.app.design.components.domain.LoadingStateList
+import com.shieldra.app.presentation.auth.OwnerCheck
+import com.shieldra.app.presentation.auth.OwnerCheckResult
+import com.shieldra.domain.SecurityEventType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -86,7 +98,7 @@ fun ShieldraNavHost(
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showBottomBar = currentRoute in BottomTab.values().map { it.route }
+    val showBottomBar = currentRoute in BottomTab.entries.map { it.route }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val deferredMessage = stringResource(R.string.phase3_deferred)
@@ -130,8 +142,25 @@ fun ShieldraNavHost(
     // UI renders empty until the real rows arrive. The keys are the writes that change what the
     // query can return: a Panic press, and an event row the running monitor just persisted.
     val motionEventWrites by MotionEventWrites.state.collectAsState()
+    // One load serves both lists: History shows the whole page, the dashboard the newest few. A page
+    // is three queries whatever its size, so History no longer stops at the dashboard's twenty.
     val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage, panicActivations, motionEventWrites) {
-        value = withContext(Dispatchers.IO) { eventReader.readRecent(RECENT_EVENT_LIMIT, Instant.now()) }
+        value = withContext(Dispatchers.IO) { eventReader.readRecent(HISTORY_EVENT_LIMIT, Instant.now()) }
+    }
+    var panicInFlight by remember { mutableStateOf(false) }
+    val panicRejectedMessage = stringResource(R.string.panic_not_recorded)
+    val panicHoldMessage = stringResource(R.string.panic_hold_hint)
+    val ownerCheckTitle = stringResource(R.string.owner_check_stop_title)
+    val ownerCheckSubtitle = stringResource(R.string.owner_check_stop_subtitle)
+    val ownerCheckRefusedMessage = stringResource(R.string.owner_check_refused)
+    // The system settings page can change the permission behind the app's back, so the state is
+    // re-read whenever the app comes back to the front.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { permissionRequests += 1 }
+    val openNotificationSettings = {
+        val intent = Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName)
+        runCatching { context.startActivity(intent) }
+        Unit
     }
     val monitoringStoppedMessage = stringResource(R.string.motion_monitoring_stopped)
     val monitoringNeedsPermissionMessage = stringResource(R.string.motion_monitoring_needs_permission)
@@ -176,17 +205,30 @@ fun ShieldraNavHost(
                 )
             }
             composable(ShieldraRoutes.ONBOARDING_PERMISSIONS) {
-                // Presentation-only Phase 3 screen; Android permission acquisition is not implemented.
+                // Continue opens the notification setup screen, which stays the one place the
+                // permission is requested (A-6); this step used to answer Continue with a deferral.
                 com.shieldra.app.presentation.screen.onboarding.PermissionsScreen(
                     step = 1,
-                    totalSteps = 1,
-                    icon = Icons.Filled.Settings,
+                    totalSteps = 2,
+                    icon = Icons.Filled.Notifications,
                     title = stringResource(R.string.notifications),
                     reason = stringResource(R.string.onboarding_notification_reason),
-                    onAllow = { defer() },
+                    onAllow = {
+                        navController.navigate(ShieldraRoutes.ONBOARDING_NOTIFICATIONS)
+                    },
                     onNotNow = {
                         navController.navigate(ShieldraRoutes.ONBOARDING_PROTECTION)
                     },
+                )
+            }
+            composable(ShieldraRoutes.ONBOARDING_NOTIFICATIONS) {
+                NotificationSetupScreen(
+                    permissionState = remember(permissionRequests) { notifier.permissionState() },
+                    lastResult = null,
+                    onRequest = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                    onBack = { navController.navigate(ShieldraRoutes.ONBOARDING_PROTECTION) },
+                    onOpenSystemSettings = openNotificationSettings,
+                    doneLabel = R.string.action_continue,
                 )
             }
             composable(ShieldraRoutes.ONBOARDING_PROTECTION) {
@@ -213,29 +255,45 @@ fun ShieldraNavHost(
                             navController.navigate(ShieldraRoutes.eventDetail(id))
                         },
                         onGuardClick = { defer() },
+                        onPanicTapHint = {
+                            scope.launch { snackbarHostState.showSnackbar(panicHoldMessage) }
+                        },
                         onPanic = {
                             val coordinator = panicCoordinator
                             if (coordinator == null) {
                                 defer()
-                            } else {
+                            } else if (!panicInFlight) {
+                                // One activation at a time: a second hold while the first is still
+                                // being stored would only queue a duplicate write behind it.
+                                panicInFlight = true
                                 scope.launch {
-                                    val activation = withContext(Dispatchers.IO) { coordinator.activate() }
-                                    // The event is already persisted at this point; a
-                                    // missing notification never undoes that (A-6).
-                                    lastPostResult = when (activation) {
-                                        is PanicActivation.Recorded ->
-                                            notifier.postSecurityEvent(
-                                                activation.event.id.value.toString(),
-                                                eventLabels.stateLabel(activation.event.state),
+                                    try {
+                                        val activation = withContext(Dispatchers.IO) { coordinator.activate() }
+                                        // The event is already persisted at this point; a missing
+                                        // notification never undoes that (A-6). The post goes to the
+                                        // silent channel, so nobody holding the phone is told.
+                                        lastPostResult = when (activation) {
+                                            is PanicActivation.Recorded -> notifier.postSecurityEvent(
+                                                eventId = activation.event.id.value.toString(),
+                                                statusLabel = eventLabels.stateLabel(activation.event.state),
+                                                title = eventLabels.titleFor(activation.event.type),
+                                                silent = true,
                                             )
-                                        is PanicActivation.BoundToActive ->
-                                            notifier.postSecurityEvent(
-                                                activation.event.id.value.toString(),
-                                                eventLabels.stateLabel(activation.event.state),
+                                            is PanicActivation.BoundToActive -> notifier.postSecurityEvent(
+                                                eventId = activation.event.id.value.toString(),
+                                                statusLabel = eventLabels.stateLabel(activation.event.state),
+                                                title = eventLabels.titleFor(activation.event.type),
+                                                silent = true,
                                             )
-                                        is PanicActivation.Rejected -> LocalPostResult.NotAttempted
+                                            is PanicActivation.Rejected -> {
+                                                snackbarHostState.showSnackbar(panicRejectedMessage)
+                                                LocalPostResult.NotAttempted
+                                            }
+                                        }
+                                        if (activation !is PanicActivation.Rejected) panicActivations += 1
+                                    } finally {
+                                        panicInFlight = false
                                     }
-                                    panicActivations += 1
                                 }
                             }
                         },
@@ -244,18 +302,40 @@ fun ShieldraNavHost(
                         },
                         onMotionMonitoringToggle = {
                             if (motionClaim.claimsProtection) {
-                                stopWasRequested = true
-                                MotionRuntime.stopMonitoring(context)
+                                // Stopping weakens protection, so the owner proves it is them first
+                                // (DISABLE_PROTECTION); otherwise one tap by whoever holds the phone
+                                // switched monitoring off.
+                                val activity = context.findFragmentActivity()
+                                if (activity == null) {
+                                    stopWasRequested = true
+                                    MotionRuntime.stopMonitoring(context)
+                                } else {
+                                    OwnerCheck.request(activity, ownerCheckTitle, ownerCheckSubtitle) { result ->
+                                        when (result) {
+                                            OwnerCheckResult.Confirmed, OwnerCheckResult.NoScreenLock -> {
+                                                stopWasRequested = true
+                                                MotionRuntime.stopMonitoring(context)
+                                            }
+                                            OwnerCheckResult.Refused -> scope.launch {
+                                                snackbarHostState.showSnackbar(ownerCheckRefusedMessage)
+                                            }
+                                        }
+                                    }
+                                }
                             } else {
                                 // The service publishes its own claim once it is really up, so a start
                                 // that this press asked for renders as monitoring only when Android
                                 // and the sensor agree.
                                 when (MotionRuntime.startMonitoring(context, storageInstalled)) {
                                     MotionMonitoringStartDecision.MayStartMonitoring -> Unit
-                                    MotionMonitoringStartDecision.AskForNotificationPermission ->
+                                    // Not asked yet: take the owner to the one screen that asks (A-6)
+                                    // instead of leaving them with a message and nowhere to go.
+                                    MotionMonitoringStartDecision.AskForNotificationPermission -> {
+                                        navController.navigate(ShieldraRoutes.NOTIFICATION_SETUP)
                                         scope.launch {
                                             snackbarHostState.showSnackbar(monitoringNeedsPermissionMessage)
                                         }
+                                    }
 
                                     is MotionMonitoringStartDecision.DoNotStartMonitoring ->
                                         scope.launch {
@@ -316,6 +396,7 @@ fun ShieldraNavHost(
                     lastResult = lastPostResult,
                     onRequest = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
                     onBack = { navController.popBackStack() },
+                    onOpenSystemSettings = openNotificationSettings,
                 )
             }
 
@@ -334,7 +415,10 @@ fun ShieldraNavHost(
                     )
                 }
                 val detail = (lookup as? DetailLookup.Resolved)?.detail
-                if (detail == null) {
+                if (lookup == DetailLookup.Loading) {
+                    // Still reading: "Event unavailable" used to flash here before every detail.
+                    LoadingStateList(rows = 3)
+                } else if (detail == null) {
                     ErrorStateFullScreen(
                         title = stringResource(R.string.event_unknown_title),
                         message = stringResource(R.string.event_unknown_message),
@@ -369,11 +453,23 @@ private fun persistedEventLabels(): PersistedEventLabels {
         EventState.EXPIRED to stringResource(eventStateLabelRes(EventState.EXPIRED)),
     )
     val ageLabel = ageLabelFormatter()
+    val typeTitles = mapOf(
+        SecurityEventType.MOTION_CONFIRMED_EVENT to stringResource(R.string.event_title_motion),
+        SecurityEventType.PANIC_ACTIVATION to stringResource(R.string.event_title_panic),
+    )
     return PersistedEventLabels(
         title = stringResource(R.string.event_security_event),
         stateLabels = stateLabels,
+        typeTitles = typeTitles,
         ageLabel = ageLabel,
     )
+}
+
+/** BiometricPrompt needs the hosting FragmentActivity; the composition only holds a Context. */
+private tailrec fun Context.findFragmentActivity(): FragmentActivity? = when (this) {
+    is FragmentActivity -> this
+    is ContextWrapper -> baseContext.findFragmentActivity()
+    else -> null
 }
 
 /**
@@ -394,6 +490,7 @@ private fun ageLabelFormatter(): (Instant, Instant) -> String {
 }
 
 private const val RECENT_EVENT_LIMIT = 20
+private const val HISTORY_EVENT_LIMIT = 200
 
 /** Distinguishes "still loading" from "no such event", which are both null. */
 private sealed interface DetailLookup {
@@ -407,7 +504,7 @@ private fun ShieldraBottomBar(
     currentRoute: String?,
 ) {
     NavigationBar {
-        BottomTab.values().forEach { tab ->
+        BottomTab.entries.forEach { tab ->
             NavigationBarItem(
                 selected = currentRoute == tab.route,
                 onClick = {

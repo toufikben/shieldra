@@ -33,6 +33,8 @@ interface MotionMonitor {
  * [MonitoringClaim.NoExecution], whatever the user pressed.
  */
 object MotionRuntime {
+    /** Written on the main thread by the service, read from the watchdog and any reader thread. */
+    @Volatile
     private var monitor: MotionMonitor? = null
     private val claims = MutableStateFlow(claimOf(null))
 
@@ -57,10 +59,19 @@ object MotionRuntime {
             )
         }
         if (decision is MotionMonitoringStartDecision.MayStartMonitoring) {
-            ContextCompat.startForegroundService(
-                context,
-                Intent(context, MotionMonitoringService::class.java),
-            )
+            try {
+                ContextCompat.startForegroundService(
+                    context,
+                    Intent(context, MotionMonitoringService::class.java),
+                )
+            } catch (refused: IllegalStateException) {
+                // Android 12+ refuses a foreground-service start from the background
+                // (ForegroundServiceStartNotAllowedException is an IllegalStateException). That is a
+                // refusal to report, never a crash and never a claim that monitoring started.
+                return MotionMonitoringStartDecision.DoNotStartMonitoring(
+                    refused.message ?: "Android did not allow monitoring to start right now.",
+                )
+            }
         }
         return decision
     }

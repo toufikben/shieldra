@@ -133,6 +133,38 @@ class MotionIncidentBinderTest {
         assertTrue(base.listRecent(50).isEmpty(), "an unpersisted event must not appear in history")
     }
 
+    @Test
+    fun a_movement_after_the_reuse_window_starts_a_new_incident_even_while_the_old_one_is_still_open() {
+        val repository = InMemoryEventRepository()
+        var now = observedAt
+        val binder = MotionIncidentBinder(repository = repository, identityProvider = CountingIdentities(), clock = Clock { now })
+
+        val first = assertIs<MotionConfirmation.Recorded>(binder.confirm(strongMovement()))
+        now = observedAt.plus(Duration.ofMinutes(9))
+        val inside = assertIs<MotionConfirmation.BoundToActive>(binder.confirm(strongMovement()))
+        now = observedAt.plus(Duration.ofMinutes(11))
+        val later = assertIs<MotionConfirmation.Recorded>(binder.confirm(strongMovement()))
+
+        assertEquals(first.event.id, inside.event.id, "inside the window the incident is the same")
+        assertTrue(later.event.id != first.event.id, "an incident that never terminated must not absorb movement forever")
+        assertEquals(2, repository.listRecent(50).size)
+    }
+
+    @Test
+    fun a_repeat_inside_the_window_does_not_rescan_the_event_history() {
+        val base = InMemoryEventRepository()
+        var scans = 0
+        val repository = object : EventRepository by base {
+            override fun listRecent(limit: Int): List<SecurityEvent> = base.listRecent(limit).also { scans++ }
+        }
+        val binder = binder(repository, CountingIdentities())
+
+        assertIs<MotionConfirmation.Recorded>(binder.confirm(strongMovement()))
+        repeat(50) { assertIs<MotionConfirmation.BoundToActive>(binder.confirm(strongMovement())) }
+
+        assertEquals(1, scans, "the open incident is remembered; only the first confirmation scans")
+    }
+
     private fun binder(repository: EventRepository, identities: IdentityProvider = CountingIdentities()) =
         MotionIncidentBinder(
             repository = repository,

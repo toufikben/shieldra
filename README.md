@@ -1,24 +1,32 @@
 # Shieldra
 
-Shieldra is a clean-slate Android project repository. Group A established the reproducible environment, Group B created the Android project structure, and Group C established typed core contracts and architectural boundaries. Phase 3 now adds the presentation-only Compose shell described by the original handoff.
+Shieldra is a device-first Android anti-theft and personal-safety app (Kotlin, Jetpack Compose, minSdk 26, target API 36). Everything it records stays on the phone.
 
-The current app includes onboarding, dashboard, history, event detail, premium, settings, reusable design-system components, a localized English/Arabic resource foundation, an explicit vector launcher icon, and a Compose navigation graph. The runnable shell uses clearly named `DemoData`; it is not production data and does not claim that deferred actions succeeded. The current internal decision authority is [`SHIELDRA_DECISIONS.md`](SHIELDRA_DECISIONS.md), with the Phase 4 gate register and capability matrices under `docs/`.
+## What the current build does
 
-## Explicit Phase 3 non-goals
+- **Motion monitoring:** a foreground service samples the accelerometer, judges movement with the owner-approved calibration (`ApprovedMotionCalibration`), records a confirmed Motion incident in local storage, and posts a local notification. Stopping monitoring asks for the device's own biometric or screen-lock credential.
+- **Silent Panic:** press-and-hold on the dashboard records a Panic incident. Its notification goes to a silent channel: no sound, no vibration, nothing on the lock screen.
+- **Local storage:** Room for event metadata (explicit migrations, no destructive fallback). Evidence files are AES-GCM encrypted with an Android Keystore key and canonical AAD, with retention windows (30 days for evidence, 90 days for events), key rotation, and a confirmed factory reset.
+- **Notifications:** `POST_NOTIFICATIONS` is requested only from the notification setup screen (amendment A-6).
+- **English and Arabic** resources, with RTL support.
 
-This repository does not implement detection, camera capture, location collection, evidence capture, network delivery, WhatsApp or Telegram integrations, authentication, persistence, encryption, notifications, billing, advertising, Safe Zones, geofencing, continuous GPS, cloud synchronization, or a backend. Panic, maps, delete, export, billing, restore, settings enforcement, and guard actions surface an honest deferred message.
+## Not implemented yet
 
-## Authority and source documents
+Lock, SIM and Battery guards; camera or location evidence; any delivery off the phone (trusted contacts, messaging, cloud); app lock; export; billing. Screens show these as unavailable rather than pretending they work.
 
-The original handoff was audited read-only from `toufikben/Ai_super_cleaner` using its complete `Phase1` and `README.md` documents. The forensic baseline and discrepancy record are preserved in [`docs/reports/phase-3-audit.md`](docs/reports/phase-3-audit.md), and the controlled batch plan is preserved in [`docs/superpowers/plans/2026-09-21-phase-3-controlled-implementation.md`](docs/superpowers/plans/2026-09-21-phase-3-controlled-implementation.md). The unified internal decision record now authorizes continued development without waiting for historical Product Freeze v5 or complete Phase 1 files, while preserving all unresolved security and platform decisions as open.
+## Authority
+
+The internal decision record is [`SHIELDRA_DECISIONS.md`](SHIELDRA_DECISIONS.md). The binding security and storage amendments are in [`docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md`](docs/authority/FINAL_SECURITY_STORAGE_DECISIONS.md), and the owner question register is in [`docs/OWNER_QUESTIONS.md`](docs/OWNER_QUESTIONS.md).
 
 ## Validation
 
-The local validation suite uses JDK 17 and a temporary Android SDK 35 installation:
+CI (`.github/workflows/group-a-diagnostics.yml`) builds and validates every push to `main`:
 
 ```text
-./gradlew clean testDebugUnitTest lintDebug assembleDebug
+./gradlew clean test lint assembleDebug assembleDebugAndroidTest
+bash .github/scripts/group-c-contract-check.sh
+bash .github/scripts/g4b-review-check.sh
 bash .github/scripts/phase3-review-check.sh
 ```
 
-The local JDK 17 validation baseline is successful: debug build, unit tests, lint, and static review pass. Runtime visual verification on an emulator/device remains UNKNOWN because no emulator or connected device is available. Remote GitHub Actions validation for the current commit is successful.
+Instrumented tests run on a physical device using the APK pair that CI publishes to the `device-apks` draft release.

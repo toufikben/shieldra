@@ -81,3 +81,15 @@ The supplied G4 Security Storage Decision Freeze is accepted as the current proc
 - [`docs/security/g4-acceptance-checklist.md`](docs/security/g4-acceptance-checklist.md)
 
 These documents are **PROPOSED — REQUIRES APPROVAL**. They do not approve Room wiring, production storage, retention durations, export, key lifecycle, authentication binding, or Android runtime behavior. Any item requiring implementation or device verification remains explicitly open. G4 remains **APPROVED DIRECTION / DETAILS BLOCKED**.
+
+## Decisions delegated by the owner — 2026-10-03
+
+The owner asked for these to be decided after research and recorded here. Each one can be reversed by a later entry.
+
+| ID | Decision | Status | Reason |
+|---|---|---|---|
+| D-2026-10-03-1 | **Motion reuse window = 10 minutes**, measured from the incident's persisted start (`MotionIncidentBinder.MOTION_REUSE_WINDOW_MINUTES`). | **APPROVED** | Nothing in the shipping app terminates a Motion incident, so without a window the guard recorded one event forever. 10 minutes is the value A-28 already approved for Panic. It groups one theft attempt into one incident, while a new attempt minutes later still raises a new alert. |
+| D-2026-10-03-2 | **New dependencies**: `androidx.biometric:biometric:1.1.0`, `androidx.fragment:fragment:1.8.5`, `androidx.lifecycle:lifecycle-runtime-compose:2.9.2`. | **APPROVED** | Stopping monitoring must require the owner's biometric or screen lock (`SensitiveOperation.DISABLE_PROTECTION`); otherwise whoever holds the phone stops protection with one tap. The biometric library merges `USE_BIOMETRIC` into the final manifest. No credential is stored by SHIELDRA. |
+| D-2026-10-03-3 | **Silent Panic uses a silent notification channel** (`IMPORTANCE_MIN`, no sound or vibration, `VISIBILITY_SECRET`) and fires on press-and-hold. | **APPROVED** | A panic that rings or shows on the lock screen tells the attacker it was pressed; a single tap recorded false emergencies. |
+
+Verification: CI run `37128967055` (366/366 JVM tests, all static reviews PASS) and an on-device run on the RMX3910 (Android 16) of the CI-built APK pair: `OK (72 tests)`, excluding the two manual measurement campaigns (`MotionBackgroundMeasurementInstrumentedTest`, `MotionCalibrationInstrumentedTest`). A manual pass covered onboarding, permission, Panic (tap vs hold, silent channel), History, Event Detail, Motion start (specialUse FGS), the owner check on Stop (cancel keeps monitoring), and showed no crash.

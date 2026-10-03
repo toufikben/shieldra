@@ -89,6 +89,10 @@ data class EventDetailUiModel(
     val title: String,
     val attemptNumber: Int? = null,
     val timestampLabel: String,
+    /** The persisted state, already localized; null when the source has none to report. */
+    val statusLabel: String? = null,
+    /** Durable Panic press count (A-7); null for every event that does not carry one. */
+    val activationCount: Int? = null,
     val batteryPercent: Int? = null,
     val charging: Boolean = false,
     val hasPhoto: Boolean,

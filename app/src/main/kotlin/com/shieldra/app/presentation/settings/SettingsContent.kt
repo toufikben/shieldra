@@ -14,7 +14,6 @@ import com.shieldra.notification.NotificationPermissionState
  * Settings screen used to print (Batch E findings 4 and 5).
  */
 enum class SettingsSubtitleKind {
-    GuardsSummary,
     NotificationState,
     AppLockNotEnforced,
     MatchSystem,
@@ -26,7 +25,7 @@ enum class SettingsSubtitleKind {
 /** A Settings row's textual and structural facts, decided outside Compose. */
 data class SettingsRowSpec(
     val id: String,
-    @StringRes val titleRes: Int,
+    @param:StringRes val titleRes: Int,
     val icon: SettingsIcon,
     val section: SettingsSection,
     val requiresAuth: Boolean = false,
@@ -87,13 +86,6 @@ object SettingsContent {
      * a feature that exists.
      */
     val rows: List<SettingsRowSpec> = listOf(
-        SettingsRowSpec(
-            "protection",
-            R.string.settings_protection,
-            SettingsIcon.Security,
-            SettingsSection.Security,
-            subtitle = SettingsSubtitleKind.GuardsSummary,
-        ),
         SettingsRowSpec(
             NOTIFICATION_ROW_ID,
             R.string.notifications,
@@ -206,7 +198,6 @@ internal fun settingsSubtitleRes(
     notificationState: NotificationPermissionState,
 ): Int? = when (kind) {
     SettingsSubtitleKind.None -> null
-    SettingsSubtitleKind.GuardsSummary -> R.string.settings_guards_summary
     SettingsSubtitleKind.AppLockNotEnforced -> appLockSubtitleRes()
     SettingsSubtitleKind.MatchSystem -> R.string.settings_match_system
     SettingsSubtitleKind.RetentionWindows -> retentionSubtitleRes(storageInstalled)

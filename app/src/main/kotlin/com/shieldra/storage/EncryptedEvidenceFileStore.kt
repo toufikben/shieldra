@@ -265,7 +265,8 @@ class EncryptedEvidenceFileStore(
     companion object {
         private const val FILE_SUFFIX = ".shieldra"
         private const val TEMP_SUFFIX = ".tmp"
-        private const val QUARANTINE_DIRECTORY = ".quarantine"
+        /** Shared with [FactoryReset], which must reach the same directory to empty it. */
+        internal const val QUARANTINE_DIRECTORY = ".quarantine"
         private val EVIDENCE_ID_PATTERN = Regex("[A-Za-z0-9._-]{1,128}")
     }
 }

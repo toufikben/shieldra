@@ -38,6 +38,7 @@ import com.shieldra.app.design.components.foundation.ShieldraButtonVariant
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.design.tokens.ShieldraTextStyles
+import com.shieldra.app.presentation.guard.deliveryCardVisible
 import com.shieldra.app.presentation.model.EventDetailUiModel
 import com.shieldra.app.presentation.model.LocationKind
 import com.shieldra.app.presentation.demo.DemoData
@@ -48,6 +49,7 @@ fun EventDetailScreen(
     model: EventDetailUiModel,
     callbacks: EventDetailCallbacks,
     modifier: Modifier = Modifier,
+    actionsAvailable: Boolean = false,
 ) {
     val spacing = ShieldraTheme.spacing
     val latitude = model.location.latitude
@@ -87,14 +89,16 @@ fun EventDetailScreen(
             contentPadding = PaddingValues(bottom = spacing.xxxl),
             verticalArrangement = Arrangement.spacedBy(spacing.l),
         ) {
-            item {
+            // Evidence cards appear only over evidence that exists; an empty 4:3 "no photo" frame and
+            // a "location unavailable" card said nothing the details block does not already say.
+            if (model.hasPhoto) item {
                 PhotoEvidenceCard(
-                    available = model.hasPhoto,
+                    available = true,
                     modifier = Modifier.padding(horizontal = spacing.l),
                 )
             }
 
-            item {
+            if (model.location.kind != LocationKind.Unavailable) item {
                 LocationEvidenceCard(
                     location = model.location,
                     onOpenInMaps = if (
@@ -117,14 +121,15 @@ fun EventDetailScreen(
                 DetailsBlock(model, modifier = Modifier.padding(horizontal = spacing.l))
             }
 
-            item {
+            if (deliveryCardVisible(model.delivery)) item {
                 DeliveryReceipt(
                     receipts = model.delivery,
                     modifier = Modifier.padding(horizontal = spacing.l),
                 )
             }
 
-            item {
+            // Delete and Export are shown only when the caller has a real action behind them.
+            if (actionsAvailable) item {
                 DestructiveActions(
                     onDelete = callbacks.onDelete,
                     onExport = callbacks.onExport,
@@ -159,6 +164,12 @@ private fun DetailsBlock(
             DetailRow(stringResource(R.string.detail_attempt), "${model.attemptNumber}")
         }
         DetailRow(stringResource(R.string.detail_timestamp), model.timestampLabel)
+        if (model.statusLabel != null) {
+            DetailRow(stringResource(R.string.detail_status), model.statusLabel)
+        }
+        if (model.activationCount != null) {
+            DetailRow(stringResource(R.string.detail_presses), "${model.activationCount}")
+        }
         if (model.batteryPercent != null) {
             DetailRow(
                 stringResource(R.string.detail_battery),

@@ -1,6 +1,8 @@
 package com.shieldra.storage
 
 import com.shieldra.storage.room.ShieldraDatabase
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * What one retention sweep actually removed.
@@ -73,6 +75,9 @@ class EvidenceRetentionSweeper(
         val failed = mutableSetOf<String>()
         val deletedRows = deleteExpiredEvents(plan.eventIds, failed)
         val deletedEvidence = deletePayloads(plan.evidenceIds, failed) { evidenceFiles.delete(it) }
+        // A payload that is gone takes its reference row with it; otherwise the event would keep
+        // naming a file for the remaining 60 days of its own 90-day window.
+        deleteReferences(plan.evidenceIds - failed, failed)
         val deletedQuarantine = deletePayloads(plan.quarantineIds, failed) { evidenceFiles.deleteQuarantined(it) }
         return RetentionSweepReport(
             deletedEventRows = deletedRows,
@@ -102,13 +107,31 @@ class EvidenceRetentionSweeper(
      * throws for a query there.
      */
     fun schedule() {
-        Thread {
+        // Requests that arrive while one is queued collapse into it: a burst of saves runs one sweep,
+        // not one thread and one full-table read per save.
+        if (!pending.compareAndSet(false, true)) return
+        worker.execute {
+            pending.set(false)
             try {
                 lastReport = sweep()
             } catch (error: Exception) {
                 lastFailure = error
             }
-        }.start()
+        }
+    }
+
+    private val pending = AtomicBoolean(false)
+    private val worker = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "shieldra-retention").apply { isDaemon = true }
+    }
+
+    private fun deleteReferences(evidenceIds: Set<String>, failed: MutableSet<String>) {
+        if (evidenceIds.isEmpty()) return
+        try {
+            database.evidenceReferenceDao().deleteByIds(evidenceIds.toList())
+        } catch (error: Exception) {
+            failed += evidenceIds
+        }
     }
 
     private fun deleteExpiredEvents(eventIds: Set<String>, failed: MutableSet<String>): Int {

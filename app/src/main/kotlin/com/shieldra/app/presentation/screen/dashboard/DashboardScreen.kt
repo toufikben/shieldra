@@ -1,7 +1,11 @@
 package com.shieldra.app.presentation.screen.dashboard
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -98,7 +102,7 @@ fun DashboardScreen(
 
         item {
             Spacer(Modifier.height(spacing.xxl))
-            PanicQuickAction(onPanic = callbacks.onPanic)
+            PanicQuickAction(onPanic = callbacks.onPanic, onTapHint = callbacks.onPanicTapHint)
         }
 
         item {
@@ -143,7 +147,7 @@ fun DashboardScreen(
                 )
             }
         } else {
-            items(model.recentEvents) { event ->
+            items(model.recentEvents, key = { it.id }) { event ->
                 EventCard(
                     event = event,
                     onClick = { callbacks.onEventClick(event.id) },
@@ -208,16 +212,33 @@ private fun SectionHeaderWithAction(
     }
 }
 
+/**
+ * Panic fires on press-and-hold only. A single tap in a pocket or a stray touch used to record an
+ * emergency; a tap now explains the gesture instead, and a confirmed hold answers with a haptic so
+ * the owner knows it worked without looking at the screen.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PanicQuickAction(onPanic: () -> Unit) {
+private fun PanicQuickAction(onPanic: () -> Unit, onTapHint: () -> Unit) {
     val spacing = ShieldraTheme.spacing
+    val haptics = LocalHapticFeedback.current
+    val holdLabel = stringResource(R.string.panic_hold_action_label)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = spacing.l)
             .clip(ShieldraCardShape)
             .background(MaterialTheme.colorScheme.errorContainer)
-            .clickable(role = Role.Button, onClick = onPanic)
+            .combinedClickable(
+                role = Role.Button,
+                onClick = onTapHint,
+                onLongClickLabel = holdLabel,
+                onLongClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onPanic()
+                },
+            )
+            .defaultMinSize(minHeight = 64.dp)
             .padding(horizontal = spacing.l, vertical = spacing.m),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -235,7 +256,7 @@ private fun PanicQuickAction(onPanic: () -> Unit) {
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
             Text(
-                text = stringResource(R.string.trigger_emergency_event),
+                text = stringResource(R.string.panic_hold_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
