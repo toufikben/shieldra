@@ -78,14 +78,10 @@ class FactoryReset(
                 failures += "evidence file ${file.name} could not be removed: ${error.message}"
             }
         }
-        for (file in survivingFiles) {
-            if (file.exists()) {
-                failures += "evidence file ${file.name} is still present after removal"
-            }
-        }
         // §5.2: quarantine is not a valid evidence namespace and must not
         // survive a reset either. The store names it ".quarantine"; this used to
-        // empty "quarantine", so quarantined ciphertext outlived every reset.
+        // empty "quarantine", so quarantined ciphertext outlived every reset. The
+        // emptied directory goes too, so nothing of the evidence tree is left.
         for (directory in quarantineDirectories()) {
             for (quarantined in directory.listFiles().orEmpty()) {
                 try {
@@ -93,6 +89,18 @@ class FactoryReset(
                 } catch (error: Exception) {
                     failures += "quarantined file ${quarantined.name} could not be removed: ${error.message}"
                 }
+            }
+            try {
+                Files.deleteIfExists(directory.toPath())
+            } catch (error: Exception) {
+                failures += "quarantine directory ${directory.name} could not be removed: ${error.message}"
+            }
+        }
+        // Checked after the quarantine is gone: the default list is the
+        // directory's contents, which include the quarantine directory itself.
+        for (file in survivingFiles) {
+            if (file.exists()) {
+                failures += "evidence file ${file.name} is still present after removal"
             }
         }
 
