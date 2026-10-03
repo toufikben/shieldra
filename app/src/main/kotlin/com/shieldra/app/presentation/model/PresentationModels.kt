@@ -123,8 +123,8 @@ data class HistoryFilterState(
     val status: HistoryStatusFilter = HistoryStatusFilter.All,
 )
 
-enum class SettingsSection { Security, Notifications, Appearance, PrivacyData, SecurityApp, About }
-enum class SettingsIcon { Security, Notifications, Lock, Theme, Language, Storage, Retention, Info, Help }
+enum class SettingsSection { Notifications, Appearance, PrivacyData, SecurityApp, About }
+enum class SettingsIcon { Notifications, Lock, Theme, Language, Storage, Retention, Info, Help }
 
 data class SettingsRowUiModel(
     val id: String,

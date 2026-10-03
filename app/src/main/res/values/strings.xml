@@ -41,7 +41,6 @@
     <string name="delivery_expired">· Expired</string>
 
 
-    <string name="settings_section_security">SECURITY</string>
     <string name="settings_section_notifications">NOTIFICATIONS</string>
     <string name="settings_section_appearance">APPEARANCE</string>
     <string name="settings_section_data_privacy">DATA &amp; PRIVACY</string>

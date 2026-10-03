@@ -2,7 +2,6 @@ package com.shieldra.app.presentation.guard
 
 import androidx.annotation.StringRes
 import com.shieldra.app.R
-import com.shieldra.app.presentation.model.ChannelReceiptUiModel
 import com.shieldra.app.presentation.model.DeliveryStatus
 import com.shieldra.app.presentation.model.NetworkStatus
 
@@ -22,12 +21,6 @@ internal fun deliveryChipLabelRes(status: DeliveryStatus): Int = when (status) {
     DeliveryStatus.Expired -> R.string.status_expired
     DeliveryStatus.NotAttempted -> R.string.status_not_attempted
 }
-
-/**
- * Whether Event Detail may print its Delivery card (F-K13). A section heading is itself a claim, so
- * the card appears only over a receipt that already exists, never over an empty body.
- */
-internal fun deliveryCardVisible(receipts: List<ChannelReceiptUiModel>): Boolean = receipts.isNotEmpty()
 
 /**
  * The label the network slot must override with, or null to show the caller's own
