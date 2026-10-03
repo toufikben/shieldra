@@ -3,13 +3,17 @@ package com.shieldra.detection
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.hardware.SensorManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import com.shieldra.app.ShieldraApp
 import com.shieldra.domain.ApprovedGuardRules
@@ -19,6 +23,7 @@ import com.shieldra.domain.GuardKind
 import com.shieldra.domain.GuardSignal
 import com.shieldra.domain.MotionConfirmation
 import com.shieldra.domain.MotionIncidentBinder
+import com.shieldra.notification.LocalEventNotifier
 import com.shieldra.runtime.BackgroundExecutionController
 import com.shieldra.runtime.ExecutionPhase
 import com.shieldra.runtime.MotionEventWrites
@@ -61,19 +66,44 @@ class MotionMonitoringService : Service(), MotionMonitor {
     private val samples = mutableListOf<MotionSample>()
     private val wallClock = Clock { Instant.now(JavaClock.systemUTC()) }
 
+    /**
+     * When the adapter last handed over a sample, on the monotonic clock. A registration the platform
+     * accepted is not proof that samples arrive: many phones stop a non-wakeup accelerometer when the
+     * screen goes dark, so "reporting" means a sample arrived within the repetition window — the only
+     * span the approved confirmation rule can judge at all.
+     */
+    @Volatile
+    private var lastDeliveryRealtimeMs: Long = 0L
+    private val deliveryWatch = Handler(Looper.getMainLooper())
+    private val deliveryCheck = object : Runnable {
+        override fun run() {
+            MotionRuntime.refresh()
+            deliveryWatch.postDelayed(this, deliveryCheckIntervalMs)
+        }
+    }
+
     override val executionRunning: Boolean get() = execution?.phase == ExecutionPhase.Running
-    override val sensorReporting: Boolean get() = adapter?.isReporting == true
+    override val sensorReporting: Boolean
+        get() = adapter?.isReporting == true &&
+            SystemClock.elapsedRealtime() - lastDeliveryRealtimeMs <= deliveryStaleAfterMs
 
     /** Nothing binds to this service; it is started, not held. */
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // A service started with startForegroundService() must reach startForeground() on every path,
+        // including the ones that stop at once; skipping it crashes the process on Android 8+.
+        if (!raiseNotice()) {
+            MotionRuntime.retract(this)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         val storage = (applicationContext as? ShieldraApp)?.installedStorage
         val repository = storage?.eventRepository
-        if (repository == null || storage == null) {
+        if (storage == null || repository == null) {
             // Monitoring that cannot record what it confirms must not claim protection, and it does
             // not publish itself, so the UI keeps saying it is not monitoring.
-            stopSelf()
+            stopWithoutNotice()
             return START_NOT_STICKY
         }
         // Q-K-2's second authorized execution point. Dispatched, never inline: the
@@ -81,19 +111,37 @@ class MotionMonitoringService : Service(), MotionMonitor {
         storage.scheduleRetentionSweep()
         val controller = wire(repository)
         when (controller.start()) {
-            is StartResult.Started, StartResult.AlreadyRunning -> MotionRuntime.publish(this)
+            is StartResult.Started, StartResult.AlreadyRunning -> {
+                MotionRuntime.publish(this)
+                deliveryWatch.removeCallbacks(deliveryCheck)
+                deliveryWatch.postDelayed(deliveryCheck, deliveryCheckIntervalMs)
+            }
             else -> {
                 MotionRuntime.retract(this)
-                stopSelf()
+                stopWithoutNotice()
             }
         }
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
+        deliveryWatch.removeCallbacks(deliveryCheck)
         bringDown()
         MotionRuntime.retract(this)
         super.onDestroy()
+    }
+
+    private fun raiseNotice(): Boolean = try {
+        bringNotificationUp()
+        true
+    } catch (error: Exception) {
+        Log.w(TAG, "the ongoing notice could not be raised: ${error.message}")
+        false
+    }
+
+    private fun stopWithoutNotice() {
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     /** Builds the adapter, the pipeline and the controller once, and only from approved numbers. */
@@ -108,7 +156,9 @@ class MotionMonitoringService : Service(), MotionMonitor {
         val ownedBinder = MotionIncidentBinder(repository = repository, clock = wallClock)
         val controller = BackgroundExecutionController(
             bringUp = {
-                bringNotificationUp()
+                // The notice is already up (onStartCommand raises it first); the grace period for the
+                // first sample starts with the registration.
+                lastDeliveryRealtimeMs = SystemClock.elapsedRealtime()
                 val started = ownedAdapter.startReporting(
                     sink = { sample -> observe(sample) },
                     requestedReportPeriodUs = ApprovedMotionCalibration.requestedReportPeriodUs,
@@ -149,7 +199,9 @@ class MotionMonitoringService : Service(), MotionMonitor {
         val notice = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(com.shieldra.app.R.drawable.ic_shield_notification)
             .setContentTitle(getString(com.shieldra.app.R.string.notification_motion_ongoing_title))
+            .setContentText(getString(com.shieldra.app.R.string.notification_motion_ongoing_text))
             .setOngoing(true)
+            .apply { openAppIntent()?.let { setContentIntent(it) } }
             .build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(NOTIFICATION_ID, notice, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -158,8 +210,15 @@ class MotionMonitoringService : Service(), MotionMonitor {
         }
     }
 
+    /** Tapping the ongoing notice opens the app; stopping stays in the app, behind the owner's check. */
+    private fun openAppIntent(): PendingIntent? {
+        val launch = packageManager.getLaunchIntentForPackage(packageName) ?: return null
+        return PendingIntent.getActivity(this, 0, launch, PendingIntent.FLAG_IMMUTABLE)
+    }
+
     /** One delivered sample: bounded history first, then the judgement the owner approved. */
     private fun observe(sample: MotionSample) {
+        lastDeliveryRealtimeMs = SystemClock.elapsedRealtime()
         val guardPipeline = pipeline ?: return
         val motionBinder = binder ?: return
         synchronized(samples) {
@@ -181,6 +240,12 @@ class MotionMonitoringService : Service(), MotionMonitor {
                     observation = observation,
                 ),
             )
+            // A confirmed movement is consumed. Left in the window it would be re-confirmed on every
+            // following sample for up to ten seconds — hundreds of storage round trips a second on
+            // this thread for one movement the binder had already recorded.
+            if (confirmation is MotionConfirmation.Recorded || confirmation is MotionConfirmation.BoundToActive) {
+                samples.clear()
+            }
             report(confirmation)
         }
     }
@@ -195,8 +260,17 @@ class MotionMonitoringService : Service(), MotionMonitor {
      */
     private fun report(confirmation: MotionConfirmation) {
         MotionEventWrites.record(confirmation)
-        if (confirmation is MotionConfirmation.Rejected) {
-            Log.w(TAG, "a confirmed Movement could not be recorded: ${confirmation.reason}")
+        when (confirmation) {
+            // A new incident is what the owner started monitoring for, so it is announced. A movement
+            // that joined the open incident is not announced again: one incident, one alert.
+            is MotionConfirmation.Recorded -> LocalEventNotifier(applicationContext).postRecordedAlert(
+                eventId = confirmation.event.id.value.toString(),
+                statusLabel = getString(com.shieldra.app.R.string.status_recorded),
+                title = getString(com.shieldra.app.R.string.notification_motion_event_title),
+            )
+            is MotionConfirmation.Rejected ->
+                Log.w(TAG, "a confirmed Movement could not be recorded: ${confirmation.reason}")
+            else -> Unit
         }
     }
 
@@ -209,5 +283,9 @@ class MotionMonitoringService : Service(), MotionMonitor {
         const val TAG: String = "MotionMonitoringService"
         const val CHANNEL_ID: String = "shieldra_motion_monitoring"
         const val NOTIFICATION_ID: Int = 20_002
+
+        /** Derived from the approved repetition window, never a new figure (see [lastDeliveryRealtimeMs]). */
+        val deliveryStaleAfterMs: Long = ApprovedGuardRules.motionRepetitionWindow.toMillis()
+        val deliveryCheckIntervalMs: Long = deliveryStaleAfterMs / 2
     }
 }

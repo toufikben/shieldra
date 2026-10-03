@@ -63,7 +63,11 @@ class InMemoryEventRepository : EventRepository {
     }
 }
 
-/** Copies an event with the artifacts a stage really produced. */
+/**
+ * Copies an event with the artifacts a stage really produced. The guard type and the Panic counters
+ * are carried over: dropping them turned a Panic or Motion event back into an untyped one the moment
+ * it gained an artifact, so the next press or Movement could no longer find its own incident.
+ */
 private fun SecurityEvent.withArtifacts(
     evidenceReferences: List<EvidenceReference> = this.evidenceReferences,
     deliveryInformation: List<DeliveryInformation> = this.deliveryInformation,
@@ -76,6 +80,9 @@ private fun SecurityEvent.withArtifacts(
     evidenceReferences = evidenceReferences,
     deliveryInformation = deliveryInformation,
     metadata = metadata,
+    type = type,
+    panicActivationCount = panicActivationCount,
+    panicLastActivatedAt = panicLastActivatedAt,
 )
 
 /**

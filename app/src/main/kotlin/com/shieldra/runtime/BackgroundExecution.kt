@@ -82,6 +82,8 @@ class BackgroundExecutionController(
     private val bringUp: () -> Unit = {},
     private val tearDown: () -> Unit = {},
 ) {
+    /** Changed on the main thread, read from the sensor and watchdog threads. */
+    @Volatile
     var phase: ExecutionPhase = ExecutionPhase.Stopped
         private set
 
