@@ -81,9 +81,11 @@ object SettingsContent {
     }
 
     /**
-     * The rows the screen really has, in the order it really shows them. A row with
-     * no destination stays visible and honestly labelled rather than dressed up as
-     * a feature that exists.
+     * The rows the screen really has, in the order it really shows them. A row that reports a real
+     * state stays visible and honestly labelled even when it opens nothing (the retention row), but
+     * a row that reads as a capability the owner could switch on is deleted: Q-K-9 removed the
+     * "Protection" row and its "Lock Guard · Guards" subtitle, because no Lock Guard runs in this
+     * build and a setting that offers a guard the owner cannot enable is a claim, not a setting.
      */
     val rows: List<SettingsRowSpec> = listOf(
         SettingsRowSpec(

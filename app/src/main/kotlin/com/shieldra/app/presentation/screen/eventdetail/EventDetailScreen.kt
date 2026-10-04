@@ -121,11 +121,13 @@ fun EventDetailScreen(
                 DetailsBlock(model, modifier = Modifier.padding(horizontal = spacing.l))
             }
 
-            if (deliveryCardVisible(model.delivery)) item {
-                DeliveryReceipt(
-                    receipts = model.delivery,
-                    modifier = Modifier.padding(horizontal = spacing.l),
-                )
+            if (deliveryCardVisible(model.delivery)) {
+                item {
+                    DeliveryReceipt(
+                        receipts = model.delivery,
+                        modifier = Modifier.padding(horizontal = spacing.l),
+                    )
+                }
             }
 
             // Delete and Export are shown only when the caller has a real action behind them.

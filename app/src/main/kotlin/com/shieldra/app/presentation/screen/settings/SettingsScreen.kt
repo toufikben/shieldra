@@ -65,7 +65,6 @@ fun SettingsScreen(
 }
 
 private val SECTION_ORDER: List<Pair<SettingsSection, Int>> = listOf(
-    SettingsSection.Security to R.string.settings_section_security,
     SettingsSection.Notifications to R.string.settings_section_notifications,
     SettingsSection.Appearance to R.string.settings_section_appearance,
     SettingsSection.PrivacyData to R.string.settings_section_data_privacy,

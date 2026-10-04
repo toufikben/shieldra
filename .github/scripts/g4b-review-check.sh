@@ -1017,6 +1017,49 @@ for name in qk4_an_unmeasured_network_state_never_reaches_the_offline_wording \
 done
 pass "Q-K-4/Q-K-7/Q-K-8 hold: no withdrawn claim in the shipped wording, offline reachable only from a measurement, ages as quantities, retention numbers matching the policy, a ten-minute Panic window, and onboarding completion recorded locally"
 
+# 23. Batch K Q-K-9 + F-K13 — the owner's 2026-10-02 directive: a Settings row that offered a guard
+#     nobody can turn on is deleted, and a Delivery heading may no longer sit over an empty body.
+#     Both rules are display-path rules: no threshold, no crypto policy, no new persistence.
+SETTINGS=app/src/main/kotlin/com/shieldra/app/presentation/settings/SettingsContent.kt
+SETTINGS_SCREEN=app/src/main/kotlin/com/shieldra/app/presentation/screen/settings/SettingsScreen.kt
+MODELS=app/src/main/kotlin/com/shieldra/app/presentation/model/PresentationModels.kt
+# Q-K-9: the three strings that made the row a Lock Guard setting stay withdrawn in both locales, so
+# the row cannot come back under the same wording.
+for withdrawn in settings_protection settings_guards_summary settings_section_security; do
+  for locale_dir in values values-ar; do
+    if grep -RIn "name=\"$withdrawn\"" "app/src/main/res/$locale_dir"; then
+      fail "Q-K-9 brought back $withdrawn in $locale_dir, which is the wording of a setting for a guard this build does not run"
+    fi
+  done
+done
+if grep -q '"protection"' "$SETTINGS"; then
+  fail "Settings gained a \"protection\" row again, and a row with no destination is not a setting (Q-K-9)"
+fi
+if grep -Eq 'enum class SettingsSection \{[^}]*[^A-Za-z_]Security[,}]' "$MODELS"; then
+  fail "SettingsSection keeps a bare Security group with nothing in it (Q-K-9)"
+fi
+if grep -q 'settings_section_security)' "$SETTINGS_SCREEN"; then
+  fail "the Settings screen still prints a SECURITY group header over an empty group (Q-K-9)"
+fi
+# F-K13: the card's heading is a claim, so it goes through one pure predicate and only there.
+DELIVERY_SEAM=app/src/main/kotlin/com/shieldra/app/presentation/guard/DeliveryCardDecision.kt
+DETAIL_SCREEN=app/src/main/kotlin/com/shieldra/app/presentation/screen/eventdetail/EventDetailScreen.kt
+[ -s "$DELIVERY_SEAM" ] || fail "the deliveryCardVisible seam is missing (F-K13)"
+grep -q 'fun deliveryCardVisible(receipts: List<ChannelReceiptUiModel>): Boolean' "$DELIVERY_SEAM" \
+  || fail "deliveryCardVisible no longer decides from the receipts themselves (F-K13)"
+grep -q 'if (deliveryCardVisible(model.delivery))' "$DETAIL_SCREEN" \
+  || fail "the delivery card is drawn unconditionally again, so a receipt-less event shows a Delivery heading (F-K13)"
+if grep -q 'ChannelReceiptUiModel(' app/src/main/kotlin/com/shieldra/app/presentation/guard/PersistedEventReader.kt; then
+  fail "the persisted reader manufactures a delivery receipt; only the delivery pipeline records one (F-K13)"
+fi
+for name in qk9_no_settings_row_promises_a_lock_guard_the_owner_cannot_turn_on \
+  fk13_an_event_with_no_delivery_receipts_shows_no_delivery_card \
+  fk13_a_recorded_receipt_still_reaches_the_delivery_card \
+  fk13_the_persisted_read_path_produces_a_detail_with_no_delivery_card; do
+  grep -rq "fun $name" app/src/test || fail "the named Q-K-9/F-K13 test is missing: $name"
+done
+pass "Q-K-9 and F-K13 hold: no Lock Guard setting in the rows or the wording, and a Delivery section only where a receipt exists"
+
 git diff --check
 pass "git diff check"
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"

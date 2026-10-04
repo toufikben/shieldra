@@ -10,7 +10,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.WarningAmber
@@ -37,7 +36,6 @@ fun EventType.icon(): ImageVector = when (this) {
 }
 
 fun SettingsIcon.icon(): ImageVector = when (this) {
-    SettingsIcon.Security -> Icons.Filled.Security
     SettingsIcon.Notifications -> Icons.Filled.Notifications
     SettingsIcon.Lock -> Icons.Filled.Lock
     SettingsIcon.Theme -> Icons.Filled.ColorLens

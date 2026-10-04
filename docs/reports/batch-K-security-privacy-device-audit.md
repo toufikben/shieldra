@@ -431,7 +431,8 @@ agreed in the G5 directive applies unchanged once it is unlocked.
 verbatim as the questions that were asked, with their answers in
 `docs/reports/batch-K-owner-answers.md` §1. **Q-K-6, Q-K-7 and Q-K-8 were answered the same day** (see §8.1):
 Q-K-7 and Q-K-8 are executed and CI-verified, Q-K-6's answer is a standing restriction on how this batch may
-verify anything on the phone. **Q-K-9 is new and open**, and it surfaced while Q-K-4 was being executed.
+verify anything on the phone. **Q-K-9 was answered later the same day as amendment A-30** (§8.2), and the part
+of it the answer did not reach is re-raised as **Q-K-10**.
 
 | id | Question | Why it cannot be answered here |
 |---|---|---|
@@ -443,7 +444,8 @@ verify anything on the phone. **Q-K-9 is new and open**, and it surfaced while Q
 | **Q-K-6** (new) | Running HEAD's instrumented tests on this phone requires **uninstalling the app**, because each CI runner signs with its own debug keystore and `adb install -r -t` is refused with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` on `com.shieldra.app.test`. Choose: **accept the loss** (the install carrying today's permission grant, `shieldra.db`, the two channels, the Keystore aliases and the lifecycle record goes away, and `pm clear` is refused so it cannot even be reproduced cleanly), **pin one signing keystore for the device pair** (a CI/CD change, and it puts signing material somewhere the §2 secret scan has never looked), or **leave HEAD's sweep test unrun on device** and treat §7.3's two passing deletion tests plus the measured third as enough | Only you can trade audit evidence for a test count. Nothing was uninstalled to find this out |
 | **Q-K-7** (new) | **Should onboarding ever be seen twice?** After `am force-stop` + a launcher tap the first screen is the welcome page again, on a phone that already holds a persisted Security Event: `ShieldraNavHost.kt:81` hardcodes `startDestination = ONBOARDING_WELCOME` and no persisted "onboarding completed" flag exists in `app/src/main` (the only `getSharedPreferences` is `LocalEventNotifier.kt:35`, the permission state). `HOME` + a launcher tap, by contrast, restored the scrolled dashboard exactly — so the rule today is "every process death makes the user a new user", and G4-A measured that process death is this phone's normal case. Choose: **persist completion**, **start on the dashboard whenever a database already exists**, or **accept it** | It is not a false claim — the welcome copy is true each time it is seen — so this is a first-run product decision, not one of the four allowed truthfulness fixes, and the G5 directive's frozen list forbids patching it on an audit's own authority (owner-answers §7.4) |
 | **Q-K-8** (new) | **How long does a Panic incident stay *the* incident?** `PanicIncidentCoordinator.kt:62-64` binds every press to the first non-terminal `PANIC_ACTIVATION` row among the 100 most recent events (`ACTIVE_EVENT_SCAN_LIMIT = 100`) with **no time window**, and because the Panic path posts through `LocalEventNotifier` without entering `InMemoryEventPipeline`, that row never reaches a terminal state. Measured: a `Silent Panic` press ~2 h after the event it joined created no new row and no new event, and counted as another activation of the two-hour-old incident (owner-answers §7.5 row 4). Choose: **bind for N minutes then start a new incident** (N is yours), **bind until the event is deleted or swept**, or **accept forever-binding** | A-7 authorized the dedup design and the durable activation count; it did not bound a duration, and an audit may not pick the number. This is behaviour, not wording, so it cannot ride in on Q-K-4 |
-| **Q-K-9** (new, from executing Q-K-4) | **What is the third onboarding screen for, if Lock Guard does not ship?** The step is titled `Lock Guard` and its Continue button changes no setting (`ProtectionSetupScreen` hands the navigation host a page number the host ignores). This batch made its copy honest (§8.1); it did not decide whether the step belongs in the flow at all. Choose: **keep it as an honest "nothing to configure yet" page**, **drop it so permissions lead straight to the dashboard**, or **defer it until Lock Guard really ships** | Which screens a first-run user passes through is a product decision, not a wording fix, and Q-K-4 authorized only the sentences. No static gate pins the flow, so your answer is the thing that decides it |
+| **Q-K-9** (new, from executing Q-K-4) | **What is the third onboarding screen for, if Lock Guard does not ship?** The step is titled `Lock Guard` and its Continue button changes no setting (`ProtectionSetupScreen` hands the navigation host a page number the host ignores). This batch made its copy honest (§8.1); it did not decide whether the step belongs in the flow at all. Choose: **keep it as an honest "nothing to configure yet" page**, **drop it so permissions lead straight to the dashboard**, or **defer it until Lock Guard really ships** | Which screens a first-run user passes through is a product decision, not a wording fix, and Q-K-4 authorized only the sentences. No static gate pins the flow, so your answer is the thing that decides it. **ANSWERED 2026-10-02, and the answer named a different screen than the question did:** «احذف **Lock Guard** من شاشة Settings في الإصدار الحالي… لا تُبقِ إعدادًا يوحي بأن المستخدم يستطيع تفعيله». Executed as **A-30** — the Settings row and every trace of it are gone from both locales, pinned by a named test and by new static gate 23, with no "disabled" row replacing it. **The onboarding step and the Dashboard tile were not deleted**, because the answer did not reach them and dropping a first-run screen is a flow decision → **Q-K-10** |
+| **Q-K-10** (new, from answering Q-K-9) | **Should the third onboarding screen still exist?** It is titled `Lock Guard`, it configures nothing, and its copy now says so in both languages. The options are the same three Q-K-9 offered — keep it as a stated preview, drop it and make onboarding two screens, or bring it back when Lock Guard ships — with one cost made explicit: gate 22 rule (و) pins the onboarding-completion call to exactly two sites (`onSkip` and this step's `onContinue`), so **deleting the step is a gate transition, not a file deletion**, and the Dashboard's Lock Guard tile is a third surface with the same question | Q-K-9's answer was about Settings and was executed as written; nothing in it authorizes an implementation batch to remove a screen a returning user passes through |
 
 F-K3 (export policy has no consumer) is **not** a question: the fix is to make a future export slice
 consult `EvidenceExportPolicy`, or to add a static gate forbidding an export path that bypasses it. It is
@@ -490,6 +492,54 @@ same class as F-K7's discarded label, one level lower in seriousness. The one-li
 only when it has receipts; wiring an actual delivery-attempt path is Batch L/§30 territory and is not scheduled
 here. **No owner decision is required**, so no question is raised for it.
 
+### 8.2 Q-K-9 answered and F-K13 executed — amendment A-30
+
+**Q-K-9 came back with a scope none of the three options named.** The owner's answer was not "keep / drop /
+defer the onboarding step" but: «احذف **Lock Guard** من شاشة Settings في الإصدار الحالي، لأنه لا ينفذ وظيفة
+فعلية حاليًا. لا تُبقِ إعدادًا يوحي بأن المستخدم يستطيع تفعيله» — delete Lock Guard **from the Settings screen**,
+and leave no setting that suggests the user can turn it on. So the audit's question and the owner's decision
+pointed at two different screens, and the decision was executed literally: the `protection` row is gone, and so
+is everything that made it look like a control — `SettingsSubtitleKind.GuardsSummary`, the `SECURITY` group
+header, `SettingsSection.Security`, `SettingsIcon.Security` and its icon mapping, and `settings_protection`,
+`settings_guards_summary`, `settings_section_security` in `values` **and** `values-ar`. No "disabled" row and no
+preview replaces it, because §31 forbids a description no implementation supports and a withdrawn capability
+deserves no surface. The `protection` id is now refused by name: a JVM test asserts the eight-row list
+verbatim (`qk9_no_settings_row_promises_a_lock_guard_the_owner_cannot_turn_on`) and static gate **23** refuses
+the row, its section/icon enum entries, its group header and all three strings in either locale.
+
+**What was deliberately *not* deleted, and why.** The third onboarding step (F-K12) and the Lock Guard tile on
+the Dashboard are untouched. The owner's sentence named Settings; dropping a screen a first-run user walks
+through is the same class of flow decision as Q-K-7 was, and Q-K-7's precedent is that an implementation batch
+does not delete a step on an audit's reading of a decision that did not mention it. The step's copy is the
+honest pair this batch wrote («Lock Guard does not run in this build yet.» / «Continuing from this screen
+changes no setting.»), so it is not a false claim sitting in the flow. **It is therefore re-raised as Q-K-10**,
+with the extra fact that gate 22 rule (و) pins the onboarding-completion call to exactly two sites —
+`onSkip` and the protection step's `onContinue` — so deleting the step is a gate transition, not a deletion, and
+the owner should know that before answering.
+
+**F-K13 fixed as a heading, not as data.** The card now renders only through the pure seam
+`deliveryCardVisible(receipts)` in `presentation/guard/DeliveryCardDecision.kt`, so an event with no receipts
+shows neither the «التسليم» heading nor a body. The two wrong fixes were both rejected on the owner's own
+words («عدم اختراع أي delivery attempt»): fabricating a `NotAttempted` row per channel would advertise an
+attempt that never happened, and deleting the card outright would hide the receipts a future delivery path
+does record. A third was refused for the same reason — making `PersistedEventReader` emit an empty-but-populated
+list to satisfy the UI; gate 23 now forbids that file from constructing `ChannelReceiptUiModel` at all. The
+proof is three named tests: an empty receipt list shows no card, a real receipt still reaches it, and the
+**persisted read path** — the one production actually uses — yields a detail with no card. Nothing else moved:
+`recordDeliveryAttempt` still has no production caller, `EvidenceRetentionPolicy`, `EvidenceKeyPolicy`,
+permissions and the manifest are untouched, and the F-K13 sentence about wiring a real delivery path stays
+Batch L/§30 territory.
+
+**How it was verified.** The two RED commits were pushed and watched failing for exactly the intended reason:
+run `37071428455` on `09d8fa5` — `CI TEST SUMMARY: 360 tests, 359 passed, 1 failures`,
+`org.opentest4j.AssertionFailedError at SettingsContentTest.kt:111` — and run `37071499082` on `3539e44` —
+`Unresolved reference 'deliveryCardVisible'` at the three call sites, which is this repo's accepted
+compile-failure RED. Locally the GREEN tree prints `G4-B LOCAL REVIEW PASS` (gate 23 included), `PHASE 3
+STATIC REVIEW PASS` and `Group C boundary scan passed`. **Device half: NOT RUN.** A-29 stands, so the install
+holding this batch's evidence was not touched — which means the deleted row is proven by a test and by the
+static gate, and the Settings screen has not been re-photographed since. That asymmetry is recorded rather
+than described as a pass.
+
 ---
 
 ## 9. What would let this batch close
@@ -513,7 +563,9 @@ here. **No owner decision is required**, so no question is raised for it.
    hardware**. Full record: owner-answers **§9.1 and §9.6**.
 2. Answers to Q-K-1…Q-K-5 — **delivered 2026-10-02** as A-20…A-24 and executed — plus **Q-K-7** and **Q-K-8**,
    answered the same day and executed as A-27 and A-28, and **Q-K-6**, answered as the standing verification
-   restriction A-29. Still open: **H-1…H-12**, **Q-I-1…Q-I-6**, **Q-J-1…Q-J-6** and the new **Q-K-9** (§8.1).
+   restriction A-29, and **Q-K-9**, answered as **A-30** and executed (§8.2). Still open: **H-1…H-12**,
+   **Q-I-1…Q-I-6**, **Q-J-1…Q-J-6** and the new **Q-K-10** (§8) — the onboarding step A-30 deliberately left
+   alone.
    An unanswered policy question is an open finding, not a passed gate.
 3. A decision on whether the three stale-wording Q-G4 findings and Q-F1 are closed or deferred, plus the
    wording items this batch produced and now counts **four**: **F-K6** (Settings "Retention policy — Policy
@@ -522,8 +574,10 @@ here. **No owner decision is required**, so no question is raised for it.
    owner-answers §7.5) and **F-K10**'s label half (the "Skipped" chip — its mapping half is behaviour and
    stays with Q-K-8, not with this pass). **All four, plus F-K11's age form, were executed on 2026-10-02 under
    A-26** — owner-answers §9 records what each sentence says now and which proof is still owed. **F-K12**
-   (§8.1) came out of executing them and is open as Q-K-9. **F-K13** (§8.1) also came out of that pass and is
-   *not* an owner question: it is a permanently empty `DELIVERY` card whose one-line fix is ordinary work.
+   (§8.1) came out of executing them; its Settings half was answered and executed later the same day as
+   **A-30** (§8.2) and its onboarding half is open as **Q-K-10**. **F-K13** (§8.1) also came out of that pass and
+   was *not* an owner question: it is a permanently empty `DELIVERY` card, and it too is executed under **A-30**
+   (§8.2) — the card now appears only where a receipt exists.
 4. Only then: the G6 sign-off sentence, and Batch L (release hardening: signing, `versionName 0.1.0` →
    real versioning, minify/resource shrinking, Play Console declarations). Batch L **can** now be
    device-verified for downloads — the `device-apks` release carries a hash-verified pair per run — but not
