@@ -390,12 +390,13 @@ fi
 grep -q 'android.permission.POST_NOTIFICATIONS' app/src/main/AndroidManifest.xml \
   || fail "the A-6 notification permission is not declared"
 # Amendment A-19 licenses exactly two more permissions, and they belong to the one service that
-# carries them. Anything outside this named three is a new amendment, not a manifest edit.
+# carries them. Anything outside this named set (A-6, A-19, and the A-32 network pair) is a new amendment, not a manifest edit.
 DECLARED="$(grep -oE 'android:name="android\.permission\.[A-Z_]+"' app/src/main/AndroidManifest.xml \
   | sed 's/.*android\.permission\.//;s/"//' | sort | tr '\n' ' ')"
-EXPECTED="FOREGROUND_SERVICE FOREGROUND_SERVICE_SPECIAL_USE POST_NOTIFICATIONS "
+# Amendment A-32 adds the two install-time network permissions alert delivery needs.
+EXPECTED="ACCESS_NETWORK_STATE FOREGROUND_SERVICE FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS "
 if [ "$DECLARED" != "$EXPECTED" ]; then
-  fail "the manifest declares permissions outside the A-6/A-19 named three; got [$DECLARED]"
+  fail "the manifest declares permissions outside the A-6/A-19/A-32 named set; got [$DECLARED]"
 fi
 grep -q 'RequestPermission' "$NAVHOST" || fail "the permission is never requested from the UI"
 if grep -q 'RequestPermission' "$PANIC"; then
@@ -1052,6 +1053,13 @@ grep -q 'if (deliveryCardVisible(model.delivery))' "$DETAIL_SCREEN" \
 if grep -q 'ChannelReceiptUiModel(' app/src/main/kotlin/com/shieldra/app/presentation/guard/PersistedEventReader.kt; then
   fail "the persisted reader manufactures a delivery receipt; only the delivery pipeline records one (F-K13)"
 fi
+# A-32: receipts now exist because alerts really go out. They are built in exactly one file, and only
+# from the attempts the delivery path recorded on the event (`deliveryInformation`).
+RECEIPTS=app/src/main/kotlin/com/shieldra/app/presentation/guard/DeliveryReceiptProjection.kt
+RECEIPT_BUILDERS="$(grep -RIln 'ChannelReceiptUiModel(' app/src/main/kotlin/com/shieldra/app/presentation/guard app/src/main/kotlin/com/shieldra/app/navigation --include='*.kt' | grep -v "$RECEIPTS" || true)"
+[ -z "$RECEIPT_BUILDERS" ] || fail "a delivery receipt is built outside the A-32 projection: $RECEIPT_BUILDERS"
+grep -q 'deliveryInformation' "$RECEIPTS" \
+  || fail "the receipt projection no longer reads the recorded delivery attempts (A-32)"
 for name in qk9_no_settings_row_promises_a_lock_guard_the_owner_cannot_turn_on \
   fk13_an_event_with_no_delivery_receipts_shows_no_delivery_card \
   fk13_a_recorded_receipt_still_reaches_the_delivery_card \

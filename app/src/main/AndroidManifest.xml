@@ -16,8 +16,15 @@
       when the ongoing notification would not be visible. Still no camera, no
       location, no phone state, no network permission, and no boot permission
       (A-10 — monitoring is started by the user, never by the device waking up).
+
+      Amendment A-32 (owner, 2026-10-03): alerts leave the phone through the owner's own Telegram
+      bot and email account, so INTERNET is declared for that one purpose, and ACCESS_NETWORK_STATE
+      so an alert kept while offline is sent the moment a network is usable again. Both are
+      install-time permissions: no dialog, nothing shown to whoever holds the phone.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 

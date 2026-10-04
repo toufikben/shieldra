@@ -115,6 +115,7 @@ class SettingsContentTest {
         assertEquals(
             listOf(
                 "notifications",
+                "alert_channels",
                 "app_lock",
                 "theme",
                 "language",

@@ -17,6 +17,13 @@ import com.shieldra.app.design.components.domain.LoadingStateList
 import com.shieldra.app.presentation.auth.OwnerCheck
 import com.shieldra.app.presentation.auth.OwnerCheckResult
 import com.shieldra.domain.SecurityEventType
+import com.shieldra.delivery.AlertKind
+import com.shieldra.delivery.AlertRuntime
+import com.shieldra.delivery.DeliverySettings
+import com.shieldra.delivery.DeliverySettingsStore
+import com.shieldra.delivery.EmailChannel
+import com.shieldra.delivery.TelegramChannel
+import com.shieldra.app.presentation.screen.settings.AlertChannelsScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -167,6 +174,14 @@ fun ShieldraNavHost(
     val monitoringRefusedMessage = stringResource(R.string.motion_monitoring_refused)
     val monitoringNoStorageMessage = stringResource(R.string.motion_monitoring_no_storage)
     var stopWasRequested by remember { mutableStateOf(false) }
+    // A-32: the owner's alert channels. Loading opens Keystore-sealed secrets, so it runs off the
+    // main thread; null means "not read yet", never "nothing set up".
+    val deliveryStore = remember(context) { DeliverySettingsStore(context) }
+    var deliverySettings by remember { mutableStateOf<DeliverySettings?>(null) }
+    LaunchedEffect(deliveryStore) {
+        deliverySettings = withContext(Dispatchers.IO) { deliveryStore.load() }
+    }
+    val channelsSavedMessage = stringResource(R.string.alert_channels_saved)
     // "Stopped" reports an observed state, not a press: it appears once the service has retracted
     // itself, and never while it still claims to be monitoring.
     LaunchedEffect(motionClaim) {
@@ -290,7 +305,19 @@ fun ShieldraNavHost(
                                                 LocalPostResult.NotAttempted
                                             }
                                         }
-                                        if (activation !is PanicActivation.Rejected) panicActivations += 1
+                                        if (activation !is PanicActivation.Rejected) {
+                                            panicActivations += 1
+                                            // A-32: every press reaches the owner's channels, in the
+                                            // background, with nothing shown on this screen.
+                                            val pressedEvent = when (activation) {
+                                                is PanicActivation.Recorded -> activation.event
+                                                is PanicActivation.BoundToActive -> activation.event
+                                                is PanicActivation.Rejected -> null
+                                            }
+                                            pressedEvent?.let {
+                                                AlertRuntime.alert(context, AlertKind.PANIC, it.id.value.toString())
+                                            }
+                                        }
                                     } finally {
                                         panicInFlight = false
                                     }
@@ -376,17 +403,57 @@ fun ShieldraNavHost(
                     rows = honestSettingsRows(
                         storageInstalled = storageInstalled,
                         notificationState = remember(permissionRequests) { notifier.permissionState() },
+                        alertChannelsActive = deliverySettings?.activeChannels()?.isNotEmpty() == true,
                     ),
                     callbacks = SettingsCallbacks { id, _ ->
                         when (SettingsContent.targetOf(id)) {
-                            // The one row with a real destination: the A-6 setup screen.
+                            // The A-6 setup screen.
                             SettingsRowTarget.NotificationSetup ->
                                 navController.navigate(ShieldraRoutes.NOTIFICATION_SETUP)
+
+                            // A-32: where alerts leave the phone.
+                            SettingsRowTarget.AlertChannels ->
+                                navController.navigate(ShieldraRoutes.ALERT_CHANNELS)
 
                             SettingsRowTarget.NotAvailable -> defer()
                         }
                     },
                 )
+            }
+
+            composable(ShieldraRoutes.ALERT_CHANNELS) {
+                val saved = deliverySettings
+                if (saved == null) {
+                    LoadingStateList(rows = 3)
+                } else {
+                    AlertChannelsScreen(
+                        saved = saved,
+                        onSave = { updated ->
+                            scope.launch {
+                                deliverySettings = withContext(Dispatchers.IO) {
+                                    deliveryStore.save(updated)
+                                    deliveryStore.load()
+                                }
+                                navController.popBackStack()
+                                snackbarHostState.showSnackbar(channelsSavedMessage)
+                            }
+                        },
+                        onTest = { candidate, telegram ->
+                            withContext(Dispatchers.IO) {
+                                val channel = if (telegram) {
+                                    TelegramChannel(candidate.telegram)
+                                } else {
+                                    EmailChannel(candidate.email)
+                                }
+                                AlertRuntime.dispatcher(context).sendNow(
+                                    channel,
+                                    AlertRuntime.snapshot(context, AlertKind.TEST, eventId = null),
+                                )
+                            }
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
 
             // Notification setup (A-6): the only permission request in the app.

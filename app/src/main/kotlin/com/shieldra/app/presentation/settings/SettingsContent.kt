@@ -15,6 +15,7 @@ import com.shieldra.notification.NotificationPermissionState
  */
 enum class SettingsSubtitleKind {
     NotificationState,
+    AlertChannelsState,
     AppLockNotEnforced,
     MatchSystem,
     StorageState,
@@ -41,6 +42,7 @@ data class SettingsRowSpec(
  */
 enum class SettingsRowTarget {
     NotificationSetup,
+    AlertChannels,
     NotAvailable,
 }
 
@@ -55,6 +57,9 @@ object SettingsContent {
 
     /** The one Settings row with a real destination in this build. */
     const val NOTIFICATION_ROW_ID: String = "notifications"
+
+    /** A-32: the owner's own Telegram bot and email account, the channels alerts leave through. */
+    const val ALERT_CHANNELS_ROW_ID: String = "alert_channels"
 
     /** The storage row shows a state word, never figures the app cannot read. */
     val storageRowShowsFigures: Boolean = false
@@ -94,6 +99,13 @@ object SettingsContent {
             SettingsIcon.Notifications,
             SettingsSection.Notifications,
             subtitle = SettingsSubtitleKind.NotificationState,
+        ),
+        SettingsRowSpec(
+            ALERT_CHANNELS_ROW_ID,
+            R.string.settings_alert_channels,
+            SettingsIcon.Notifications,
+            SettingsSection.Notifications,
+            subtitle = SettingsSubtitleKind.AlertChannelsState,
         ),
         SettingsRowSpec(
             "app_lock",
@@ -136,6 +148,7 @@ object SettingsContent {
 
     fun targetOf(id: String): SettingsRowTarget = when (id) {
         NOTIFICATION_ROW_ID -> SettingsRowTarget.NotificationSetup
+        ALERT_CHANNELS_ROW_ID -> SettingsRowTarget.AlertChannels
         else -> SettingsRowTarget.NotAvailable
     }
 
@@ -198,12 +211,15 @@ internal fun settingsSubtitleRes(
     kind: SettingsSubtitleKind,
     storageInstalled: Boolean,
     notificationState: NotificationPermissionState,
+    alertChannelsActive: Boolean = false,
 ): Int? = when (kind) {
     SettingsSubtitleKind.None -> null
     SettingsSubtitleKind.AppLockNotEnforced -> appLockSubtitleRes()
     SettingsSubtitleKind.MatchSystem -> R.string.settings_match_system
     SettingsSubtitleKind.RetentionWindows -> retentionSubtitleRes(storageInstalled)
     SettingsSubtitleKind.NotificationState -> notificationStateRes(notificationState)
+    SettingsSubtitleKind.AlertChannelsState ->
+        if (alertChannelsActive) R.string.settings_alert_channels_on else R.string.settings_alert_channels_off
     SettingsSubtitleKind.StorageState ->
         storageRowSubtitleRes(SettingsContent.storageRowState(storageInstalled))
 }

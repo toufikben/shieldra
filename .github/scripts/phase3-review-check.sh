@@ -47,11 +47,13 @@ unexpected="$(printf '%s\n' "$declared" \
   | grep -v '^android.permission.POST_NOTIFICATIONS$' \
   | grep -v '^android.permission.FOREGROUND_SERVICE$' \
   | grep -v '^android.permission.FOREGROUND_SERVICE_SPECIAL_USE$' \
+  | grep -v '^android.permission.INTERNET$' \
+  | grep -v '^android.permission.ACCESS_NETWORK_STATE$' \
   | grep -v '^$' || true)"
 if [ -n "$unexpected" ]; then
-  printf 'FAIL: manifest declares permissions outside amendments A-6/A-19:\n%s\n' "$unexpected"; fail=1
+  printf 'FAIL: manifest declares permissions outside amendments A-6/A-19/A-32:\n%s\n' "$unexpected"; fail=1
 else
-  printf 'PASS: manifest declares only the A-6 notification permission and the A-19 service pair\n'
+  printf 'PASS: manifest declares only the A-6 notification permission, the A-19 service pair and the A-32 network pair\n'
 fi
 
 if grep -qE '@mipmap/ic_launcher' app/src/main/AndroidManifest.xml; then

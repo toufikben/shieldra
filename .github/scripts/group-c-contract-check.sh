@@ -21,9 +21,17 @@ check_absent() {
 check_absent "No Safe Zone, geofencing, or continuous GPS source" \
     'SafeZone|ZoneGuard|Geofence|Geofencing|continuous GPS' \
     app/src/main
-check_absent "No camera, location collection, or network implementation" \
-    'CameraX|ImageCapture|FusedLocationProvider|LocationManager|SMTP|OkHttp|Retrofit|Firebase|BillingClient' \
+check_absent "No camera, location collection, third-party network SDK, Firebase or billing" \
+    'CameraX|ImageCapture|FusedLocationProvider|LocationManager|OkHttp|Retrofit|Firebase|BillingClient' \
     app/src/main
+# Amendment A-32: the owner's own Telegram bot and SMTP account are the one network path allowed,
+# and only inside the delivery package. Anywhere else in the Kotlin sources it is still a failure.
+if grep -RInE --exclude-dir=.git --exclude-dir=delivery 'SMTP|api\.telegram\.org' app/src/main/kotlin; then
+    printf 'FAIL: %s\n' "Network delivery appears only in the A-32 delivery package"
+    failures=$((failures + 1))
+else
+    printf 'PASS: %s\n' "Network delivery appears only in the A-32 delivery package"
+fi
 check_absent "No confirmed event creation outside Domain" \
     'SecurityEvent|CONFIRMED_SECURITY_EVENT' \
     app/src/main/kotlin/com/shieldra/detection
