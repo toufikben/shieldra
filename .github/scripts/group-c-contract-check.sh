@@ -21,9 +21,16 @@ check_absent() {
 check_absent "No Safe Zone, geofencing, or continuous GPS source" \
     'SafeZone|ZoneGuard|Geofence|Geofencing|continuous GPS' \
     app/src/main
-check_absent "No camera, location collection, third-party network SDK, Firebase or billing" \
-    'CameraX|ImageCapture|FusedLocationProvider|LocationManager|OkHttp|Retrofit|Firebase|BillingClient' \
-    app/src/main
+# A-34: the front-camera photo and fused-location fix are allowed, but only inside the protection
+# package. Everywhere else in app/src/main, camera/location collection and third-party network SDKs
+# stay forbidden. (Camera2's CameraManager and the fused client both live only in that package.)
+if grep -RInE --exclude-dir=.git 'CameraX|ImageCapture|FusedLocationProvider|LocationManager|OkHttp|Retrofit|Firebase|BillingClient' app/src/main \
+    | grep -v 'app/src/main/kotlin/com/shieldra/protection/'; then
+    printf 'FAIL: %s\n' "Camera/location collection or a network SDK appears outside the A-34 protection package"
+    failures=$((failures + 1))
+else
+    printf 'PASS: %s\n' "Camera/location collection confined to the A-34 protection package"
+fi
 # Amendment A-32: the owner's own Telegram bot and SMTP account are the one network path allowed,
 # and only inside the delivery package. Anywhere else in the Kotlin sources it is still a failure.
 if grep -RInE --exclude-dir=.git --exclude-dir=delivery 'SMTP|api\.telegram\.org' app/src/main/kotlin; then

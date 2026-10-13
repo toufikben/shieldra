@@ -523,6 +523,10 @@ private fun persistedEventLabels(): PersistedEventLabels {
     val typeTitles = mapOf(
         SecurityEventType.MOTION_CONFIRMED_EVENT to stringResource(R.string.event_title_motion),
         SecurityEventType.PANIC_ACTIVATION to stringResource(R.string.event_title_panic),
+        SecurityEventType.LOCK_CONFIRMED_EVENT to stringResource(R.string.event_title_lock),
+        SecurityEventType.SIM_CONFIRMED_EVENT to stringResource(R.string.event_title_sim),
+        SecurityEventType.COUNTDOWN_SIGNAL to stringResource(R.string.event_title_countdown),
+        SecurityEventType.BATTERY_SIGNAL to stringResource(R.string.event_title_battery),
     )
     return PersistedEventLabels(
         title = stringResource(R.string.event_security_event),

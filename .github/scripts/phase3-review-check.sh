@@ -49,11 +49,22 @@ unexpected="$(printf '%s\n' "$declared" \
   | grep -v '^android.permission.FOREGROUND_SERVICE_SPECIAL_USE$' \
   | grep -v '^android.permission.INTERNET$' \
   | grep -v '^android.permission.ACCESS_NETWORK_STATE$' \
+  | grep -v '^android.permission.CAMERA$' \
+  | grep -v '^android.permission.ACCESS_FINE_LOCATION$' \
+  | grep -v '^android.permission.ACCESS_COARSE_LOCATION$' \
+  | grep -v '^android.permission.FOREGROUND_SERVICE_CAMERA$' \
+  | grep -v '^android.permission.FOREGROUND_SERVICE_LOCATION$' \
+  | grep -v '^android.permission.RECEIVE_BOOT_COMPLETED$' \
+  | grep -v '^android.permission.WAKE_LOCK$' \
+  | grep -v '^android.permission.READ_PHONE_STATE$' \
+  | grep -v '^android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS$' \
+  | grep -v '^android.permission.SCHEDULE_EXACT_ALARM$' \
+  | grep -v '^android.permission.USE_EXACT_ALARM$' \
   | grep -v '^$' || true)"
 if [ -n "$unexpected" ]; then
-  printf 'FAIL: manifest declares permissions outside amendments A-6/A-19/A-32:\n%s\n' "$unexpected"; fail=1
+  printf 'FAIL: manifest declares permissions outside amendments A-6/A-19/A-32/A-33/A-34:\n%s\n' "$unexpected"; fail=1
 else
-  printf 'PASS: manifest declares only the A-6 notification permission, the A-19 service pair and the A-32 network pair\n'
+  printf 'PASS: manifest declares only the named A-6/A-19/A-32/A-33/A-34 permission set\n'
 fi
 
 if grep -qE '@mipmap/ic_launcher' app/src/main/AndroidManifest.xml; then

@@ -74,6 +74,12 @@
     <string name="notification_channel_motion_monitoring_description">يُظهر، أثناء حدوثها، أن مراقبة SHIELDRA تعمل.</string>
     <!-- A-9: الصياغة الوحيدة المسموح بها لإشعار دائم بينما خدمة خلفية تعمل فعلًا. لا «24/7» ولا «مضمون». -->
     <string name="notification_motion_ongoing_title">حماية SHIELDRA نشِطة</string>
+    <string name="device_admin_label">حماية SHIELDRA</string>
+    <string name="device_admin_description">تتيح لـ SHIELDRA ملاحظة محاولات فتح القفل الفاشلة لحماية الهاتف إذا سُرق.</string>
+    <string name="device_admin_disable_warning">إيقاف هذا يوقف حماية SHIELDRA للهاتف.</string>
+    <string name="notification_channel_protection">خدمة الحماية</string>
+    <string name="notification_protection_title">حماية SHIELDRA نشِطة</string>
+    <string name="notification_protection_text">تعمل في الخلفية.</string>
     <string name="motion_monitoring_start">تشغيل مراقبة الحركة</string>
     <string name="motion_monitoring_stop">إيقاف مراقبة الحركة</string>
     <string name="motion_monitoring_needs_permission">يجب أن تبقى المراقبة ظاهرة لك، لذا اسمح بالإشعارات أولًا.</string>
@@ -218,6 +224,10 @@
     <string name="owner_check_refused">المراقبة ما زالت تعمل: لم يتم تأكيد هويتك.</string>
     <string name="event_title_motion">تم اكتشاف حركة</string>
     <string name="event_title_panic">ذعر صامت</string>
+    <string name="event_title_lock">محاولات فتح قفل فاشلة</string>
+    <string name="event_title_sim">تغيير الشريحة</string>
+    <string name="event_title_countdown">إشارة دورية</string>
+    <string name="event_title_battery">بطارية منخفضة</string>
     <string name="alert_title_panic">تم الضغط على الذعر الصامت</string>
     <string name="alert_title_motion">تم اكتشاف حركة</string>
     <string name="alert_title_test">تنبيه تجريبي</string>
@@ -226,6 +236,8 @@
     <string name="alert_label_battery">البطارية</string>
     <string name="alert_label_event">الحدث</string>
     <string name="alert_title_lock">محاولات فتح قفل فاشلة</string>
+    <string name="alert_title_sim">تغيّرت الشريحة</string>
+    <string name="alert_title_battery">بطارية منخفضة</string>
     <string name="alert_title_countdown">إشارة دورية</string>
     <string name="alert_label_location">الموقع</string>
     <string name="alert_location_unavailable">غير متاح</string>

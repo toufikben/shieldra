@@ -137,6 +137,8 @@ object AlertRuntime {
             eventLabel = resources.getString(R.string.alert_label_event),
             locale = resources.configuration.locales[0],
             lockTitle = resources.getString(R.string.alert_title_lock),
+            simTitle = resources.getString(R.string.alert_title_sim),
+            batteryTitle = resources.getString(R.string.alert_title_battery),
             countdownTitle = resources.getString(R.string.alert_title_countdown),
             locationLabel = resources.getString(R.string.alert_label_location),
             locationUnavailable = resources.getString(R.string.alert_location_unavailable),

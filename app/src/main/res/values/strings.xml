@@ -74,6 +74,12 @@
     <string name="notification_channel_motion_monitoring_description">Shows, while it is happening, that SHIELDRA monitoring is running.</string>
     <!-- A-9: the exact wording an ongoing notice may carry while a foreground service really runs. Never "24/7", never "guaranteed". -->
     <string name="notification_motion_ongoing_title">SHIELDRA protection is active</string>
+    <string name="device_admin_label">SHIELDRA protection</string>
+    <string name="device_admin_description">Lets SHIELDRA notice wrong unlock attempts so it can protect the phone if it is stolen.</string>
+    <string name="device_admin_disable_warning">Turning this off stops SHIELDRA from protecting the phone.</string>
+    <string name="notification_channel_protection">Protection service</string>
+    <string name="notification_protection_title">SHIELDRA protection is active</string>
+    <string name="notification_protection_text">Running in the background.</string>
     <string name="motion_monitoring_start">Start Motion monitoring</string>
     <string name="motion_monitoring_stop">Stop Motion monitoring</string>
     <string name="motion_monitoring_needs_permission">Monitoring has to stay visible to you, so allow notifications first.</string>
@@ -219,6 +225,10 @@
     <string name="owner_check_refused">Monitoring is still running: your identity was not confirmed.</string>
     <string name="event_title_motion">Movement detected</string>
     <string name="event_title_panic">Silent panic</string>
+    <string name="event_title_lock">Wrong unlock attempts</string>
+    <string name="event_title_sim">SIM change</string>
+    <string name="event_title_countdown">Periodic signal</string>
+    <string name="event_title_battery">Low battery</string>
     <string name="alert_title_panic">Silent panic pressed</string>
     <string name="alert_title_motion">Movement detected</string>
     <string name="alert_title_test">Test alert</string>
@@ -227,6 +237,8 @@
     <string name="alert_label_battery">Battery</string>
     <string name="alert_label_event">Event</string>
     <string name="alert_title_lock">Wrong unlock attempts</string>
+    <string name="alert_title_sim">SIM changed</string>
+    <string name="alert_title_battery">Low battery</string>
     <string name="alert_title_countdown">Periodic signal</string>
     <string name="alert_label_location">Location</string>
     <string name="alert_location_unavailable">not available</string>

@@ -393,10 +393,11 @@ grep -q 'android.permission.POST_NOTIFICATIONS' app/src/main/AndroidManifest.xml
 # carries them. Anything outside this named set (A-6, A-19, and the A-32 network pair) is a new amendment, not a manifest edit.
 DECLARED="$(grep -oE 'android:name="android\.permission\.[A-Z_]+"' app/src/main/AndroidManifest.xml \
   | sed 's/.*android\.permission\.//;s/"//' | sort | tr '\n' ' ')"
-# Amendment A-32 adds the two install-time network permissions alert delivery needs.
-EXPECTED="ACCESS_NETWORK_STATE FOREGROUND_SERVICE FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS "
+# Amendment A-32 adds the two install-time network permissions alert delivery needs; A-33/A-34 add
+# the protection guards' camera, location, boot, wake-lock, phone-state, battery and exact-alarm set.
+EXPECTED="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_NETWORK_STATE CAMERA FOREGROUND_SERVICE FOREGROUND_SERVICE_CAMERA FOREGROUND_SERVICE_LOCATION FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_BOOT_COMPLETED REQUEST_IGNORE_BATTERY_OPTIMIZATIONS SCHEDULE_EXACT_ALARM USE_EXACT_ALARM WAKE_LOCK "
 if [ "$DECLARED" != "$EXPECTED" ]; then
-  fail "the manifest declares permissions outside the A-6/A-19/A-32 named set; got [$DECLARED]"
+  fail "the manifest declares permissions outside the A-6/A-19/A-32/A-33/A-34 named set; got [$DECLARED]"
 fi
 grep -q 'RequestPermission' "$NAVHOST" || fail "the permission is never requested from the UI"
 if grep -q 'RequestPermission' "$PANIC"; then
@@ -472,19 +473,25 @@ pass "Settings rows claim only channels and counts the app really has"
 #     service/FGS bans with a named allowance: exactly one <service>, the approved Motion monitoring
 #     class, the `specialUse` type A-17 chose after reviewing the candidates, and its subtype
 #     property. Nothing else may appear, and WorkManager stays banned (directives F3/§17).
+# A-34 adds the protection service beside the Motion one: exactly two <service> elements, each named.
 SERVICES="$(grep -c '<service' app/src/main/AndroidManifest.xml || true)"
-if [ "$SERVICES" -ne 1 ]; then
-  fail "A-19 allows exactly one <service> element (the Motion monitoring service); found $SERVICES"
+if [ "$SERVICES" -ne 2 ]; then
+  fail "A-19/A-34 allow exactly two <service> elements (Motion monitoring and Protection); found $SERVICES"
 fi
 grep -q 'android:name="com.shieldra.detection.MotionMonitoringService"' app/src/main/AndroidManifest.xml \
-  || fail "the one allowed service is the approved Motion monitoring service (A-19)"
+  || fail "the Motion monitoring service (A-19) is missing"
+grep -q 'android:name="com.shieldra.protection.ProtectionService"' app/src/main/AndroidManifest.xml \
+  || fail "the protection service (A-34) is missing"
 grep -q 'android:foregroundServiceType="specialUse"' app/src/main/AndroidManifest.xml \
-  || fail "A-17 approved specialUse as the service type; the manifest no longer declares it"
+  || fail "A-17 approved specialUse as the Motion service type; the manifest no longer declares it"
+grep -q 'android:foregroundServiceType="camera|location"' app/src/main/AndroidManifest.xml \
+  || fail "A-34 approved camera|location as the protection service type; the manifest no longer declares it"
 grep -q 'android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE' app/src/main/AndroidManifest.xml \
   || fail "the specialUse subtype property A-17 requires for the Play review statement is missing"
+# POST_NOTIFICATIONS excluded by the word boundary; the four FOREGROUND_SERVICE* lines are the set.
 FGS_PERMS="$(grep -c 'android.permission.FOREGROUND_SERVICE' app/src/main/AndroidManifest.xml || true)"
-if [ "$FGS_PERMS" -ne 2 ]; then
-  fail "A-19 licenses exactly the two named foreground-service permissions; found $FGS_PERMS"
+if [ "$FGS_PERMS" -ne 4 ]; then
+  fail "A-19/A-34 license exactly four foreground-service permissions (base, specialUse, camera, location); found $FGS_PERMS"
 fi
 if grep -RIn 'androidx\.work\|WorkManager\.getInstance\|EnqueueWorker\|\.enqueue(' app/src/main/kotlin; then
   fail "WorkManager is being used in app sources; §17 forbids it as a real-time detector"
@@ -568,8 +575,10 @@ for default in 'strongDeltaMs2: Double = ' 'noiseFloorDeltaMs2: Double = ' 'minE
 done
 grep -q 'MotionReading.Unreliable' "$MOTION" \
   || fail "Motion can no longer report unreliable samples instead of a quiet device"
-if grep -RIn 'RECEIVE_BOOT_COMPLETED\|BOOT_COMPLETED' app/src/main; then
-  fail "boot auto-start was added while amendment A-10 rejects it for this phase"
+# A-33 relaxed A-10: boot resume is allowed, but only through the protection BootReceiver, which
+# starts nothing unless the owner's armed flag is set. The Motion detection sources stay boot-free.
+if grep -RIn 'BOOT_COMPLETED' "$MOTION" app/src/main/kotlin/com/shieldra/detection; then
+  fail "the Motion detection layer must not reference boot; resume belongs to the protection BootReceiver (A-33)"
 fi
 for name in a_strong_movement_that_last_longer_than_the_approved_three_seconds_confirms_a_security_event \
   a_burst_shorter_than_the_minimum_episode_is_isolated_noise_and_never_an_occurrence \
@@ -640,11 +649,10 @@ grep -q 'MotionSensorAdapter(' "$SERVICE" \
   || fail "the monitoring service no longer owns the adapter, so nothing registers the accelerometer"
 USES="$(grep -RIn 'MotionSensorAdapter(' app/src/main/kotlin --include='*.kt' | grep -v "$ADAPTER" | grep -v "$SERVICE" || true)"
 [ -z "$USES" ] || fail "a second Motion adapter owner appeared in the shipping app; A-19 allows the service alone: $USES"
-for forbidden in 'RECEIVE_BOOT_COMPLETED' 'BOOT_COMPLETED'; do
-  if grep -q "$forbidden" app/src/main/AndroidManifest.xml; then
-    fail "$forbidden appeared while A-10 holds boot auto-start back"
-  fi
-done
+# A-33 relaxed A-10: the manifest may declare boot, but it must be wired to the protection
+# BootReceiver and nothing else (the Motion service never auto-starts from boot).
+grep -q 'com.shieldra.protection.BootReceiver' app/src/main/AndroidManifest.xml \
+  || fail "boot is declared without the A-33 protection BootReceiver to handle it"
 
 for name in fewer_than_two_samples_is_reported_as_nothing_measured_not_as_a_still_device \
   a_sample_that_is_not_a_finite_acceleration_is_dropped_and_the_stream_is_marked_invalid \
@@ -694,24 +702,25 @@ fi
 # 'confirm' is deliberately not on this list: the vehicle must say whether the screen was *confirmed*
 # asleep, and that word is evidence about the experiment, not a security confirmation.
 
-# A-13: the campaign must run under today's execution conditions, so nothing that would change them
-# may appear anywhere in the app's sources — a wake lock in particular would answer a different
-# question than the one the owner asked.
+# A-13 required the G4-A measurement to run under unchanged execution conditions. A-33/A-34 now add
+# the protection guards, which legitimately hold a short wake lock and ask for a battery exemption —
+# but that surface is confined to the protection package and the manifest. It must appear nowhere
+# else (the Motion detection layer and the G4-A vehicle in particular stay condition-neutral).
 for forbidden in 'WAKE_LOCK' 'WakeLock' 'newWakeLock' 'IGNORE_BATTERY_OPTIMIZATIONS' \
   'requestIgnoreBatteryOptimizations' 'isIgnoringBatteryOptimizations' 'setSustainedPerformanceMode'; do
-  if grep -RIn "$forbidden" app/src --include='*.kt' --include='*.xml' ; then
-    fail "$forbidden appeared while G4-A is only a measurement (A-13 forbids changing execution conditions)"
+  HITS="$(grep -RIn "$forbidden" app/src --include='*.kt' --include='*.xml' \
+    | grep -v 'app/src/main/kotlin/com/shieldra/protection/' \
+    | grep -v 'app/src/main/AndroidManifest.xml' || true)"
+  if [ -n "$HITS" ]; then
+    fail "$forbidden appeared outside the A-33/A-34 protection package and manifest: $HITS"
   fi
 done
-# A-19 replaced this manifest ban once the campaign and its report were closed: what A-13 actually
-# forbade was adding a service or a permission to make a measurement pass. That rule is still
-# enforced, by §10 allowing exactly one named service and nothing else. The execution conditions the
-# campaign measured under remain untouched — no wake lock, no battery exemption anywhere.
-for forbidden in 'RECEIVE_BOOT_COMPLETED' 'BOOT_COMPLETED'; do
-  if grep -q "$forbidden" app/src/main/AndroidManifest.xml; then
-    fail "$forbidden appeared while A-10 holds boot auto-start back"
-  fi
-done
+# Boot resume (A-33) is confined the same way: the manifest BootReceiver and the protection package.
+BOOT_HITS="$(grep -RIn 'BOOT_COMPLETED' app/src --include='*.kt' \
+  | grep -v 'app/src/main/kotlin/com/shieldra/protection/' || true)"
+if [ -n "$BOOT_HITS" ]; then
+  fail "boot handling appeared outside the A-33 protection package: $BOOT_HITS"
+fi
 
 # The vehicle stays a vehicle: nothing in the running app may reference it.
 MAIN_G4A="$(grep -RIn 'MotionBackgroundMeasurement' app/src/main --include='*.kt' --include='*.xml' || true)"
@@ -758,8 +767,10 @@ pass "onboarding copy claims only what the onboarding screens really do"
 #     foreground-service surface may appear in the approved service and manifest and nowhere else.
 DETECTION=app/src/main/kotlin/com/shieldra/detection/MotionDetection.kt
 RUNTIME=app/src/main/kotlin/com/shieldra/runtime/MotionRuntime.kt
-FGS_CARRIERS="$(grep -RIn 'startForeground\|FOREGROUND_SERVICE\|foregroundServiceType\|SPECIAL_USE\|specialUse\|<service' app/src/main --include='*.kt' --include='*.xml' | grep -v "$SERVICE" | grep -v "$RUNTIME" | grep -v 'app/src/main/AndroidManifest.xml' || true)"
-[ -z "$FGS_CARRIERS" ] || fail "the foreground-service surface appeared outside the service, its runtime handle and the manifest (A-19): $FGS_CARRIERS"
+# A-34 adds the protection package as a second licensed carrier of the foreground-service surface,
+# beside the Motion service, its runtime handle and the manifest.
+FGS_CARRIERS="$(grep -RIn 'startForeground\|FOREGROUND_SERVICE\|foregroundServiceType\|SPECIAL_USE\|specialUse\|<service' app/src/main --include='*.kt' --include='*.xml' | grep -v "$SERVICE" | grep -v "$RUNTIME" | grep -v 'app/src/main/kotlin/com/shieldra/protection/' | grep -v 'app/src/main/AndroidManifest.xml' || true)"
+[ -z "$FGS_CARRIERS" ] || fail "the foreground-service surface appeared outside the Motion service, its runtime handle, the protection package and the manifest (A-19/A-34): $FGS_CARRIERS"
 grep -q 'streamQuality: MotionSignalQuality' "$DETECTION" \
   || fail "the Motion seam no longer receives what the signal layer measured about the stream, so G3's verdict is dropped on the way to the engine"
 if grep -Eq 'streamQuality: MotionSignalQuality[[:space:]]*=' "$DETECTION"; then

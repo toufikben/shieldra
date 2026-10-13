@@ -43,6 +43,8 @@ dependencies {
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    // A-34: fused location for the protection guards' evidence (fine location, with owner consent).
+    implementation(libs.play.services.location)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
