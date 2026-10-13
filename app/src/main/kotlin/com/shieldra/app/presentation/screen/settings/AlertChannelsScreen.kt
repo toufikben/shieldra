@@ -248,7 +248,7 @@ fun AlertChannelsScreen(
 private fun savedPlaceholder(isSaved: Boolean): String? =
     if (isSaved) stringResource(R.string.alert_secret_saved) else null
 
-/** A known mail provider's SMTP settings, derived from the address so the owner needn't know them. */
+/** A known mail provider's server settings, derived from the address so the owner needn't know them. */
 private data class MailProvider(val host: String, val port: Int, val security: MailSecurity)
 
 private fun providerFor(email: String): MailProvider? {
