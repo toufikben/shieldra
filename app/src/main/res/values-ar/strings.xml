@@ -225,6 +225,16 @@
     <string name="alert_label_device">الهاتف</string>
     <string name="alert_label_battery">البطارية</string>
     <string name="alert_label_event">الحدث</string>
+    <string name="alert_title_lock">محاولات فتح قفل فاشلة</string>
+    <string name="alert_title_countdown">إشارة دورية</string>
+    <string name="alert_label_location">الموقع</string>
+    <string name="alert_location_unavailable">غير متاح</string>
+    <string name="alert_label_accuracy">الدقة</string>
+    <string name="alert_label_fix_age">وقت تحديد الموقع</string>
+    <string name="alert_label_photo">الكاميرا الأمامية</string>
+    <string name="alert_photo_attached">الصورة مرفقة</string>
+    <string name="alert_photo_unavailable">تعذّر التقاط صورة</string>
+    <string name="alert_label_attempts">محاولات فاشلة</string>
     <string name="alert_channels_title">قنوات التنبيه</string>
     <string name="alert_channels_intro">عند الضغط على الذعر الصامت أو تسجيل حركة، يرسل SHIELDRA تنبيهًا في الخلفية عبر القنوات التي تفعّلها هنا. لا يظهر أي شيء على الهاتف عند الإرسال.</string>
     <string name="alert_channel_telegram">تيليغرام</string>

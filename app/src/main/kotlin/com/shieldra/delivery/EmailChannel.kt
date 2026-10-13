@@ -66,10 +66,10 @@ class EmailChannel(
 ) : AlertChannel {
     override val channel: DeliveryChannel = DeliveryChannel.EMAIL
 
-    override fun send(subject: String, body: String): ChannelResult {
+    override fun send(subject: String, body: String, extras: AlertExtras): ChannelResult {
         if (!config.isComplete) return ChannelResult.Rejected("Email is not fully set up")
         return try {
-            transports.open(config).use { transport -> converse(transport, subject, body) }
+            transports.open(config).use { transport -> converse(transport, subject, body, extras.photoJpeg) }
         } catch (error: MailRefused) {
             error.result
         } catch (error: IOException) {
@@ -77,7 +77,7 @@ class EmailChannel(
         }
     }
 
-    private fun converse(transport: MailTransport, subject: String, body: String): ChannelResult {
+    private fun converse(transport: MailTransport, subject: String, body: String, photo: ByteArray?): ChannelResult {
         expect(transport, 220)
         hello(transport)
         if (config.security == MailSecurity.STARTTLS) {
@@ -91,7 +91,7 @@ class EmailChannel(
         command(transport, "MAIL FROM:<${config.from}>", 250, rejectedOnFailure = true)
         command(transport, "RCPT TO:<${config.to}>", 250, 251, rejectedOnFailure = true)
         command(transport, "DATA", 354)
-        message(subject, body).forEach(transport::writeLine)
+        message(subject, body, photo).forEach(transport::writeLine)
         command(transport, ".", 250)
         runCatching { command(transport, "QUIT", 221) }
         return ChannelResult.Sent
@@ -101,20 +101,42 @@ class EmailChannel(
         command(transport, "EHLO shieldra.local", 250)
     }
 
-    private fun message(subject: String, body: String): List<String> {
+    private fun message(subject: String, body: String, photo: ByteArray?): List<String> {
         val date = now().format(DateTimeFormatter.RFC_1123_DATE_TIME)
-        val encodedBody = Base64.getMimeEncoder(BODY_LINE_LENGTH, "\r\n".toByteArray())
-            .encodeToString(body.toByteArray(StandardCharsets.UTF_8))
-        return listOf(
+        val encoder = Base64.getMimeEncoder(BODY_LINE_LENGTH, "\r\n".toByteArray())
+        val encodedBody = encoder.encodeToString(body.toByteArray(StandardCharsets.UTF_8))
+        val headers = listOf(
             "From: <${config.from}>",
             "To: <${config.to}>",
             "Subject: =?UTF-8?B?${base64(subject)}?=",
             "Date: $date",
             "MIME-Version: 1.0",
+        )
+        if (photo == null) {
+            return headers + listOf(
+                "Content-Type: text/plain; charset=UTF-8",
+                "Content-Transfer-Encoding: base64",
+                "",
+            ) + encodedBody.split("\r\n")
+        }
+        // A photo turns the message into multipart/mixed: the text part, then the JPEG attachment.
+        // No boundary can clash with base64 output, which never contains the "--" marker sequence.
+        val boundary = "shieldra_${now().toInstant().toEpochMilli()}_part"
+        val encodedPhoto = encoder.encodeToString(photo)
+        return headers + listOf(
+            "Content-Type: multipart/mixed; boundary=\"$boundary\"",
+            "",
+            "--$boundary",
             "Content-Type: text/plain; charset=UTF-8",
             "Content-Transfer-Encoding: base64",
             "",
-        ) + encodedBody.split("\r\n")
+        ) + encodedBody.split("\r\n") + listOf(
+            "--$boundary",
+            "Content-Type: image/jpeg",
+            "Content-Transfer-Encoding: base64",
+            "Content-Disposition: attachment; filename=\"shieldra.jpg\"",
+            "",
+        ) + encodedPhoto.split("\r\n") + listOf("--$boundary--")
     }
 
     private fun command(

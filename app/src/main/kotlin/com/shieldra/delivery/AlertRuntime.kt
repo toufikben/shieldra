@@ -33,17 +33,36 @@ class PreferencesPendingAlertStore(context: Context) : PendingAlertStore {
         alert.kind.name,
         alert.eventId.orEmpty(),
         alert.batteryPercent?.toString().orEmpty(),
+        alert.photoEvidenceId.orEmpty(),
+        if (alert.evidenceAttempted) "1" else "0",
+        alert.failedAttempts?.toString().orEmpty(),
+        alert.location?.let { "${it.latitude};${it.longitude};${it.accuracyMeters ?: ""};${it.fixedAt.toEpochMilli()};${it.provider}" }.orEmpty(),
         alert.device.replace(SEPARATOR, " "),
     ).joinToString(SEPARATOR)
 
     private fun decode(line: String): SecurityAlert? = runCatching {
-        val parts = line.split(SEPARATOR, limit = 5)
+        val parts = line.split(SEPARATOR, limit = 9)
         SecurityAlert(
             eventId = parts[2].ifBlank { null },
             kind = AlertKind.valueOf(parts[1]),
             occurredAt = Instant.ofEpochMilli(parts[0].toLong()),
-            device = parts[4],
+            device = parts[8],
             batteryPercent = parts[3].toIntOrNull(),
+            photoEvidenceId = parts[4].ifBlank { null },
+            evidenceAttempted = parts[5] == "1",
+            failedAttempts = parts[6].toIntOrNull(),
+            location = parts[7].ifBlank { null }?.let { decodeLocation(it) },
+        )
+    }.getOrNull()
+
+    private fun decodeLocation(raw: String): AlertLocation? = runCatching {
+        val f = raw.split(";")
+        AlertLocation(
+            latitude = f[0].toDouble(),
+            longitude = f[1].toDouble(),
+            accuracyMeters = f[2].toFloatOrNull(),
+            fixedAt = Instant.ofEpochMilli(f[3].toLong()),
+            provider = f[4],
         )
     }.getOrNull()
 
@@ -74,6 +93,11 @@ object AlertRuntime {
     /** Sends [kind] for a recorded event, silently and off the caller's thread. */
     fun alert(context: Context, kind: AlertKind, eventId: String?) {
         dispatcher(context).dispatch(snapshot(context, kind, eventId))
+    }
+
+    /** Sends a fully-built alert (with photo evidence and a fix); used by the protection service. */
+    fun alert(context: Context, alert: SecurityAlert) {
+        dispatcher(context).dispatch(alert)
     }
 
     /** The facts an alert carries right now: time, phone model, battery. */
@@ -112,6 +136,16 @@ object AlertRuntime {
             batteryLabel = resources.getString(R.string.alert_label_battery),
             eventLabel = resources.getString(R.string.alert_label_event),
             locale = resources.configuration.locales[0],
+            lockTitle = resources.getString(R.string.alert_title_lock),
+            countdownTitle = resources.getString(R.string.alert_title_countdown),
+            locationLabel = resources.getString(R.string.alert_label_location),
+            locationUnavailable = resources.getString(R.string.alert_location_unavailable),
+            accuracyLabel = resources.getString(R.string.alert_label_accuracy),
+            fixAgeLabel = resources.getString(R.string.alert_label_fix_age),
+            photoLabel = resources.getString(R.string.alert_label_photo),
+            photoAttached = resources.getString(R.string.alert_photo_attached),
+            photoUnavailable = resources.getString(R.string.alert_photo_unavailable),
+            attemptsLabel = resources.getString(R.string.alert_label_attempts),
         )
     }
 
@@ -122,7 +156,23 @@ object AlertRuntime {
             repository = { (app as? ShieldraApp)?.installedStorage?.eventRepository },
             wording = { wording(app) },
             pending = PreferencesPendingAlertStore(app),
+            extras = { alert -> openExtras(app, alert) },
         )
+    }
+
+    /**
+     * Opens the encrypted front-camera photo for [alert] and carries its fix, just before the send.
+     * The decrypted bytes live only for this call; a failure to open them never blocks the text.
+     */
+    private fun openExtras(app: Context, alert: SecurityAlert): AlertExtras {
+        val evidenceId = alert.photoEvidenceId
+        val photo = if (evidenceId.isNullOrBlank()) {
+            null
+        } else {
+            runCatching { (app as? ShieldraApp)?.installedStorage?.evidenceFiles?.read(evidenceId) }.getOrNull()
+        }
+        return if (photo == null && alert.location == null) AlertExtras.NONE
+        else AlertExtras(photoJpeg = photo, location = alert.location)
     }
 
     private fun batteryPercent(context: Context): Int? = runCatching {

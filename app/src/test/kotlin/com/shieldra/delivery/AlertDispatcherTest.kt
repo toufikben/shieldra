@@ -126,9 +126,12 @@ class AlertDispatcherTest {
         var calls = 0
         var lastBody = ""
 
-        override fun send(subject: String, body: String): ChannelResult {
+        var lastExtras: AlertExtras = AlertExtras.NONE
+
+        override fun send(subject: String, body: String, extras: AlertExtras): ChannelResult {
             calls++
             lastBody = body
+            lastExtras = extras
             return result
         }
     }

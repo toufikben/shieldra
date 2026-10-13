@@ -31,6 +31,12 @@ class AlertDispatcher(
     private val now: () -> Instant = { Instant.now() },
     private val sleep: (Long) -> Unit = { Thread.sleep(it) },
     private val zone: ZoneId = ZoneId.systemDefault(),
+    /**
+     * Opens the alert's evidence (the encrypted front-camera photo) and carries its location, just
+     * before sending. It is resolved per delivery, never stored on the queued alert, so a decrypted
+     * photo never sits in preferences or in the pending store.
+     */
+    private val extras: (SecurityAlert) -> AlertExtras = { AlertExtras.NONE },
     private val worker: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "shieldra-alerts").apply { isDaemon = true }
     },
@@ -48,29 +54,38 @@ class AlertDispatcher(
     /** Sends through one channel now and reports the answer; used by the "send test" button. */
     fun sendNow(channel: AlertChannel, alert: SecurityAlert): ChannelResult {
         val text = wording()
-        return channel.send(AlertText.subject(alert, text), AlertText.body(alert, text, zone))
+        val carried = extrasFor(alert)
+        return channel.send(
+            AlertText.subject(alert, text),
+            AlertText.body(alert, text, zone, photoAttached = carried.photoJpeg != null),
+            carried,
+        )
     }
 
     private fun deliver(alert: SecurityAlert) {
         val channels = settings().activeChannels()
         if (channels.isEmpty()) return
         val text = wording()
+        val carried = extrasFor(alert)
         val subject = AlertText.subject(alert, text)
-        val body = AlertText.body(alert, text, zone)
+        val body = AlertText.body(alert, text, zone, photoAttached = carried.photoJpeg != null)
         var keepForLater = false
         channels.forEach { channel ->
-            val result = sendWithRetry(channel, subject, body)
+            val result = sendWithRetry(channel, subject, body, carried)
             if (result is ChannelResult.Retryable) keepForLater = true
             record(alert, channel.channel, result)
         }
         if (keepForLater) pending.add(alert)
     }
 
-    private fun sendWithRetry(channel: AlertChannel, subject: String, body: String): ChannelResult {
+    private fun extrasFor(alert: SecurityAlert): AlertExtras =
+        runCatching { extras(alert) }.getOrDefault(AlertExtras.NONE)
+
+    private fun sendWithRetry(channel: AlertChannel, subject: String, body: String, carried: AlertExtras): ChannelResult {
         var result: ChannelResult = ChannelResult.Retryable("not attempted")
         for ((attempt, waitMs) in RETRY_WAITS_MS.withIndex()) {
             if (attempt > 0) sleep(waitMs)
-            result = runCatching { channel.send(subject, body) }
+            result = runCatching { channel.send(subject, body, carried) }
                 .getOrElse { ChannelResult.Retryable("unexpected: ${it.javaClass.simpleName}") }
             if (result !is ChannelResult.Retryable) return result
         }

@@ -22,7 +22,8 @@ sealed interface ChannelResult {
 interface AlertChannel {
     val channel: DeliveryChannel
 
-    fun send(subject: String, body: String): ChannelResult
+    /** [extras] carries the photo and fix when there are any; a channel that cannot use them ignores them. */
+    fun send(subject: String, body: String, extras: AlertExtras = AlertExtras.NONE): ChannelResult
 }
 
 /** The HTTPS seam, so the request a channel builds is testable without a network. */
@@ -33,10 +34,18 @@ fun interface HttpsFormPoster {
 
 data class HttpReply(val code: Int, val body: String)
 
+/** The multipart seam for a file upload (Telegram `sendPhoto`), testable without a network. */
+fun interface HttpsMultipartPoster {
+    fun postFile(url: String, fields: Map<String, String>, file: MultipartFile): HttpReply
+}
+
+/** One file part: the form field it fills, its name, its media type and its bytes. */
+class MultipartFile(val field: String, val fileName: String, val mediaType: String, val bytes: ByteArray)
+
 /** The real poster: HTTPS only, bounded timeouts, nothing logged. */
 class UrlConnectionFormPoster(
     private val timeoutMs: Int = DEFAULT_TIMEOUT_MS,
-) : HttpsFormPoster {
+) : HttpsFormPoster, HttpsMultipartPoster {
     override fun post(url: String, fields: Map<String, String>): HttpReply {
         require(url.startsWith("https://")) { "alerts are only sent over HTTPS" }
         val connection = URL(url).openConnection() as HttpsURLConnection
@@ -50,6 +59,44 @@ class UrlConnectionFormPoster(
                 "${encode(key)}=${encode(value)}"
             }.toByteArray(StandardCharsets.UTF_8)
             connection.outputStream.use { it.write(payload) }
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val body = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
+            return HttpReply(code, body)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    override fun postFile(url: String, fields: Map<String, String>, file: MultipartFile): HttpReply {
+        require(url.startsWith("https://")) { "alerts are only sent over HTTPS" }
+        val boundary = "shieldra" + System.nanoTime().toString(16)
+        val dash = "--"
+        val crlf = "\r\n"
+        val connection = URL(url).openConnection() as HttpsURLConnection
+        try {
+            connection.requestMethod = "POST"
+            connection.connectTimeout = timeoutMs
+            // A photo over a weak mobile link takes longer than a line of text.
+            connection.readTimeout = timeoutMs * 2
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            connection.outputStream.use { out ->
+                val head = buildString {
+                    fields.forEach { (key, value) ->
+                        append(dash).append(boundary).append(crlf)
+                        append("Content-Disposition: form-data; name=\"").append(key).append('"').append(crlf).append(crlf)
+                        append(value).append(crlf)
+                    }
+                    append(dash).append(boundary).append(crlf)
+                    append("Content-Disposition: form-data; name=\"").append(file.field)
+                    append("\"; filename=\"").append(file.fileName).append('"').append(crlf)
+                    append("Content-Type: ").append(file.mediaType).append(crlf).append(crlf)
+                }
+                out.write(head.toByteArray(StandardCharsets.UTF_8))
+                out.write(file.bytes)
+                out.write("$crlf$dash$boundary$dash$crlf".toByteArray(StandardCharsets.UTF_8))
+            }
             val code = connection.responseCode
             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
             val body = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
@@ -77,23 +124,70 @@ data class TelegramConfig(val botToken: String, val chatId: String) {
 }
 
 /**
- * Sends an alert as a Telegram message through the owner's own bot (Bot API `sendMessage`).
- * Telegram answers `{"ok":true,...}` only when the message was accepted, and that answer is the
- * only thing that counts as sent.
+ * Sends an alert through the owner's own bot. With a photo it is one `sendPhoto` whose caption is
+ * the text; without one, a `sendMessage`. A fix is followed by a `sendLocation`, so the chat shows
+ * a real map pin. Telegram answers `{"ok":true,...}` only when the message was accepted, and that
+ * answer — for the text or photo, which carries the facts — is the only thing that counts as sent;
+ * the pin is a convenience on top and never changes the result.
  */
 class TelegramChannel(
     private val config: TelegramConfig,
     private val poster: HttpsFormPoster = UrlConnectionFormPoster(),
+    private val photoPoster: HttpsMultipartPoster = UrlConnectionFormPoster(),
 ) : AlertChannel {
     override val channel: DeliveryChannel = DeliveryChannel.TELEGRAM
 
-    override fun send(subject: String, body: String): ChannelResult {
+    override fun send(subject: String, body: String, extras: AlertExtras): ChannelResult {
         if (!config.isComplete) return ChannelResult.Rejected("Telegram is not fully set up")
+        val photo = extras.photoJpeg
+        var result: ChannelResult = if (photo != null && body.length <= CAPTION_LIMIT) {
+            call {
+                photoPoster.postFile(
+                    "$api/sendPhoto",
+                    mapOf("chat_id" to config.chatId, "caption" to body),
+                    MultipartFile("photo", "shieldra.jpg", "image/jpeg", photo),
+                )
+            }
+        } else {
+            // A photo Telegram refused, or a caption too long for one, must not cost the owner the
+            // facts: send the text, then try the photo as a follow-up that cannot fail the alert.
+            val text = call { poster.post("$api/sendMessage", mapOf("chat_id" to config.chatId, "text" to body)) }
+            if (text is ChannelResult.Sent && photo != null) {
+                call {
+                    photoPoster.postFile(
+                        "$api/sendPhoto",
+                        mapOf("chat_id" to config.chatId),
+                        MultipartFile("photo", "shieldra.jpg", "image/jpeg", photo),
+                    )
+                }
+            }
+            text
+        }
+        if (result is ChannelResult.Rejected && photo != null) {
+            // sendPhoto was refused (image too large, unreadable): fall back to the plain message.
+            result = call { poster.post("$api/sendMessage", mapOf("chat_id" to config.chatId, "text" to body)) }
+        }
+        val location = extras.location
+        if (result is ChannelResult.Sent && location != null) {
+            call {
+                poster.post(
+                    "$api/sendLocation",
+                    mapOf(
+                        "chat_id" to config.chatId,
+                        "latitude" to location.latitude.toString(),
+                        "longitude" to location.longitude.toString(),
+                    ) + (location.accuracyMeters?.let { mapOf("horizontal_accuracy" to it.coerceIn(0f, 1500f).toString()) } ?: emptyMap()),
+                )
+            }
+        }
+        return result
+    }
+
+    private val api: String get() = "https://api.telegram.org/bot${config.botToken}"
+
+    private fun call(request: () -> HttpReply): ChannelResult {
         val reply = try {
-            poster.post(
-                "https://api.telegram.org/bot${config.botToken}/sendMessage",
-                mapOf("chat_id" to config.chatId, "text" to body),
-            )
+            request()
         } catch (error: IOException) {
             return ChannelResult.Retryable("network: ${error.javaClass.simpleName}")
         }
@@ -110,5 +204,7 @@ class TelegramChannel(
     private companion object {
         val OK_TRUE = Regex("\"ok\"\\s*:\\s*true")
         const val TOO_MANY_REQUESTS = 429
+        /** Telegram's caption limit; a longer text goes as a message with the photo after it. */
+        const val CAPTION_LIMIT = 1024
     }
 }

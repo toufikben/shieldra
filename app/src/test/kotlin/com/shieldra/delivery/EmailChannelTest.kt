@@ -64,6 +64,25 @@ class EmailChannelTest {
     }
 
     @Test
+    fun a_photo_makes_the_message_multipart_with_a_base64_jpeg_attachment() {
+        val server = ScriptedServer(
+            "220 ready", "250 ok", "334 u", "334 p", "235 ok", "250 ok", "250 ok", "354 go", "250 ok", "221 bye",
+        )
+        val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 1, 2, 0xFF.toByte(), 0xD9.toByte())
+
+        val result = channel(server).send("s", "b", AlertExtras(photoJpeg = jpeg))
+
+        assertIs<ChannelResult.Sent>(result)
+        assertTrue(server.written.any { it.startsWith("Content-Type: multipart/mixed; boundary=") })
+        assertTrue(server.written.contains("Content-Disposition: attachment; filename=\"shieldra.jpg\""))
+        // The attachment decodes back to exactly the bytes handed in.
+        val begin = server.written.indexOfLast { it == "Content-Disposition: attachment; filename=\"shieldra.jpg\"" } + 2
+        val end = server.written.indexOfLast { it.startsWith("--") && it.endsWith("--") }
+        val decoded = Base64.getMimeDecoder().decode(server.written.subList(begin, end).joinToString("\r\n"))
+        assertTrue(jpeg.contentEquals(decoded))
+    }
+
+    @Test
     fun starttls_upgrades_before_any_credential_is_sent() {
         val server = ScriptedServer(
             "220 ready", "250 ok", "220 go ahead", "250 ok",

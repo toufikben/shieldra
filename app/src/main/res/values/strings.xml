@@ -226,6 +226,16 @@
     <string name="alert_label_device">Phone</string>
     <string name="alert_label_battery">Battery</string>
     <string name="alert_label_event">Event</string>
+    <string name="alert_title_lock">Wrong unlock attempts</string>
+    <string name="alert_title_countdown">Periodic signal</string>
+    <string name="alert_label_location">Location</string>
+    <string name="alert_location_unavailable">not available</string>
+    <string name="alert_label_accuracy">accuracy</string>
+    <string name="alert_label_fix_age">fix taken</string>
+    <string name="alert_label_photo">Front camera</string>
+    <string name="alert_photo_attached">photo attached</string>
+    <string name="alert_photo_unavailable">no photo could be taken</string>
+    <string name="alert_label_attempts">Failed attempts</string>
     <string name="alert_channels_title">Alert channels</string>
     <string name="alert_channels_intro">When Silent Panic is pressed or a movement is recorded, SHIELDRA sends an alert in the background through the channels you switch on here. Nothing is shown on the phone when it is sent.</string>
     <string name="alert_channel_telegram">Telegram</string>
