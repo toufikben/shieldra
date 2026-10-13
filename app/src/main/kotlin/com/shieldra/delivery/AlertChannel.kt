@@ -132,8 +132,8 @@ data class TelegramConfig(val botToken: String, val chatId: String) {
  */
 class TelegramChannel(
     private val config: TelegramConfig,
-    private val poster: HttpsFormPoster = UrlConnectionFormPoster(),
     private val photoPoster: HttpsMultipartPoster = UrlConnectionFormPoster(),
+    private val poster: HttpsFormPoster = UrlConnectionFormPoster(),
 ) : AlertChannel {
     override val channel: DeliveryChannel = DeliveryChannel.TELEGRAM
 
