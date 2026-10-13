@@ -28,6 +28,14 @@ android {
         }
     }
 
+    buildTypes {
+        // Explicitly bind the committed debug key so CI never falls back to its ephemeral
+        // ~/.android/debug.keystore (which changes per run and breaks `adb install -r`).
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
     buildFeatures {
         compose = true
     }
