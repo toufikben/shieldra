@@ -75,6 +75,25 @@ class ProtectionSettingsStore(context: Context) {
         prefs.edit().putStringSet(KEY_SIM_BASELINE, ids).apply()
     }
 
+    /** The current countdown deadline, or null if no cycle is scheduled. */
+    fun countdownDeadline(): CountdownDeadline? {
+        if (!prefs.contains(KEY_CD_EPOCH)) return null
+        return CountdownDeadline(
+            epochDeadlineMs = prefs.getLong(KEY_CD_EPOCH, 0L),
+            elapsedDeadlineMs = prefs.getLong(KEY_CD_ELAPSED, 0L),
+        )
+    }
+
+    fun setCountdownDeadline(deadline: CountdownDeadline?) {
+        val editor = prefs.edit()
+        if (deadline == null) {
+            editor.remove(KEY_CD_EPOCH).remove(KEY_CD_ELAPSED)
+        } else {
+            editor.putLong(KEY_CD_EPOCH, deadline.epochDeadlineMs).putLong(KEY_CD_ELAPSED, deadline.elapsedDeadlineMs)
+        }
+        editor.apply()
+    }
+
     private companion object {
         const val PREFERENCES_NAME = "shieldra_protection"
         const val KEY_ARMED = "armed"
@@ -89,5 +108,7 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_MOTION_GRACE = "motion_grace_seconds"
         const val KEY_RETENTION = "retention_days"
         const val KEY_SIM_BASELINE = "sim_baseline"
+        const val KEY_CD_EPOCH = "countdown_epoch_deadline"
+        const val KEY_CD_ELAPSED = "countdown_elapsed_deadline"
     }
 }

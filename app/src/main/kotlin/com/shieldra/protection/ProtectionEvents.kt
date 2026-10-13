@@ -6,6 +6,7 @@ import com.shieldra.domain.EventRepository
 import com.shieldra.domain.EvidenceReference
 import com.shieldra.domain.GuardSeverity
 import com.shieldra.domain.IdentityProvider
+import com.shieldra.domain.isTerminal
 import com.shieldra.domain.RepositoryResult
 import com.shieldra.domain.SecurityEvent
 import com.shieldra.domain.SecurityEventType

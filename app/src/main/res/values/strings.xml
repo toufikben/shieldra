@@ -80,6 +80,10 @@
     <string name="notification_channel_protection">Protection service</string>
     <string name="notification_protection_title">SHIELDRA protection is active</string>
     <string name="notification_protection_text">Running in the background.</string>
+    <string name="countdown_channel">Periodic signal</string>
+    <string name="countdown_warning_title">Periodic signal</string>
+    <string name="countdown_warning_text">The next signal is due soon.</string>
+    <string name="countdown_snooze">Postpone</string>
     <string name="motion_monitoring_start">Start Motion monitoring</string>
     <string name="motion_monitoring_stop">Stop Motion monitoring</string>
     <string name="motion_monitoring_needs_permission">Monitoring has to stay visible to you, so allow notifications first.</string>

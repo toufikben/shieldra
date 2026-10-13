@@ -19,8 +19,12 @@ class BootReceiver : BroadcastReceiver() {
         val pending = goAsync()
         Thread {
             try {
-                if (ProtectionSettingsStore(appContext).load().armed) {
+                val settings = ProtectionSettingsStore(appContext).load()
+                if (settings.armed) {
                     ProtectionService.arm(appContext)
+                }
+                if (settings.countdownEnabled) {
+                    CountdownScheduler.rescheduleAfterBoot(appContext)
                 }
             } finally {
                 pending.finish()

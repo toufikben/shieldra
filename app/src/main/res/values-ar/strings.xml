@@ -80,6 +80,10 @@
     <string name="notification_channel_protection">خدمة الحماية</string>
     <string name="notification_protection_title">حماية SHIELDRA نشِطة</string>
     <string name="notification_protection_text">تعمل في الخلفية.</string>
+    <string name="countdown_channel">إشارة دورية</string>
+    <string name="countdown_warning_title">إشارة دورية</string>
+    <string name="countdown_warning_text">الإشارة التالية ستُرسل قريباً.</string>
+    <string name="countdown_snooze">تأجيل</string>
     <string name="motion_monitoring_start">تشغيل مراقبة الحركة</string>
     <string name="motion_monitoring_stop">إيقاف مراقبة الحركة</string>
     <string name="motion_monitoring_needs_permission">يجب أن تبقى المراقبة ظاهرة لك، لذا اسمح بالإشعارات أولًا.</string>

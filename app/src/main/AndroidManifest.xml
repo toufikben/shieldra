@@ -128,5 +128,13 @@
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!--
+          A-33: the countdown's alarm and snooze receiver. Not exported: it only receives the exact
+          alarms and the snooze action SHIELDRA itself scheduled.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.CountdownReceiver"
+            android:exported="false" />
     </application>
 </manifest>
