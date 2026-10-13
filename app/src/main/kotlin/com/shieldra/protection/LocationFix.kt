@@ -21,6 +21,7 @@ import java.time.Instant
  */
 class LocationFix(private val context: Context) {
 
+    @android.annotation.SuppressLint("MissingPermission") // guarded by hasPermission() on the line below.
     suspend fun current(): AlertLocation? = withContext(Dispatchers.IO) {
         if (!hasPermission()) return@withContext null
         val client = LocationServices.getFusedLocationProviderClient(context)

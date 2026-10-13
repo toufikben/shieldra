@@ -81,6 +81,16 @@ import com.shieldra.app.presentation.settings.honestSettingsRows
 import com.shieldra.app.presentation.screen.settings.SettingsCallbacks
 import com.shieldra.app.presentation.screen.settings.SettingsScreen
 import com.shieldra.app.presentation.screen.settings.NotificationSetupScreen
+import com.shieldra.app.presentation.screen.settings.ProtectionSetupScreen as ProtectionGuardsScreen
+import com.shieldra.app.presentation.screen.settings.ProtectionPermissions
+import com.shieldra.protection.ProtectionRuntime
+import com.shieldra.protection.ProtectionSettings
+import com.shieldra.protection.ProtectionSettingsStore
+import com.shieldra.protection.LockGuardReceiver
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import com.shieldra.domain.PanicActivation
 import com.shieldra.notification.LocalEventNotifier
 import com.shieldra.notification.LocalPostResult
@@ -182,6 +192,19 @@ fun ShieldraNavHost(
         deliverySettings = withContext(Dispatchers.IO) { deliveryStore.load() }
     }
     val channelsSavedMessage = stringResource(R.string.alert_channels_saved)
+    // A-33/A-34: the protection guards. Armed state is read from the stored flag the service and
+    // boot recovery share; the settings draft and the live permission states drive the setup screen.
+    val protectionArmed by ProtectionRuntime.armed.collectAsState()
+    val protectionStore = remember(context) { ProtectionSettingsStore(context) }
+    var protectionSettings by remember { mutableStateOf(protectionStore.load()) }
+    var permissionRefresh by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) { ProtectionRuntime.refresh(context) }
+    val protectionPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { permissionRefresh += 1 }
+    val deviceAdminLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { permissionRefresh += 1 }
     // "Stopped" reports an observed state, not a press: it appears once the service has retracted
     // itself, and never while it still claims to be monitoring.
     LaunchedEffect(motionClaim) {
@@ -404,6 +427,7 @@ fun ShieldraNavHost(
                         storageInstalled = storageInstalled,
                         notificationState = remember(permissionRequests) { notifier.permissionState() },
                         alertChannelsActive = deliverySettings?.activeChannels()?.isNotEmpty() == true,
+                        protectionArmed = protectionArmed,
                     ),
                     callbacks = SettingsCallbacks { id, _ ->
                         when (SettingsContent.targetOf(id)) {
@@ -414,6 +438,10 @@ fun ShieldraNavHost(
                             // A-32: where alerts leave the phone.
                             SettingsRowTarget.AlertChannels ->
                                 navController.navigate(ShieldraRoutes.ALERT_CHANNELS)
+
+                            // A-33/A-34: arm the guards and tune them.
+                            SettingsRowTarget.ProtectionSetup ->
+                                navController.navigate(ShieldraRoutes.PROTECTION_SETUP)
 
                             SettingsRowTarget.NotAvailable -> defer()
                         }
@@ -454,6 +482,55 @@ fun ShieldraNavHost(
                         onBack = { navController.popBackStack() },
                     )
                 }
+            }
+
+            // Protection setup (A-33/A-34): arm the guards, grant their permissions, tune them.
+            composable(ShieldraRoutes.PROTECTION_SETUP) {
+                val adminComponent = remember(context) { ComponentName(context, LockGuardReceiver::class.java) }
+                val permissions = remember(permissionRefresh, permissionRequests) {
+                    val dpm = context.getSystemService(DevicePolicyManager::class.java)
+                    fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
+                    ProtectionPermissions(
+                        camera = has(Manifest.permission.CAMERA),
+                        location = has(Manifest.permission.ACCESS_FINE_LOCATION) || has(Manifest.permission.ACCESS_COARSE_LOCATION),
+                        phone = has(Manifest.permission.READ_PHONE_STATE),
+                        notifications = notifier.permissionState().let {
+                            it == com.shieldra.notification.NotificationPermissionState.Granted ||
+                                it == com.shieldra.notification.NotificationPermissionState.NotRequired
+                        },
+                        deviceAdmin = dpm?.isAdminActive(adminComponent) == true,
+                    )
+                }
+                ProtectionGuardsScreen(
+                    armed = protectionArmed,
+                    permissions = permissions,
+                    settings = protectionSettings,
+                    onGrantCamera = { protectionPermissionLauncher.launch(arrayOf(Manifest.permission.CAMERA)) },
+                    onGrantLocation = {
+                        protectionPermissionLauncher.launch(
+                            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                        )
+                    },
+                    onGrantPhone = { protectionPermissionLauncher.launch(arrayOf(Manifest.permission.READ_PHONE_STATE)) },
+                    onGrantNotifications = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                    onEnableDeviceAdmin = {
+                        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                            .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+                            .putExtra(
+                                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                                context.getString(R.string.device_admin_description),
+                            )
+                        runCatching { deviceAdminLauncher.launch(intent) }
+                    },
+                    onArmToggle = {
+                        if (protectionArmed) ProtectionRuntime.disarm(context) else ProtectionRuntime.arm(context)
+                    },
+                    onSave = { updated ->
+                        protectionSettings = updated
+                        ProtectionRuntime.applySettings(context, updated)
+                    },
+                    onBack = { navController.popBackStack() },
+                )
             }
 
             // Notification setup (A-6): the only permission request in the app.

@@ -37,6 +37,7 @@ class SimGuard(private val context: Context) {
         )
     }
 
+    @android.annotation.SuppressLint("MissingPermission") // guarded by hasPhoneState() on the line below.
     private fun currentSimIds(): Set<String> {
         if (!hasPhoneState()) return emptySet()
         val manager = ContextCompat.getSystemService(context, SubscriptionManager::class.java) ?: return emptySet()

@@ -45,6 +45,7 @@ class CameraCapture(private val context: Context) {
         return null
     }
 
+    @android.annotation.SuppressLint("MissingPermission") // capture() returns early without CAMERA.
     private suspend fun captureOnce(): ByteArray? = withContext(Dispatchers.IO) {
         val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager ?: return@withContext null
         val cameraId = frontCameraId(manager) ?: return@withContext null

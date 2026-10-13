@@ -95,7 +95,12 @@ class ProtectionService : Service() {
             }
         }
         runCatching {
-            registerReceiver(receiver, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            ContextCompat.registerReceiver(
+                this,
+                receiver,
+                android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
             batteryReceiver = receiver
         }
     }

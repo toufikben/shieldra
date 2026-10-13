@@ -14,6 +14,8 @@ object ShieldraRoutes {
     const val NOTIFICATION_SETUP = "main/settings/notifications"
     /** Alert channels (amendment A-32): the owner's Telegram bot and email account. */
     const val ALERT_CHANNELS = "main/settings/alerts"
+    /** Protection setup (amendments A-33/A-34): arm the guards and tune them. */
+    const val PROTECTION_SETUP = "main/settings/protection"
 
     const val EVENT_DETAIL_ARG_ID = "eventId"
     const val EVENT_DETAIL = "main/event/{$EVENT_DETAIL_ARG_ID}"

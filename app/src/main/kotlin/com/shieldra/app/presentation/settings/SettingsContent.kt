@@ -16,6 +16,7 @@ import com.shieldra.notification.NotificationPermissionState
 enum class SettingsSubtitleKind {
     NotificationState,
     AlertChannelsState,
+    ProtectionState,
     AppLockNotEnforced,
     MatchSystem,
     StorageState,
@@ -43,6 +44,7 @@ data class SettingsRowSpec(
 enum class SettingsRowTarget {
     NotificationSetup,
     AlertChannels,
+    ProtectionSetup,
     NotAvailable,
 }
 
@@ -60,6 +62,13 @@ object SettingsContent {
 
     /** A-32: the owner's own Telegram bot and email account, the channels alerts leave through. */
     const val ALERT_CHANNELS_ROW_ID: String = "alert_channels"
+
+    /**
+     * A-33/A-34: arming the protection guards. Q-K-9 removed the old "Protection" row because no
+     * guard existed to switch on; one does now (Lock, SIM, battery, countdown behind a real
+     * foreground service), so the row is a setting again, not a claim.
+     */
+    const val PROTECTION_ROW_ID: String = "protection"
 
     /** The storage row shows a state word, never figures the app cannot read. */
     val storageRowShowsFigures: Boolean = false
@@ -108,6 +117,13 @@ object SettingsContent {
             subtitle = SettingsSubtitleKind.AlertChannelsState,
         ),
         SettingsRowSpec(
+            PROTECTION_ROW_ID,
+            R.string.protection_title,
+            SettingsIcon.Lock,
+            SettingsSection.SecurityApp,
+            subtitle = SettingsSubtitleKind.ProtectionState,
+        ),
+        SettingsRowSpec(
             "app_lock",
             R.string.settings_app_lock,
             SettingsIcon.Lock,
@@ -149,6 +165,7 @@ object SettingsContent {
     fun targetOf(id: String): SettingsRowTarget = when (id) {
         NOTIFICATION_ROW_ID -> SettingsRowTarget.NotificationSetup
         ALERT_CHANNELS_ROW_ID -> SettingsRowTarget.AlertChannels
+        PROTECTION_ROW_ID -> SettingsRowTarget.ProtectionSetup
         else -> SettingsRowTarget.NotAvailable
     }
 
@@ -212,6 +229,7 @@ internal fun settingsSubtitleRes(
     storageInstalled: Boolean,
     notificationState: NotificationPermissionState,
     alertChannelsActive: Boolean = false,
+    protectionArmed: Boolean = false,
 ): Int? = when (kind) {
     SettingsSubtitleKind.None -> null
     SettingsSubtitleKind.AppLockNotEnforced -> appLockSubtitleRes()
@@ -220,6 +238,8 @@ internal fun settingsSubtitleRes(
     SettingsSubtitleKind.NotificationState -> notificationStateRes(notificationState)
     SettingsSubtitleKind.AlertChannelsState ->
         if (alertChannelsActive) R.string.settings_alert_channels_on else R.string.settings_alert_channels_off
+    SettingsSubtitleKind.ProtectionState ->
+        if (protectionArmed) R.string.protection_state_armed else R.string.protection_state_disarmed
     SettingsSubtitleKind.StorageState ->
         storageRowSubtitleRes(SettingsContent.storageRowState(storageInstalled))
 }
