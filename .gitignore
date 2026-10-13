@@ -8,3 +8,7 @@ local.properties
 
 # Locally downloaded CI build artifacts (device test APKs), never committed.
 .dev-artifacts/
+
+# Release signing material — CI writes these into the workspace, never commits them.
+key.properties
+*.jks

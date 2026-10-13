@@ -80,6 +80,47 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/publish-device-apks.sh
 
+      - name: Build the signed release APK and AAB
+        if: success()
+        shell: bash
+        env:
+          # app/build.gradle.kts reads key.properties from the repository root and falls
+          # back to the debug key when it is absent, so this step is the whole difference
+          # between an uploadable release build and a debug-signed one.
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Repository secret KEYSTORE_BASE64 is not set - add it before this step can sign a build." >&2
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > app/release-keystore.jks
+          printf 'storeFile=release-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > key.properties
+          ./gradlew assembleRelease bundleRelease --stacktrace
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort | tail -1)
+          "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk
+
+      - name: Publish the signed pair to the rolling release
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create release-latest \
+            --prerelease \
+            --title "Release builds" \
+            --notes "Rolling signed release - every green CI run replaces these files." \
+            || true
+          gh release upload release-latest \
+            app/build/outputs/apk/release/app-release.apk \
+            app/build/outputs/bundle/release/app-release.aab \
+            --clobber
+
       # The artifact copy stays, but it is no longer the authority: it cannot upload while GitHub's
       # artifact storage is exhausted (Q-K-5), and the step above already fails the run when the
       # pair is missing, so a tolerated failure here cannot hide an absent APK.
