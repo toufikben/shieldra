@@ -68,6 +68,20 @@ fun AlertChannelsScreen(
     var account by remember(saved) { mutableStateOf(saved.email.username) }
     var appPassword by remember(saved) { mutableStateOf("") }
     var recipient by remember(saved) { mutableStateOf(saved.email.to) }
+    // Most owners only ever type an address and an app password; the server fields are derived from
+    // the address and stay hidden unless the provider is unknown or the owner opens Advanced.
+    var advancedOpen by remember(saved) { mutableStateOf(false) }
+    val provider = remember(account) { providerFor(account) }
+    // When the address points at a known provider, fill its server settings so the two fields are
+    // enough. A hand-edited Advanced section (advancedOpen) is left exactly as the owner set it.
+    androidx.compose.runtime.LaunchedEffect(provider, advancedOpen) {
+        if (provider != null && !advancedOpen) {
+            host = provider.host
+            port = provider.port.toString()
+            security = provider.security
+        }
+    }
+    val showAdvanced = advancedOpen || provider == null
     var telegramResult by remember { mutableStateOf<ChannelResult?>(null) }
     var emailResult by remember { mutableStateOf<ChannelResult?>(null) }
     var testing by remember { mutableStateOf(false) }
@@ -87,7 +101,8 @@ fun AlertChannelsScreen(
             username = account.trim(),
             appPassword = appPassword.replace(" ", "").ifBlank { saved.email.appPassword },
             from = account.trim(),
-            to = recipient.trim(),
+            // Alerts go to the owner's own inbox by default; Advanced can send them elsewhere.
+            to = recipient.trim().ifBlank { account.trim() },
         ),
     )
 
@@ -135,7 +150,10 @@ fun AlertChannelsScreen(
                 value = chatId,
                 onValueChange = { chatId = it },
                 label = stringResource(R.string.alert_telegram_chat),
-                supportingText = stringResource(R.string.alert_telegram_help),
+            )
+            HelpBlock(
+                title = stringResource(R.string.alert_telegram_help_title),
+                body = stringResource(R.string.alert_telegram_help_body),
             )
             TestRow(
                 result = telegramResult,
@@ -160,38 +178,51 @@ fun AlertChannelsScreen(
                 onValueChange = { appPassword = it },
                 label = stringResource(R.string.alert_email_app_password),
                 placeholder = savedPlaceholder(saved.email.appPassword.isNotBlank()),
-                supportingText = stringResource(R.string.alert_email_app_password_help),
                 visualTransformation = PasswordVisualTransformation(),
             )
-            ShieldraTextField(
-                value = recipient,
-                onValueChange = { recipient = it },
-                label = stringResource(R.string.alert_email_recipient),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            HelpBlock(
+                title = stringResource(R.string.alert_email_help_title),
+                body = stringResource(R.string.alert_email_help_body),
             )
-            ShieldraTextField(
-                value = host,
-                onValueChange = { host = it },
-                label = stringResource(R.string.alert_email_server),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(spacing.s), verticalAlignment = Alignment.CenterVertically) {
+            // The server fields: hidden for a known provider, shown when it is unknown or on request.
+            if (!showAdvanced) {
+                ShieldraButton(
+                    text = stringResource(R.string.alert_advanced_show),
+                    onClick = { advancedOpen = true },
+                    variant = ShieldraButtonVariant.Ghost,
+                )
+            } else {
                 ShieldraTextField(
-                    value = port,
-                    onValueChange = { value -> port = value.filter(Char::isDigit).take(5) },
-                    label = stringResource(R.string.alert_email_port),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f),
+                    value = recipient,
+                    onValueChange = { recipient = it },
+                    label = stringResource(R.string.alert_email_recipient),
+                    supportingText = stringResource(R.string.alert_email_recipient_help),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 )
-                ShieldraChip(
-                    label = stringResource(R.string.alert_email_ssl),
-                    selected = security == MailSecurity.SSL_TLS,
-                    onClick = { security = MailSecurity.SSL_TLS; if (port == "587") port = "465" },
+                ShieldraTextField(
+                    value = host,
+                    onValueChange = { host = it },
+                    label = stringResource(R.string.alert_email_server),
                 )
-                ShieldraChip(
-                    label = stringResource(R.string.alert_email_starttls),
-                    selected = security == MailSecurity.STARTTLS,
-                    onClick = { security = MailSecurity.STARTTLS; if (port == "465") port = "587" },
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(spacing.s), verticalAlignment = Alignment.CenterVertically) {
+                    ShieldraTextField(
+                        value = port,
+                        onValueChange = { value -> port = value.filter(Char::isDigit).take(5) },
+                        label = stringResource(R.string.alert_email_port),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                    )
+                    ShieldraChip(
+                        label = stringResource(R.string.alert_email_ssl),
+                        selected = security == MailSecurity.SSL_TLS,
+                        onClick = { security = MailSecurity.SSL_TLS; if (port == "587") port = "465" },
+                    )
+                    ShieldraChip(
+                        label = stringResource(R.string.alert_email_starttls),
+                        selected = security == MailSecurity.STARTTLS,
+                        onClick = { security = MailSecurity.STARTTLS; if (port == "465") port = "587" },
+                    )
+                }
             }
             TestRow(
                 result = emailResult,
@@ -216,6 +247,39 @@ fun AlertChannelsScreen(
 @Composable
 private fun savedPlaceholder(isSaved: Boolean): String? =
     if (isSaved) stringResource(R.string.alert_secret_saved) else null
+
+/** A known mail provider's SMTP settings, derived from the address so the owner needn't know them. */
+private data class MailProvider(val host: String, val port: Int, val security: MailSecurity)
+
+private fun providerFor(email: String): MailProvider? {
+    val domain = email.substringAfter('@', "").trim().lowercase()
+    if (domain.isEmpty()) return null
+    return when {
+        domain == "gmail.com" || domain == "googlemail.com" -> MailProvider("smtp.gmail.com", 465, MailSecurity.SSL_TLS)
+        domain == "outlook.com" || domain == "hotmail.com" || domain == "live.com" || domain == "msn.com" ->
+            MailProvider("smtp-mail.outlook.com", 587, MailSecurity.STARTTLS)
+        domain.endsWith("yahoo.com") || domain == "ymail.com" -> MailProvider("smtp.mail.yahoo.com", 465, MailSecurity.SSL_TLS)
+        domain == "icloud.com" || domain == "me.com" || domain == "mac.com" -> MailProvider("smtp.mail.me.com", 587, MailSecurity.STARTTLS)
+        else -> null
+    }
+}
+
+/** A short, plain how-to under a channel's fields, for owners who do not know where a secret lives. */
+@Composable
+private fun HelpBlock(title: String, body: String) {
+    val spacing = ShieldraTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(ShieldraCardShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(spacing.m),
+        verticalArrangement = Arrangement.spacedBy(spacing.xs),
+    ) {
+        Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+        Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
 
 @Composable
 private fun ChannelCard(

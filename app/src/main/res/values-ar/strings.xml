@@ -293,6 +293,12 @@
     <string name="alert_email_port">المنفذ</string>
     <string name="alert_email_ssl">SSL/TLS</string>
     <string name="alert_email_starttls">STARTTLS</string>
+    <string name="alert_email_recipient_help">اتركه فارغاً للإرسال إلى بريدك نفسه.</string>
+    <string name="alert_advanced_show">إعدادات متقدمة (الخادم)</string>
+    <string name="alert_email_help_title">كيفية الحصول على كلمة مرور التطبيق</string>
+    <string name="alert_email_help_body">كلمة مرور التطبيق ليست كلمة مرورك العادية. Gmail: فعّل التحقق بخطوتين، ثم افتح myaccount.google.com/apppasswords وأنشئ واحدة لـ \"Mail\" والصق الحروف الستة عشر هنا. Outlook وYahoo بهما الخيار نفسه في إعدادات أمان الحساب. تُملأ حقول الخادم تلقائياً لـ Gmail وOutlook وYahoo وiCloud.</string>
+    <string name="alert_telegram_help_title">كيفية الحصول على التوكن ومعرّف المحادثة</string>
+    <string name="alert_telegram_help_body">١) في تلغرام افتح @BotFather وأرسل /newbot واتبع الخطوات وانسخ التوكن. ٢) افتح البوت الجديد وأرسل له أي رسالة. ٣) افتح @userinfobot فيردّ بمعرّف محادثتك — الصق ذلك الرقم هنا.</string>
     <string name="alert_send_test">إرسال تجربة</string>
     <string name="alert_test_sent">أُرسلت التجربة ✓</string>
     <string name="alert_test_retryable">تعذّر الإرسال الآن: %1$s</string>

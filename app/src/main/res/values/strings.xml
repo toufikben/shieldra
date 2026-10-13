@@ -294,6 +294,12 @@
     <string name="alert_email_port">Port</string>
     <string name="alert_email_ssl">SSL/TLS</string>
     <string name="alert_email_starttls">STARTTLS</string>
+    <string name="alert_email_recipient_help">Leave empty to send to your own address.</string>
+    <string name="alert_advanced_show">Advanced (server settings)</string>
+    <string name="alert_email_help_title">How to get an app password</string>
+    <string name="alert_email_help_body">An app password is not your normal password. Gmail: turn on 2-Step Verification, then open myaccount.google.com/apppasswords, create one for \"Mail\", and paste the 16 letters here. Outlook and Yahoo have the same option in their account security settings. The server fields fill in automatically for Gmail, Outlook, Yahoo and iCloud.</string>
+    <string name="alert_telegram_help_title">How to get the bot token and chat ID</string>
+    <string name="alert_telegram_help_body">1) In Telegram, open @BotFather, send /newbot, follow the steps, and copy the token it gives you. 2) Open your new bot and send it any message. 3) Open @userinfobot and it replies with your chat ID — paste that number here.</string>
     <string name="alert_send_test">Send test</string>
     <string name="alert_test_sent">Test sent ✓</string>
     <string name="alert_test_retryable">Could not send now: %1$s</string>
