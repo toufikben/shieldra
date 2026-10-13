@@ -287,6 +287,10 @@ fun ShieldraNavHost(
                         state = guardState,
                         recentEvents = recentEvents.take(RECENT_EVENT_LIMIT),
                         motionClaim = motionClaim,
+                        protectionArmed = protectionArmed,
+                        lockOn = protectionSettings.lockEnabled,
+                        simOn = protectionSettings.simEnabled,
+                        batteryOn = protectionSettings.batteryEnabled,
                     ),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->

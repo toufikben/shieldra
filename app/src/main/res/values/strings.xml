@@ -235,6 +235,7 @@
     <string name="guard_status_locked">Locked</string>
     <string name="guard_accessibility">%1$s. %2$s. Status: %3$s.%4$s</string>
     <string name="guard_subtitle_inactive">Not monitoring yet</string>
+    <string name="guard_subtitle_active">Guarding in the background</string>
     <string name="guard_subtitle_motion_active">Motion monitoring is active</string>
     <string name="event_security_event">Security event</string>
     <string name="status_network_unknown">Not measured</string>
