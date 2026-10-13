@@ -11,32 +11,35 @@ class CountdownTimerTest {
     fun remaining_time_is_the_duration_right_after_start() {
         val d = CountdownDeadline.start(durationMs = 60 * 60_000L, nowEpochMs = 1_000L, nowElapsedMs = 500L)
 
-        assertEquals(60 * 60_000L, d.remainingMs(nowEpochMs = 1_000L, nowElapsedMs = 500L))
-        assertFalse(d.isExpired(1_000L, 500L))
+        assertEquals(60 * 60_000L, d.remainingMs(nowElapsedMs = 500L))
+        assertFalse(d.isExpired(500L))
     }
 
     @Test
     fun a_duration_below_the_floor_is_raised_to_the_minimum() {
         val d = CountdownDeadline.start(durationMs = 1L, nowEpochMs = 0L, nowElapsedMs = 0L)
 
-        assertEquals(CountdownDeadline.MIN_DURATION_MS, d.remainingMs(0L, 0L))
+        assertEquals(CountdownDeadline.MIN_DURATION_MS, d.remainingMs(0L))
     }
 
     @Test
-    fun moving_the_wall_clock_forward_cannot_make_it_fire_early() {
+    fun moving_the_wall_clock_cannot_change_the_firing_because_steady_state_uses_the_monotonic_clock() {
         val d = CountdownDeadline.start(durationMs = 3_600_000L, nowEpochMs = 0L, nowElapsedMs = 0L)
 
-        // Wall clock jumps an hour ahead, but the monotonic clock advanced only a second.
-        assertFalse(d.isExpired(nowEpochMs = 3_600_000L, nowElapsedMs = 1_000L))
-        assertEquals(3_599_000L, d.remainingMs(3_600_000L, 1_000L))
+        // Wall clock jumps an hour ahead, but the monotonic clock advanced only a second: not due.
+        assertFalse(d.isExpired(nowElapsedMs = 1_000L))
+        assertEquals(3_599_000L, d.remainingMs(1_000L))
+        // Only the monotonic clock reaching the deadline fires it.
+        assertTrue(d.isExpired(nowElapsedMs = 3_600_000L))
     }
 
     @Test
-    fun moving_the_wall_clock_back_cannot_postpone_past_the_real_duration() {
-        val d = CountdownDeadline.start(durationMs = 3_600_000L, nowEpochMs = 0L, nowElapsedMs = 0L)
+    fun boot_recovery_uses_the_wall_clock_because_the_monotonic_clock_reset() {
+        val d = CountdownDeadline.start(durationMs = 3_600_000L, nowEpochMs = 1_000_000L, nowElapsedMs = 5_000L)
 
-        // Wall clock dragged back, but the monotonic clock really reached the deadline.
-        assertTrue(d.isExpired(nowEpochMs = -1_000_000L, nowElapsedMs = 3_600_000L))
+        // After a reboot the wall clock is past the stored epoch deadline: the cycle came due.
+        assertTrue(d.isEpochExpired(nowEpochMs = 1_000_000L + 3_600_000L))
+        assertFalse(d.isEpochExpired(nowEpochMs = 1_000_000L + 60_000L))
     }
 
     @Test

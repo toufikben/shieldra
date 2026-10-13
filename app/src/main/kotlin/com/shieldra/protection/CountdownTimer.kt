@@ -3,12 +3,13 @@ package com.shieldra.protection
 /**
  * The deadline arithmetic for the owner's periodic signal (A-33), kept pure and tamper-resistant.
  *
- * A countdown is stored as two deadlines taken when it starts: one on the wall clock
- * ([epochDeadlineMs]) and one on the monotonic clock ([elapsedDeadlineMs]). Remaining time is the
- * **smaller** of the two, so moving the system clock forward cannot make the signal fire early, and
- * moving it back cannot postpone it past the real duration. Deep sleep freezes the monotonic clock,
- * so the wall clock covers that gap; a clock jump is covered the other way. Neither alone is
- * trusted.
+ * A countdown is stored as two deadlines taken when it starts: one on the monotonic clock
+ * ([elapsedDeadlineMs]) and one on the wall clock ([epochDeadlineMs]). Within one boot the monotonic
+ * clock is the trusted one: it counts real elapsed time including deep sleep and the owner cannot
+ * move it, so [remainingMs]/[isExpired] use it alone — moving the wall clock forward or back changes
+ * nothing. The wall-clock deadline exists only for the two things the monotonic clock cannot do:
+ * drive an `RTC_WAKEUP` alarm, and survive a reboot (where the monotonic clock resets to zero). Boot
+ * recovery reads [isEpochExpired].
  *
  * It computes; the scheduler and the service act on what it returns. No Android types here, so the
  * rule is unit-tested without a device.
@@ -17,15 +18,13 @@ data class CountdownDeadline(
     val epochDeadlineMs: Long,
     val elapsedDeadlineMs: Long,
 ) {
-    /** Milliseconds left, never negative, given the current wall and monotonic readings. */
-    fun remainingMs(nowEpochMs: Long, nowElapsedMs: Long): Long {
-        val byEpoch = epochDeadlineMs - nowEpochMs
-        val byElapsed = elapsedDeadlineMs - nowElapsedMs
-        return minOf(byEpoch, byElapsed).coerceAtLeast(0L)
-    }
+    /** Milliseconds left on the monotonic clock, never negative. The owner cannot tamper with this. */
+    fun remainingMs(nowElapsedMs: Long): Long = (elapsedDeadlineMs - nowElapsedMs).coerceAtLeast(0L)
 
-    fun isExpired(nowEpochMs: Long, nowElapsedMs: Long): Boolean =
-        remainingMs(nowEpochMs, nowElapsedMs) == 0L
+    fun isExpired(nowElapsedMs: Long): Boolean = remainingMs(nowElapsedMs) == 0L
+
+    /** Boot recovery only: the monotonic clock reset at reboot, so the wall clock decides here. */
+    fun isEpochExpired(nowEpochMs: Long): Boolean = nowEpochMs >= epochDeadlineMs
 
     companion object {
         /** Floor so a mis-set "every 0 ms" cannot busy-loop the capture path. */

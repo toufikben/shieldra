@@ -51,12 +51,53 @@ class ProtectionService : Service() {
     private val location by lazy { LocationFix(applicationContext) }
     private val busy = AtomicBoolean(false)
     private var promoted = false
+    private val battery by lazy { BatteryBreathLogic(mainThreshold = { ProtectionSettingsStore(applicationContext).load().batteryThreshold }) }
+    private var batteryReceiver: android.content.BroadcastReceiver? = null
+    private val simGuard by lazy { SimGuard(applicationContext) }
+    private var lastSimVerdict: SimGuardLogic.Verdict = SimGuardLogic.Verdict.Normal
+
+    /** Re-checks the SIM/network state and alerts once on each transition into an abnormal state. */
+    private fun checkSim() {
+        if (!ProtectionSettingsStore(applicationContext).load().simEnabled) return
+        val verdict = simGuard.check() ?: return
+        if (verdict == lastSimVerdict) return
+        lastSimVerdict = verdict
+        if (verdict != SimGuardLogic.Verdict.Normal) {
+            capture(SecurityEventType.SIM_CONFIRMED_EVENT, null)
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         liveInstance = this
+    }
+
+    /** Watches the battery while protection runs; a crossed level fires one "last breath" capture. */
+    private fun startBatteryGuard() {
+        if (batteryReceiver != null) return
+        if (!ProtectionSettingsStore(applicationContext).load().batteryEnabled) return
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val level = intent.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1)
+                val scale = intent.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1)
+                if (level < 0 || scale <= 0) return
+                val percent = level * 100 / scale
+                val status = intent.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1)
+                val charging = status == android.os.BatteryManager.BATTERY_STATUS_CHARGING ||
+                    status == android.os.BatteryManager.BATTERY_STATUS_FULL
+                if (battery.onLevel(percent, charging) is BatteryBreathLogic.Verdict.Breath) {
+                    capture(SecurityEventType.BATTERY_SIGNAL, null)
+                }
+                // A battery tick is a cheap, frequent moment to also re-read the SIM state.
+                checkSim()
+            }
+        }
+        runCatching {
+            registerReceiver(receiver, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            batteryReceiver = receiver
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -72,6 +113,9 @@ class ProtectionService : Service() {
                     stopSelf(startId)
                     return START_NOT_STICKY
                 }
+                startBatteryGuard()
+                simGuard.captureBaselineIfNeeded()
+                checkSim()
                 val kindName = intent?.getStringExtra(EXTRA_KIND)
                 if (kindName != null) {
                     val eventId = intent.getStringExtra(EXTRA_EVENT_ID)
@@ -86,6 +130,8 @@ class ProtectionService : Service() {
 
     override fun onDestroy() {
         if (liveInstance === this) liveInstance = null
+        batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
+        batteryReceiver = null
         scope.coroutineContext[Job]?.cancel()
         super.onDestroy()
     }
@@ -101,9 +147,8 @@ class ProtectionService : Service() {
             try {
                 val storage = (applicationContext as? ShieldraApp)?.installedStorage
                 val repository = storage?.eventRepository ?: return@launch
-                val wantsPhoto = type != SecurityEventType.SIM_CONFIRMED_EVENT // SIM pull often kills the radio; still try photo elsewhere
                 val (photo, fix) = supervisorScope {
-                    val photoJob = async { if (wantsPhoto) runCatching { camera.capture() }.getOrNull() else null }
+                    val photoJob = async { runCatching { camera.capture() }.getOrNull() }
                     val fixJob = async { runCatching { location.current() }.getOrNull() }
                     photoJob.await() to fixJob.await()
                 }

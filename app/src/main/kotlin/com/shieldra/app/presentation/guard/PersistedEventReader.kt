@@ -95,7 +95,7 @@ internal fun persistedEventTypeOf(type: SecurityEventType): EventType = when (ty
     SecurityEventType.LOCK_CONFIRMED_EVENT -> EventType.FailedUnlock
     SecurityEventType.SIM_CONFIRMED_EVENT -> EventType.SimChange
     SecurityEventType.BATTERY_SIGNAL -> EventType.Battery
-    SecurityEventType.COUNTDOWN_SIGNAL -> EventType.Other
+    SecurityEventType.COUNTDOWN_SIGNAL -> EventType.Countdown
     SecurityEventType.CONFIRMED_SECURITY_EVENT -> EventType.Other
 }
 

@@ -78,8 +78,9 @@ object CountdownScheduler {
             start(context)
             return
         }
-        // Past due after a long power-off: fire one now, which arms the next cycle.
-        if (deadline.isExpired(System.currentTimeMillis(), SystemClock.elapsedRealtime())) {
+        // Past due after a long power-off: the monotonic clock reset at reboot, so the wall clock
+        // decides whether the cycle came due while the phone was off.
+        if (deadline.isEpochExpired(System.currentTimeMillis())) {
             ProtectionService.requestCapture(context, SecurityEventType.COUNTDOWN_SIGNAL)
             start(context)
         } else {
