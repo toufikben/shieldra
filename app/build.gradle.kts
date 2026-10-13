@@ -16,6 +16,18 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        // A committed debug key (the standard Android debug credentials, not a secret) so every CI
+        // build and local build share one signature. Without it each CI run signs with an ephemeral
+        // key and `adb install -r` fails with INSTALL_FAILED_UPDATE_INCOMPATIBLE on the test phone.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildFeatures {
         compose = true
     }
