@@ -81,7 +81,9 @@ fun AlertChannelsScreen(
             security = provider.security
         }
     }
-    val showAdvanced = advancedOpen || provider == null
+    // Hidden until the address is typed; then auto-filled for a known provider, shown for an unknown
+    // one, and always shown once the owner opens Advanced.
+    val showAdvanced = advancedOpen || (account.isNotBlank() && provider == null)
     var telegramResult by remember { mutableStateOf<ChannelResult?>(null) }
     var emailResult by remember { mutableStateOf<ChannelResult?>(null) }
     var testing by remember { mutableStateOf(false) }
