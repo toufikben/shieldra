@@ -1044,8 +1044,12 @@ for withdrawn in settings_protection settings_guards_summary settings_section_se
     fi
   done
 done
+# A-33/A-34 (owner, 2026-10-13) reversed Q-K-9's premise: real guards now run behind a real setup
+# screen, so the protection row is allowed — but the invariant Q-K-9 protects is kept and checked
+# here: if the row exists it must open the setup screen, never a dead NotAvailable destination.
 if grep -q '"protection"' "$SETTINGS"; then
-  fail "Settings gained a \"protection\" row again, and a row with no destination is not a setting (Q-K-9)"
+  grep -q 'PROTECTION_ROW_ID -> SettingsRowTarget.ProtectionSetup' "$SETTINGS" \
+    || fail "the protection row exists but does not open the setup screen; a row with no destination is not a setting (Q-K-9)"
 fi
 if grep -Eq 'enum class SettingsSection \{[^}]*[^A-Za-z_]Security[,}]' "$MODELS"; then
   fail "SettingsSection keeps a bare Security group with nothing in it (Q-K-9)"
@@ -1071,7 +1075,7 @@ RECEIPT_BUILDERS="$(grep -RIln 'ChannelReceiptUiModel(' app/src/main/kotlin/com/
 [ -z "$RECEIPT_BUILDERS" ] || fail "a delivery receipt is built outside the A-32 projection: $RECEIPT_BUILDERS"
 grep -q 'deliveryInformation' "$RECEIPTS" \
   || fail "the receipt projection no longer reads the recorded delivery attempts (A-32)"
-for name in qk9_no_settings_row_promises_a_lock_guard_the_owner_cannot_turn_on \
+for name in the_protection_row_opens_a_real_setup_and_the_row_list_stays_pinned \
   fk13_an_event_with_no_delivery_receipts_shows_no_delivery_card \
   fk13_a_recorded_receipt_still_reaches_the_delivery_card \
   fk13_the_persisted_read_path_produces_a_detail_with_no_delivery_card; do
