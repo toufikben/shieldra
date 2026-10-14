@@ -493,7 +493,6 @@ fun ShieldraNavHost(
                 val adminComponent = remember(context) { ComponentName(context, LockGuardReceiver::class.java) }
                 val permissions = remember(permissionRefresh, permissionRequests) {
                     val dpm = context.getSystemService(DevicePolicyManager::class.java)
-                    val power = context.getSystemService(android.os.PowerManager::class.java)
                     fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
                     ProtectionPermissions(
                         camera = has(Manifest.permission.CAMERA),
@@ -504,7 +503,7 @@ fun ShieldraNavHost(
                                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
                         },
                         deviceAdmin = dpm?.isAdminActive(adminComponent) == true,
-                        batteryExemption = power?.isIgnoringBatteryOptimizations(context.packageName) == true,
+                        batteryExemption = com.shieldra.protection.BackgroundSurvival.isExempt(context),
                     )
                 }
                 ProtectionGuardsScreen(
@@ -529,14 +528,9 @@ fun ShieldraNavHost(
                         runCatching { deviceAdminLauncher.launch(intent) }
                     },
                     onKeepAwake = {
-                        // Takes the owner to the system prompt to exempt the app from battery saver, so
-                        // the guards keep running in the background (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).
-                        val intent = Intent(AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-                            .setData(android.net.Uri.parse("package:${context.packageName}"))
-                        val fallback = Intent(AndroidSettings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                        if (runCatching { context.startActivity(intent) }.isFailure) {
-                            runCatching { context.startActivity(fallback) }
-                        }
+                        // The protection package owns the platform API; the UI only asks it to open
+                        // the system prompt so the guards survive battery saver.
+                        com.shieldra.protection.BackgroundSurvival.requestExemption(context)
                         permissionRefresh += 1
                     },
                     onArmToggle = {
