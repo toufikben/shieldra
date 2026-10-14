@@ -83,6 +83,15 @@ class RemoteCommandPoller(context: Context) {
                 client.replyText(chat, "SHIELDRA: alarm off")
             }
             "/status" -> client.replyText(chat, status())
+            "/lost" -> {
+                val settings = ProtectionSettingsStore(app).load()
+                LostNotice.show(app, settings.ownerContact, settings.lostMessage)
+                client.replyText(chat, "SHIELDRA: lost notice shown on the phone — send /found to clear")
+            }
+            "/found" -> {
+                LostNotice.hide(app)
+                client.replyText(chat, "SHIELDRA: lost notice cleared")
+            }
             else -> Unit // unknown command: ignore silently
         }
     }
