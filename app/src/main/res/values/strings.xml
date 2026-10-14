@@ -108,8 +108,11 @@
     <string name="protection_countdown_title">Periodic signal</string>
     <string name="protection_countdown_enable">Send a periodic signal</string>
     <string name="protection_countdown_desc">A photo, location and battery, over and over, until you stop it.</string>
+    <string name="protection_countdown_minutes">%1$d min</string>
     <string name="protection_countdown_hours">%1$d h</string>
     <string name="protection_countdown_days">%1$d d</string>
+    <string name="protection_countdown_custom">Custom</string>
+    <string name="protection_countdown_custom_minutes">Custom interval (minutes)</string>
     <string name="protection_save">Save</string>
     <string name="motion_monitoring_start">Start Motion monitoring</string>
     <string name="motion_monitoring_stop">Stop Motion monitoring</string>
