@@ -149,6 +149,42 @@ fun ProtectionSetupScreen(
             ) { draft = draft.copy(batteryThreshold = it.toInt()) }
         }
 
+        // ===== Table mode (motion response) =====
+        SectionTitle(stringResource(R.string.protection_motion_title))
+        Text(
+            text = stringResource(R.string.protection_motion_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(spacing.s))
+        @OptIn(ExperimentalLayoutApi::class)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(spacing.s)) {
+            ShieldraChip(
+                label = stringResource(R.string.protection_motion_silent),
+                selected = draft.motionResponse == ProtectionSettings.MotionResponse.SILENT,
+                onClick = { draft = draft.copy(motionResponse = ProtectionSettings.MotionResponse.SILENT) },
+            )
+            ShieldraChip(
+                label = stringResource(R.string.protection_motion_siren),
+                selected = draft.motionResponse == ProtectionSettings.MotionResponse.SIREN,
+                onClick = { draft = draft.copy(motionResponse = ProtectionSettings.MotionResponse.SIREN) },
+            )
+            ShieldraChip(
+                label = stringResource(R.string.protection_motion_grace),
+                selected = draft.motionResponse == ProtectionSettings.MotionResponse.GRACE_THEN_SIREN,
+                onClick = { draft = draft.copy(motionResponse = ProtectionSettings.MotionResponse.GRACE_THEN_SIREN) },
+            )
+        }
+        if (draft.motionResponse == ProtectionSettings.MotionResponse.GRACE_THEN_SIREN) {
+            Spacer(Modifier.height(spacing.s))
+            StepperRow(
+                label = stringResource(R.string.protection_motion_grace_seconds, draft.motionGraceSeconds),
+                value = draft.motionGraceSeconds.toFloat(),
+                range = 3f..30f,
+                steps = 26,
+            ) { draft = draft.copy(motionGraceSeconds = it.toInt()) }
+        }
+
         // ===== Countdown =====
         SectionTitle(stringResource(R.string.protection_countdown_title))
         GuardToggle(

@@ -105,6 +105,12 @@
     <string name="protection_guard_battery_desc">A last location before the phone dies.</string>
     <string name="protection_lock_threshold">After %1$d failed attempts</string>
     <string name="protection_battery_level">At %1$d%% battery</string>
+    <string name="protection_motion_title">Table mode (motion)</string>
+    <string name="protection_motion_desc">When the phone is set down still and then lifted, this is what happens. Start Motion monitoring from the dashboard.</string>
+    <string name="protection_motion_silent">Silent capture</string>
+    <string name="protection_motion_siren">Loud siren</string>
+    <string name="protection_motion_grace">Grace then siren</string>
+    <string name="protection_motion_grace_seconds">Grace: %1$d s to unlock before the siren</string>
     <string name="protection_countdown_title">Periodic signal</string>
     <string name="protection_countdown_enable">Send a periodic signal</string>
     <string name="protection_countdown_desc">A photo, location and battery, over and over, until you stop it.</string>

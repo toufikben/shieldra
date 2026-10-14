@@ -165,7 +165,40 @@ class ProtectionService : Service() {
                     runCatching { storage.evidenceFiles.write(id, bytes) }.map { id }.getOrNull()
                 }
                 if (evidenceId != null) events.attachEvidence(binding.event.id, evidenceId)
-                dispatchAlert(binding.event.id, type, fix, evidenceId, failedAttempts)
+                dispatchAlert(binding.event.id, alertKindFor(type), fix, evidenceId, failedAttempts)
+            } finally {
+                runCatching { if (wakeLock?.isHeld == true) wakeLock.release() }
+                busy.set(false)
+            }
+        }
+    }
+
+    /**
+     * Captures a photo and a fix for an event that already exists (the Motion guard created it) and
+     * sends the alert for it — no second event. Used only while the service is live (armed), which is
+     * what keeps the camera working in the background.
+     */
+    private fun captureForExisting(eventIdStr: String, kind: AlertKind) {
+        val eventId = runCatching { EventId.from(java.util.UUID.fromString(eventIdStr)) }.getOrNull() ?: return
+        if (!busy.compareAndSet(false, true)) return
+        scope.launch {
+            val wakeLock = acquireWakeLock()
+            try {
+                val storage = (applicationContext as? ShieldraApp)?.installedStorage
+                val repository = storage?.eventRepository ?: return@launch
+                val (photo, fix) = supervisorScope {
+                    val photoJob = async { runCatching { camera.capture() }.getOrNull() }
+                    val fixJob = async { runCatching { location.current() }.getOrNull() }
+                    photoJob.await() to fixJob.await()
+                }
+                val evidenceId = photo?.let { bytes ->
+                    val id = "cap_" + UUID.randomUUID().toString().replace("-", "")
+                    runCatching { storage.evidenceFiles.write(id, bytes) }.map { id }.getOrNull()
+                }
+                if (evidenceId != null) {
+                    runCatching { repository.recordEvidence(eventId, com.shieldra.domain.EvidenceReference(evidenceId)) }
+                }
+                dispatchAlert(eventId, kind, fix, evidenceId, failedAttempts = null)
             } finally {
                 runCatching { if (wakeLock?.isHeld == true) wakeLock.release() }
                 busy.set(false)
@@ -175,12 +208,12 @@ class ProtectionService : Service() {
 
     private fun dispatchAlert(
         eventId: EventId,
-        type: SecurityEventType,
+        kind: AlertKind,
         fix: AlertLocation?,
         evidenceId: String?,
         failedAttempts: Int?,
     ) {
-        val base = AlertRuntime.snapshot(applicationContext, alertKindFor(type), eventId.value.toString())
+        val base = AlertRuntime.snapshot(applicationContext, kind, eventId.value.toString())
         AlertRuntime.alert(
             applicationContext,
             base.copy(
@@ -288,6 +321,17 @@ class ProtectionService : Service() {
 
         /** True while a camera-capable instance exists, so a background trigger can reach it. */
         val isLive: Boolean get() = liveInstance != null
+
+        /**
+         * Captures a photo and a fix for an already-created event (the Motion guard's) and sends it,
+         * when the service is live. Returns true if a live instance took it; false means protection is
+         * not armed, so the caller keeps its own text-only path.
+         */
+        fun captureForEvent(eventId: String, kind: AlertKind): Boolean {
+            val live = liveInstance ?: return false
+            live.captureForExisting(eventId, kind)
+            return true
+        }
 
         /** Starts (or keeps) the persistent service. Called from the dashboard and from boot resume. */
         fun arm(context: Context) {
