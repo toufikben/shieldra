@@ -140,6 +140,7 @@ object AlertRuntime {
             simTitle = resources.getString(R.string.alert_title_sim),
             batteryTitle = resources.getString(R.string.alert_title_battery),
             countdownTitle = resources.getString(R.string.alert_title_countdown),
+            trackingTitle = resources.getString(R.string.alert_title_tracking),
             locationLabel = resources.getString(R.string.alert_label_location),
             locationUnavailable = resources.getString(R.string.alert_location_unavailable),
             accuracyLabel = resources.getString(R.string.alert_label_accuracy),

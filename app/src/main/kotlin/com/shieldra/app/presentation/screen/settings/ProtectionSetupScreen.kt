@@ -241,6 +241,12 @@ fun ProtectionSetupScreen(
             )
         }
 
+        GuardToggle(
+            title = stringResource(R.string.protection_track_enable),
+            subtitle = stringResource(R.string.protection_track_desc),
+            checked = draft.liveTrackingEnabled,
+        ) { draft = draft.copy(liveTrackingEnabled = it) }
+
         Spacer(Modifier.height(spacing.xl))
         ShieldraFullWidthButton(
             text = stringResource(R.string.protection_save),

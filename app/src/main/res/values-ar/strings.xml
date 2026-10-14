@@ -123,6 +123,8 @@
     <string name="protection_remote_enable">التحكم من تلغرام</string>
     <string name="protection_remote_desc">أرسل أوامر لبوتك والهاتف مُفعّل. يتطلب إعداد تلغرام في قنوات التنبيه.</string>
     <string name="protection_remote_help">أرسل لبوتك: /locate لموقع على الخريطة، /photo لصورة أمامية، /alarm و /stopalarm للصفّارة، /status للبطارية والشبكة.</string>
+    <string name="protection_track_enable">تتبّع مباشر بعد السرقة</string>
+    <string name="protection_track_desc">بعد اقتحام مؤكد، يُرسل الموقع كل بضع دقائق لفترة لتتبّع الهاتف.</string>
     <string name="protection_save">حفظ</string>
     <string name="motion_monitoring_start">تشغيل مراقبة الحركة</string>
     <string name="motion_monitoring_stop">إيقاف مراقبة الحركة</string>
@@ -284,6 +286,7 @@
     <string name="alert_title_sim">تغيّرت الشريحة</string>
     <string name="alert_title_battery">بطارية منخفضة</string>
     <string name="alert_title_countdown">إشارة دورية</string>
+    <string name="alert_title_tracking">موقع مباشر</string>
     <string name="alert_label_location">الموقع</string>
     <string name="alert_location_unavailable">غير متاح</string>
     <string name="alert_label_accuracy">الدقة</string>

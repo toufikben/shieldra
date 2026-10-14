@@ -10,7 +10,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.ServiceCompat
@@ -56,6 +58,38 @@ class ProtectionService : Service() {
     private val simGuard by lazy { SimGuard(applicationContext) }
     private var lastSimVerdict: SimGuardLogic.Verdict = SimGuardLogic.Verdict.Normal
     private val remoteCommands by lazy { RemoteCommandPoller(applicationContext) }
+    private val trackingHandler = Handler(Looper.getMainLooper())
+    private var trackingTicksLeft = 0
+
+    /**
+     * After a confirmed intrusion, follows the phone (A-33 next stage): a location ping every few
+     * minutes for a while, so the owner sees where the thief goes. Location only, to spare the
+     * battery during the trail; it stops when protection is disarmed or the window ends.
+     */
+    private fun startTrackingIfEnabled(eventId: EventId, kind: AlertKind) {
+        val settings = ProtectionSettingsStore(applicationContext).load()
+        if (!settings.liveTrackingEnabled) return
+        val intervalMinutes = settings.trackingIntervalMinutes.coerceAtLeast(1)
+        trackingTicksLeft = (settings.trackingDurationMinutes / intervalMinutes).coerceIn(1, 120)
+        scheduleTrackingTick(eventId, kind, intervalMinutes * 60_000L)
+    }
+
+    private fun scheduleTrackingTick(eventId: EventId, kind: AlertKind, intervalMs: Long) {
+        trackingHandler.postDelayed({
+            if (!ProtectionSettingsStore(applicationContext).load().armed) return@postDelayed
+            scope.launch {
+                val fix = runCatching { location.current() }.getOrNull()
+                if (fix != null) {
+                    val base = AlertRuntime.snapshot(applicationContext, AlertKind.TRACKING, eventId.value.toString())
+                    AlertRuntime.alert(
+                        applicationContext,
+                        base.copy(occurredAt = Instant.now(), location = fix, evidenceAttempted = false, photoEvidenceId = null),
+                    )
+                }
+            }
+            if (--trackingTicksLeft > 0) scheduleTrackingTick(eventId, kind, intervalMs)
+        }, intervalMs)
+    }
 
     /** Re-checks the SIM/network state and alerts once on each transition into an abnormal state. */
     private fun checkSim() {
@@ -141,6 +175,7 @@ class ProtectionService : Service() {
 
     override fun onDestroy() {
         if (liveInstance === this) liveInstance = null
+        trackingHandler.removeCallbacksAndMessages(null)
         remoteCommands.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
         batteryReceiver = null
@@ -173,6 +208,11 @@ class ProtectionService : Service() {
                 }
                 if (evidenceId != null) events.attachEvidence(binding.event.id, evidenceId)
                 dispatchAlert(binding.event.id, alertKindFor(type), fix, evidenceId, failedAttempts)
+                // A new intrusion incident starts the live trail (if the owner turned it on).
+                val intrusion = type == SecurityEventType.LOCK_CONFIRMED_EVENT ||
+                    type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
+                    type == SecurityEventType.SIM_CONFIRMED_EVENT
+                if (binding.isNew && intrusion) startTrackingIfEnabled(binding.event.id, alertKindFor(type))
             } finally {
                 runCatching { if (wakeLock?.isHeld == true) wakeLock.release() }
                 busy.set(false)

@@ -10,7 +10,7 @@ import java.util.Locale
  * [LOCK] is a wrong PIN/pattern/password past the owner's threshold, [COUNTDOWN] the owner's own
  * periodic signal (A-33): neither is announced on the phone.
  */
-enum class AlertKind { PANIC, MOTION, LOCK, SIM, BATTERY, COUNTDOWN, TEST }
+enum class AlertKind { PANIC, MOTION, LOCK, SIM, BATTERY, COUNTDOWN, TRACKING, TEST }
 
 /** A position fix the phone really produced: never a guess and never a default. */
 data class AlertLocation(
@@ -59,6 +59,7 @@ data class AlertWording(
     val simTitle: String = "SIM changed",
     val batteryTitle: String = "Low battery",
     val countdownTitle: String = "Periodic signal",
+    val trackingTitle: String = "Live location",
     val locationLabel: String = "Location",
     val locationUnavailable: String = "not available",
     val accuracyLabel: String = "accuracy",
@@ -121,6 +122,7 @@ object AlertText {
         AlertKind.SIM -> wording.simTitle
         AlertKind.BATTERY -> wording.batteryTitle
         AlertKind.COUNTDOWN -> wording.countdownTitle
+        AlertKind.TRACKING -> wording.trackingTitle
         AlertKind.TEST -> wording.testTitle
     }
 }
