@@ -95,6 +95,7 @@
     <string name="protection_perm_notifications">Notifications — the ongoing notice</string>
     <string name="protection_perm_device_admin">Device admin — notice wrong unlocks</string>
     <string name="protection_perm_phone">Phone — tell a SIM swap apart</string>
+    <string name="protection_perm_keep_awake">Keep running — ignore battery saver</string>
     <string name="protection_grant">Grant</string>
     <string name="protection_guards_title">Guards</string>
     <string name="protection_guard_lock">Wrong unlock attempts</string>

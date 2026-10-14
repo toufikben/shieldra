@@ -51,6 +51,8 @@ data class ProtectionPermissions(
     val phone: Boolean = false,
     val notifications: Boolean = false,
     val deviceAdmin: Boolean = false,
+    /** Battery-optimization exemption, so the system does not doze the guards (A-33). */
+    val batteryExemption: Boolean = false,
 )
 
 /**
@@ -69,6 +71,7 @@ fun ProtectionSetupScreen(
     onGrantPhone: () -> Unit,
     onGrantNotifications: () -> Unit,
     onEnableDeviceAdmin: () -> Unit,
+    onKeepAwake: () -> Unit,
     onArmToggle: () -> Unit,
     onSave: (ProtectionSettings) -> Unit,
     onBack: () -> Unit,
@@ -114,6 +117,7 @@ fun ProtectionSetupScreen(
         PermissionRow(stringResource(R.string.protection_perm_notifications), permissions.notifications, onGrantNotifications)
         PermissionRow(stringResource(R.string.protection_perm_device_admin), permissions.deviceAdmin, onEnableDeviceAdmin)
         PermissionRow(stringResource(R.string.protection_perm_phone), permissions.phone, onGrantPhone)
+        PermissionRow(stringResource(R.string.protection_perm_keep_awake), permissions.batteryExemption, onKeepAwake)
 
         // ===== Guards =====
         SectionTitle(stringResource(R.string.protection_guards_title))
