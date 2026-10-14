@@ -503,6 +503,7 @@ fun ShieldraNavHost(
                                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
                         },
                         deviceAdmin = dpm?.isAdminActive(adminComponent) == true,
+                        batteryExemption = com.shieldra.protection.BackgroundSurvival.isExempt(context),
                     )
                 }
                 ProtectionGuardsScreen(
@@ -525,6 +526,12 @@ fun ShieldraNavHost(
                                 context.getString(R.string.device_admin_description),
                             )
                         runCatching { deviceAdminLauncher.launch(intent) }
+                    },
+                    onKeepAwake = {
+                        // The protection package owns the platform API; the UI only asks it to open
+                        // the system prompt so the guards survive battery saver.
+                        com.shieldra.protection.BackgroundSurvival.requestExemption(context)
+                        permissionRefresh += 1
                     },
                     onArmToggle = {
                         if (protectionArmed) ProtectionRuntime.disarm(context) else ProtectionRuntime.arm(context)

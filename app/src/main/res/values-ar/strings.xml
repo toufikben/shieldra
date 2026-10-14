@@ -95,6 +95,7 @@
     <string name="protection_perm_notifications">الإشعارات — الإشعار المستمر</string>
     <string name="protection_perm_device_admin">مسؤول الجهاز — ملاحظة محاولات الفتح</string>
     <string name="protection_perm_phone">الهاتف — تمييز تغيير الشريحة</string>
+    <string name="protection_perm_keep_awake">الاستمرار — تجاهل موفّر البطارية</string>
     <string name="protection_grant">منح</string>
     <string name="protection_guards_title">الحُرّاس</string>
     <string name="protection_guard_lock">محاولات فتح فاشلة</string>
