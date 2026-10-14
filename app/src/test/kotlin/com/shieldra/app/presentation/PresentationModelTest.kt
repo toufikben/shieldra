@@ -22,7 +22,7 @@ class PresentationModelTest {
             ProtectionVisualState.entries.toSet(),
         )
         assertEquals(setOf(GuardKind.Lock, GuardKind.Motion, GuardKind.Sim, GuardKind.Panic, GuardKind.Battery), GuardKind.entries.toSet())
-        assertEquals(setOf(EventType.FailedUnlock, EventType.Motion, EventType.SimChange, EventType.Panic, EventType.Battery, EventType.Other), EventType.entries.toSet())
+        assertEquals(setOf(EventType.FailedUnlock, EventType.Motion, EventType.SimChange, EventType.Panic, EventType.Battery, EventType.Countdown, EventType.Other), EventType.entries.toSet())
     }
 
     @Test

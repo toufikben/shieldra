@@ -57,7 +57,8 @@ class PersistedEventReader(
         title = labels.titleFor(this.type),
         subtitle = labels.stateLabel(state),
         timestampLabel = labels.ageLabel(now, createdAt),
-        deliveryStatus = state.toDeliveryStatus(),
+        // A recorded attempt is the stronger fact; without one the label follows the state.
+        deliveryStatus = recordedDeliveryStatus() ?: state.toDeliveryStatus(),
         hasPhoto = false,
         hasLocation = false,
     )
@@ -73,7 +74,8 @@ class PersistedEventReader(
         batteryPercent = null,
         hasPhoto = false,
         location = LocationUiModel(kind = LocationKind.Unavailable),
-        delivery = emptyList(),
+        // Only attempts the delivery path really recorded (A-32); none recorded, none shown.
+        delivery = deliveryReceipts(),
     )
 
     private companion object {
@@ -90,6 +92,10 @@ class PersistedEventReader(
 internal fun persistedEventTypeOf(type: SecurityEventType): EventType = when (type) {
     SecurityEventType.MOTION_CONFIRMED_EVENT -> EventType.Motion
     SecurityEventType.PANIC_ACTIVATION -> EventType.Panic
+    SecurityEventType.LOCK_CONFIRMED_EVENT -> EventType.FailedUnlock
+    SecurityEventType.SIM_CONFIRMED_EVENT -> EventType.SimChange
+    SecurityEventType.BATTERY_SIGNAL -> EventType.Battery
+    SecurityEventType.COUNTDOWN_SIGNAL -> EventType.Countdown
     SecurityEventType.CONFIRMED_SECURITY_EVENT -> EventType.Other
 }
 

@@ -102,19 +102,28 @@ class SettingsContentTest {
         assertFalse(MonitoringClaim.ExecutionWithoutDetector.claimsProtection)
     }
 
-    // Q-K-9 (owner directive 2026-10-02): the first row was titled "Protection" and subtitled
-    // "Lock Guard · Guards" above a target that opened nothing, so the Settings screen advertised a
-    // guard the owner could supposedly turn on. The whole row list is pinned, which means neither
-    // that row nor a renamed replacement can come back without this test being edited first.
+    // Q-K-9 (owner directive 2026-10-02) removed a "Protection" row because it opened nothing — a
+    // guard the owner could not turn on was a claim, not a setting. A-33/A-34 (owner, 2026-10-13)
+    // reversed the premise: real guards now run behind a real setup screen, so the row is a setting
+    // again. The invariant Q-K-9 really protects is kept and strengthened here: the Protection row
+    // must open an actual destination, never SettingsRowTarget.NotAvailable. The whole list stays
+    // pinned so no row can reappear or move without this test being edited first.
     @Test
-    fun qk9_no_settings_row_promises_a_lock_guard_the_owner_cannot_turn_on() {
-        assertFalse(
+    fun the_protection_row_opens_a_real_setup_and_the_row_list_stays_pinned() {
+        assertTrue(
             "protection" in SettingsContent.rowIds(),
-            "A Settings row named after a guard the build does not run is a claim, not a setting",
+            "A-33/A-34: the protection row arms real guards and must be present",
+        )
+        assertEquals(
+            SettingsRowTarget.ProtectionSetup,
+            SettingsContent.targetOf("protection"),
+            "the protection row must open the setup screen, never a dead NotAvailable target",
         )
         assertEquals(
             listOf(
                 "notifications",
+                "alert_channels",
+                "protection",
                 "app_lock",
                 "theme",
                 "language",

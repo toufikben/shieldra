@@ -66,6 +66,8 @@ class ShieldraApp : Application() {
         if (decision is StorageInstallDecision.Installed) {
             installedStorage = decision.storage
             checkEvidenceRotation(decision.storage)
+            // A-32: alerts kept while offline go out as soon as a network is usable again.
+            com.shieldra.delivery.AlertRuntime.watchNetwork(this)
         }
     }
 

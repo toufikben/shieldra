@@ -17,6 +17,13 @@ import com.shieldra.app.design.components.domain.LoadingStateList
 import com.shieldra.app.presentation.auth.OwnerCheck
 import com.shieldra.app.presentation.auth.OwnerCheckResult
 import com.shieldra.domain.SecurityEventType
+import com.shieldra.delivery.AlertKind
+import com.shieldra.delivery.AlertRuntime
+import com.shieldra.delivery.DeliverySettings
+import com.shieldra.delivery.DeliverySettingsStore
+import com.shieldra.delivery.EmailChannel
+import com.shieldra.delivery.TelegramChannel
+import com.shieldra.app.presentation.screen.settings.AlertChannelsScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -74,6 +81,16 @@ import com.shieldra.app.presentation.settings.honestSettingsRows
 import com.shieldra.app.presentation.screen.settings.SettingsCallbacks
 import com.shieldra.app.presentation.screen.settings.SettingsScreen
 import com.shieldra.app.presentation.screen.settings.NotificationSetupScreen
+import com.shieldra.app.presentation.screen.settings.ProtectionSetupScreen as ProtectionGuardsScreen
+import com.shieldra.app.presentation.screen.settings.ProtectionPermissions
+import com.shieldra.protection.ProtectionRuntime
+import com.shieldra.protection.ProtectionSettings
+import com.shieldra.protection.ProtectionSettingsStore
+import com.shieldra.protection.LockGuardReceiver
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import com.shieldra.domain.PanicActivation
 import com.shieldra.notification.LocalEventNotifier
 import com.shieldra.notification.LocalPostResult
@@ -167,6 +184,27 @@ fun ShieldraNavHost(
     val monitoringRefusedMessage = stringResource(R.string.motion_monitoring_refused)
     val monitoringNoStorageMessage = stringResource(R.string.motion_monitoring_no_storage)
     var stopWasRequested by remember { mutableStateOf(false) }
+    // A-32: the owner's alert channels. Loading opens Keystore-sealed secrets, so it runs off the
+    // main thread; null means "not read yet", never "nothing set up".
+    val deliveryStore = remember(context) { DeliverySettingsStore(context) }
+    var deliverySettings by remember { mutableStateOf<DeliverySettings?>(null) }
+    LaunchedEffect(deliveryStore) {
+        deliverySettings = withContext(Dispatchers.IO) { deliveryStore.load() }
+    }
+    val channelsSavedMessage = stringResource(R.string.alert_channels_saved)
+    // A-33/A-34: the protection guards. Armed state is read from the stored flag the service and
+    // boot recovery share; the settings draft and the live permission states drive the setup screen.
+    val protectionArmed by ProtectionRuntime.armed.collectAsState()
+    val protectionStore = remember(context) { ProtectionSettingsStore(context) }
+    var protectionSettings by remember { mutableStateOf(protectionStore.load()) }
+    var permissionRefresh by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) { ProtectionRuntime.refresh(context) }
+    val protectionPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { permissionRefresh += 1 }
+    val deviceAdminLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { permissionRefresh += 1 }
     // "Stopped" reports an observed state, not a press: it appears once the service has retracted
     // itself, and never while it still claims to be monitoring.
     LaunchedEffect(motionClaim) {
@@ -249,6 +287,10 @@ fun ShieldraNavHost(
                         state = guardState,
                         recentEvents = recentEvents.take(RECENT_EVENT_LIMIT),
                         motionClaim = motionClaim,
+                        protectionArmed = protectionArmed,
+                        lockOn = protectionSettings.lockEnabled,
+                        simOn = protectionSettings.simEnabled,
+                        batteryOn = protectionSettings.batteryEnabled,
                     ),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->
@@ -290,7 +332,19 @@ fun ShieldraNavHost(
                                                 LocalPostResult.NotAttempted
                                             }
                                         }
-                                        if (activation !is PanicActivation.Rejected) panicActivations += 1
+                                        if (activation !is PanicActivation.Rejected) {
+                                            panicActivations += 1
+                                            // A-32: every press reaches the owner's channels, in the
+                                            // background, with nothing shown on this screen.
+                                            val pressedEvent = when (activation) {
+                                                is PanicActivation.Recorded -> activation.event
+                                                is PanicActivation.BoundToActive -> activation.event
+                                                is PanicActivation.Rejected -> null
+                                            }
+                                            pressedEvent?.let {
+                                                AlertRuntime.alert(context, AlertKind.PANIC, it.id.value.toString())
+                                            }
+                                        }
                                     } finally {
                                         panicInFlight = false
                                     }
@@ -376,16 +430,110 @@ fun ShieldraNavHost(
                     rows = honestSettingsRows(
                         storageInstalled = storageInstalled,
                         notificationState = remember(permissionRequests) { notifier.permissionState() },
+                        alertChannelsActive = deliverySettings?.activeChannels()?.isNotEmpty() == true,
+                        protectionArmed = protectionArmed,
                     ),
                     callbacks = SettingsCallbacks { id, _ ->
                         when (SettingsContent.targetOf(id)) {
-                            // The one row with a real destination: the A-6 setup screen.
+                            // The A-6 setup screen.
                             SettingsRowTarget.NotificationSetup ->
                                 navController.navigate(ShieldraRoutes.NOTIFICATION_SETUP)
+
+                            // A-32: where alerts leave the phone.
+                            SettingsRowTarget.AlertChannels ->
+                                navController.navigate(ShieldraRoutes.ALERT_CHANNELS)
+
+                            // A-33/A-34: arm the guards and tune them.
+                            SettingsRowTarget.ProtectionSetup ->
+                                navController.navigate(ShieldraRoutes.PROTECTION_SETUP)
 
                             SettingsRowTarget.NotAvailable -> defer()
                         }
                     },
+                )
+            }
+
+            composable(ShieldraRoutes.ALERT_CHANNELS) {
+                val saved = deliverySettings
+                if (saved == null) {
+                    LoadingStateList(rows = 3)
+                } else {
+                    AlertChannelsScreen(
+                        saved = saved,
+                        onSave = { updated ->
+                            scope.launch {
+                                deliverySettings = withContext(Dispatchers.IO) {
+                                    deliveryStore.save(updated)
+                                    deliveryStore.load()
+                                }
+                                navController.popBackStack()
+                                snackbarHostState.showSnackbar(channelsSavedMessage)
+                            }
+                        },
+                        onTest = { candidate, telegram ->
+                            withContext(Dispatchers.IO) {
+                                val channel = if (telegram) {
+                                    TelegramChannel(candidate.telegram)
+                                } else {
+                                    EmailChannel(candidate.email)
+                                }
+                                AlertRuntime.dispatcher(context).sendNow(
+                                    channel,
+                                    AlertRuntime.snapshot(context, AlertKind.TEST, eventId = null),
+                                )
+                            }
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            // Protection setup (A-33/A-34): arm the guards, grant their permissions, tune them.
+            composable(ShieldraRoutes.PROTECTION_SETUP) {
+                val adminComponent = remember(context) { ComponentName(context, LockGuardReceiver::class.java) }
+                val permissions = remember(permissionRefresh, permissionRequests) {
+                    val dpm = context.getSystemService(DevicePolicyManager::class.java)
+                    fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
+                    ProtectionPermissions(
+                        camera = has(Manifest.permission.CAMERA),
+                        location = has(Manifest.permission.ACCESS_FINE_LOCATION) || has(Manifest.permission.ACCESS_COARSE_LOCATION),
+                        phone = has(Manifest.permission.READ_PHONE_STATE),
+                        notifications = notifier.permissionState().let {
+                            it == com.shieldra.notification.NotificationPermissionState.Granted ||
+                                it == com.shieldra.notification.NotificationPermissionState.NotRequired
+                        },
+                        deviceAdmin = dpm?.isAdminActive(adminComponent) == true,
+                    )
+                }
+                ProtectionGuardsScreen(
+                    armed = protectionArmed,
+                    permissions = permissions,
+                    settings = protectionSettings,
+                    onGrantCamera = { protectionPermissionLauncher.launch(arrayOf(Manifest.permission.CAMERA)) },
+                    onGrantLocation = {
+                        protectionPermissionLauncher.launch(
+                            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                        )
+                    },
+                    onGrantPhone = { protectionPermissionLauncher.launch(arrayOf(Manifest.permission.READ_PHONE_STATE)) },
+                    onGrantNotifications = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                    onEnableDeviceAdmin = {
+                        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                            .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+                            .putExtra(
+                                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                                context.getString(R.string.device_admin_description),
+                            )
+                        runCatching { deviceAdminLauncher.launch(intent) }
+                    },
+                    onArmToggle = {
+                        if (protectionArmed) ProtectionRuntime.disarm(context) else ProtectionRuntime.arm(context)
+                    },
+                    onSave = { updated ->
+                        protectionSettings = updated
+                        ProtectionRuntime.applySettings(context, updated)
+                    },
+                    onBack = { navController.popBackStack() },
                 )
             }
 
@@ -456,6 +604,10 @@ private fun persistedEventLabels(): PersistedEventLabels {
     val typeTitles = mapOf(
         SecurityEventType.MOTION_CONFIRMED_EVENT to stringResource(R.string.event_title_motion),
         SecurityEventType.PANIC_ACTIVATION to stringResource(R.string.event_title_panic),
+        SecurityEventType.LOCK_CONFIRMED_EVENT to stringResource(R.string.event_title_lock),
+        SecurityEventType.SIM_CONFIRMED_EVENT to stringResource(R.string.event_title_sim),
+        SecurityEventType.COUNTDOWN_SIGNAL to stringResource(R.string.event_title_countdown),
+        SecurityEventType.BATTERY_SIGNAL to stringResource(R.string.event_title_battery),
     )
     return PersistedEventLabels(
         title = stringResource(R.string.event_security_event),

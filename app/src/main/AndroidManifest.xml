@@ -16,10 +16,45 @@
       when the ongoing notification would not be visible. Still no camera, no
       location, no phone state, no network permission, and no boot permission
       (A-10 — monitoring is started by the user, never by the device waking up).
+
+      Amendment A-32 (owner, 2026-10-03): alerts leave the phone through the owner's own Telegram
+      bot and email account, so INTERNET is declared for that one purpose, and ACCESS_NETWORK_STATE
+      so an alert kept while offline is sent the moment a network is usable again. Both are
+      install-time permissions: no dialog, nothing shown to whoever holds the phone.
+
+      Amendment A-33/A-34 (owner, 2026-10-13): the protection guards. Each permission is granted by
+      the owner on first use and exists for one job:
+        CAMERA — the front-camera evidence photo on a confirmed event.
+        ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION — the position fix on a confirmed event.
+        FOREGROUND_SERVICE_CAMERA / FOREGROUND_SERVICE_LOCATION — the owner-started protection
+          service's declared types, so camera and location keep working in the background.
+        RECEIVE_BOOT_COMPLETED — resume the guards the owner had on after a reboot (A-10 relaxed).
+        WAKE_LOCK — hold the CPU awake for the seconds a capture and send take.
+        READ_PHONE_STATE — read which SIM is present, to tell a swap from the owner's own SIM.
+        REQUEST_IGNORE_BATTERY_OPTIMIZATIONS — ask the owner to exempt the app so a thief's phone
+          cannot doze the guards; a theft can happen at any hour.
+        SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM — fire the owner's periodic countdown on time.
+      Nothing is shown to whoever holds the phone; every capture is silent.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.front" android:required="false" />
 
     <application
         android:name=".ShieldraApp"
@@ -54,5 +89,53 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Continuous accelerometer sampling for the SHIELDRA Motion guard, started only by the device owner from the dashboard" />
         </service>
+
+        <!--
+          A-34: the protection service that holds the camera and location capability for the guards.
+          Not exported: only the app's own code and its own receivers start it, and only after the
+          owner armed protection from the dashboard. Types camera|location so the capability it was
+          started with survives into the background.
+        -->
+        <service
+            android:name="com.shieldra.protection.ProtectionService"
+            android:exported="false"
+            android:foregroundServiceType="camera|location" />
+
+        <!--
+          A-33: the Lock guard's device-admin receiver. WATCH_LOGIN only (see @xml/device_admin).
+          Exported with BIND_DEVICE_ADMIN as the platform requires for an admin receiver.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.LockGuardReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+          A-33 (A-10 relaxed): resume the guards the owner had on after a reboot. Exported so the
+          system can deliver BOOT_COMPLETED; it starts nothing unless the stored armed flag is set.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+          A-33: the countdown's alarm and snooze receiver. Not exported: it only receives the exact
+          alarms and the snooze action SHIELDRA itself scheduled.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.CountdownReceiver"
+            android:exported="false" />
     </application>
 </manifest>

@@ -17,11 +17,13 @@ import com.shieldra.notification.NotificationPermissionState
 fun honestSettingsRows(
     storageInstalled: Boolean,
     notificationState: NotificationPermissionState,
+    alertChannelsActive: Boolean = false,
+    protectionArmed: Boolean = false,
 ): List<SettingsRowUiModel> = SettingsContent.rows.map { spec ->
     SettingsRowUiModel(
         id = spec.id,
         title = stringResource(spec.titleRes),
-        subtitle = settingsSubtitleRes(spec.subtitle, storageInstalled, notificationState)
+        subtitle = settingsSubtitleRes(spec.subtitle, storageInstalled, notificationState, alertChannelsActive, protectionArmed)
             ?.let { stringResource(it) },
         icon = spec.icon,
         requiresAuth = spec.requiresAuth,

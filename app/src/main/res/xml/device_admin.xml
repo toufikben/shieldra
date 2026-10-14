@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A-33: the Lock guard needs exactly one device-admin policy, WATCH_LOGIN, so the platform tells
+  SHIELDRA that an unlock attempt failed. It never reads the password, never locks or wipes the
+  device, and takes no other administrator power.
+-->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <watch-login />
+    </uses-policies>
+</device-admin>

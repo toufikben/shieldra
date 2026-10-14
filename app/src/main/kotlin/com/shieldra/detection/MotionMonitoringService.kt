@@ -23,6 +23,8 @@ import com.shieldra.domain.GuardKind
 import com.shieldra.domain.GuardSignal
 import com.shieldra.domain.MotionConfirmation
 import com.shieldra.domain.MotionIncidentBinder
+import com.shieldra.delivery.AlertKind
+import com.shieldra.delivery.AlertRuntime
 import com.shieldra.notification.LocalEventNotifier
 import com.shieldra.runtime.BackgroundExecutionController
 import com.shieldra.runtime.ExecutionPhase
@@ -263,11 +265,16 @@ class MotionMonitoringService : Service(), MotionMonitor {
         when (confirmation) {
             // A new incident is what the owner started monitoring for, so it is announced. A movement
             // that joined the open incident is not announced again: one incident, one alert.
-            is MotionConfirmation.Recorded -> LocalEventNotifier(applicationContext).postRecordedAlert(
-                eventId = confirmation.event.id.value.toString(),
-                statusLabel = getString(com.shieldra.app.R.string.status_recorded),
-                title = getString(com.shieldra.app.R.string.notification_motion_event_title),
-            )
+            is MotionConfirmation.Recorded -> {
+                val recordedId = confirmation.event.id.value.toString()
+                LocalEventNotifier(applicationContext).postRecordedAlert(
+                    eventId = recordedId,
+                    statusLabel = getString(com.shieldra.app.R.string.status_recorded),
+                    title = getString(com.shieldra.app.R.string.notification_motion_event_title),
+                )
+                // A-32: the same incident goes to the owner's channels, silently and off this thread.
+                AlertRuntime.alert(applicationContext, AlertKind.MOTION, recordedId)
+            }
             is MotionConfirmation.Rejected ->
                 Log.w(TAG, "a confirmed Movement could not be recorded: ${confirmation.reason}")
             else -> Unit

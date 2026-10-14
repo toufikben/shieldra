@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.shieldra.app.presentation.model.EventType
@@ -32,6 +33,7 @@ fun EventType.icon(): ImageVector = when (this) {
     EventType.SimChange -> Icons.Filled.SimCard
     EventType.Panic -> Icons.Filled.WarningAmber
     EventType.Battery -> Icons.Filled.BatteryAlert
+    EventType.Countdown -> Icons.Filled.Timer
     EventType.Other -> Icons.Filled.Info
 }
 
