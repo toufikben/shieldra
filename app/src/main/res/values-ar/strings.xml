@@ -129,7 +129,13 @@
     <string name="protection_remote_title">التحكم عن بُعد (تلغرام)</string>
     <string name="protection_remote_enable">التحكم من تلغرام</string>
     <string name="protection_remote_desc">أرسل أوامر لبوتك والهاتف مُفعّل. يتطلب إعداد تلغرام في قنوات التنبيه.</string>
-    <string name="protection_remote_help">أرسل لبوتك: /locate لموقع على الخريطة، /photo لصورة أمامية، /alarm و /stopalarm للصفّارة، /status للبطارية والشبكة.</string>
+    <string name="protection_remote_help">أرسل لبوتك: /locate لموقع، /photo لصورة أمامية، /alarm و /stopalarm للصفّارة، /status للبطارية والشبكة، /lost و /found لإظهار جهة اتصالك على شاشة القفل.</string>
+    <string name="protection_owner_contact">جهة اتصالك (تظهر مع /lost)</string>
+    <string name="protection_lost_message">رسالة شاشة الفقدان (اختياري)</string>
+    <string name="lost_channel">هاتف مفقود</string>
+    <string name="lost_title">هذا الهاتف مفقود</string>
+    <string name="lost_default_message">إن وجدته، فضلاً أعِد هذا الهاتف.</string>
+    <string name="lost_contact">للتواصل: %1$s</string>
     <string name="protection_track_enable">تتبّع مباشر بعد السرقة</string>
     <string name="protection_track_desc">بعد اقتحام مؤكد، يُرسل الموقع كل بضع دقائق لفترة لتتبّع الهاتف.</string>
     <string name="protection_save">حفظ</string>

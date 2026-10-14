@@ -264,6 +264,17 @@ fun ProtectionSetupScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(Modifier.height(spacing.s))
+            ShieldraTextField(
+                value = draft.ownerContact,
+                onValueChange = { draft = draft.copy(ownerContact = it) },
+                label = stringResource(R.string.protection_owner_contact),
+            )
+            ShieldraTextField(
+                value = draft.lostMessage,
+                onValueChange = { draft = draft.copy(lostMessage = it) },
+                label = stringResource(R.string.protection_lost_message),
+            )
         }
 
         GuardToggle(

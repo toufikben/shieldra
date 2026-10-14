@@ -28,6 +28,8 @@ data class ProtectionSettings(
     val dualCameraEnabled: Boolean = false,
     val audioEnabled: Boolean = false,
     val audioSeconds: Int = 10,
+    val ownerContact: String = "",
+    val lostMessage: String = "",
 ) {
     /** What table-mode does when the phone is lifted: a silent capture, a loud siren, or a grace first. */
     enum class MotionResponse { SILENT, SIREN, GRACE_THEN_SIREN }
@@ -60,6 +62,8 @@ class ProtectionSettingsStore(context: Context) {
         dualCameraEnabled = prefs.getBoolean(KEY_DUAL_CAM, false),
         audioEnabled = prefs.getBoolean(KEY_AUDIO, false),
         audioSeconds = prefs.getInt(KEY_AUDIO_SECONDS, 10),
+        ownerContact = prefs.getString(KEY_OWNER_CONTACT, "").orEmpty(),
+        lostMessage = prefs.getString(KEY_LOST_MESSAGE, "").orEmpty(),
     )
 
     fun save(settings: ProtectionSettings) {
@@ -82,6 +86,8 @@ class ProtectionSettingsStore(context: Context) {
             .putBoolean(KEY_DUAL_CAM, settings.dualCameraEnabled)
             .putBoolean(KEY_AUDIO, settings.audioEnabled)
             .putInt(KEY_AUDIO_SECONDS, settings.audioSeconds)
+            .putString(KEY_OWNER_CONTACT, settings.ownerContact.trim())
+            .putString(KEY_LOST_MESSAGE, settings.lostMessage.trim())
             .apply()
     }
 
@@ -135,6 +141,8 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_DUAL_CAM = "dual_camera_enabled"
         const val KEY_AUDIO = "audio_enabled"
         const val KEY_AUDIO_SECONDS = "audio_seconds"
+        const val KEY_OWNER_CONTACT = "owner_contact"
+        const val KEY_LOST_MESSAGE = "lost_message"
         const val KEY_SIM_BASELINE = "sim_baseline"
         const val KEY_CD_EPOCH = "countdown_epoch_deadline"
         const val KEY_CD_ELAPSED = "countdown_elapsed_deadline"
