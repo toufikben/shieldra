@@ -36,8 +36,12 @@ data class SecurityAlert(
     val device: String,
     val batteryPercent: Int?,
     val location: AlertLocation? = null,
-    /** Id of the encrypted photo in the evidence store; the dispatcher opens it just before sending. */
+    /** Id of the encrypted front-camera photo; the dispatcher opens it just before sending. */
     val photoEvidenceId: String? = null,
+    /** Id of the encrypted back-camera photo, when dual-camera capture is on. */
+    val photoBackEvidenceId: String? = null,
+    /** Id of the encrypted short audio clip, when audio capture is on. */
+    val audioEvidenceId: String? = null,
     /** True when a photo and a fix were attempted, so their absence is reported rather than hidden. */
     val evidenceAttempted: Boolean = false,
     /** Wrong unlock attempts counted so far, for a [AlertKind.LOCK] alert. */
@@ -127,20 +131,18 @@ object AlertText {
     }
 }
 
-/** What travels with the text: the photo bytes (already decrypted) and the fix for a map pin. */
-data class AlertExtras(
+/**
+ * What travels with the text (all already decrypted): the front photo, an optional back photo, an
+ * optional short audio clip, and the fix for a map pin. The audio carries its own media type so a
+ * channel sends it correctly.
+ */
+class AlertExtras(
     val photoJpeg: ByteArray? = null,
+    val photoBackJpeg: ByteArray? = null,
+    val audioBytes: ByteArray? = null,
+    val audioMediaType: String = "audio/mp4",
     val location: AlertLocation? = null,
 ) {
-    override fun equals(other: Any?): Boolean {
-        if (other !is AlertExtras || location != other.location) return false
-        val mine = photoJpeg
-        val theirs = other.photoJpeg
-        return if (mine == null || theirs == null) mine == theirs else mine.contentEquals(theirs)
-    }
-
-    override fun hashCode(): Int = 31 * (photoJpeg?.contentHashCode() ?: 0) + (location?.hashCode() ?: 0)
-
     companion object {
         val NONE = AlertExtras()
     }

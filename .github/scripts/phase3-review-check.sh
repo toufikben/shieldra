@@ -54,6 +54,8 @@ unexpected="$(printf '%s\n' "$declared" \
   | grep -v '^android.permission.ACCESS_COARSE_LOCATION$' \
   | grep -v '^android.permission.FOREGROUND_SERVICE_CAMERA$' \
   | grep -v '^android.permission.FOREGROUND_SERVICE_LOCATION$' \
+  | grep -v '^android.permission.FOREGROUND_SERVICE_MICROPHONE$' \
+  | grep -v '^android.permission.RECORD_AUDIO$' \
   | grep -v '^android.permission.RECEIVE_BOOT_COMPLETED$' \
   | grep -v '^android.permission.WAKE_LOCK$' \
   | grep -v '^android.permission.READ_PHONE_STATE$' \

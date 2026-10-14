@@ -153,6 +153,27 @@ fun ProtectionSetupScreen(
             ) { draft = draft.copy(batteryThreshold = it.toInt()) }
         }
 
+        // ===== Evidence (dual camera + audio) =====
+        SectionTitle(stringResource(R.string.protection_evidence_title))
+        GuardToggle(
+            title = stringResource(R.string.protection_dual_camera),
+            subtitle = stringResource(R.string.protection_dual_camera_desc),
+            checked = draft.dualCameraEnabled,
+        ) { draft = draft.copy(dualCameraEnabled = it) }
+        GuardToggle(
+            title = stringResource(R.string.protection_audio),
+            subtitle = stringResource(R.string.protection_audio_desc),
+            checked = draft.audioEnabled,
+        ) { draft = draft.copy(audioEnabled = it) }
+        if (draft.audioEnabled) {
+            StepperRow(
+                label = stringResource(R.string.protection_audio_seconds, draft.audioSeconds),
+                value = draft.audioSeconds.toFloat(),
+                range = 5f..30f,
+                steps = 24,
+            ) { draft = draft.copy(audioSeconds = it.toInt()) }
+        }
+
         // ===== Table mode (motion response) =====
         SectionTitle(stringResource(R.string.protection_motion_title))
         Text(

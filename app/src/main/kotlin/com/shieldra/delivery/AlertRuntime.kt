@@ -37,21 +37,25 @@ class PreferencesPendingAlertStore(context: Context) : PendingAlertStore {
         if (alert.evidenceAttempted) "1" else "0",
         alert.failedAttempts?.toString().orEmpty(),
         alert.location?.let { "${it.latitude};${it.longitude};${it.accuracyMeters ?: ""};${it.fixedAt.toEpochMilli()};${it.provider}" }.orEmpty(),
+        alert.photoBackEvidenceId.orEmpty(),
+        alert.audioEvidenceId.orEmpty(),
         alert.device.replace(SEPARATOR, " "),
     ).joinToString(SEPARATOR)
 
     private fun decode(line: String): SecurityAlert? = runCatching {
-        val parts = line.split(SEPARATOR, limit = 9)
+        val parts = line.split(SEPARATOR, limit = 11)
         SecurityAlert(
             eventId = parts[2].ifBlank { null },
             kind = AlertKind.valueOf(parts[1]),
             occurredAt = Instant.ofEpochMilli(parts[0].toLong()),
-            device = parts[8],
+            device = parts[10],
             batteryPercent = parts[3].toIntOrNull(),
             photoEvidenceId = parts[4].ifBlank { null },
             evidenceAttempted = parts[5] == "1",
             failedAttempts = parts[6].toIntOrNull(),
             location = parts[7].ifBlank { null }?.let { decodeLocation(it) },
+            photoBackEvidenceId = parts[8].ifBlank { null },
+            audioEvidenceId = parts[9].ifBlank { null },
         )
     }.getOrNull()
 
@@ -168,14 +172,15 @@ object AlertRuntime {
      * The decrypted bytes live only for this call; a failure to open them never blocks the text.
      */
     private fun openExtras(app: Context, alert: SecurityAlert): AlertExtras {
-        val evidenceId = alert.photoEvidenceId
-        val photo = if (evidenceId.isNullOrBlank()) {
-            null
-        } else {
-            runCatching { (app as? ShieldraApp)?.installedStorage?.evidenceFiles?.read(evidenceId) }.getOrNull()
-        }
-        return if (photo == null && alert.location == null) AlertExtras.NONE
-        else AlertExtras(photoJpeg = photo, location = alert.location)
+        fun open(id: String?): ByteArray? =
+            if (id.isNullOrBlank()) null
+            else runCatching { (app as? ShieldraApp)?.installedStorage?.evidenceFiles?.read(id) }.getOrNull()
+
+        val photo = open(alert.photoEvidenceId)
+        val back = open(alert.photoBackEvidenceId)
+        val audio = open(alert.audioEvidenceId)
+        return if (photo == null && back == null && audio == null && alert.location == null) AlertExtras.NONE
+        else AlertExtras(photoJpeg = photo, photoBackJpeg = back, audioBytes = audio, location = alert.location)
     }
 
     private fun batteryPercent(context: Context): Int? = runCatching {

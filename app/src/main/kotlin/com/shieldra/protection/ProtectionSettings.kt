@@ -25,6 +25,9 @@ data class ProtectionSettings(
     val liveTrackingEnabled: Boolean = false,
     val trackingIntervalMinutes: Int = 2,
     val trackingDurationMinutes: Int = 30,
+    val dualCameraEnabled: Boolean = false,
+    val audioEnabled: Boolean = false,
+    val audioSeconds: Int = 10,
 ) {
     /** What table-mode does when the phone is lifted: a silent capture, a loud siren, or a grace first. */
     enum class MotionResponse { SILENT, SIREN, GRACE_THEN_SIREN }
@@ -54,6 +57,9 @@ class ProtectionSettingsStore(context: Context) {
         liveTrackingEnabled = prefs.getBoolean(KEY_TRACK, false),
         trackingIntervalMinutes = prefs.getInt(KEY_TRACK_INTERVAL, 2),
         trackingDurationMinutes = prefs.getInt(KEY_TRACK_DURATION, 30),
+        dualCameraEnabled = prefs.getBoolean(KEY_DUAL_CAM, false),
+        audioEnabled = prefs.getBoolean(KEY_AUDIO, false),
+        audioSeconds = prefs.getInt(KEY_AUDIO_SECONDS, 10),
     )
 
     fun save(settings: ProtectionSettings) {
@@ -73,6 +79,9 @@ class ProtectionSettingsStore(context: Context) {
             .putBoolean(KEY_TRACK, settings.liveTrackingEnabled)
             .putInt(KEY_TRACK_INTERVAL, settings.trackingIntervalMinutes)
             .putInt(KEY_TRACK_DURATION, settings.trackingDurationMinutes)
+            .putBoolean(KEY_DUAL_CAM, settings.dualCameraEnabled)
+            .putBoolean(KEY_AUDIO, settings.audioEnabled)
+            .putInt(KEY_AUDIO_SECONDS, settings.audioSeconds)
             .apply()
     }
 
@@ -123,6 +132,9 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_TRACK = "live_tracking_enabled"
         const val KEY_TRACK_INTERVAL = "tracking_interval_minutes"
         const val KEY_TRACK_DURATION = "tracking_duration_minutes"
+        const val KEY_DUAL_CAM = "dual_camera_enabled"
+        const val KEY_AUDIO = "audio_enabled"
+        const val KEY_AUDIO_SECONDS = "audio_seconds"
         const val KEY_SIM_BASELINE = "sim_baseline"
         const val KEY_CD_EPOCH = "countdown_epoch_deadline"
         const val KEY_CD_ELAPSED = "countdown_elapsed_deadline"
