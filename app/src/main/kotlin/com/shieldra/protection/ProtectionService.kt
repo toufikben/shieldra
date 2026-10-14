@@ -22,6 +22,7 @@ import com.shieldra.delivery.AlertKind
 import com.shieldra.delivery.AlertLocation
 import com.shieldra.delivery.AlertRuntime
 import com.shieldra.domain.EventId
+import com.shieldra.domain.EventRepository
 import com.shieldra.domain.GuardSeverity
 import com.shieldra.domain.SecurityEventType
 import kotlinx.coroutines.CoroutineScope
@@ -194,20 +195,9 @@ class ProtectionService : Service() {
             try {
                 val storage = (applicationContext as? ShieldraApp)?.installedStorage
                 val repository = storage?.eventRepository ?: return@launch
-                val (photo, fix) = supervisorScope {
-                    val photoJob = async { runCatching { camera.capture() }.getOrNull() }
-                    val fixJob = async { runCatching { location.current() }.getOrNull() }
-                    photoJob.await() to fixJob.await()
-                }
-                val events = ProtectionEvents(repository)
                 val grouped = type == SecurityEventType.LOCK_CONFIRMED_EVENT || type == SecurityEventType.SIM_CONFIRMED_EVENT
-                val binding = events.openOrBind(type, grouped, severityFor(type))
-                val evidenceId = photo?.let { bytes ->
-                    val id = "cap_" + UUID.randomUUID().toString().replace("-", "")
-                    runCatching { storage.evidenceFiles.write(id, bytes) }.map { id }.getOrNull()
-                }
-                if (evidenceId != null) events.attachEvidence(binding.event.id, evidenceId)
-                dispatchAlert(binding.event.id, alertKindFor(type), fix, evidenceId, failedAttempts)
+                val binding = ProtectionEvents(repository).openOrBind(type, grouped, severityFor(type))
+                captureStoreDispatch(storage, repository, binding.event.id, alertKindFor(type), failedAttempts)
                 // A new intrusion incident starts the live trail (if the owner turned it on).
                 val intrusion = type == SecurityEventType.LOCK_CONFIRMED_EVENT ||
                     type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
@@ -218,6 +208,52 @@ class ProtectionService : Service() {
                 busy.set(false)
             }
         }
+    }
+
+    /** Captures the configured media (front photo, optional back photo and audio), stores each as
+     *  evidence on [eventId], and sends the alert with their ids and the fix. */
+    private suspend fun captureStoreDispatch(
+        storage: com.shieldra.storage.LocalShieldraStorage,
+        repository: EventRepository,
+        eventId: EventId,
+        kind: AlertKind,
+        failedAttempts: Int?,
+    ) {
+        val settings = ProtectionSettingsStore(applicationContext).load()
+        val media = supervisorScope {
+            val audioJob = async {
+                if (settings.audioEnabled) runCatching { AudioCapture(applicationContext).record(settings.audioSeconds) }.getOrNull() else null
+            }
+            val fixJob = async { runCatching { location.current() }.getOrNull() }
+            // Two cameras cannot open at once on most phones, so capture front then back in sequence.
+            val front = runCatching { camera.capture(front = true) }.getOrNull()
+            val back = if (settings.dualCameraEnabled) runCatching { camera.capture(front = false) }.getOrNull() else null
+            CapturedMedia(front, back, audioJob.await()?.first, fixJob.await())
+        }
+        val frontId = storeEvidence(storage, repository, eventId, media.front)
+        val backId = storeEvidence(storage, repository, eventId, media.back)
+        val audioId = storeEvidence(storage, repository, eventId, media.audio)
+        dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId, failedAttempts)
+    }
+
+    private class CapturedMedia(
+        val front: ByteArray?,
+        val back: ByteArray?,
+        val audio: ByteArray?,
+        val fix: AlertLocation?,
+    )
+
+    private fun storeEvidence(
+        storage: com.shieldra.storage.LocalShieldraStorage,
+        repository: EventRepository,
+        eventId: EventId,
+        bytes: ByteArray?,
+    ): String? {
+        if (bytes == null) return null
+        val id = "cap_" + UUID.randomUUID().toString().replace("-", "")
+        val written = runCatching { storage.evidenceFiles.write(id, bytes) }.map { id }.getOrNull() ?: return null
+        runCatching { repository.recordEvidence(eventId, com.shieldra.domain.EvidenceReference(written)) }
+        return written
     }
 
     /**
@@ -233,19 +269,7 @@ class ProtectionService : Service() {
             try {
                 val storage = (applicationContext as? ShieldraApp)?.installedStorage
                 val repository = storage?.eventRepository ?: return@launch
-                val (photo, fix) = supervisorScope {
-                    val photoJob = async { runCatching { camera.capture() }.getOrNull() }
-                    val fixJob = async { runCatching { location.current() }.getOrNull() }
-                    photoJob.await() to fixJob.await()
-                }
-                val evidenceId = photo?.let { bytes ->
-                    val id = "cap_" + UUID.randomUUID().toString().replace("-", "")
-                    runCatching { storage.evidenceFiles.write(id, bytes) }.map { id }.getOrNull()
-                }
-                if (evidenceId != null) {
-                    runCatching { repository.recordEvidence(eventId, com.shieldra.domain.EvidenceReference(evidenceId)) }
-                }
-                dispatchAlert(eventId, kind, fix, evidenceId, failedAttempts = null)
+                captureStoreDispatch(storage, repository, eventId, kind, failedAttempts = null)
             } finally {
                 runCatching { if (wakeLock?.isHeld == true) wakeLock.release() }
                 busy.set(false)
@@ -258,6 +282,8 @@ class ProtectionService : Service() {
         kind: AlertKind,
         fix: AlertLocation?,
         evidenceId: String?,
+        backEvidenceId: String?,
+        audioEvidenceId: String?,
         failedAttempts: Int?,
     ) {
         val base = AlertRuntime.snapshot(applicationContext, kind, eventId.value.toString())
@@ -267,6 +293,8 @@ class ProtectionService : Service() {
                 occurredAt = Instant.now(),
                 location = fix,
                 photoEvidenceId = evidenceId,
+                photoBackEvidenceId = backEvidenceId,
+                audioEvidenceId = audioEvidenceId,
                 evidenceAttempted = true,
                 failedAttempts = failedAttempts,
             ),
@@ -299,6 +327,9 @@ class ProtectionService : Service() {
             hasPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
         ) {
             type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && hasPermission(android.Manifest.permission.RECORD_AUDIO)) {
+            type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
         }
         return type
     }

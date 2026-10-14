@@ -106,6 +106,12 @@
     <string name="protection_guard_battery_desc">آخر موقع قبل انطفاء الهاتف.</string>
     <string name="protection_lock_threshold">بعد %1$d محاولات فاشلة</string>
     <string name="protection_battery_level">عند %1$d%% من البطارية</string>
+    <string name="protection_evidence_title">الأدلّة</string>
+    <string name="protection_dual_camera">الكاميرتان</string>
+    <string name="protection_dual_camera_desc">التقاط صورة خلفية للمحيط أيضاً.</string>
+    <string name="protection_audio">مقطع صوتي قصير</string>
+    <string name="protection_audio_desc">تسجيل بضع ثوانٍ من الصوت حول الهاتف.</string>
+    <string name="protection_audio_seconds">الصوت: %1$d ثانية</string>
     <string name="protection_motion_title">وضع الطاولة (الحركة)</string>
     <string name="protection_motion_desc">عند وضع الهاتف ساكناً ثم رفعه، هذا ما يحدث. ابدأ مراقبة الحركة من الشاشة الرئيسية.</string>
     <string name="protection_motion_silent">التقاط صامت</string>

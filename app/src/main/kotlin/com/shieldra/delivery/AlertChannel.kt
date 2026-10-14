@@ -167,17 +167,37 @@ class TelegramChannel(
             // sendPhoto was refused (image too large, unreadable): fall back to the plain message.
             result = call { poster.post("$api/sendMessage", mapOf("chat_id" to config.chatId, "text" to body)) }
         }
-        val location = extras.location
-        if (result is ChannelResult.Sent && location != null) {
-            call {
-                poster.post(
-                    "$api/sendLocation",
-                    mapOf(
-                        "chat_id" to config.chatId,
-                        "latitude" to location.latitude.toString(),
-                        "longitude" to location.longitude.toString(),
-                    ) + (location.accuracyMeters?.let { mapOf("horizontal_accuracy" to it.coerceIn(0f, 1500f).toString()) } ?: emptyMap()),
-                )
+        if (result is ChannelResult.Sent) {
+            // Best-effort extras: a back-camera photo, then a short audio clip, then the map pin.
+            extras.photoBackJpeg?.let { back ->
+                call {
+                    photoPoster.postFile(
+                        "$api/sendPhoto",
+                        mapOf("chat_id" to config.chatId),
+                        MultipartFile("photo", "shieldra-back.jpg", "image/jpeg", back),
+                    )
+                }
+            }
+            extras.audioBytes?.let { audio ->
+                call {
+                    photoPoster.postFile(
+                        "$api/sendAudio",
+                        mapOf("chat_id" to config.chatId),
+                        MultipartFile("audio", "shieldra.m4a", extras.audioMediaType, audio),
+                    )
+                }
+            }
+            extras.location?.let { location ->
+                call {
+                    poster.post(
+                        "$api/sendLocation",
+                        mapOf(
+                            "chat_id" to config.chatId,
+                            "latitude" to location.latitude.toString(),
+                            "longitude" to location.longitude.toString(),
+                        ) + (location.accuracyMeters?.let { mapOf("horizontal_accuracy" to it.coerceIn(0f, 1500f).toString()) } ?: emptyMap()),
+                    )
+                }
             }
         }
         return result

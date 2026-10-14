@@ -33,22 +33,23 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class CameraCapture(private val context: Context) {
 
-    suspend fun capture(): ByteArray? {
+    /** Captures from the front camera (the default) or the back camera when [front] is false. */
+    suspend fun capture(front: Boolean = true): ByteArray? {
         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             return null
         }
         // Two attempts: a transient HAL error on the first often clears on the second.
         repeat(2) { attempt ->
-            captureOnce()?.let { return it }
+            captureOnce(front)?.let { return it }
             if (attempt == 0) delay(700L)
         }
         return null
     }
 
     @android.annotation.SuppressLint("MissingPermission") // capture() returns early without CAMERA.
-    private suspend fun captureOnce(): ByteArray? = withContext(Dispatchers.IO) {
+    private suspend fun captureOnce(front: Boolean): ByteArray? = withContext(Dispatchers.IO) {
         val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager ?: return@withContext null
-        val cameraId = frontCameraId(manager) ?: return@withContext null
+        val cameraId = cameraId(manager, front) ?: return@withContext null
         val thread = HandlerThread("shieldra-camera").apply { start() }
         val handler = Handler(thread.looper)
         var device: CameraDevice? = null
@@ -127,11 +128,11 @@ class CameraCapture(private val context: Context) {
         bytes
     }
 
-    private fun frontCameraId(manager: CameraManager): String? = runCatching {
+    private fun cameraId(manager: CameraManager, front: Boolean): String? = runCatching {
+        val wanted = if (front) CameraCharacteristics.LENS_FACING_FRONT else CameraCharacteristics.LENS_FACING_BACK
         manager.cameraIdList.firstOrNull { id ->
-            manager.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING) ==
-                CameraCharacteristics.LENS_FACING_FRONT
-        } ?: manager.cameraIdList.firstOrNull()
+            manager.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING) == wanted
+        } ?: if (front) manager.cameraIdList.firstOrNull() else null
     }.getOrNull()
 
     private fun jpegSize(manager: CameraManager, cameraId: String): Size = runCatching {

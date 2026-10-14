@@ -395,9 +395,10 @@ DECLARED="$(grep -oE 'android:name="android\.permission\.[A-Z_]+"' app/src/main/
   | sed 's/.*android\.permission\.//;s/"//' | sort | tr '\n' ' ')"
 # Amendment A-32 adds the two install-time network permissions alert delivery needs; A-33/A-34 add
 # the protection guards' camera, location, boot, wake-lock, phone-state, battery and exact-alarm set.
-EXPECTED="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_NETWORK_STATE CAMERA FOREGROUND_SERVICE FOREGROUND_SERVICE_CAMERA FOREGROUND_SERVICE_LOCATION FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_BOOT_COMPLETED REQUEST_IGNORE_BATTERY_OPTIMIZATIONS SCHEDULE_EXACT_ALARM USE_EXACT_ALARM WAKE_LOCK "
+# A-35 adds the microphone pair for the short audio clip.
+EXPECTED="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_NETWORK_STATE CAMERA FOREGROUND_SERVICE FOREGROUND_SERVICE_CAMERA FOREGROUND_SERVICE_LOCATION FOREGROUND_SERVICE_MICROPHONE FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_BOOT_COMPLETED RECORD_AUDIO REQUEST_IGNORE_BATTERY_OPTIMIZATIONS SCHEDULE_EXACT_ALARM USE_EXACT_ALARM WAKE_LOCK "
 if [ "$DECLARED" != "$EXPECTED" ]; then
-  fail "the manifest declares permissions outside the A-6/A-19/A-32/A-33/A-34 named set; got [$DECLARED]"
+  fail "the manifest declares permissions outside the A-6/A-19/A-32/A-33/A-34/A-35 named set; got [$DECLARED]"
 fi
 grep -q 'RequestPermission' "$NAVHOST" || fail "the permission is never requested from the UI"
 if grep -q 'RequestPermission' "$PANIC"; then
@@ -484,14 +485,14 @@ grep -q 'android:name="com.shieldra.protection.ProtectionService"' app/src/main/
   || fail "the protection service (A-34) is missing"
 grep -q 'android:foregroundServiceType="specialUse"' app/src/main/AndroidManifest.xml \
   || fail "A-17 approved specialUse as the Motion service type; the manifest no longer declares it"
-grep -q 'android:foregroundServiceType="camera|location"' app/src/main/AndroidManifest.xml \
-  || fail "A-34 approved camera|location as the protection service type; the manifest no longer declares it"
+grep -q 'android:foregroundServiceType="camera|location|microphone"' app/src/main/AndroidManifest.xml \
+  || fail "A-34/A-35 approved camera|location|microphone as the protection service type; the manifest no longer declares it"
 grep -q 'android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE' app/src/main/AndroidManifest.xml \
   || fail "the specialUse subtype property A-17 requires for the Play review statement is missing"
 # POST_NOTIFICATIONS excluded by the word boundary; the four FOREGROUND_SERVICE* lines are the set.
 FGS_PERMS="$(grep -c 'android.permission.FOREGROUND_SERVICE' app/src/main/AndroidManifest.xml || true)"
-if [ "$FGS_PERMS" -ne 4 ]; then
-  fail "A-19/A-34 license exactly four foreground-service permissions (base, specialUse, camera, location); found $FGS_PERMS"
+if [ "$FGS_PERMS" -ne 5 ]; then
+  fail "A-19/A-34/A-35 license exactly five foreground-service permissions (base, specialUse, camera, location, microphone); found $FGS_PERMS"
 fi
 if grep -RIn 'androidx\.work\|WorkManager\.getInstance\|EnqueueWorker\|\.enqueue(' app/src/main/kotlin; then
   fail "WorkManager is being used in app sources; §17 forbids it as a real-time detector"

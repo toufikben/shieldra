@@ -68,8 +68,13 @@ class EmailChannel(
 
     override fun send(subject: String, body: String, extras: AlertExtras): ChannelResult {
         if (!config.isComplete) return ChannelResult.Rejected("Email is not fully set up")
+        val attachments = buildList {
+            extras.photoJpeg?.let { add(Attachment("shieldra.jpg", "image/jpeg", it)) }
+            extras.photoBackJpeg?.let { add(Attachment("shieldra-back.jpg", "image/jpeg", it)) }
+            extras.audioBytes?.let { add(Attachment("shieldra.m4a", extras.audioMediaType, it)) }
+        }
         return try {
-            transports.open(config).use { transport -> converse(transport, subject, body, extras.photoJpeg) }
+            transports.open(config).use { transport -> converse(transport, subject, body, attachments) }
         } catch (error: MailRefused) {
             error.result
         } catch (error: IOException) {
@@ -77,7 +82,9 @@ class EmailChannel(
         }
     }
 
-    private fun converse(transport: MailTransport, subject: String, body: String, photo: ByteArray?): ChannelResult {
+    private class Attachment(val fileName: String, val mediaType: String, val bytes: ByteArray)
+
+    private fun converse(transport: MailTransport, subject: String, body: String, attachments: List<Attachment>): ChannelResult {
         expect(transport, 220)
         hello(transport)
         if (config.security == MailSecurity.STARTTLS) {
@@ -91,7 +98,7 @@ class EmailChannel(
         command(transport, "MAIL FROM:<${config.from}>", 250, rejectedOnFailure = true)
         command(transport, "RCPT TO:<${config.to}>", 250, 251, rejectedOnFailure = true)
         command(transport, "DATA", 354)
-        message(subject, body, photo).forEach(transport::writeLine)
+        message(subject, body, attachments).forEach(transport::writeLine)
         command(transport, ".", 250)
         runCatching { command(transport, "QUIT", 221) }
         return ChannelResult.Sent
@@ -101,7 +108,7 @@ class EmailChannel(
         command(transport, "EHLO shieldra.local", 250)
     }
 
-    private fun message(subject: String, body: String, photo: ByteArray?): List<String> {
+    private fun message(subject: String, body: String, attachments: List<Attachment>): List<String> {
         val date = now().format(DateTimeFormatter.RFC_1123_DATE_TIME)
         val encoder = Base64.getMimeEncoder(BODY_LINE_LENGTH, "\r\n".toByteArray())
         val encodedBody = encoder.encodeToString(body.toByteArray(StandardCharsets.UTF_8))
@@ -112,31 +119,34 @@ class EmailChannel(
             "Date: $date",
             "MIME-Version: 1.0",
         )
-        if (photo == null) {
+        if (attachments.isEmpty()) {
             return headers + listOf(
                 "Content-Type: text/plain; charset=UTF-8",
                 "Content-Transfer-Encoding: base64",
                 "",
             ) + encodedBody.split("\r\n")
         }
-        // A photo turns the message into multipart/mixed: the text part, then the JPEG attachment.
-        // No boundary can clash with base64 output, which never contains the "--" marker sequence.
+        // Attachments turn the message into multipart/mixed: the text part, then each file. No
+        // boundary can clash with base64 output, which never contains the "--" marker sequence.
         val boundary = "shieldra_${now().toInstant().toEpochMilli()}_part"
-        val encodedPhoto = encoder.encodeToString(photo)
-        return headers + listOf(
-            "Content-Type: multipart/mixed; boundary=\"$boundary\"",
-            "",
-            "--$boundary",
-            "Content-Type: text/plain; charset=UTF-8",
-            "Content-Transfer-Encoding: base64",
-            "",
-        ) + encodedBody.split("\r\n") + listOf(
-            "--$boundary",
-            "Content-Type: image/jpeg",
-            "Content-Transfer-Encoding: base64",
-            "Content-Disposition: attachment; filename=\"shieldra.jpg\"",
-            "",
-        ) + encodedPhoto.split("\r\n") + listOf("--$boundary--")
+        val lines = headers.toMutableList()
+        lines += "Content-Type: multipart/mixed; boundary=\"$boundary\""
+        lines += ""
+        lines += "--$boundary"
+        lines += "Content-Type: text/plain; charset=UTF-8"
+        lines += "Content-Transfer-Encoding: base64"
+        lines += ""
+        lines += encodedBody.split("\r\n")
+        for (attachment in attachments) {
+            lines += "--$boundary"
+            lines += "Content-Type: ${attachment.mediaType}"
+            lines += "Content-Transfer-Encoding: base64"
+            lines += "Content-Disposition: attachment; filename=\"${attachment.fileName}\""
+            lines += ""
+            lines += encoder.encodeToString(attachment.bytes).split("\r\n")
+        }
+        lines += "--$boundary--"
+        return lines
     }
 
     private fun command(
