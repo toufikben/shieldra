@@ -36,6 +36,12 @@ import com.shieldra.app.design.components.foundation.ShieldraFullWidthButton
 import com.shieldra.app.design.components.foundation.ShieldraSlider
 import com.shieldra.app.design.components.foundation.ShieldraSwitch
 import com.shieldra.app.design.theme.ShieldraTheme
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import com.shieldra.app.design.components.foundation.ShieldraTextField
+import com.shieldra.protection.CountdownDeadline
 import com.shieldra.protection.ProtectionSettings
 
 /** The permissions and consents a guard needs, read live from the platform. */
@@ -70,6 +76,8 @@ fun ProtectionSetupScreen(
 ) {
     val spacing = ShieldraTheme.spacing
     var draft by remember(settings) { mutableStateOf(settings) }
+    var customMinutes by remember(settings) { mutableStateOf("") }
+    var customCountdownOpen by remember(settings) { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -141,6 +149,42 @@ fun ProtectionSetupScreen(
             ) { draft = draft.copy(batteryThreshold = it.toInt()) }
         }
 
+        // ===== Table mode (motion response) =====
+        SectionTitle(stringResource(R.string.protection_motion_title))
+        Text(
+            text = stringResource(R.string.protection_motion_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(spacing.s))
+        @OptIn(ExperimentalLayoutApi::class)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(spacing.s)) {
+            ShieldraChip(
+                label = stringResource(R.string.protection_motion_silent),
+                selected = draft.motionResponse == ProtectionSettings.MotionResponse.SILENT,
+                onClick = { draft = draft.copy(motionResponse = ProtectionSettings.MotionResponse.SILENT) },
+            )
+            ShieldraChip(
+                label = stringResource(R.string.protection_motion_siren),
+                selected = draft.motionResponse == ProtectionSettings.MotionResponse.SIREN,
+                onClick = { draft = draft.copy(motionResponse = ProtectionSettings.MotionResponse.SIREN) },
+            )
+            ShieldraChip(
+                label = stringResource(R.string.protection_motion_grace),
+                selected = draft.motionResponse == ProtectionSettings.MotionResponse.GRACE_THEN_SIREN,
+                onClick = { draft = draft.copy(motionResponse = ProtectionSettings.MotionResponse.GRACE_THEN_SIREN) },
+            )
+        }
+        if (draft.motionResponse == ProtectionSettings.MotionResponse.GRACE_THEN_SIREN) {
+            Spacer(Modifier.height(spacing.s))
+            StepperRow(
+                label = stringResource(R.string.protection_motion_grace_seconds, draft.motionGraceSeconds),
+                value = draft.motionGraceSeconds.toFloat(),
+                range = 3f..30f,
+                steps = 26,
+            ) { draft = draft.copy(motionGraceSeconds = it.toInt()) }
+        }
+
         // ===== Countdown =====
         SectionTitle(stringResource(R.string.protection_countdown_title))
         GuardToggle(
@@ -150,16 +194,51 @@ fun ProtectionSetupScreen(
         ) { draft = draft.copy(countdownEnabled = it) }
         if (draft.countdownEnabled) {
             Spacer(Modifier.height(spacing.s))
-            Row(horizontalArrangement = Arrangement.spacedBy(spacing.s)) {
-                CountdownPreset(draft, 60 * 60_000L) { draft = it }
-                CountdownPreset(draft, 6 * 60 * 60_000L) { draft = it }
-                CountdownPreset(draft, 24 * 60 * 60_000L) { draft = it }
+            val isCustom = draft.countdownIntervalMs !in CountdownDeadline.PRESETS_MS
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(spacing.s),
+                verticalArrangement = Arrangement.spacedBy(spacing.xs),
+            ) {
+                CountdownDeadline.PRESETS_MS.forEach { ms ->
+                    CountdownPreset(draft, ms) { draft = it }
+                }
+                ShieldraChip(
+                    label = stringResource(R.string.protection_countdown_custom),
+                    selected = isCustom,
+                    onClick = { customCountdownOpen = true },
+                )
             }
-            Spacer(Modifier.height(spacing.xs))
-            Row(horizontalArrangement = Arrangement.spacedBy(spacing.s)) {
-                CountdownPreset(draft, 3 * 24 * 60 * 60_000L) { draft = it }
-                CountdownPreset(draft, 7L * 24 * 60 * 60_000L) { draft = it }
+            if (customCountdownOpen || isCustom) {
+                Spacer(Modifier.height(spacing.xs))
+                ShieldraTextField(
+                    value = customMinutes,
+                    onValueChange = { value ->
+                        customMinutes = value.filter(Char::isDigit).take(5)
+                        customMinutes.toLongOrNull()?.let { minutes ->
+                            // Floor at the one-minute minimum the deadline enforces anyway.
+                            draft = draft.copy(countdownIntervalMs = (minutes * 60_000L).coerceAtLeast(60_000L))
+                        }
+                    },
+                    label = stringResource(R.string.protection_countdown_custom_minutes),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
             }
+        }
+
+        // ===== Remote control (Telegram) =====
+        SectionTitle(stringResource(R.string.protection_remote_title))
+        GuardToggle(
+            title = stringResource(R.string.protection_remote_enable),
+            subtitle = stringResource(R.string.protection_remote_desc),
+            checked = draft.remoteCommandsEnabled,
+        ) { draft = draft.copy(remoteCommandsEnabled = it) }
+        if (draft.remoteCommandsEnabled) {
+            Text(
+                text = stringResource(R.string.protection_remote_help),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         Spacer(Modifier.height(spacing.xl))
@@ -260,9 +339,10 @@ private fun CountdownPreset(draft: ProtectionSettings, intervalMs: Long, onPick:
 
 @Composable
 private fun countdownLabel(intervalMs: Long): String {
-    val hours = intervalMs / 3_600_000L
+    val minutes = intervalMs / 60_000L
     return when {
-        hours < 24 -> stringResource(R.string.protection_countdown_hours, hours)
-        else -> stringResource(R.string.protection_countdown_days, hours / 24)
+        minutes < 60 -> stringResource(R.string.protection_countdown_minutes, minutes)
+        minutes < 24 * 60 -> stringResource(R.string.protection_countdown_hours, minutes / 60)
+        else -> stringResource(R.string.protection_countdown_days, minutes / (24 * 60))
     }
 }

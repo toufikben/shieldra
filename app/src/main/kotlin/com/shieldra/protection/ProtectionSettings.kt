@@ -21,6 +21,7 @@ data class ProtectionSettings(
     val motionResponse: MotionResponse = MotionResponse.SILENT,
     val motionGraceSeconds: Int = 5,
     val retentionDays: Int = 30,
+    val remoteCommandsEnabled: Boolean = false,
 ) {
     /** What table-mode does when the phone is lifted: a silent capture, a loud siren, or a grace first. */
     enum class MotionResponse { SILENT, SIREN, GRACE_THEN_SIREN }
@@ -46,6 +47,7 @@ class ProtectionSettingsStore(context: Context) {
         }.getOrDefault(ProtectionSettings.MotionResponse.SILENT),
         motionGraceSeconds = prefs.getInt(KEY_MOTION_GRACE, 5),
         retentionDays = prefs.getInt(KEY_RETENTION, 30),
+        remoteCommandsEnabled = prefs.getBoolean(KEY_REMOTE, false),
     )
 
     fun save(settings: ProtectionSettings) {
@@ -61,6 +63,7 @@ class ProtectionSettingsStore(context: Context) {
             .putString(KEY_MOTION_RESPONSE, settings.motionResponse.name)
             .putInt(KEY_MOTION_GRACE, settings.motionGraceSeconds)
             .putInt(KEY_RETENTION, settings.retentionDays)
+            .putBoolean(KEY_REMOTE, settings.remoteCommandsEnabled)
             .apply()
     }
 
@@ -107,6 +110,7 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_MOTION_RESPONSE = "motion_response"
         const val KEY_MOTION_GRACE = "motion_grace_seconds"
         const val KEY_RETENTION = "retention_days"
+        const val KEY_REMOTE = "remote_commands_enabled"
         const val KEY_SIM_BASELINE = "sim_baseline"
         const val KEY_CD_EPOCH = "countdown_epoch_deadline"
         const val KEY_CD_ELAPSED = "countdown_elapsed_deadline"

@@ -23,9 +23,8 @@ import com.shieldra.domain.GuardKind
 import com.shieldra.domain.GuardSignal
 import com.shieldra.domain.MotionConfirmation
 import com.shieldra.domain.MotionIncidentBinder
-import com.shieldra.delivery.AlertKind
-import com.shieldra.delivery.AlertRuntime
 import com.shieldra.notification.LocalEventNotifier
+import com.shieldra.protection.TableModeResponder
 import com.shieldra.runtime.BackgroundExecutionController
 import com.shieldra.runtime.ExecutionPhase
 import com.shieldra.runtime.MotionEventWrites
@@ -272,8 +271,10 @@ class MotionMonitoringService : Service(), MotionMonitor {
                     statusLabel = getString(com.shieldra.app.R.string.status_recorded),
                     title = getString(com.shieldra.app.R.string.notification_motion_event_title),
                 )
-                // A-32: the same incident goes to the owner's channels, silently and off this thread.
-                AlertRuntime.alert(applicationContext, AlertKind.MOTION, recordedId)
+                // A-33 table mode: the owner's chosen response runs — a silent capture, a loud siren,
+                // or a grace window first. When protection is armed it attaches a photo and a fix to
+                // this incident; otherwise it falls back to the silent channel alert (A-32).
+                TableModeResponder.onMotionConfirmed(applicationContext, recordedId)
             }
             is MotionConfirmation.Rejected ->
                 Log.w(TAG, "a confirmed Movement could not be recorded: ${confirmation.reason}")
