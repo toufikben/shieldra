@@ -226,6 +226,21 @@ fun ProtectionSetupScreen(
             }
         }
 
+        // ===== Remote control (Telegram) =====
+        SectionTitle(stringResource(R.string.protection_remote_title))
+        GuardToggle(
+            title = stringResource(R.string.protection_remote_enable),
+            subtitle = stringResource(R.string.protection_remote_desc),
+            checked = draft.remoteCommandsEnabled,
+        ) { draft = draft.copy(remoteCommandsEnabled = it) }
+        if (draft.remoteCommandsEnabled) {
+            Text(
+                text = stringResource(R.string.protection_remote_help),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         Spacer(Modifier.height(spacing.xl))
         ShieldraFullWidthButton(
             text = stringResource(R.string.protection_save),

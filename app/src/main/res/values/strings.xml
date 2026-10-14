@@ -119,6 +119,10 @@
     <string name="protection_countdown_days">%1$d d</string>
     <string name="protection_countdown_custom">Custom</string>
     <string name="protection_countdown_custom_minutes">Custom interval (minutes)</string>
+    <string name="protection_remote_title">Remote control (Telegram)</string>
+    <string name="protection_remote_enable">Control from Telegram</string>
+    <string name="protection_remote_desc">Send commands to your bot while the phone is armed. Needs Telegram set up in Alert channels.</string>
+    <string name="protection_remote_help">Send to your bot: /locate for a map pin, /photo for a front-camera photo, /alarm and /stopalarm for the siren, /status for battery and network.</string>
     <string name="protection_save">Save</string>
     <string name="motion_monitoring_start">Start Motion monitoring</string>
     <string name="motion_monitoring_stop">Stop Motion monitoring</string>

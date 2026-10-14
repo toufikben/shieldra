@@ -119,6 +119,10 @@
     <string name="protection_countdown_days">%1$d ي</string>
     <string name="protection_countdown_custom">مخصّص</string>
     <string name="protection_countdown_custom_minutes">مدة مخصّصة (دقائق)</string>
+    <string name="protection_remote_title">التحكم عن بُعد (تلغرام)</string>
+    <string name="protection_remote_enable">التحكم من تلغرام</string>
+    <string name="protection_remote_desc">أرسل أوامر لبوتك والهاتف مُفعّل. يتطلب إعداد تلغرام في قنوات التنبيه.</string>
+    <string name="protection_remote_help">أرسل لبوتك: /locate لموقع على الخريطة، /photo لصورة أمامية، /alarm و /stopalarm للصفّارة، /status للبطارية والشبكة.</string>
     <string name="protection_save">حفظ</string>
     <string name="motion_monitoring_start">تشغيل مراقبة الحركة</string>
     <string name="motion_monitoring_stop">إيقاف مراقبة الحركة</string>

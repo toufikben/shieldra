@@ -55,6 +55,7 @@ class ProtectionService : Service() {
     private var batteryReceiver: android.content.BroadcastReceiver? = null
     private val simGuard by lazy { SimGuard(applicationContext) }
     private var lastSimVerdict: SimGuardLogic.Verdict = SimGuardLogic.Verdict.Normal
+    private val remoteCommands by lazy { RemoteCommandPoller(applicationContext) }
 
     /** Re-checks the SIM/network state and alerts once on each transition into an abnormal state. */
     private fun checkSim() {
@@ -108,6 +109,7 @@ class ProtectionService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
+                remoteCommands.stop()
                 ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
                 liveInstance = null
                 stopSelf()
@@ -121,6 +123,10 @@ class ProtectionService : Service() {
                 startBatteryGuard()
                 simGuard.captureBaselineIfNeeded()
                 checkSim()
+                // Remote control over the owner's Telegram, when they turned it on (A-33 next stage).
+                if (ProtectionSettingsStore(applicationContext).load().remoteCommandsEnabled) {
+                    remoteCommands.start()
+                }
                 val kindName = intent?.getStringExtra(EXTRA_KIND)
                 if (kindName != null) {
                     val eventId = intent.getStringExtra(EXTRA_EVENT_ID)
@@ -135,6 +141,7 @@ class ProtectionService : Service() {
 
     override fun onDestroy() {
         if (liveInstance === this) liveInstance = null
+        remoteCommands.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
         batteryReceiver = null
         scope.coroutineContext[Job]?.cancel()
