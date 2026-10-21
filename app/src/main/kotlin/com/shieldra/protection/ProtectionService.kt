@@ -69,7 +69,7 @@ class ProtectionService : Service() {
      */
     private fun startTrackingIfEnabled(eventId: EventId, kind: AlertKind) {
         val settings = ProtectionSettingsStore(applicationContext).load()
-        if (!settings.liveTrackingEnabled) return
+        if (!settings.liveTrackingEnabled || !com.shieldra.billing.TierGate.allowsTracking(settings.tier)) return
         val intervalMinutes = settings.trackingIntervalMinutes.coerceAtLeast(1)
         trackingTicksLeft = (settings.trackingDurationMinutes / intervalMinutes).coerceIn(1, 120)
         scheduleTrackingTick(eventId, kind, intervalMinutes * 60_000L)
@@ -159,8 +159,10 @@ class ProtectionService : Service() {
                 simGuard.captureBaselineIfNeeded()
                 checkSim()
                 // Remote control over the owner's Telegram, when they turned it on (A-33 next stage).
-                if (ProtectionSettingsStore(applicationContext).load().remoteCommandsEnabled) {
-                    remoteCommands.start()
+                ProtectionSettingsStore(applicationContext).load().let { s ->
+                    if (s.remoteCommandsEnabled && com.shieldra.billing.TierGate.allowsRemote(s.tier)) {
+                        remoteCommands.start()
+                    }
                 }
                 val kindName = intent?.getStringExtra(EXTRA_KIND)
                 if (kindName != null) {
@@ -220,14 +222,19 @@ class ProtectionService : Service() {
         failedAttempts: Int?,
     ) {
         val settings = ProtectionSettingsStore(applicationContext).load()
+        val tier = settings.tier
+        // The free plan sends a location only; the paid plan adds photos and audio (owner's split).
+        val wantsPhoto = com.shieldra.billing.TierGate.allowsPhoto(tier)
+        val wantsBack = settings.dualCameraEnabled && com.shieldra.billing.TierGate.allowsBackCamera(tier)
+        val wantsAudio = settings.audioEnabled && com.shieldra.billing.TierGate.allowsAudio(tier)
         val media = supervisorScope {
             val audioJob = async {
-                if (settings.audioEnabled) runCatching { AudioCapture(applicationContext).record(settings.audioSeconds) }.getOrNull() else null
+                if (wantsAudio) runCatching { AudioCapture(applicationContext).record(settings.audioSeconds) }.getOrNull() else null
             }
             val fixJob = async { runCatching { location.current() }.getOrNull() }
             // Two cameras cannot open at once on most phones, so capture front then back in sequence.
-            val front = runCatching { camera.capture(front = true) }.getOrNull()
-            val back = if (settings.dualCameraEnabled) runCatching { camera.capture(front = false) }.getOrNull() else null
+            val front = if (wantsPhoto) runCatching { camera.capture(front = true) }.getOrNull() else null
+            val back = if (wantsBack) runCatching { camera.capture(front = false) }.getOrNull() else null
             CapturedMedia(front, back, audioJob.await()?.first, fixJob.await())
         }
         val frontId = storeEvidence(storage, repository, eventId, media.front)

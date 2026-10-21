@@ -110,6 +110,27 @@ fun ProtectionSetupScreen(
             modifier = Modifier.fillMaxWidth(),
         )
 
+        // ===== Plan (free / premium) =====
+        SectionTitle(stringResource(R.string.protection_plan_title))
+        Text(
+            text = stringResource(R.string.protection_plan_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(spacing.s))
+        Row(horizontalArrangement = Arrangement.spacedBy(spacing.s)) {
+            ShieldraChip(
+                label = stringResource(R.string.protection_plan_free),
+                selected = draft.tier == com.shieldra.billing.Tier.FREE,
+                onClick = { draft = draft.copy(tier = com.shieldra.billing.Tier.FREE) },
+            )
+            ShieldraChip(
+                label = stringResource(R.string.protection_plan_premium),
+                selected = draft.tier == com.shieldra.billing.Tier.PREMIUM,
+                onClick = { draft = draft.copy(tier = com.shieldra.billing.Tier.PREMIUM) },
+            )
+        }
+
         // ===== Permissions checklist =====
         SectionTitle(stringResource(R.string.protection_permissions_title))
         PermissionRow(stringResource(R.string.protection_perm_camera), permissions.camera, onGrantCamera)
