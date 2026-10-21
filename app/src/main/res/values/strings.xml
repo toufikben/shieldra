@@ -89,6 +89,10 @@
     <string name="protection_state_disarmed">Not armed</string>
     <string name="protection_arm">Arm protection</string>
     <string name="protection_disarm">Disarm protection</string>
+    <string name="protection_plan_title">Plan</string>
+    <string name="protection_plan_desc">Free sends a location by email only. Premium unlocks photos, audio, Telegram, countdown, tracking and remote control.</string>
+    <string name="protection_plan_free">Free</string>
+    <string name="protection_plan_premium">Premium</string>
     <string name="protection_permissions_title">Permissions</string>
     <string name="protection_perm_camera">Camera — front photo on an event</string>
     <string name="protection_perm_location">Location — where the phone is</string>

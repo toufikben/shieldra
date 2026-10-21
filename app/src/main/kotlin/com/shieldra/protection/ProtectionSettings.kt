@@ -30,6 +30,8 @@ data class ProtectionSettings(
     val audioSeconds: Int = 10,
     val ownerContact: String = "",
     val lostMessage: String = "",
+    /** The owner's plan; PREMIUM until real billing is wired, so nothing is locked during testing. */
+    val tier: com.shieldra.billing.Tier = com.shieldra.billing.Tier.PREMIUM,
 ) {
     /** What table-mode does when the phone is lifted: a silent capture, a loud siren, or a grace first. */
     enum class MotionResponse { SILENT, SIREN, GRACE_THEN_SIREN }
@@ -64,6 +66,9 @@ class ProtectionSettingsStore(context: Context) {
         audioSeconds = prefs.getInt(KEY_AUDIO_SECONDS, 10),
         ownerContact = prefs.getString(KEY_OWNER_CONTACT, "").orEmpty(),
         lostMessage = prefs.getString(KEY_LOST_MESSAGE, "").orEmpty(),
+        tier = runCatching {
+            com.shieldra.billing.Tier.valueOf(prefs.getString(KEY_TIER, com.shieldra.billing.Tier.PREMIUM.name).orEmpty())
+        }.getOrDefault(com.shieldra.billing.Tier.PREMIUM),
     )
 
     fun save(settings: ProtectionSettings) {
@@ -88,6 +93,7 @@ class ProtectionSettingsStore(context: Context) {
             .putInt(KEY_AUDIO_SECONDS, settings.audioSeconds)
             .putString(KEY_OWNER_CONTACT, settings.ownerContact.trim())
             .putString(KEY_LOST_MESSAGE, settings.lostMessage.trim())
+            .putString(KEY_TIER, settings.tier.name)
             .apply()
     }
 
@@ -143,6 +149,7 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_AUDIO_SECONDS = "audio_seconds"
         const val KEY_OWNER_CONTACT = "owner_contact"
         const val KEY_LOST_MESSAGE = "lost_message"
+        const val KEY_TIER = "tier"
         const val KEY_SIM_BASELINE = "sim_baseline"
         const val KEY_CD_EPOCH = "countdown_epoch_deadline"
         const val KEY_CD_ELAPSED = "countdown_elapsed_deadline"

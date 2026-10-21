@@ -159,7 +159,12 @@ object AlertRuntime {
     private fun build(app: Context): AlertDispatcher {
         val settingsStore = DeliverySettingsStore(app)
         return AlertDispatcher(
-            settings = { settingsStore.load() },
+            settings = {
+                val delivery = settingsStore.load()
+                // The free plan sends by email only; Telegram is a paid channel (owner's split).
+                val tier = com.shieldra.protection.ProtectionSettingsStore(app).load().tier
+                if (com.shieldra.billing.TierGate.allowsTelegram(tier)) delivery else delivery.copy(telegramEnabled = false)
+            },
             repository = { (app as? ShieldraApp)?.installedStorage?.eventRepository },
             wording = { wording(app) },
             pending = PreferencesPendingAlertStore(app),

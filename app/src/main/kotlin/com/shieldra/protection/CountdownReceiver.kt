@@ -56,7 +56,7 @@ object CountdownScheduler {
     fun start(context: Context) {
         val store = ProtectionSettingsStore(context)
         val settings = store.load()
-        if (!settings.countdownEnabled) return
+        if (!settings.countdownEnabled || !com.shieldra.billing.TierGate.allowsCountdown(settings.tier)) return
         val deadline = CountdownDeadline.start(
             durationMs = settings.countdownIntervalMs,
             nowEpochMs = System.currentTimeMillis(),

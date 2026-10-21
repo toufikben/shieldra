@@ -89,6 +89,10 @@
     <string name="protection_state_disarmed">غير مُفعّلة</string>
     <string name="protection_arm">تفعيل الحماية</string>
     <string name="protection_disarm">إيقاف الحماية</string>
+    <string name="protection_plan_title">الخطة</string>
+    <string name="protection_plan_desc">المجاني يرسل الموقع بالبريد فقط. المدفوع يفتح الصور والصوت وتلغرام والعد التنازلي والتتبّع والتحكم عن بُعد.</string>
+    <string name="protection_plan_free">مجاني</string>
+    <string name="protection_plan_premium">مدفوع</string>
     <string name="protection_permissions_title">الأذونات</string>
     <string name="protection_perm_camera">الكاميرا — صورة أمامية عند أي حدث</string>
     <string name="protection_perm_location">الموقع — أين الهاتف</string>
