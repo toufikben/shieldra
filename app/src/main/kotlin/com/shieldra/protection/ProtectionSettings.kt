@@ -30,6 +30,8 @@ data class ProtectionSettings(
     val audioSeconds: Int = 10,
     val escalationEnabled: Boolean = false,
     val escalationThreshold: Int = EscalationPolicy.DEFAULT_THRESHOLD,
+    val geofenceEnabled: Boolean = false,
+    val geofenceIntervalMinutes: Int = 3,
     val ownerContact: String = "",
     val lostMessage: String = "",
     /** The owner's plan; PREMIUM until real billing is wired, so nothing is locked during testing. */
@@ -68,6 +70,8 @@ class ProtectionSettingsStore(context: Context) {
         audioSeconds = prefs.getInt(KEY_AUDIO_SECONDS, 10),
         escalationEnabled = prefs.getBoolean(KEY_ESCALATION, false),
         escalationThreshold = prefs.getInt(KEY_ESCALATION_THRESHOLD, EscalationPolicy.DEFAULT_THRESHOLD),
+        geofenceEnabled = prefs.getBoolean(KEY_GEOFENCE, false),
+        geofenceIntervalMinutes = prefs.getInt(KEY_GEOFENCE_INTERVAL, 3),
         ownerContact = prefs.getString(KEY_OWNER_CONTACT, "").orEmpty(),
         lostMessage = prefs.getString(KEY_LOST_MESSAGE, "").orEmpty(),
         tier = runCatching {
@@ -97,6 +101,8 @@ class ProtectionSettingsStore(context: Context) {
             .putInt(KEY_AUDIO_SECONDS, settings.audioSeconds)
             .putBoolean(KEY_ESCALATION, settings.escalationEnabled)
             .putInt(KEY_ESCALATION_THRESHOLD, settings.escalationThreshold.coerceIn(EscalationPolicy.MIN_THRESHOLD, EscalationPolicy.MAX_THRESHOLD))
+            .putBoolean(KEY_GEOFENCE, settings.geofenceEnabled)
+            .putInt(KEY_GEOFENCE_INTERVAL, settings.geofenceIntervalMinutes.coerceIn(1, 60))
             .putString(KEY_OWNER_CONTACT, settings.ownerContact.trim())
             .putString(KEY_LOST_MESSAGE, settings.lostMessage.trim())
             .putString(KEY_TIER, settings.tier.name)
@@ -105,6 +111,28 @@ class ProtectionSettingsStore(context: Context) {
 
     fun setArmed(armed: Boolean) {
         prefs.edit().putBoolean(KEY_ARMED, armed).apply()
+    }
+
+    /** The owner's safe zones (A-36); leaving them all while armed alerts. */
+    fun safeZones(): List<SafeZone> =
+        prefs.getStringSet(KEY_SAFE_ZONES, emptySet()).orEmpty().mapNotNull(::decodeZone)
+            .sortedBy { it.name }
+
+    fun setSafeZones(zones: List<SafeZone>) {
+        prefs.edit().putStringSet(KEY_SAFE_ZONES, zones.map(::encodeZone).toSet()).apply()
+    }
+
+    private fun encodeZone(z: SafeZone): String =
+        listOf(z.name.replace('\u0001', ' '), z.zone.latitude, z.zone.longitude, z.zone.radiusMeters)
+            .joinToString("\u0001")
+
+    private fun decodeZone(raw: String): SafeZone? {
+        val p = raw.split('\u0001')
+        if (p.size != 4) return null
+        val lat = p[1].toDoubleOrNull() ?: return null
+        val lon = p[2].toDoubleOrNull() ?: return null
+        val rad = p[3].toDoubleOrNull() ?: return null
+        return SafeZone(p[0], GeofenceLogic.Zone(lat, lon, rad))
     }
 
     /** The SIM identities present when protection was armed; the SIM guard compares against these. */
@@ -155,6 +183,9 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_AUDIO_SECONDS = "audio_seconds"
         const val KEY_ESCALATION = "escalation_enabled"
         const val KEY_ESCALATION_THRESHOLD = "escalation_threshold"
+        const val KEY_GEOFENCE = "geofence_enabled"
+        const val KEY_GEOFENCE_INTERVAL = "geofence_interval_minutes"
+        const val KEY_SAFE_ZONES = "safe_zones"
         const val KEY_OWNER_CONTACT = "owner_contact"
         const val KEY_LOST_MESSAGE = "lost_message"
         const val KEY_TIER = "tier"
