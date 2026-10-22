@@ -63,6 +63,21 @@ class ProtectionService : Service() {
     private val trackingHandler = Handler(Looper.getMainLooper())
     private var trackingTicksLeft = 0
 
+    // Confirmed-intrusion timestamps within the escalation window; a burst sounds the siren.
+    private val intrusionTimes = java.util.concurrent.CopyOnWriteArrayList<Long>()
+
+    /** On a burst of confirmed intrusions within the window, stop being discreet and sound the siren. */
+    private fun maybeEscalate() {
+        val settings = ProtectionSettingsStore(applicationContext).load()
+        if (!settings.escalationEnabled) return
+        val now = System.currentTimeMillis()
+        intrusionTimes.add(now)
+        intrusionTimes.removeIf { now - it > EscalationPolicy.WINDOW_MS }
+        if (EscalationPolicy.shouldEscalate(intrusionTimes.toList(), now, settings.escalationThreshold)) {
+            Siren.start(applicationContext)
+        }
+    }
+
     /**
      * After a confirmed intrusion, follows the phone (A-33 next stage): a location ping every few
      * minutes for a while, so the owner sees where the thief goes. Location only, to spare the
@@ -216,7 +231,10 @@ class ProtectionService : Service() {
                 val intrusion = type == SecurityEventType.LOCK_CONFIRMED_EVENT ||
                     type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
                     type == SecurityEventType.SIM_CONFIRMED_EVENT
-                if (binding.isNew && intrusion) startTrackingIfEnabled(binding.event.id, alertKindFor(type))
+                if (binding.isNew && intrusion) {
+                    startTrackingIfEnabled(binding.event.id, alertKindFor(type))
+                    maybeEscalate()
+                }
             } finally {
                 runCatching { if (wakeLock?.isHeld == true) wakeLock.release() }
                 busy.set(false)
