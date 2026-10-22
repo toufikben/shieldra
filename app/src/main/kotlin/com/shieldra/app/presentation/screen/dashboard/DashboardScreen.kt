@@ -22,8 +22,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -89,6 +91,35 @@ fun DashboardScreen(
             ),
         contentPadding = PaddingValues(bottom = spacing.xxxl),
     ) {
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = spacing.l, end = spacing.s, top = spacing.s),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = "Shieldra",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.app_tagline),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = callbacks.onOpenSettings) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = stringResource(R.string.tab_settings),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
         item {
             // Premium hero: a slow ring of orbiting dots and a tinted glow behind the live shield.
             val orbit = rememberInfiniteTransition(label = "hero_orbit")
@@ -157,6 +188,19 @@ fun DashboardScreen(
         }
 
         item {
+            Spacer(Modifier.height(spacing.l))
+            val activeGuards = model.guards.count { it.status == GuardStatus.Active }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.l),
+                horizontalArrangement = Arrangement.spacedBy(spacing.m),
+            ) {
+                StatTile(stringResource(R.string.stat_guards), "$activeGuards/${model.guards.size}", Modifier.weight(1f))
+                StatTile(stringResource(R.string.stat_battery), model.batteryPercent?.let { "$it%" } ?: "—", Modifier.weight(1f))
+                StatTile(stringResource(R.string.stat_events), "${model.recentEvents.size}", Modifier.weight(1f))
+            }
+        }
+
+        item {
             Spacer(Modifier.height(spacing.xxl))
             PanicQuickAction(onPanic = callbacks.onPanic, onTapHint = callbacks.onPanicTapHint)
         }
@@ -219,6 +263,23 @@ fun DashboardScreen(
                 ShieldraAdSlot(modifier = Modifier.padding(horizontal = spacing.l))
             }
         }
+    }
+}
+
+@Composable
+private fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
+    GlassCard(modifier = modifier, cornerRadius = 16.dp, contentPadding = 12.dp) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 

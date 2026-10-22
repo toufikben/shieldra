@@ -11,6 +11,10 @@
     <string name="tab_history">السجل</string>
     <string name="tab_settings">الإعدادات</string>
     <string name="tab_map">الخريطة</string>
+    <string name="app_tagline">حارسك الصامت</string>
+    <string name="stat_guards">الحرّاس</string>
+    <string name="stat_battery">البطارية</string>
+    <string name="stat_events">الأحداث</string>
     <string name="map_title">موقع الجهاز</string>
     <string name="map_tracking_on">التتبّع المباشر مفعّل</string>
     <string name="map_tracking_off">التتبّع المباشر متوقّف</string>

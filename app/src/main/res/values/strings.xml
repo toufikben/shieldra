@@ -11,6 +11,10 @@
     <string name="tab_history">History</string>
     <string name="tab_settings">Settings</string>
     <string name="tab_map">Map</string>
+    <string name="app_tagline">Your silent guard</string>
+    <string name="stat_guards">Guards</string>
+    <string name="stat_battery">Battery</string>
+    <string name="stat_events">Events</string>
     <string name="map_title">Device location</string>
     <string name="map_tracking_on">Live tracking is on</string>
     <string name="map_tracking_off">Live tracking is off</string>
