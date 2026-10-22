@@ -121,14 +121,37 @@ class ProtectionService : Service() {
 
     /** Re-checks the SIM/network state and alerts once on each transition into an abnormal state. */
     private fun checkSim() {
-        if (!ProtectionSettingsStore(applicationContext).load().simEnabled) return
+        val settings = ProtectionSettingsStore(applicationContext).load()
+        if (!settings.simEnabled) return
         val verdict = simGuard.check() ?: return
         if (verdict == lastSimVerdict) return
         lastSimVerdict = verdict
         if (verdict != SimGuardLogic.Verdict.Normal) {
             capture(SecurityEventType.SIM_CONFIRMED_EVENT, null)
+            // Composite tamper: a SIM swap with the screen dark and the network cut is the classic
+            // way a stolen phone is hidden from recovery — sound the siren at once if the owner
+            // opted into escalation, without waiting for a burst to build up.
+            if (settings.escalationEnabled) {
+                val signals = CompositeTamper.Signals(
+                    simAbnormal = true,
+                    screenInteractive = screenInteractive(),
+                    online = online(),
+                )
+                if (CompositeTamper.isHighRisk(signals)) Siren.start(applicationContext)
+            }
         }
     }
+
+    private fun screenInteractive(): Boolean = runCatching {
+        getSystemService(PowerManager::class.java)?.isInteractive
+    }.getOrNull() ?: true
+
+    private fun online(): Boolean = runCatching {
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return@runCatching true
+        val network = cm.activeNetwork ?: return@runCatching false
+        val caps = cm.getNetworkCapabilities(network) ?: return@runCatching false
+        caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }.getOrNull() ?: true
 
     override fun onBind(intent: Intent?): IBinder? = null
 
