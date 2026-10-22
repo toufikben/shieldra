@@ -415,6 +415,11 @@ fun ShieldraNavHost(
             composable(ShieldraRoutes.MAP) {
                 val locationGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                var geofenceRefresh by remember { mutableStateOf(0) }
+                val zoneNames = remember(geofenceRefresh) { ProtectionRuntime.zones(context).map { it.name } }
+                val geofenceOn = remember(geofenceRefresh) { ProtectionRuntime.geofenceEnabled(context) }
+                val safeZoneSaved = stringResource(R.string.safe_zones_added)
+                val safeZoneNoFix = stringResource(R.string.safe_zones_no_fix)
                 MapScreen(
                     armed = protectionArmed,
                     liveTrackingEnabled = protectionSettings.liveTrackingEnabled,
@@ -425,6 +430,25 @@ fun ShieldraNavHost(
                     onOpenEvent = { id -> navController.navigate(ShieldraRoutes.eventDetail(id)) },
                     onOpenProtectionSetup = { navController.navigate(ShieldraRoutes.PROTECTION_SETUP) },
                     onOpenHealthCheck = { navController.navigate(ShieldraRoutes.HEALTH_CHECK) },
+                    geofenceEnabled = geofenceOn,
+                    zoneNames = zoneNames,
+                    onToggleGeofence = { enabled ->
+                        ProtectionRuntime.setGeofenceEnabled(context, enabled)
+                        geofenceRefresh++
+                    },
+                    onAddZone = {
+                        scope.launch {
+                            val ok = withContext(Dispatchers.IO) {
+                                ProtectionRuntime.addCurrentLocationAsZone(context, "")
+                            }
+                            geofenceRefresh++
+                            snackbarHostState.showSnackbar(if (ok) safeZoneSaved else safeZoneNoFix)
+                        }
+                    },
+                    onRemoveZone = { name ->
+                        ProtectionRuntime.removeZone(context, name)
+                        geofenceRefresh++
+                    },
                 )
             }
             composable(ShieldraRoutes.HEALTH_CHECK) {
