@@ -1,6 +1,12 @@
 package com.shieldra.app.design.components.domain
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +26,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -72,10 +81,25 @@ fun GuardTile(
         premiumSuffix,
     )
 
+    val active = guard.status == GuardStatus.Active
+    // Active guards get a premium tinted-glass fill with a hairline accent border; the rest keep the
+    // plain surface. The status still comes from the model, so the look never overstates protection.
+    val containerModifier = if (active) {
+        Modifier
+            .background(
+                Brush.verticalGradient(
+                    listOf(color.copy(alpha = 0.16f), color.copy(alpha = 0.04f)),
+                ),
+            )
+            .border(1.dp, color.copy(alpha = 0.30f), shape)
+    } else {
+        Modifier.background(MaterialTheme.colorScheme.surface)
+    }
+
     Column(
         modifier = modifier
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
+            .then(containerModifier)
             .clickable(
                 enabled = guard.enabled,
                 role = Role.Button,
@@ -86,19 +110,23 @@ fun GuardTile(
                 contentDescription = accessibilityDescription
             },
     ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(color.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = guard.kind.icon(),
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(22.dp),
-            )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(color.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = guard.kind.icon(),
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            if (active) LiveDot(color)
         }
 
         Spacer(Modifier.height(spacing.m))
@@ -138,6 +166,24 @@ fun GuardTile(
                 ),
         )
     }
+}
+
+/** A small breathing dot that signals a guard is live. */
+@Composable
+private fun LiveDot(color: Color) {
+    val transition = rememberInfiniteTransition(label = "guard_live")
+    val alpha by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.25f,
+        animationSpec = infiniteRepeatable(tween(1100), RepeatMode.Reverse),
+        label = "guard_live_alpha",
+    )
+    Box(
+        modifier = Modifier
+            .size(9.dp)
+            .clip(CircleShape)
+            .background(color.copy(alpha = alpha)),
+    )
 }
 
 @Preview(showBackground = true)

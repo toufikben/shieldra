@@ -45,8 +45,16 @@ import com.shieldra.app.design.components.domain.LiveStatusStrip
 import com.shieldra.app.design.components.domain.ShieldCore
 import com.shieldra.app.design.components.foundation.GlassCard
 import com.shieldra.app.design.components.foundation.ShieldraAdSlot
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.presentation.model.DashboardUiModel
@@ -62,6 +70,7 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
 ) {
     val spacing = ShieldraTheme.spacing
+    val accent = ShieldraTheme.semantic.protection
     // Read off the Motion tile, which the dashboard factory built from the monitoring service's own
     // published claim. The disclosure line and the Start/Stop button follow this one reading so
     // neither can disagree with the tile about whether Motion is monitoring.
@@ -70,24 +79,53 @@ fun DashboardScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            // Premium ambient mesh: a teal wash at the top that fades into the base background.
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(accent.copy(alpha = 0.12f), Color.Transparent),
+                    endY = 720f,
+                ),
+            ),
         contentPadding = PaddingValues(bottom = spacing.xxxl),
     ) {
         item {
-            // Premium ambient glow behind the shield, tinted with the live protection colour.
+            // Premium hero: a slow ring of orbiting dots and a tinted glow behind the live shield.
+            val orbit = rememberInfiniteTransition(label = "hero_orbit")
+            val angle by orbit.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(tween(16000, easing = LinearEasing)),
+                label = "hero_angle",
+            )
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
                         Brush.radialGradient(
-                            colors = listOf(
-                                ShieldraTheme.semantic.protection.copy(alpha = 0.10f),
-                                Color.Transparent,
-                            ),
+                            colors = listOf(accent.copy(alpha = 0.14f), Color.Transparent),
                         ),
                     ),
                 contentAlignment = Alignment.Center,
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(250.dp)
+                        .graphicsLayer { rotationZ = angle },
+                ) {
+                    Box(
+                        Modifier.align(Alignment.TopCenter).size(10.dp)
+                            .clip(CircleShape).background(accent),
+                    )
+                    Box(
+                        Modifier.align(Alignment.BottomStart).padding(30.dp).size(8.dp)
+                            .clip(CircleShape).background(accent.copy(alpha = 0.8f)),
+                    )
+                    Box(
+                        Modifier.align(Alignment.BottomEnd).padding(30.dp).size(7.dp)
+                            .clip(CircleShape).background(accent.copy(alpha = 0.6f)),
+                    )
+                }
                 ShieldCore(
                     state = model.protectionState,
                     lastCheckSeconds = model.lastCheckSeconds,
