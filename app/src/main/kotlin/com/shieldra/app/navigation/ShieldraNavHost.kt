@@ -359,6 +359,9 @@ fun ShieldraNavHost(
                         onViewAllEvents = {
                             navController.navigate(ShieldraRoutes.HISTORY)
                         },
+                        onOpenSettings = {
+                            navController.navigate(ShieldraRoutes.SETTINGS)
+                        },
                         onMotionMonitoringToggle = {
                             if (motionClaim.claimsProtection) {
                                 // Stopping weakens protection, so the owner proves it is them first
