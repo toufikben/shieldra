@@ -30,7 +30,7 @@ else
     printf 'PASS: %s\n' "Safe Zone / geofencing confined to the A-36 protection package"
 fi
 check_absent "No continuous GPS source (one-shot fixes only)" \
-    'continuous GPS|requestLocationUpdates|LocationListener' \
+    'requestLocationUpdates|LocationListener|LocationRequest\.Builder' \
     app/src/main
 # A-34: the front-camera photo and fused-location fix are allowed, but only inside the protection
 # package. Everywhere else in app/src/main, camera/location collection and third-party network SDKs
