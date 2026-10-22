@@ -66,6 +66,44 @@ class ProtectionService : Service() {
     // Confirmed-intrusion timestamps within the escalation window; a burst sounds the siren.
     private val intrusionTimes = java.util.concurrent.CopyOnWriteArrayList<Long>()
 
+    private val geofenceHandler = Handler(Looper.getMainLooper())
+    // Assume inside a safe zone at arm, so the first crossing OUT is what fires.
+    private var wasInsideSafeZone = true
+
+    /** Periodic one-shot location sampling (A-36): alerts once when the phone leaves every safe zone. */
+    private fun startGeofenceSampler() {
+        val settings = ProtectionSettingsStore(applicationContext).load()
+        if (!settings.geofenceEnabled || settings.safeZones().isEmpty()) return
+        wasInsideSafeZone = true
+        scheduleGeofenceTick()
+    }
+
+    private fun scheduleGeofenceTick() {
+        val minutes = ProtectionSettingsStore(applicationContext).load().geofenceIntervalMinutes.coerceAtLeast(1)
+        geofenceHandler.postDelayed({
+            val settings = ProtectionSettingsStore(applicationContext).load()
+            if (!settings.armed || !settings.geofenceEnabled) return@postDelayed
+            val zones = settings.safeZones().map { it.zone }
+            if (zones.isNotEmpty()) {
+                scope.launch {
+                    val fix = runCatching { location.current() }.getOrNull()
+                    if (fix != null) {
+                        val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, zones, wasInsideSafeZone)
+                        wasInsideSafeZone = GeofenceLogic.isInsideAny(fix.latitude, fix.longitude, zones)
+                        if (left) {
+                            val base = AlertRuntime.snapshot(applicationContext, AlertKind.TRACKING, null)
+                            AlertRuntime.alert(
+                                applicationContext,
+                                base.copy(occurredAt = Instant.now(), location = fix, evidenceAttempted = false, photoEvidenceId = null),
+                            )
+                        }
+                    }
+                }
+            }
+            scheduleGeofenceTick()
+        }, minutes * 60_000L)
+    }
+
     /** On a burst of confirmed intrusions within the window, stop being discreet and sound the siren. */
     private fun maybeEscalate() {
         val settings = ProtectionSettingsStore(applicationContext).load()
@@ -206,6 +244,7 @@ class ProtectionService : Service() {
                     return START_NOT_STICKY
                 }
                 startBatteryGuard()
+                startGeofenceSampler()
                 simGuard.captureBaselineIfNeeded()
                 checkSim()
                 // Remote control over the owner's Telegram, when they turned it on (A-33 next stage).
@@ -229,6 +268,7 @@ class ProtectionService : Service() {
     override fun onDestroy() {
         if (liveInstance === this) liveInstance = null
         trackingHandler.removeCallbacksAndMessages(null)
+        geofenceHandler.removeCallbacksAndMessages(null)
         remoteCommands.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
         batteryReceiver = null

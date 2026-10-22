@@ -12,6 +12,16 @@ import kotlin.math.sqrt
  * periodic one-shot fixes the protection service already takes — never a continuous GPS stream.
  * Kept pure so the distance maths and the inside/outside decision are unit-tested without a device.
  */
+/** A safe zone the owner marked, with a name for the UI and the geometry for the check. */
+data class SafeZone(
+    val name: String,
+    val zone: GeofenceLogic.Zone,
+) {
+    companion object {
+        const val DEFAULT_RADIUS_M = 150.0
+    }
+}
+
 object GeofenceLogic {
 
     data class Zone(

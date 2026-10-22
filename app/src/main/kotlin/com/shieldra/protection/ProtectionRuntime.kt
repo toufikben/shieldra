@@ -45,6 +45,38 @@ object ProtectionRuntime {
         armedState.value = false
     }
 
+    /** The owner's safe zones (A-36). */
+    fun zones(context: Context): List<SafeZone> =
+        ProtectionSettingsStore(context.applicationContext).safeZones()
+
+    fun geofenceEnabled(context: Context): Boolean =
+        ProtectionSettingsStore(context.applicationContext).load().geofenceEnabled
+
+    fun setGeofenceEnabled(context: Context, enabled: Boolean) {
+        val store = ProtectionSettingsStore(context.applicationContext)
+        store.save(store.load().copy(geofenceEnabled = enabled))
+    }
+
+    /**
+     * Marks the phone's current position as a safe zone. The fix is taken inside the protection
+     * package (group-c/A-34), so the UI never touches location itself. Returns false if no fix.
+     */
+    suspend fun addCurrentLocationAsZone(context: Context, name: String): Boolean {
+        val app = context.applicationContext
+        val fix = LocationFix(app).current() ?: return false
+        val store = ProtectionSettingsStore(app)
+        val zones = store.safeZones().toMutableList()
+        val label = name.ifBlank { "Zone ${zones.size + 1}" }
+        zones.add(SafeZone(label, GeofenceLogic.Zone(fix.latitude, fix.longitude, SafeZone.DEFAULT_RADIUS_M)))
+        store.setSafeZones(zones)
+        return true
+    }
+
+    fun removeZone(context: Context, name: String) {
+        val store = ProtectionSettingsStore(context.applicationContext)
+        store.setSafeZones(store.safeZones().filterNot { it.name == name })
+    }
+
     /** Applies a changed settings object and re-arms the countdown to match it, if armed. */
     fun applySettings(context: Context, settings: ProtectionSettings) {
         val app = context.applicationContext
