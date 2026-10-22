@@ -1,6 +1,8 @@
 package com.shieldra.app.presentation.screen.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +56,12 @@ fun NotificationSetupScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(ShieldraTheme.semantic.protection.copy(alpha = 0.10f), Color.Transparent),
+                    endY = 360f,
+                ),
+            )
             .padding(horizontal = spacing.l, vertical = spacing.l),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
