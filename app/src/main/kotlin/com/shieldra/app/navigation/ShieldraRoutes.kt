@@ -8,6 +8,7 @@ object ShieldraRoutes {
     const val ONBOARDING_PROTECTION = "onboarding/protection"
 
     const val DASHBOARD = "main/dashboard"
+    const val MAP = "main/map"
     const val HISTORY = "main/history"
     const val SETTINGS = "main/settings"
     /** Notification setup (amendment A-6): the only place the permission is requested. */
@@ -25,6 +26,7 @@ object ShieldraRoutes {
 
 enum class BottomTab(val route: String) {
     Dashboard(ShieldraRoutes.DASHBOARD),
+    Map(ShieldraRoutes.MAP),
     History(ShieldraRoutes.HISTORY),
     Settings(ShieldraRoutes.SETTINGS),
 }
