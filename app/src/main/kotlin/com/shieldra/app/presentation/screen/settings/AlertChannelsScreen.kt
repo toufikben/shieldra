@@ -1,6 +1,8 @@
 package com.shieldra.app.presentation.screen.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -121,6 +123,12 @@ fun AlertChannelsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(ShieldraTheme.semantic.protection.copy(alpha = 0.10f), Color.Transparent),
+                    endY = 360f,
+                ),
+            )
             .verticalScroll(rememberScrollState())
             .padding(spacing.l),
         verticalArrangement = Arrangement.spacedBy(spacing.l),

@@ -110,7 +110,7 @@ fun DashboardScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(250.dp)
+                        .size(196.dp)
                         .graphicsLayer { rotationZ = angle },
                 ) {
                     Box(
@@ -118,11 +118,11 @@ fun DashboardScreen(
                             .clip(CircleShape).background(accent),
                     )
                     Box(
-                        Modifier.align(Alignment.BottomStart).padding(30.dp).size(8.dp)
+                        Modifier.align(Alignment.BottomStart).padding(18.dp).size(8.dp)
                             .clip(CircleShape).background(accent.copy(alpha = 0.8f)),
                     )
                     Box(
-                        Modifier.align(Alignment.BottomEnd).padding(30.dp).size(7.dp)
+                        Modifier.align(Alignment.BottomEnd).padding(18.dp).size(7.dp)
                             .clip(CircleShape).background(accent.copy(alpha = 0.6f)),
                     )
                 }
