@@ -139,22 +139,30 @@ fun DashboardScreen(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
+                // The ring is centred on the shield (ShieldCore's shield sits in its upper area), and
+                // larger than it, so the dots orbit around the shield rather than across the label.
                 Box(
                     modifier = Modifier
-                        .size(196.dp)
+                        .align(Alignment.TopCenter)
+                        .padding(top = spacing.m)
+                        .size(248.dp)
                         .graphicsLayer { rotationZ = angle },
                 ) {
                     Box(
-                        Modifier.align(Alignment.TopCenter).size(10.dp)
+                        Modifier.align(Alignment.TopCenter).size(13.dp)
                             .clip(CircleShape).background(accent),
                     )
                     Box(
-                        Modifier.align(Alignment.BottomStart).padding(18.dp).size(8.dp)
-                            .clip(CircleShape).background(accent.copy(alpha = 0.8f)),
+                        Modifier.align(Alignment.CenterStart).size(10.dp)
+                            .clip(CircleShape).background(accent.copy(alpha = 0.85f)),
                     )
                     Box(
-                        Modifier.align(Alignment.BottomEnd).padding(18.dp).size(7.dp)
-                            .clip(CircleShape).background(accent.copy(alpha = 0.6f)),
+                        Modifier.align(Alignment.CenterEnd).size(9.dp)
+                            .clip(CircleShape).background(accent.copy(alpha = 0.7f)),
+                    )
+                    Box(
+                        Modifier.align(Alignment.BottomCenter).size(8.dp)
+                            .clip(CircleShape).background(accent.copy(alpha = 0.55f)),
                     )
                 }
                 ShieldCore(
