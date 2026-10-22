@@ -15,6 +15,7 @@ import kotlinx.coroutines.runBlocking
  * them — but only on messages from the owner's own chat id, so nobody else can drive the phone:
  *
  *  - `/locate` — reply with a live location pin.
+ *  - `/track on` / `/track off` — start or stop a repeating location stream.
  *  - `/photo`  — take a front-camera photo and reply with it.
  *  - `/alarm` / `/stopalarm` — sound or silence the loud siren.
  *  - `/status` — reply with battery, network and armed state.
@@ -28,6 +29,9 @@ class RemoteCommandPoller(context: Context) {
     @Volatile
     private var worker: Thread? = null
 
+    @Volatile
+    private var trackWorker: Thread? = null
+
     @Synchronized
     fun start() {
         if (worker != null) return
@@ -38,6 +42,7 @@ class RemoteCommandPoller(context: Context) {
     fun stop() {
         worker?.interrupt()
         worker = null
+        stopTrack()
     }
 
     private fun active(): Boolean = ProtectionSettingsStore(app).load().let { it.armed && it.remoteCommandsEnabled }
@@ -64,6 +69,15 @@ class RemoteCommandPoller(context: Context) {
         // Strip a trailing @botname and any arguments; "/photo@MyBot" -> "/photo".
         val command = raw.substringBefore(' ').substringBefore('@').lowercase()
         when (command) {
+            "/track" -> {
+                if (raw.substringAfter(' ', "").trim().lowercase() == "off") {
+                    stopTrack()
+                    client.replyText(chat, "SHIELDRA: tracking off")
+                } else {
+                    startTrack(client, chat)
+                    client.replyText(chat, "SHIELDRA: tracking on — send /track off to stop")
+                }
+            }
             "/locate" -> {
                 val fix = runBlocking { LocationFix(app).current() }
                 if (fix != null) client.replyLocation(chat, fix.latitude, fix.longitude, fix.accuracyMeters)
@@ -94,6 +108,30 @@ class RemoteCommandPoller(context: Context) {
             }
             else -> Unit // unknown command: ignore silently
         }
+    }
+
+    /** `/track on` streams a location pin every tracking-interval minutes until `/track off`. */
+    @Synchronized
+    private fun startTrack(client: TelegramCommandClient, chat: String) {
+        if (trackWorker != null) return
+        trackWorker = Thread({
+            val intervalMs = ProtectionSettingsStore(app).load().trackingIntervalMinutes.coerceAtLeast(1) * 60_000L
+            while (!Thread.currentThread().isInterrupted && active()) {
+                val fix = runBlocking { LocationFix(app).current() }
+                if (fix != null) client.replyLocation(chat, fix.latitude, fix.longitude, fix.accuracyMeters)
+                try {
+                    Thread.sleep(intervalMs)
+                } catch (e: InterruptedException) {
+                    break
+                }
+            }
+        }, "shieldra-track").apply { isDaemon = true; start() }
+    }
+
+    @Synchronized
+    private fun stopTrack() {
+        trackWorker?.interrupt()
+        trackWorker = null
     }
 
     private fun status(): String {
