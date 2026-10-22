@@ -14,11 +14,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,6 +55,11 @@ fun MapScreen(
     onOpenEvent: (String) -> Unit,
     onOpenProtectionSetup: () -> Unit,
     onOpenHealthCheck: () -> Unit,
+    geofenceEnabled: Boolean,
+    zoneNames: List<String>,
+    onToggleGeofence: (Boolean) -> Unit,
+    onAddZone: () -> Unit,
+    onRemoveZone: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val accent = ShieldraTheme.semantic.protection
@@ -101,6 +111,52 @@ fun MapScreen(
                 TextButton(onClick = onOpenHealthCheck) {
                     Text(stringResource(R.string.map_open_health))
                 }
+            }
+        }
+
+        // Safe zones
+        GlassCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Shield, contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.size(10.dp))
+                Text(
+                    text = stringResource(R.string.safe_zones_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(checked = geofenceEnabled, onCheckedChange = onToggleGeofence)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.safe_zones_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(10.dp))
+            if (zoneNames.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.safe_zones_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                zoneNames.forEach { name ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.LocationOn, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.size(8.dp))
+                        Text(name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        IconButton(onClick = { onRemoveZone(name) }) {
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.safe_zones_remove), modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Button(onClick = onAddZone) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.size(6.dp))
+                Text(stringResource(R.string.safe_zones_add))
             }
         }
 

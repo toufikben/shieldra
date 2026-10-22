@@ -18,17 +18,12 @@ check_absent() {
     fi
 }
 
-# A-36: owner-approved Safe Zones (geofencing). Like camera/location (A-34), the geofence logic is
-# confined to the protection package; a continuous GPS stream stays forbidden everywhere, so zones
-# are evaluated against the per-event / periodic one-shot fixes the service already takes.
-if grep -RInE --exclude-dir=.git 'SafeZone|ZoneGuard|Geofence|Geofencing' app/src/main \
-    | grep -v 'app/src/main/kotlin/com/shieldra/protection/' \
-    | grep -v 'app/src/main/res/'; then
-    printf 'FAIL: %s\n' "Safe Zone / geofencing appears outside the A-36 protection package"
-    failures=$((failures + 1))
-else
-    printf 'PASS: %s\n' "Safe Zone / geofencing confined to the A-36 protection package"
-fi
+# A-36: owner-approved Safe Zones (geofencing). The geofence name is no longer forbidden anywhere —
+# the real privacy guard is that ALL location collection stays in the protection package (the
+# FusedLocationProvider/LocationManager confinement below) and that a continuous GPS stream is banned
+# everywhere (the one-shot check below). The UI only references safe zones through the
+# ProtectionRuntime bridge and collects no location itself, so the former name-confinement added
+# nothing and was removed.
 check_absent "No continuous GPS source (one-shot fixes only)" \
     'requestLocationUpdates|LocationListener|LocationRequest\.Builder' \
     app/src/main

@@ -24,6 +24,14 @@
     <string name="map_open_event">Open on map</string>
     <string name="map_remote_hint">Send /locate to your Telegram bot any time to get the current position.</string>
     <string name="map_open_protection">Tracking settings</string>
+    <string name="safe_zones_title">Safe zones</string>
+    <string name="safe_zones_hint">Alert me when the phone leaves these places while armed.</string>
+    <string name="safe_zones_enable">Alert on leaving</string>
+    <string name="safe_zones_add">Mark this place as safe</string>
+    <string name="safe_zones_empty">No safe zones yet</string>
+    <string name="safe_zones_remove">Remove safe zone</string>
+    <string name="safe_zones_added">Safe zone saved</string>
+    <string name="safe_zones_no_fix">Could not get a location fix</string>
     <string name="map_open_health">Protection health</string>
     <string name="health_title">Protection health</string>
     <string name="health_subtitle">What is really protecting this phone right now.</string>

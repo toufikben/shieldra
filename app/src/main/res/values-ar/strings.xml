@@ -24,6 +24,14 @@
     <string name="map_open_event">افتح على الخريطة</string>
     <string name="map_remote_hint">أرسِل ‎/locate إلى بوت تلغرام في أي وقت لتحصل على الموقع الحالي.</string>
     <string name="map_open_protection">إعدادات التتبّع</string>
+    <string name="safe_zones_title">المناطق الآمنة</string>
+    <string name="safe_zones_hint">نبّهني عند مغادرة الهاتف لهذه الأماكن أثناء التفعيل.</string>
+    <string name="safe_zones_enable">تنبيه عند المغادرة</string>
+    <string name="safe_zones_add">علّم هذا المكان كآمن</string>
+    <string name="safe_zones_empty">لا مناطق آمنة بعد</string>
+    <string name="safe_zones_remove">حذف المنطقة الآمنة</string>
+    <string name="safe_zones_added">حُفظت المنطقة الآمنة</string>
+    <string name="safe_zones_no_fix">تعذّر الحصول على موقع</string>
     <string name="map_open_health">فحص صحة الحماية</string>
     <string name="health_title">صحة الحماية</string>
     <string name="health_subtitle">ما الذي يحمي هذا الجهاز فعلاً الآن.</string>

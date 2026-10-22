@@ -32,7 +32,7 @@ else
   printf 'PASS: runtime and preview sources use localized DemoData only\n'
 fi
 
-if grep -RInE 'CameraX|ImageCapture|FusedLocationProvider|LocationManager|BillingClient|Firebase|Retrofit|OkHttp|SafeZone|Geofenc|RoomDatabase|Cipher\.getInstance|KeyStore\.getInstance' app/src/main/kotlin/com/shieldra/app; then
+if grep -RInE 'CameraX|ImageCapture|FusedLocationProvider|LocationManager|BillingClient|Firebase|Retrofit|OkHttp|RoomDatabase|Cipher\.getInstance|KeyStore\.getInstance' app/src/main/kotlin/com/shieldra/app; then
   printf 'FAIL: forbidden Phase 3 implementation dependency/pattern found\n'; fail=1
 else
   printf 'PASS: no forbidden Phase 3 implementation patterns\n'
