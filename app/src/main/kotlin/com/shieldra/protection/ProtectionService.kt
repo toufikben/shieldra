@@ -72,8 +72,9 @@ class ProtectionService : Service() {
 
     /** Periodic one-shot location sampling (A-36): alerts once when the phone leaves every safe zone. */
     private fun startGeofenceSampler() {
-        val settings = ProtectionSettingsStore(applicationContext).load()
-        if (!settings.geofenceEnabled || settings.safeZones().isEmpty()) return
+        val store = ProtectionSettingsStore(applicationContext)
+        val settings = store.load()
+        if (!settings.geofenceEnabled || store.safeZones().isEmpty()) return
         wasInsideSafeZone = true
         scheduleGeofenceTick()
     }
@@ -81,9 +82,10 @@ class ProtectionService : Service() {
     private fun scheduleGeofenceTick() {
         val minutes = ProtectionSettingsStore(applicationContext).load().geofenceIntervalMinutes.coerceAtLeast(1)
         geofenceHandler.postDelayed({
-            val settings = ProtectionSettingsStore(applicationContext).load()
+            val store = ProtectionSettingsStore(applicationContext)
+            val settings = store.load()
             if (!settings.armed || !settings.geofenceEnabled) return@postDelayed
-            val zones = settings.safeZones().map { it.zone }
+            val zones = store.safeZones().map { it.zone }
             if (zones.isNotEmpty()) {
                 scope.launch {
                     val fix = runCatching { location.current() }.getOrNull()
