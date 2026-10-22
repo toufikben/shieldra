@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -72,10 +73,13 @@ class ProtectionService : Service() {
         if (!settings.liveTrackingEnabled || !com.shieldra.billing.TierGate.allowsTracking(settings.tier)) return
         val intervalMinutes = settings.trackingIntervalMinutes.coerceAtLeast(1)
         trackingTicksLeft = (settings.trackingDurationMinutes / intervalMinutes).coerceIn(1, 120)
-        scheduleTrackingTick(eventId, kind, intervalMinutes * 60_000L)
+        scheduleTrackingTick(eventId, kind)
     }
 
-    private fun scheduleTrackingTick(eventId: EventId, kind: AlertKind, intervalMs: Long) {
+    private fun scheduleTrackingTick(eventId: EventId, kind: AlertKind) {
+        // Recomputed each tick: as the battery runs down the gap widens, so the trail lasts longer.
+        val baseMinutes = ProtectionSettingsStore(applicationContext).load().trackingIntervalMinutes
+        val delayMs = TrackingCadence.intervalMs(baseMinutes, batteryPercent(), batteryCharging())
         trackingHandler.postDelayed({
             if (!ProtectionSettingsStore(applicationContext).load().armed) return@postDelayed
             scope.launch {
@@ -88,9 +92,17 @@ class ProtectionService : Service() {
                     )
                 }
             }
-            if (--trackingTicksLeft > 0) scheduleTrackingTick(eventId, kind, intervalMs)
-        }, intervalMs)
+            if (--trackingTicksLeft > 0) scheduleTrackingTick(eventId, kind)
+        }, delayMs)
     }
+
+    private fun batteryPercent(): Int? = runCatching {
+        getSystemService(BatteryManager::class.java)?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+    }.getOrNull()?.takeIf { it in 0..100 }
+
+    private fun batteryCharging(): Boolean = runCatching {
+        getSystemService(BatteryManager::class.java)?.isCharging
+    }.getOrNull() ?: false
 
     /** Re-checks the SIM/network state and alerts once on each transition into an abnormal state. */
     private fun checkSim() {
