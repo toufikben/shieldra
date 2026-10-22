@@ -9,14 +9,21 @@ import kotlin.test.assertTrue
  * Q-K-1 (owner answer, 2026-10-02): the Premium tab and its route leave this
  * release. Nothing is purchasable, so no reachable screen may look purchasable.
  *
- * These assertions hold the shape of the released surface: three tabs, and no
- * declared destination that names a premium screen.
+ * The Map tab was added at the owner's request (2026-10-22); it is a functional
+ * tracking surface, not a purchasable one, so the Q-K-1 premium restriction below
+ * is unchanged. These assertions hold the shape of the released surface: exactly
+ * these tabs, and no declared destination that names a premium screen.
  */
 class ReleaseNavigationSurfaceTest {
     @Test
-    fun qk1_released_tab_bar_has_exactly_dashboard_history_settings() {
+    fun qk1_released_tab_bar_has_exactly_dashboard_map_history_settings() {
         assertEquals(
-            setOf(ShieldraRoutes.DASHBOARD, ShieldraRoutes.HISTORY, ShieldraRoutes.SETTINGS),
+            setOf(
+                ShieldraRoutes.DASHBOARD,
+                ShieldraRoutes.MAP,
+                ShieldraRoutes.HISTORY,
+                ShieldraRoutes.SETTINGS,
+            ),
             BottomTab.entries.map { it.route }.toSet(),
         )
     }

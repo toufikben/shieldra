@@ -10,6 +10,20 @@
     <string name="tab_dashboard">الرئيسية</string>
     <string name="tab_history">السجل</string>
     <string name="tab_settings">الإعدادات</string>
+    <string name="tab_map">الخريطة</string>
+    <string name="map_title">موقع الجهاز</string>
+    <string name="map_tracking_on">التتبّع المباشر مفعّل</string>
+    <string name="map_tracking_off">التتبّع المباشر متوقّف</string>
+    <string name="map_tracking_detail">بعد حدث مؤكّد يبثّ الهاتف موقعه كل %1$d دقيقة لمدّة %2$d دقيقة.</string>
+    <string name="map_armed">الحماية مفعّلة</string>
+    <string name="map_disarmed">الحماية متوقّفة</string>
+    <string name="map_location_granted">إذن الموقع ممنوح</string>
+    <string name="map_location_missing">إذن الموقع غير ممنوح</string>
+    <string name="map_last_location">آخر موقع مسجّل</string>
+    <string name="map_no_location">لا موقع مسجّل بعد</string>
+    <string name="map_open_event">افتح على الخريطة</string>
+    <string name="map_remote_hint">أرسِل ‎/locate إلى بوت تلغرام في أي وقت لتحصل على الموقع الحالي.</string>
+    <string name="map_open_protection">إعدادات التتبّع</string>
 
     <string name="nav_back">رجوع</string>
 

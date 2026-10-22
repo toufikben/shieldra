@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Settings
 import android.content.Context
 import android.content.ContextWrapper
@@ -73,6 +74,7 @@ import com.shieldra.app.presentation.screen.eventdetail.EventDetailCallbacks
 import com.shieldra.app.presentation.screen.eventdetail.EventDetailScreen
 import com.shieldra.app.presentation.screen.history.HistoryCallbacks
 import com.shieldra.app.presentation.screen.history.HistoryScreen
+import com.shieldra.app.presentation.screen.map.MapScreen
 import com.shieldra.app.presentation.screen.onboarding.ProtectionSetupScreen
 import com.shieldra.app.presentation.screen.onboarding.WelcomeScreen
 import com.shieldra.app.presentation.settings.SettingsContent
@@ -407,6 +409,20 @@ fun ShieldraNavHost(
                     ),
                 )
             }
+            composable(ShieldraRoutes.MAP) {
+                val locationGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                MapScreen(
+                    armed = protectionArmed,
+                    liveTrackingEnabled = protectionSettings.liveTrackingEnabled,
+                    intervalMinutes = protectionSettings.trackingIntervalMinutes,
+                    durationMinutes = protectionSettings.trackingDurationMinutes,
+                    locationGranted = locationGranted,
+                    lastLocatedEvent = recentEvents.firstOrNull { it.hasLocation },
+                    onOpenEvent = { id -> navController.navigate(ShieldraRoutes.eventDetail(id)) },
+                    onOpenProtectionSetup = { navController.navigate(ShieldraRoutes.PROTECTION_SETUP) },
+                )
+            }
             composable(ShieldraRoutes.HISTORY) {
                 var historyFilterState by remember { mutableStateOf(HistoryFilterState()) }
                 HistoryScreen(
@@ -689,12 +705,14 @@ private fun ShieldraBottomBar(
 
 private fun BottomTab.icon(): ImageVector = when (this) {
     BottomTab.Dashboard -> Icons.Filled.Home
+    BottomTab.Map -> Icons.Filled.Place
     BottomTab.History -> Icons.Filled.History
     BottomTab.Settings -> Icons.Filled.Settings
 }
 
 private fun BottomTab.labelRes(): Int = when (this) {
     BottomTab.Dashboard -> R.string.tab_dashboard
+    BottomTab.Map -> R.string.tab_map
     BottomTab.History -> R.string.tab_history
     BottomTab.Settings -> R.string.tab_settings
 }

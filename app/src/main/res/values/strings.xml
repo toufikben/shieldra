@@ -10,6 +10,20 @@
     <string name="tab_dashboard">Home</string>
     <string name="tab_history">History</string>
     <string name="tab_settings">Settings</string>
+    <string name="tab_map">Map</string>
+    <string name="map_title">Device location</string>
+    <string name="map_tracking_on">Live tracking is on</string>
+    <string name="map_tracking_off">Live tracking is off</string>
+    <string name="map_tracking_detail">After a confirmed event the phone reports its location every %1$d min for %2$d min.</string>
+    <string name="map_armed">Protection is armed</string>
+    <string name="map_disarmed">Protection is off</string>
+    <string name="map_location_granted">Location permission granted</string>
+    <string name="map_location_missing">Location permission not granted</string>
+    <string name="map_last_location">Last recorded location</string>
+    <string name="map_no_location">No location recorded yet</string>
+    <string name="map_open_event">Open on map</string>
+    <string name="map_remote_hint">Send /locate to your Telegram bot any time to get the current position.</string>
+    <string name="map_open_protection">Tracking settings</string>
 
     <string name="nav_back">Back</string>
 
