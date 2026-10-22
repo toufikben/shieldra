@@ -24,6 +24,20 @@
     <string name="map_open_event">افتح على الخريطة</string>
     <string name="map_remote_hint">أرسِل ‎/locate إلى بوت تلغرام في أي وقت لتحصل على الموقع الحالي.</string>
     <string name="map_open_protection">إعدادات التتبّع</string>
+    <string name="map_open_health">فحص صحة الحماية</string>
+    <string name="health_title">صحة الحماية</string>
+    <string name="health_subtitle">ما الذي يحمي هذا الجهاز فعلاً الآن.</string>
+    <string name="health_score">درجة الحماية</string>
+    <string name="health_on">نشط</string>
+    <string name="health_off">يحتاج إعداداً</string>
+    <string name="health_check_armed">الحماية مفعّلة</string>
+    <string name="health_check_camera">إذن الكاميرا</string>
+    <string name="health_check_location">إذن الموقع</string>
+    <string name="health_check_notifications">الإشعارات</string>
+    <string name="health_check_device_admin">مسؤول الجهاز (حارس الفتح الفاشل)</string>
+    <string name="health_check_battery">استثناء موفّر البطارية</string>
+    <string name="health_check_channel">قناة تنبيه متصلة</string>
+    <string name="health_check_motion">مراقبة الحركة حيّة</string>
 
     <string name="nav_back">رجوع</string>
 
