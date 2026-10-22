@@ -27,6 +27,8 @@ import com.shieldra.app.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -85,7 +87,13 @@ fun EventDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background),
+                .background(MaterialTheme.colorScheme.background)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(ShieldraTheme.semantic.protection.copy(alpha = 0.10f), Color.Transparent),
+                        endY = 360f,
+                    ),
+                ),
             contentPadding = PaddingValues(bottom = spacing.xxxl),
             verticalArrangement = Arrangement.spacedBy(spacing.l),
         ) {

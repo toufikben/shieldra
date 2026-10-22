@@ -20,6 +20,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.design.components.foundation.ShieldraFullWidthButton
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import com.shieldra.app.design.theme.ShieldraTheme
 
 @Composable
@@ -33,6 +36,12 @@ fun ProtectionSetupScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(ShieldraTheme.semantic.protection.copy(alpha = 0.12f), Color.Transparent),
+                    endY = 700f,
+                ),
+            )
             .verticalScroll(rememberScrollState())
             .padding(spacing.xxxl),
         horizontalAlignment = Alignment.CenterHorizontally,
