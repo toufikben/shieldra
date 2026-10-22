@@ -43,7 +43,10 @@ import com.shieldra.app.design.components.domain.EventCard
 import com.shieldra.app.design.components.domain.GuardTile
 import com.shieldra.app.design.components.domain.LiveStatusStrip
 import com.shieldra.app.design.components.domain.ShieldCore
+import com.shieldra.app.design.components.foundation.GlassCard
 import com.shieldra.app.design.components.foundation.ShieldraAdSlot
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
 import com.shieldra.app.presentation.model.DashboardUiModel
@@ -71,10 +74,25 @@ fun DashboardScreen(
         contentPadding = PaddingValues(bottom = spacing.xxxl),
     ) {
         item {
-            ShieldCore(
-                state = model.protectionState,
-                lastCheckSeconds = model.lastCheckSeconds,
-            )
+            // Premium ambient glow behind the shield, tinted with the live protection colour.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                ShieldraTheme.semantic.protection.copy(alpha = 0.10f),
+                                Color.Transparent,
+                            ),
+                        ),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                ShieldCore(
+                    state = model.protectionState,
+                    lastCheckSeconds = model.lastCheckSeconds,
+                )
+            }
         }
 
         item {
@@ -111,11 +129,12 @@ fun DashboardScreen(
         }
 
         item {
-            GuardsGrid(
-                guards = model.guards,
-                onGuardClick = callbacks.onGuardClick,
-                modifier = Modifier.padding(horizontal = spacing.l),
-            )
+            GlassCard(modifier = Modifier.padding(horizontal = spacing.l)) {
+                GuardsGrid(
+                    guards = model.guards,
+                    onGuardClick = callbacks.onGuardClick,
+                )
+            }
         }
 
         item {
