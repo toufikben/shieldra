@@ -28,6 +28,8 @@ data class ProtectionSettings(
     val dualCameraEnabled: Boolean = false,
     val audioEnabled: Boolean = false,
     val audioSeconds: Int = 10,
+    val escalationEnabled: Boolean = false,
+    val escalationThreshold: Int = EscalationPolicy.DEFAULT_THRESHOLD,
     val ownerContact: String = "",
     val lostMessage: String = "",
     /** The owner's plan; PREMIUM until real billing is wired, so nothing is locked during testing. */
@@ -64,6 +66,8 @@ class ProtectionSettingsStore(context: Context) {
         dualCameraEnabled = prefs.getBoolean(KEY_DUAL_CAM, false),
         audioEnabled = prefs.getBoolean(KEY_AUDIO, false),
         audioSeconds = prefs.getInt(KEY_AUDIO_SECONDS, 10),
+        escalationEnabled = prefs.getBoolean(KEY_ESCALATION, false),
+        escalationThreshold = prefs.getInt(KEY_ESCALATION_THRESHOLD, EscalationPolicy.DEFAULT_THRESHOLD),
         ownerContact = prefs.getString(KEY_OWNER_CONTACT, "").orEmpty(),
         lostMessage = prefs.getString(KEY_LOST_MESSAGE, "").orEmpty(),
         tier = runCatching {
@@ -91,6 +95,8 @@ class ProtectionSettingsStore(context: Context) {
             .putBoolean(KEY_DUAL_CAM, settings.dualCameraEnabled)
             .putBoolean(KEY_AUDIO, settings.audioEnabled)
             .putInt(KEY_AUDIO_SECONDS, settings.audioSeconds)
+            .putBoolean(KEY_ESCALATION, settings.escalationEnabled)
+            .putInt(KEY_ESCALATION_THRESHOLD, settings.escalationThreshold.coerceIn(EscalationPolicy.MIN_THRESHOLD, EscalationPolicy.MAX_THRESHOLD))
             .putString(KEY_OWNER_CONTACT, settings.ownerContact.trim())
             .putString(KEY_LOST_MESSAGE, settings.lostMessage.trim())
             .putString(KEY_TIER, settings.tier.name)
@@ -147,6 +153,8 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_DUAL_CAM = "dual_camera_enabled"
         const val KEY_AUDIO = "audio_enabled"
         const val KEY_AUDIO_SECONDS = "audio_seconds"
+        const val KEY_ESCALATION = "escalation_enabled"
+        const val KEY_ESCALATION_THRESHOLD = "escalation_threshold"
         const val KEY_OWNER_CONTACT = "owner_contact"
         const val KEY_LOST_MESSAGE = "lost_message"
         const val KEY_TIER = "tier"
