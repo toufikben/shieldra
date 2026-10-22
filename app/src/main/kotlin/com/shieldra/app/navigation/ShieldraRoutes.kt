@@ -17,6 +17,8 @@ object ShieldraRoutes {
     const val ALERT_CHANNELS = "main/settings/alerts"
     /** Protection setup (amendments A-33/A-34): arm the guards and tune them. */
     const val PROTECTION_SETUP = "main/settings/protection"
+    /** Read-only protection health check: what is really protecting the phone now. */
+    const val HEALTH_CHECK = "main/health"
 
     const val EVENT_DETAIL_ARG_ID = "eventId"
     const val EVENT_DETAIL = "main/event/{$EVENT_DETAIL_ARG_ID}"

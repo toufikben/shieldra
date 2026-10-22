@@ -75,6 +75,9 @@ import com.shieldra.app.presentation.screen.eventdetail.EventDetailScreen
 import com.shieldra.app.presentation.screen.history.HistoryCallbacks
 import com.shieldra.app.presentation.screen.history.HistoryScreen
 import com.shieldra.app.presentation.screen.map.MapScreen
+import com.shieldra.app.presentation.screen.health.HealthCheckScreen
+import com.shieldra.app.presentation.screen.health.HealthChecks
+import com.shieldra.app.presentation.guard.ProtectionScore
 import com.shieldra.app.presentation.screen.onboarding.ProtectionSetupScreen
 import com.shieldra.app.presentation.screen.onboarding.WelcomeScreen
 import com.shieldra.app.presentation.settings.SettingsContent
@@ -421,6 +424,50 @@ fun ShieldraNavHost(
                     lastLocatedEvent = recentEvents.firstOrNull { it.hasLocation },
                     onOpenEvent = { id -> navController.navigate(ShieldraRoutes.eventDetail(id)) },
                     onOpenProtectionSetup = { navController.navigate(ShieldraRoutes.PROTECTION_SETUP) },
+                    onOpenHealthCheck = { navController.navigate(ShieldraRoutes.HEALTH_CHECK) },
+                )
+            }
+            composable(ShieldraRoutes.HEALTH_CHECK) {
+                val adminComponent = remember(context) { ComponentName(context, LockGuardReceiver::class.java) }
+                val dpm = context.getSystemService(DevicePolicyManager::class.java)
+                fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
+                val camera = has(Manifest.permission.CAMERA)
+                val location = has(Manifest.permission.ACCESS_FINE_LOCATION) || has(Manifest.permission.ACCESS_COARSE_LOCATION)
+                val notifications = notifier.permissionState().let {
+                    it == com.shieldra.notification.NotificationPermissionState.Granted ||
+                        it == com.shieldra.notification.NotificationPermissionState.NotRequired
+                }
+                val deviceAdmin = dpm?.isAdminActive(adminComponent) == true
+                val batteryExempt = com.shieldra.protection.BackgroundSurvival.isExempt(context)
+                val channel = deliverySettings?.activeChannels()?.isNotEmpty() == true
+                val motionMonitoring = motionClaim.claimsProtection
+                HealthCheckScreen(
+                    score = ProtectionScore.score(
+                        ProtectionScore.Inputs(
+                            armed = protectionArmed,
+                            lockEnabled = protectionSettings.lockEnabled,
+                            motionMonitoring = motionMonitoring,
+                            simEnabled = protectionSettings.simEnabled,
+                            batteryEnabled = protectionSettings.batteryEnabled,
+                            cameraGranted = camera,
+                            locationGranted = location,
+                            notificationsReady = notifications,
+                            deviceAdminActive = deviceAdmin,
+                            batteryExempt = batteryExempt,
+                            anyChannelActive = channel,
+                        ),
+                    ),
+                    checks = HealthChecks(
+                        armed = protectionArmed,
+                        camera = camera,
+                        location = location,
+                        notifications = notifications,
+                        deviceAdmin = deviceAdmin,
+                        batteryExempt = batteryExempt,
+                        channel = channel,
+                        motionMonitoring = motionMonitoring,
+                    ),
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(ShieldraRoutes.HISTORY) {

@@ -24,6 +24,20 @@
     <string name="map_open_event">Open on map</string>
     <string name="map_remote_hint">Send /locate to your Telegram bot any time to get the current position.</string>
     <string name="map_open_protection">Tracking settings</string>
+    <string name="map_open_health">Protection health</string>
+    <string name="health_title">Protection health</string>
+    <string name="health_subtitle">What is really protecting this phone right now.</string>
+    <string name="health_score">Protection score</string>
+    <string name="health_on">Active</string>
+    <string name="health_off">Needs setup</string>
+    <string name="health_check_armed">Protection armed</string>
+    <string name="health_check_camera">Camera permission</string>
+    <string name="health_check_location">Location permission</string>
+    <string name="health_check_notifications">Notifications</string>
+    <string name="health_check_device_admin">Device admin (failed-unlock guard)</string>
+    <string name="health_check_battery">Battery-saver exemption</string>
+    <string name="health_check_channel">Alert channel connected</string>
+    <string name="health_check_motion">Motion monitoring live</string>
 
     <string name="nav_back">Back</string>
 

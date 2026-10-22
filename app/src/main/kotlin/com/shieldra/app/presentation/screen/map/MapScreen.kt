@@ -49,6 +49,7 @@ fun MapScreen(
     lastLocatedEvent: EventUiModel?,
     onOpenEvent: (String) -> Unit,
     onOpenProtectionSetup: () -> Unit,
+    onOpenHealthCheck: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val accent = ShieldraTheme.semantic.protection
@@ -93,8 +94,13 @@ fun MapScreen(
                 title = stringResource(if (locationGranted) R.string.map_location_granted else R.string.map_location_missing),
             )
             Spacer(Modifier.height(4.dp))
-            TextButton(onClick = onOpenProtectionSetup) {
-                Text(stringResource(R.string.map_open_protection))
+            Row {
+                TextButton(onClick = onOpenProtectionSetup) {
+                    Text(stringResource(R.string.map_open_protection))
+                }
+                TextButton(onClick = onOpenHealthCheck) {
+                    Text(stringResource(R.string.map_open_health))
+                }
             }
         }
 
