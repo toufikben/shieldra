@@ -673,7 +673,11 @@ fun ShieldraNavHost(
                         model = detail,
                         callbacks = EventDetailCallbacks(
                             onBack = { navController.popBackStack() },
-                            onOpenInMaps = { _, _ -> defer() },
+                            onOpenInMaps = { lat, lng ->
+                                val uri = android.net.Uri.parse("geo:$lat,$lng?q=$lat,$lng")
+                                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+                                Unit
+                            },
                             onDelete = { defer() },
                             onExport = { defer() },
                         ),

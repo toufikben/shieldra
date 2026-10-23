@@ -101,6 +101,7 @@ data class EventDetailUiModel(
     /** The decrypt-on-demand evidence ids, when the event really carries them. */
     val photoEvidenceId: String? = null,
     val audioEvidenceId: String? = null,
+    val locationEvidenceId: String? = null,
 )
 
 data class DashboardUiModel(
