@@ -335,6 +335,12 @@ class ProtectionService : Service() {
         val frontId = storeEvidence(storage, repository, eventId, media.front, "FRONT_PHOTO")
         val backId = storeEvidence(storage, repository, eventId, media.back, "BACK_PHOTO")
         val audioId = storeEvidence(storage, repository, eventId, media.audio, "AUDIO")
+        // The fix is also kept as an encrypted evidence payload (A-31) so the event detail can show
+        // the real recorded position later, not only send it in the alert.
+        val locationBytes = media.fix?.let {
+            "${it.latitude}|${it.longitude}|${it.accuracyMeters ?: ""}|${it.provider}".toByteArray(Charsets.UTF_8)
+        }
+        storeEvidence(storage, repository, eventId, locationBytes, "LOCATION")
         dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId, failedAttempts)
     }
 

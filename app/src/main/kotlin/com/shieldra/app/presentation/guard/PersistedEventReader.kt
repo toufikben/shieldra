@@ -78,6 +78,7 @@ class PersistedEventReader(
         delivery = deliveryReceipts(),
         photoEvidenceId = evidenceReferences.firstOrNull { it.kind.contains("PHOTO", ignoreCase = true) }?.id,
         audioEvidenceId = evidenceReferences.firstOrNull { it.kind.equals("AUDIO", ignoreCase = true) }?.id,
+        locationEvidenceId = evidenceReferences.firstOrNull { it.kind.equals("LOCATION", ignoreCase = true) }?.id,
     )
 
     private companion object {

@@ -64,6 +64,7 @@ import com.shieldra.app.design.tokens.ShieldraTextStyles
 import com.shieldra.app.presentation.guard.deliveryCardVisible
 import com.shieldra.app.presentation.model.EventDetailUiModel
 import com.shieldra.app.presentation.model.LocationKind
+import com.shieldra.app.presentation.model.LocationUiModel
 import com.shieldra.app.presentation.demo.DemoData
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -136,7 +137,12 @@ fun EventDetailScreen(
                 AudioPlayerCard(audioId, loadEvidence, Modifier.padding(horizontal = spacing.l))
             }
 
-            if (model.location.kind != LocationKind.Unavailable) item {
+            val locationId = model.locationEvidenceId
+            if (locationId != null && loadEvidence != null) {
+                item {
+                    RealLocationCard(locationId, loadEvidence, callbacks.onOpenInMaps, Modifier.padding(horizontal = spacing.l))
+                }
+            } else if (model.location.kind != LocationKind.Unavailable) item {
                 LocationEvidenceCard(
                     location = model.location,
                     onOpenInMaps = if (
@@ -206,6 +212,42 @@ private fun RealPhotoCard(
         )
     } else {
         PhotoEvidenceCard(available = true, modifier = modifier)
+    }
+}
+
+/** The real recorded position, decrypted on demand and shown with an Open-in-Maps action. */
+@Composable
+private fun RealLocationCard(
+    locationId: String,
+    loadEvidence: suspend (String) -> ByteArray?,
+    onOpenInMaps: (Double, Double) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var loc by remember(locationId) { mutableStateOf<LocationUiModel?>(null) }
+    LaunchedEffect(locationId) {
+        loc = withContext(Dispatchers.IO) {
+            runCatching {
+                val bytes = loadEvidence(locationId) ?: return@runCatching null
+                val parts = String(bytes, Charsets.UTF_8).split("|")
+                val lat = parts.getOrNull(0)?.toDoubleOrNull() ?: return@runCatching null
+                val lng = parts.getOrNull(1)?.toDoubleOrNull() ?: return@runCatching null
+                LocationUiModel(
+                    kind = LocationKind.Current,
+                    latitude = lat,
+                    longitude = lng,
+                    accuracyMeters = parts.getOrNull(2)?.toFloatOrNull()?.toInt(),
+                    source = parts.getOrNull(3)?.ifBlank { null },
+                )
+            }.getOrNull()
+        }
+    }
+    val l = loc
+    if (l?.latitude != null && l.longitude != null) {
+        LocationEvidenceCard(
+            location = l,
+            onOpenInMaps = { onOpenInMaps(l.latitude, l.longitude) },
+            modifier = modifier,
+        )
     }
 }
 
