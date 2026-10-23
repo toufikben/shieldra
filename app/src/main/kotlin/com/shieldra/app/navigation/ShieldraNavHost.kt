@@ -677,6 +677,11 @@ fun ShieldraNavHost(
                             onDelete = { defer() },
                             onExport = { defer() },
                         ),
+                        loadEvidence = { id ->
+                            withContext(Dispatchers.IO) {
+                                runCatching { installedStorage?.evidenceFiles?.read(id) }.getOrNull()
+                            }
+                        },
                     )
                 }
             }

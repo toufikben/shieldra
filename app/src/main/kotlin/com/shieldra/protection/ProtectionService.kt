@@ -332,9 +332,9 @@ class ProtectionService : Service() {
             val back = if (wantsBack) runCatching { camera.capture(front = false) }.getOrNull() else null
             CapturedMedia(front, back, audioJob.await()?.first, fixJob.await())
         }
-        val frontId = storeEvidence(storage, repository, eventId, media.front)
-        val backId = storeEvidence(storage, repository, eventId, media.back)
-        val audioId = storeEvidence(storage, repository, eventId, media.audio)
+        val frontId = storeEvidence(storage, repository, eventId, media.front, "FRONT_PHOTO")
+        val backId = storeEvidence(storage, repository, eventId, media.back, "BACK_PHOTO")
+        val audioId = storeEvidence(storage, repository, eventId, media.audio, "AUDIO")
         dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId, failedAttempts)
     }
 
@@ -350,11 +350,12 @@ class ProtectionService : Service() {
         repository: EventRepository,
         eventId: EventId,
         bytes: ByteArray?,
+        kind: String,
     ): String? {
         if (bytes == null) return null
         val id = "cap_" + UUID.randomUUID().toString().replace("-", "")
         val written = runCatching { storage.evidenceFiles.write(id, bytes) }.map { id }.getOrNull() ?: return null
-        runCatching { repository.recordEvidence(eventId, com.shieldra.domain.EvidenceReference(written)) }
+        runCatching { repository.recordEvidence(eventId, com.shieldra.domain.EvidenceReference(written, kind)) }
         return written
     }
 

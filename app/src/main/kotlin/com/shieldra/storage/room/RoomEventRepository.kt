@@ -155,7 +155,7 @@ class RoomEventRepository(
         expiresAt = entity.expiresAtEpochMs?.let(Instant::ofEpochMilli),
         state = EventState.valueOf(entity.state),
         severity = entity.severity?.let(GuardSeverity::valueOf),
-        evidenceReferences = references.map { EvidenceReference(it.evidenceId) },
+        evidenceReferences = references.map { EvidenceReference(it.evidenceId, it.kind) },
         deliveryInformation = attempts.map { attempt ->
             DeliveryInformation(
                 channel = attempt.channel,
@@ -186,7 +186,7 @@ class RoomEventRepository(
     private fun EvidenceReference.toEntity(eventId: String): EvidenceReferenceEntity = EvidenceReferenceEntity(
         evidenceId = id,
         eventId = eventId,
-        kind = "UNSPECIFIED",
+        kind = kind,
         contentReference = null,
         capturedAtEpochMs = null,
         keyVersion = EvidenceKeyPolicy.KEY_VERSION_V1,

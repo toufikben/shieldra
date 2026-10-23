@@ -52,6 +52,8 @@ enum class SecurityEventType {
 
 data class EvidenceReference(
     val id: String,
+    /** What the payload is: FRONT_PHOTO, BACK_PHOTO, AUDIO, LOCATION, or UNSPECIFIED. */
+    val kind: String = "UNSPECIFIED",
 )
 
 enum class DeliveryStatus {

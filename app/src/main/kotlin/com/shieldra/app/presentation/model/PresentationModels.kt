@@ -98,6 +98,9 @@ data class EventDetailUiModel(
     val hasPhoto: Boolean,
     val location: LocationUiModel,
     val delivery: List<ChannelReceiptUiModel>,
+    /** The decrypt-on-demand evidence ids, when the event really carries them. */
+    val photoEvidenceId: String? = null,
+    val audioEvidenceId: String? = null,
 )
 
 data class DashboardUiModel(

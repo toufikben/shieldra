@@ -384,4 +384,7 @@
     <string name="settings_alert_channels">Alert channels</string>
     <string name="settings_alert_channels_on">Alerts are sent automatically</string>
     <string name="settings_alert_channels_off">Not set up</string>
+    <string name="evidence_audio">Audio evidence</string>
+    <string name="evidence_play">Play</string>
+    <string name="evidence_pause">Pause</string>
 </resources>

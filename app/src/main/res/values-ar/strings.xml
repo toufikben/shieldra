@@ -383,4 +383,7 @@
     <string name="settings_alert_channels">قنوات التنبيه</string>
     <string name="settings_alert_channels_on">تُرسَل التنبيهات تلقائيًا</string>
     <string name="settings_alert_channels_off">غير مُعدّة</string>
+    <string name="evidence_audio">تسجيل صوتي</string>
+    <string name="evidence_play">تشغيل</string>
+    <string name="evidence_pause">إيقاف</string>
 </resources>
