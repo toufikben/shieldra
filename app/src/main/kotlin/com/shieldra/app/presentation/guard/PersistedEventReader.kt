@@ -59,7 +59,7 @@ class PersistedEventReader(
         timestampLabel = labels.ageLabel(now, createdAt),
         // A recorded attempt is the stronger fact; without one the label follows the state.
         deliveryStatus = recordedDeliveryStatus() ?: state.toDeliveryStatus(),
-        hasPhoto = false,
+        hasPhoto = evidenceReferences.any { it.kind.contains("PHOTO", ignoreCase = true) },
         hasLocation = false,
     )
 
@@ -72,10 +72,12 @@ class PersistedEventReader(
         // A-7's durable count, shown only for the Panic incidents that carry one.
         activationCount = panicActivationCount,
         batteryPercent = null,
-        hasPhoto = false,
+        hasPhoto = evidenceReferences.any { it.kind.contains("PHOTO", ignoreCase = true) },
         location = LocationUiModel(kind = LocationKind.Unavailable),
         // Only attempts the delivery path really recorded (A-32); none recorded, none shown.
         delivery = deliveryReceipts(),
+        photoEvidenceId = evidenceReferences.firstOrNull { it.kind.contains("PHOTO", ignoreCase = true) }?.id,
+        audioEvidenceId = evidenceReferences.firstOrNull { it.kind.equals("AUDIO", ignoreCase = true) }?.id,
     )
 
     private companion object {

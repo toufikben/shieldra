@@ -21,7 +21,28 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import android.graphics.BitmapFactory
+import android.media.MediaPlayer
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.res.stringResource
 import com.shieldra.app.R
 import androidx.compose.ui.Alignment
@@ -52,6 +73,8 @@ fun EventDetailScreen(
     callbacks: EventDetailCallbacks,
     modifier: Modifier = Modifier,
     actionsAvailable: Boolean = false,
+    /** Decrypts one evidence payload by id (off the main thread). Null in previews/pure contexts. */
+    loadEvidence: (suspend (String) -> ByteArray?)? = null,
 ) {
     val spacing = ShieldraTheme.spacing
     val latitude = model.location.latitude
@@ -99,11 +122,18 @@ fun EventDetailScreen(
         ) {
             // Evidence cards appear only over evidence that exists; an empty 4:3 "no photo" frame and
             // a "location unavailable" card said nothing the details block does not already say.
-            if (model.hasPhoto) item {
-                PhotoEvidenceCard(
-                    available = true,
-                    modifier = Modifier.padding(horizontal = spacing.l),
-                )
+            val photoId = model.photoEvidenceId
+            when {
+                photoId != null && loadEvidence != null -> item {
+                    RealPhotoCard(photoId, loadEvidence, Modifier.padding(horizontal = spacing.l))
+                }
+                model.hasPhoto -> item {
+                    PhotoEvidenceCard(available = true, modifier = Modifier.padding(horizontal = spacing.l))
+                }
+            }
+            val audioId = model.audioEvidenceId
+            if (audioId != null && loadEvidence != null) item {
+                AudioPlayerCard(audioId, loadEvidence, Modifier.padding(horizontal = spacing.l))
             }
 
             if (model.location.kind != LocationKind.Unavailable) item {
@@ -147,6 +177,106 @@ fun EventDetailScreen(
                 )
             }
         }
+    }
+}
+
+/** The real front-camera photo, decrypted on demand from the encrypted store and shown in place. */
+@Composable
+private fun RealPhotoCard(
+    photoId: String,
+    loadEvidence: suspend (String) -> ByteArray?,
+    modifier: Modifier = Modifier,
+) {
+    var image by remember(photoId) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(photoId) {
+        image = withContext(Dispatchers.IO) {
+            runCatching { loadEvidence(photoId)?.let { BitmapFactory.decodeByteArray(it, 0, it.size) } }.getOrNull()
+        }?.asImageBitmap()
+    }
+    val bmp = image
+    if (bmp != null) {
+        Image(
+            bitmap = bmp,
+            contentDescription = stringResource(R.string.evidence_photo),
+            modifier = modifier
+                .fillMaxWidth()
+                .heightIn(max = 340.dp)
+                .clip(ShieldraCardShape),
+            contentScale = ContentScale.Crop,
+        )
+    } else {
+        PhotoEvidenceCard(available = true, modifier = modifier)
+    }
+}
+
+/** Plays the real audio evidence: decrypts it to an app-private temp file, deleted on dispose. */
+@Composable
+private fun AudioPlayerCard(
+    audioId: String,
+    loadEvidence: suspend (String) -> ByteArray?,
+    modifier: Modifier = Modifier,
+) {
+    val spacing = ShieldraTheme.spacing
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var playing by remember(audioId) { mutableStateOf(false) }
+    var prepared by remember(audioId) { mutableStateOf(false) }
+    val player = remember(audioId) { MediaPlayer() }
+    val tempFile = remember(audioId) { java.io.File(context.cacheDir, "ev_audio_$audioId.m4a") }
+    DisposableEffect(audioId) {
+        onDispose {
+            runCatching { player.reset(); player.release() }
+            runCatching { tempFile.delete() }
+        }
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(ShieldraCardShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(spacing.m),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = {
+            if (playing) {
+                runCatching { player.pause() }
+                playing = false
+            } else {
+                scope.launch {
+                    if (!prepared) {
+                        val ok = withContext(Dispatchers.IO) {
+                            val bytes = runCatching { loadEvidence(audioId) }.getOrNull() ?: return@withContext false
+                            runCatching {
+                                tempFile.writeBytes(bytes)
+                                player.reset()
+                                player.setDataSource(tempFile.absolutePath)
+                                player.prepare()
+                            }.isSuccess
+                        }
+                        if (ok) {
+                            player.setOnCompletionListener { playing = false }
+                            prepared = true
+                        }
+                    }
+                    if (prepared) {
+                        runCatching { player.start() }
+                        playing = true
+                    }
+                }
+            }
+        }) {
+            Icon(
+                imageVector = if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                contentDescription = stringResource(if (playing) R.string.evidence_pause else R.string.evidence_play),
+                tint = ShieldraTheme.semantic.protection,
+            )
+        }
+        Spacer(Modifier.width(spacing.s))
+        Text(
+            text = stringResource(R.string.evidence_audio),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
