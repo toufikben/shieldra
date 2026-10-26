@@ -97,6 +97,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     // A-34: fused location for the protection guards' evidence (fine location, with owner consent).
     implementation(libs.play.services.location)
+    // A-40: Google Play subscription for the Pro plan; confined to com.shieldra.billing by the group-c gate.
+    implementation(libs.android.billing.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

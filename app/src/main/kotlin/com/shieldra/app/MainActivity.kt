@@ -41,6 +41,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         AppSettings.load(this)
+        (application as ShieldraApp).proStore.start()
         // A new process puts the lock up first, including when Android restores the app after killing it;
         // a recreate inside the same process (rotation, language change) keeps it unlocked.
         locked.value = AppLockPolicy.lockOnColdStart(AppSettings.appLockEnabled(this)) && !AppLockSession.unlocked

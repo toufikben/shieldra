@@ -32,6 +32,9 @@ class ShieldraApp : Application() {
     var installedStorage: LocalShieldraStorage? = null
         private set
 
+    /** The Google Play Pro subscription (A-40); started once the first activity is up. */
+    val proStore: com.shieldra.billing.PlayProStore by lazy { com.shieldra.billing.PlayProStore(this) }
+
     /** Outcome of the rotation check this process started; null until it completes. */
     @Volatile
     var lastRotationReport: RotationRunReport? = null
