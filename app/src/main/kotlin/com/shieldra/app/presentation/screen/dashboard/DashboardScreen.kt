@@ -144,8 +144,8 @@ fun DashboardScreen(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = spacing.m)
-                        .size(248.dp)
+                        .padding(top = spacing.m + 2.dp)
+                        .size(224.dp)
                         .graphicsLayer { rotationZ = angle },
                 ) {
                     Box(
