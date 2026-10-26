@@ -567,7 +567,9 @@ done
 grep -q 'fun lastCheckSeconds(state: LockGuardState): Long? = null' \
   app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDecision.kt \
   || fail "the guard decision must report that no check has ever run"
-grep -q 'lastCheckSeconds = LockGuardDecision.lastCheckSeconds(state)' \
+# A-38: a real guard-pass stamp may supply the value; with none, the honest fallback (no check has
+# ever run) is still LockGuardDecision's, so the dashboard can never invent a time.
+grep -q 'lastCheckSeconds = measuredLastCheckSeconds ?: LockGuardDecision.lastCheckSeconds(state)' \
   app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDashboardFactory.kt \
   || fail "the dashboard is inventing a last-check time again"
 pass "no screen claims a check or a guard that does not exist"
