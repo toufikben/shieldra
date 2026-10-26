@@ -311,6 +311,9 @@
     <string name="guard_subtitle_motion_active">مراقبة الحركة نشِطة</string>
     <string name="event_security_event">حدث أمني</string>
     <string name="status_network_unknown">غير مقاسة</string>
+    <string name="status_network_wifi">واي فاي</string>
+    <string name="status_network_cellular">بيانات الهاتف</string>
+    <string name="status_network_other">متصل</string>
     <string name="location_source_gps">GPS</string>
     <string name="location_source_fused">مُدمج</string>
     <string name="notification_motion_ongoing_text">مراقبة الحركة تعمل. اضغط لفتح SHIELDRA.</string>
@@ -386,6 +389,11 @@
     <string name="evidence_audio">تسجيل صوتي</string>
     <string name="evidence_play">تشغيل</string>
     <string name="evidence_pause">إيقاف</string>
+    <string name="stat_protection">الحماية</string>
+    <string name="motion_card_on_title">حارس الحركة يعمل</string>
+    <string name="motion_card_on_hint">اضغط للإيقاف — يلزم قفل الشاشة</string>
+    <string name="motion_card_off_title">شغّل حارس الحركة</string>
+    <string name="motion_card_off_hint">تنبيه فور تحريك هذا الهاتف</string>
     <string name="export_title">تصدير هذه الأدلّة</string>
     <string name="export_hint">يُختَم التصدير بعبارة مرور تختارها. احفظها جيّداً — بدونها لا يمكن فتح الملف ولا استرجاعه.</string>
     <string name="export_passphrase">عبارة المرور (8 أحرف فأكثر)</string>

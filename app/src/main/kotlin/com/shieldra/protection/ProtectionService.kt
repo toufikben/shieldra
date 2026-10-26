@@ -66,6 +66,20 @@ class ProtectionService : Service() {
     // Confirmed-intrusion timestamps within the escalation window; a burst sounds the siren.
     private val intrusionTimes = java.util.concurrent.CopyOnWriteArrayList<Long>()
 
+    private val heartbeatHandler = Handler(Looper.getMainLooper())
+
+    /** Every minute while armed: a real pass over the SIM guard, which also stamps "last check" (A-38). */
+    private fun startHeartbeat() {
+        heartbeatHandler.removeCallbacksAndMessages(null)
+        heartbeatHandler.postDelayed(object : Runnable {
+            override fun run() {
+                if (!ProtectionSettingsStore(applicationContext).load().armed) return
+                checkSim()
+                heartbeatHandler.postDelayed(this, HEARTBEAT_MS)
+            }
+        }, HEARTBEAT_MS)
+    }
+
     private val geofenceHandler = Handler(Looper.getMainLooper())
     // Assume inside a safe zone at arm, so the first crossing OUT is what fires.
     private var wasInsideSafeZone = true
@@ -161,6 +175,8 @@ class ProtectionService : Service() {
 
     /** Re-checks the SIM/network state and alerts once on each transition into an abnormal state. */
     private fun checkSim() {
+        // A real guard pass is happening: stamp it so the dashboard's "last check" is a fact (A-38).
+        ProtectionSettingsStore(applicationContext).markCheck()
         val settings = ProtectionSettingsStore(applicationContext).load()
         if (!settings.simEnabled) return
         val verdict = simGuard.check() ?: return
@@ -213,6 +229,7 @@ class ProtectionService : Service() {
                 val status = intent.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1)
                 val charging = status == android.os.BatteryManager.BATTERY_STATUS_CHARGING ||
                     status == android.os.BatteryManager.BATTERY_STATUS_FULL
+                ProtectionSettingsStore(applicationContext).markCheck()
                 if (battery.onLevel(percent, charging) is BatteryBreathLogic.Verdict.Breath) {
                     capture(SecurityEventType.BATTERY_SIGNAL, null)
                 }
@@ -247,6 +264,7 @@ class ProtectionService : Service() {
                 }
                 startBatteryGuard()
                 startGeofenceSampler()
+                startHeartbeat()
                 simGuard.captureBaselineIfNeeded()
                 checkSim()
                 // Remote control over the owner's Telegram, when they turned it on (A-33 next stage).
@@ -271,6 +289,7 @@ class ProtectionService : Service() {
         if (liveInstance === this) liveInstance = null
         trackingHandler.removeCallbacksAndMessages(null)
         geofenceHandler.removeCallbacksAndMessages(null)
+        heartbeatHandler.removeCallbacksAndMessages(null)
         remoteCommands.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
         batteryReceiver = null
@@ -495,6 +514,7 @@ class ProtectionService : Service() {
         private const val TAG = "ProtectionService"
         private const val CHANNEL_ID = "shieldra_protection"
         private const val NOTIFICATION_ID = 20_003
+        private const val HEARTBEAT_MS = 60_000L
 
         const val ACTION_ARM = "com.shieldra.protection.ARM"
         const val ACTION_CAPTURE = "com.shieldra.protection.CAPTURE"

@@ -22,6 +22,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.filled.Sensors
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Icon
@@ -185,9 +188,7 @@ fun DashboardScreen(
 
         item {
             LiveStatusStrip(
-                lastCheckLabel = model.lastCheckSeconds
-                    ?.let { stringResource(R.string.seconds_ago, it) }
-                    ?: stringResource(R.string.last_check_none),
+                lastCheckLabel = lastCheckText(model.lastCheckSeconds),
                 batteryPercent = model.batteryPercent,
                 networkLabel = model.networkLabel,
                 networkStatus = model.networkStatus,
@@ -203,14 +204,9 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(spacing.m),
             ) {
                 StatTile(stringResource(R.string.stat_guards), "$activeGuards/${model.guards.size}", Modifier.weight(1f))
-                StatTile(stringResource(R.string.stat_battery), model.batteryPercent?.let { "$it%" } ?: "—", Modifier.weight(1f))
+                StatTile(stringResource(R.string.stat_protection), model.protectionScore?.let { "$it" } ?: "—", Modifier.weight(1f))
                 StatTile(stringResource(R.string.stat_events), "${model.recentEvents.size}", Modifier.weight(1f))
             }
-        }
-
-        item {
-            Spacer(Modifier.height(spacing.xxl))
-            PanicQuickAction(onPanic = callbacks.onPanic, onTapHint = callbacks.onPanicTapHint)
         }
 
         item {
@@ -239,30 +235,12 @@ fun DashboardScreen(
         }
 
         item {
-            Spacer(Modifier.height(spacing.xxl))
-            SectionHeaderWithAction(
-                label = stringResource(R.string.dashboard_section_recent),
-                actionLabel = stringResource(R.string.dashboard_view_all),
-                onAction = callbacks.onViewAllEvents,
+            Spacer(Modifier.height(spacing.m))
+            PanicQuickAction(
+                onPanic = callbacks.onPanic,
+                onTapHint = callbacks.onPanicTapHint,
+                modifier = Modifier.padding(horizontal = spacing.l),
             )
-        }
-
-        if (model.recentEvents.isEmpty()) {
-            item {
-                EmptyState(
-                    title = stringResource(R.string.empty_events_title),
-                    message = stringResource(R.string.empty_events_message),
-                    modifier = Modifier.padding(vertical = spacing.xl),
-                )
-            }
-        } else {
-            items(model.recentEvents, key = { it.id }) { event ->
-                EventCard(
-                    event = event,
-                    onClick = { callbacks.onEventClick(event.id) },
-                    modifier = Modifier.padding(horizontal = spacing.l, vertical = spacing.xs),
-                )
-            }
         }
 
         if (model.showAds) {
@@ -272,6 +250,15 @@ fun DashboardScreen(
             }
         }
     }
+}
+
+/** "12s ago" / "5 min ago" / "2 h ago": a measured age in the largest honest unit. */
+@Composable
+private fun lastCheckText(seconds: Long?): String = when {
+    seconds == null -> stringResource(R.string.last_check_none)
+    seconds < 60 -> stringResource(R.string.last_check_seconds, seconds)
+    seconds < 3600 -> stringResource(R.string.last_check_minutes, seconds / 60)
+    else -> stringResource(R.string.last_check_hours, seconds / 3600)
 }
 
 @Composable
@@ -306,35 +293,103 @@ private fun SectionLabel(text: String) {
     )
 }
 
+/**
+ * A premium, breathing action card: a tinted gradient with a pulsing border and an expanding halo
+ * behind the icon. [pulsing] only drives the animation — what the card says and does comes from the
+ * caller, so a pulse never claims more than the state behind it.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SectionHeaderWithAction(
-    label: String,
-    actionLabel: String,
-    onAction: () -> Unit,
+private fun PulseActionCard(
+    accent: Color,
+    icon: ImageVector,
+    title: String,
+    hint: String,
+    pulsing: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    longClickLabel: String? = null,
 ) {
     val spacing = ShieldraTheme.spacing
+    val haptics = LocalHapticFeedback.current
+    val transition = rememberInfiniteTransition(label = "pulse_card")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1800, easing = LinearEasing)),
+        label = "pulse_phase",
+    )
+    val p = if (pulsing) phase else 0f
+    val borderAlpha = if (pulsing) 0.25f + 0.40f * (1f - p) else 0.18f
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(start = spacing.l, end = spacing.l, bottom = spacing.s),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .clip(ShieldraCardShape)
+            .background(
+                Brush.horizontalGradient(
+                    listOf(accent.copy(alpha = 0.22f), accent.copy(alpha = 0.06f)),
+                ),
+            )
+            .border(1.dp, accent.copy(alpha = borderAlpha), ShieldraCardShape)
+            .combinedClickable(
+                role = Role.Button,
+                onClick = onClick,
+                onLongClickLabel = longClickLabel,
+                onLongClick = onLongClick?.let { action ->
+                    {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        action()
+                    }
+                },
+            )
+            .defaultMinSize(minHeight = 76.dp)
+            .padding(horizontal = spacing.l, vertical = spacing.m),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = actionLabel,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .defaultMinSize(minHeight = 48.dp)
-                .clickable(role = Role.Button, onClick = onAction)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        )
+        Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+            if (pulsing) {
+                Box(
+                    Modifier
+                        .size(56.dp)
+                        .graphicsLayer {
+                            val s = 0.7f + 0.6f * p
+                            scaleX = s
+                            scaleY = s
+                            alpha = 1f - p
+                        }
+                        .clip(CircleShape)
+                        .background(accent.copy(alpha = 0.35f)),
+                )
+            }
+            Box(
+                Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = 0.22f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
+        Spacer(Modifier.size(spacing.m))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -343,57 +398,26 @@ private fun SectionHeaderWithAction(
  * emergency; a tap now explains the gesture instead, and a confirmed hold answers with a haptic so
  * the owner knows it worked without looking at the screen.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PanicQuickAction(onPanic: () -> Unit, onTapHint: () -> Unit) {
-    val spacing = ShieldraTheme.spacing
-    val haptics = LocalHapticFeedback.current
-    val holdLabel = stringResource(R.string.panic_hold_action_label)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = spacing.l)
-            .clip(ShieldraCardShape)
-            .background(MaterialTheme.colorScheme.errorContainer)
-            .combinedClickable(
-                role = Role.Button,
-                onClick = onTapHint,
-                onLongClickLabel = holdLabel,
-                onLongClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onPanic()
-                },
-            )
-            .defaultMinSize(minHeight = 64.dp)
-            .padding(horizontal = spacing.l, vertical = spacing.m),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.Filled.WarningAmber,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.size(22.dp),
-        )
-        Spacer(Modifier.size(spacing.m))
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.silent_panic),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-            )
-            Text(
-                text = stringResource(R.string.panic_hold_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-            )
-        }
-    }
+private fun PanicQuickAction(onPanic: () -> Unit, onTapHint: () -> Unit, modifier: Modifier = Modifier) {
+    PulseActionCard(
+        accent = ShieldraTheme.semantic.securityEvent,
+        icon = Icons.Filled.WarningAmber,
+        title = stringResource(R.string.silent_panic),
+        hint = stringResource(R.string.panic_hold_hint),
+        pulsing = true,
+        onClick = onTapHint,
+        modifier = modifier,
+        onLongClick = onPanic,
+        longClickLabel = stringResource(R.string.panic_hold_action_label),
+    )
 }
 
 /**
  * The owner's Start/Stop control for Motion monitoring. It asks for the transition and nothing more:
- * whether the label says Start or Stop is derived from the guard tile above, which is itself derived
- * from the state the service publishes, so a press can never make the screen claim monitoring.
+ * whether the card says Start or Stop is derived from the guard tile above, which is itself derived
+ * from the state the service publishes, so a press can never make the screen claim monitoring. It
+ * pulses only while monitoring is really on.
  */
 @Composable
 private fun MotionMonitoringAction(
@@ -401,20 +425,14 @@ private fun MotionMonitoringAction(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val spacing = ShieldraTheme.spacing
-    Text(
-        text = stringResource(
-            if (monitoring) R.string.motion_monitoring_stop else R.string.motion_monitoring_start,
-        ),
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(ShieldraCardShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .defaultMinSize(minHeight = 48.dp)
-            .clickable(role = Role.Button, onClick = onToggle)
-            .padding(horizontal = spacing.l, vertical = spacing.m),
+    PulseActionCard(
+        accent = ShieldraTheme.semantic.protection,
+        icon = Icons.Filled.Sensors,
+        title = stringResource(if (monitoring) R.string.motion_card_on_title else R.string.motion_card_off_title),
+        hint = stringResource(if (monitoring) R.string.motion_card_on_hint else R.string.motion_card_off_hint),
+        pulsing = monitoring,
+        onClick = onToggle,
+        modifier = modifier,
     )
 }
 

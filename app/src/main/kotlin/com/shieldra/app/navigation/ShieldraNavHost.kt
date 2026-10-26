@@ -60,6 +60,8 @@ import com.shieldra.app.presentation.guard.ageQuantityRes
 import com.shieldra.app.presentation.guard.eventStateLabelRes
 import com.shieldra.app.presentation.guard.lockGuardDashboard
 import com.shieldra.app.presentation.model.EventUiModel
+import com.shieldra.app.presentation.model.NetworkStatus
+import kotlinx.coroutines.delay
 import com.shieldra.app.presentation.model.EventDetailUiModel
 import com.shieldra.domain.EventState
 import com.shieldra.domain.PanicIncidentCoordinator
@@ -298,6 +300,33 @@ fun ShieldraNavHost(
 
             // ===== Main =====
             composable(ShieldraRoutes.DASHBOARD) {
+                // A-38: the phone's own readings, refreshed while the dashboard is on screen.
+                val device by produceState(
+                    initialValue = com.shieldra.protection.DeviceStatus.snapshot(context),
+                    protectionArmed,
+                ) {
+                    while (true) {
+                        value = withContext(Dispatchers.IO) { com.shieldra.protection.DeviceStatus.snapshot(context) }
+                        delay(DEVICE_REFRESH_MS)
+                    }
+                }
+                val wifiLabel = stringResource(R.string.status_network_wifi)
+                val cellularLabel = stringResource(R.string.status_network_cellular)
+                val otherLabel = stringResource(R.string.status_network_other)
+                val (networkStatus, networkLabel) = when (device.link) {
+                    com.shieldra.protection.LinkKind.WIFI -> NetworkStatus.Online to wifiLabel
+                    com.shieldra.protection.LinkKind.CELLULAR -> NetworkStatus.Online to cellularLabel
+                    com.shieldra.protection.LinkKind.OTHER -> NetworkStatus.Online to otherLabel
+                    com.shieldra.protection.LinkKind.OFFLINE -> NetworkStatus.Offline to null
+                    com.shieldra.protection.LinkKind.UNKNOWN -> NetworkStatus.Unknown to null
+                }
+                val healthChecks = readHealthChecks(
+                    context = context,
+                    notifier = notifier,
+                    armed = protectionArmed,
+                    channel = deliverySettings?.activeChannels()?.isNotEmpty() == true,
+                    motionMonitoring = motionClaim.claimsProtection,
+                )
                 DashboardScreen(
                     model = lockGuardDashboard(
                         state = guardState,
@@ -307,6 +336,11 @@ fun ShieldraNavHost(
                         lockOn = protectionSettings.lockEnabled,
                         simOn = protectionSettings.simEnabled,
                         batteryOn = protectionSettings.batteryEnabled,
+                        batteryPercent = device.batteryPercent,
+                        networkStatus = networkStatus,
+                        networkLabel = networkLabel,
+                        measuredLastCheckSeconds = device.lastCheckSeconds,
+                        protectionScore = scoreFor(healthChecks, protectionSettings),
                     ),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->
@@ -466,45 +500,16 @@ fun ShieldraNavHost(
                 )
             }
             composable(ShieldraRoutes.HEALTH_CHECK) {
-                val adminComponent = remember(context) { ComponentName(context, LockGuardReceiver::class.java) }
-                val dpm = context.getSystemService(DevicePolicyManager::class.java)
-                fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
-                val camera = has(Manifest.permission.CAMERA)
-                val location = has(Manifest.permission.ACCESS_FINE_LOCATION) || has(Manifest.permission.ACCESS_COARSE_LOCATION)
-                val notifications = notifier.permissionState().let {
-                    it == com.shieldra.notification.NotificationPermissionState.Granted ||
-                        it == com.shieldra.notification.NotificationPermissionState.NotRequired
-                }
-                val deviceAdmin = dpm?.isAdminActive(adminComponent) == true
-                val batteryExempt = com.shieldra.protection.BackgroundSurvival.isExempt(context)
-                val channel = deliverySettings?.activeChannels()?.isNotEmpty() == true
-                val motionMonitoring = motionClaim.claimsProtection
+                val checks = readHealthChecks(
+                    context = context,
+                    notifier = notifier,
+                    armed = protectionArmed,
+                    channel = deliverySettings?.activeChannels()?.isNotEmpty() == true,
+                    motionMonitoring = motionClaim.claimsProtection,
+                )
                 HealthCheckScreen(
-                    score = ProtectionScore.score(
-                        ProtectionScore.Inputs(
-                            armed = protectionArmed,
-                            lockEnabled = protectionSettings.lockEnabled,
-                            motionMonitoring = motionMonitoring,
-                            simEnabled = protectionSettings.simEnabled,
-                            batteryEnabled = protectionSettings.batteryEnabled,
-                            cameraGranted = camera,
-                            locationGranted = location,
-                            notificationsReady = notifications,
-                            deviceAdminActive = deviceAdmin,
-                            batteryExempt = batteryExempt,
-                            anyChannelActive = channel,
-                        ),
-                    ),
-                    checks = HealthChecks(
-                        armed = protectionArmed,
-                        camera = camera,
-                        location = location,
-                        notifications = notifications,
-                        deviceAdmin = deviceAdmin,
-                        batteryExempt = batteryExempt,
-                        channel = channel,
-                        motionMonitoring = motionMonitoring,
-                    ),
+                    score = scoreFor(checks, protectionSettings),
+                    checks = checks,
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -761,6 +766,7 @@ private fun ageLabelFormatter(): (Instant, Instant) -> String {
 
 private const val RECENT_EVENT_LIMIT = 20
 private const val HISTORY_EVENT_LIMIT = 200
+private const val DEVICE_REFRESH_MS = 5_000L
 
 /** Distinguishes "still loading" from "no such event", which are both null. */
 private sealed interface DetailLookup {
@@ -811,3 +817,45 @@ private fun BottomTab.labelRes(): Int = when (this) {
     BottomTab.History -> R.string.tab_history
     BottomTab.Settings -> R.string.tab_settings
 }
+
+/** Reads the real device state behind the health check and the dashboard's protection score. */
+private fun readHealthChecks(
+    context: Context,
+    notifier: LocalEventNotifier,
+    armed: Boolean,
+    channel: Boolean,
+    motionMonitoring: Boolean,
+): HealthChecks {
+    val adminComponent = ComponentName(context, LockGuardReceiver::class.java)
+    val dpm = context.getSystemService(DevicePolicyManager::class.java)
+    fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
+    return HealthChecks(
+        armed = armed,
+        camera = has(Manifest.permission.CAMERA),
+        location = has(Manifest.permission.ACCESS_FINE_LOCATION) || has(Manifest.permission.ACCESS_COARSE_LOCATION),
+        notifications = notifier.permissionState().let {
+            it == com.shieldra.notification.NotificationPermissionState.Granted ||
+                it == com.shieldra.notification.NotificationPermissionState.NotRequired
+        },
+        deviceAdmin = dpm?.isAdminActive(adminComponent) == true,
+        batteryExempt = com.shieldra.protection.BackgroundSurvival.isExempt(context),
+        channel = channel,
+        motionMonitoring = motionMonitoring,
+    )
+}
+
+private fun scoreFor(checks: HealthChecks, settings: ProtectionSettings): Int = ProtectionScore.score(
+    ProtectionScore.Inputs(
+        armed = checks.armed,
+        lockEnabled = settings.lockEnabled,
+        motionMonitoring = checks.motionMonitoring,
+        simEnabled = settings.simEnabled,
+        batteryEnabled = settings.batteryEnabled,
+        cameraGranted = checks.camera,
+        locationGranted = checks.location,
+        notificationsReady = checks.notifications,
+        deviceAdminActive = checks.deviceAdmin,
+        batteryExempt = checks.batteryExempt,
+        anyChannelActive = checks.channel,
+    ),
+)
