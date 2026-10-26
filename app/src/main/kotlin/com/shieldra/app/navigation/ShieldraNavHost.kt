@@ -62,6 +62,7 @@ import com.shieldra.app.presentation.guard.lockGuardDashboard
 import com.shieldra.app.presentation.model.EventUiModel
 import com.shieldra.app.presentation.settings.ChoiceDialog
 import com.shieldra.app.settings.AppLanguage
+import com.shieldra.app.settings.AppLockSession
 import com.shieldra.app.settings.AppSettings
 import com.shieldra.app.settings.ThemeMode
 import com.shieldra.app.presentation.model.NetworkStatus
@@ -243,6 +244,51 @@ fun ShieldraNavHost(
             },
             onDismiss = { settingsDialog = null },
         )
+        SettingsDialog.AppLock -> {
+            val authTitle = stringResource(R.string.app_lock_prompt_title)
+            val authSubtitle = stringResource(R.string.app_lock_prompt_subtitle)
+            val noScreenLock = stringResource(R.string.app_lock_needs_screen_lock)
+            val refused = stringResource(R.string.app_lock_refused)
+            ChoiceDialog(
+                title = stringResource(R.string.settings_app_lock),
+                options = listOf(
+                    true to stringResource(R.string.app_lock_option_on),
+                    false to stringResource(R.string.app_lock_option_off),
+                ),
+                selected = appLockOn,
+                note = stringResource(R.string.settings_app_lock_scope),
+                onSelect = { enable ->
+                    settingsDialog = null
+                    if (enable != appLockOn) {
+                        val activity = context.findFragmentActivity()
+                        // Changing the lock needs the owner's own screen lock first, in both directions.
+                        if (activity != null) {
+                            OwnerCheck.request(activity, authTitle, authSubtitle) { result ->
+                                when (result) {
+                                    OwnerCheckResult.Confirmed -> {
+                                        AppSettings.setAppLockEnabled(context, enable)
+                                        appLockOn = enable
+                                        // Turning it on here must not lock the owner out of this very session.
+                                        if (enable) AppLockSession.unlocked = true
+                                    }
+                                    // No screen lock exists: turning the lock off is fine, on has nothing to ask.
+                                    OwnerCheckResult.NoScreenLock ->
+                                        if (enable) {
+                                            scope.launch { snackbarHostState.showSnackbar(noScreenLock) }
+                                        } else {
+                                            AppSettings.setAppLockEnabled(context, false)
+                                            appLockOn = false
+                                        }
+                                    OwnerCheckResult.Refused ->
+                                        scope.launch { snackbarHostState.showSnackbar(refused) }
+                                }
+                            }
+                        }
+                    }
+                },
+                onDismiss = { settingsDialog = null },
+            )
+        }
         null -> Unit
     }
     val monitoringStoppedMessage = stringResource(R.string.motion_monitoring_stopped)
@@ -621,7 +667,8 @@ fun ShieldraNavHost(
                             SettingsRowTarget.About -> navController.navigate(ShieldraRoutes.ABOUT_INFO)
                             SettingsRowTarget.Help -> navController.navigate(ShieldraRoutes.HELP_INFO)
 
-                            SettingsRowTarget.AppLock,
+                            SettingsRowTarget.AppLock -> settingsDialog = SettingsDialog.AppLock
+
                             SettingsRowTarget.NotAvailable -> defer()
                         }
                     },
@@ -968,4 +1015,4 @@ private fun scoreFor(checks: HealthChecks, settings: ProtectionSettings): Int = 
 )
 
 /** Which small Settings editor is open. */
-private enum class SettingsDialog { Theme, Language }
+private enum class SettingsDialog { Theme, Language, AppLock }

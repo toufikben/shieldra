@@ -11,8 +11,9 @@ import com.shieldra.app.presentation.guard.deliveryChipLabelRes
 import com.shieldra.app.presentation.guard.networkSlotLabelRes
 import com.shieldra.app.presentation.settings.SettingsContent
 import com.shieldra.app.presentation.settings.SettingsSubtitleKind
-import com.shieldra.app.presentation.settings.appLockSubtitleRes
 import com.shieldra.app.presentation.settings.retentionSubtitleRes
+import com.shieldra.app.presentation.settings.settingsSubtitleRes
+import com.shieldra.notification.NotificationPermissionState
 import com.shieldra.domain.EventState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,14 +31,22 @@ import kotlin.test.assertNull
  */
 class HonestWordingDecisionsTest {
 
-    // F-K9 — the screen said "Require authentication" above a key policy that requires none.
+    // F-K9 — the screen said "Require authentication" above a key policy that requires none. The app
+    // lock is real now (A-39), so the row reports the owner's actual setting — and its scope note keeps
+    // saying the evidence keys are not tied to it, which is what EvidenceKeyPolicy still states.
     @Test
-    fun qk4_the_app_lock_row_stops_claiming_an_authentication_the_key_policy_does_not_require() {
+    fun qk4_the_app_lock_row_reports_the_real_setting_and_never_claims_key_binding() {
         val row = SettingsContent.rows.single { it.id == "app_lock" }
 
-        assertEquals(SettingsSubtitleKind.AppLockNotEnforced, row.subtitle)
-        assertFalse(row.requiresAuth, "Nothing in this build authenticates before opening a row")
-        assertEquals(R.string.settings_app_lock_not_enforced, appLockSubtitleRes())
+        assertEquals(SettingsSubtitleKind.AppLockState, row.subtitle)
+        assertEquals(
+            R.string.settings_app_lock_on,
+            settingsSubtitleRes(SettingsSubtitleKind.AppLockState, true, NotificationPermissionState.Granted, appLockEnabled = true),
+        )
+        assertEquals(
+            R.string.settings_app_lock_off,
+            settingsSubtitleRes(SettingsSubtitleKind.AppLockState, true, NotificationPermissionState.Granted, appLockEnabled = false),
+        )
     }
 
     // F-K6 — "Policy pending" understates the build the owner approved on 2026-10-02 (A-21).

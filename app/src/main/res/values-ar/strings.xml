@@ -288,7 +288,6 @@
     <string name="demo_network_wifi">واي فاي</string>
     <string name="demo_invalid_recipient">المستلم غير صالح</string>
     <string name="settings_app_lock">قفل التطبيق</string>
-    <string name="settings_app_lock_not_enforced">غير مطبَّق في هذا الإصدار</string>
     <string name="settings_theme">المظهر</string>
     <string name="settings_match_system">مطابقة النظام</string>
     <string name="settings_language">اللغة</string>
@@ -424,6 +423,16 @@
     <string name="settings_alerts_and_notifications">التنبيهات والإشعارات</string>
     <string name="settings_app_lock_on">مفعّل — قفل شاشتك يفتح Shieldra</string>
     <string name="settings_app_lock_off">متوقّف</string>
+    <string name="settings_app_lock_scope">عند تفعيله لا يُفتح Shieldra إلا بقفل شاشتك — عند كل تشغيل وعند العودة بعد غياب 30 ثانية. مفاتيح تشفير الأدلّة غير مرتبطة به.</string>
+    <string name="app_lock_option_on">مفعّل — اطلب قفل شاشتي</string>
+    <string name="app_lock_option_off">متوقّف</string>
+    <string name="app_lock_prompt_title">افتح Shieldra</string>
+    <string name="app_lock_prompt_subtitle">استعمل قفل شاشتك لفتح التطبيق</string>
+    <string name="app_lock_title">Shieldra مقفل</string>
+    <string name="app_lock_hint">يلزم قفل شاشتك لفتح التطبيق.</string>
+    <string name="app_lock_unlock">فتح</string>
+    <string name="app_lock_needs_screen_lock">اضبط قفل شاشة لهذا الهاتف أولاً.</string>
+    <string name="app_lock_refused">لم يتغيّر قفل التطبيق: لم تتأكّد هويتك.</string>
     <string name="theme_light">فاتح</string>
     <string name="theme_dark">داكن</string>
     <string name="language_english">English</string>

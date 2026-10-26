@@ -288,7 +288,6 @@
     <string name="demo_network_wifi">Wi-Fi</string>
     <string name="demo_invalid_recipient">Invalid recipient</string>
     <string name="settings_app_lock">App lock</string>
-    <string name="settings_app_lock_not_enforced">Not enforced in this build</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_match_system">Match system</string>
     <string name="settings_language">Language</string>
@@ -425,6 +424,16 @@
     <string name="settings_alerts_and_notifications">Alerts &amp; notifications</string>
     <string name="settings_app_lock_on">On — your screen lock opens Shieldra</string>
     <string name="settings_app_lock_off">Off</string>
+    <string name="settings_app_lock_scope">When on, Shieldra opens only with your screen lock — on every launch and when you come back after 30 seconds away. Evidence encryption keys are not tied to it.</string>
+    <string name="app_lock_option_on">On — ask for my screen lock</string>
+    <string name="app_lock_option_off">Off</string>
+    <string name="app_lock_prompt_title">Unlock Shieldra</string>
+    <string name="app_lock_prompt_subtitle">Use your screen lock to open the app</string>
+    <string name="app_lock_title">Shieldra is locked</string>
+    <string name="app_lock_hint">Your screen lock is needed to open the app.</string>
+    <string name="app_lock_unlock">Unlock</string>
+    <string name="app_lock_needs_screen_lock">Set a screen lock on this phone first.</string>
+    <string name="app_lock_refused">App lock unchanged: your identity was not confirmed.</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="language_english">English</string>

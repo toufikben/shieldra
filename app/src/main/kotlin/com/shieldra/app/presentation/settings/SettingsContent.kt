@@ -19,7 +19,6 @@ enum class SettingsSubtitleKind {
     NotificationState,
     AlertChannelsState,
     ProtectionState,
-    AppLockNotEnforced,
     AppLockState,
     ThemeValue,
     LanguageValue,
@@ -229,15 +228,6 @@ internal fun storageRowSubtitleRes(state: SettingsContent.StorageRowState): Int 
 }
 
 /**
- * The app-lock row's subtitle (F-K9). The evidence key policy sets
- * `requireUserAuthentication = false`, so the honest sentence is that no lock is
- * enforced. The interface was changed to match the policy; the policy was not
- * changed to match the interface.
- */
-@StringRes
-internal fun appLockSubtitleRes(): Int = R.string.settings_app_lock_not_enforced
-
-/**
  * The retention row's subtitle (F-K6). §5.4 with amendment A-1 fixed the windows
  * and Q-K-2 made the sweeps run, so "Policy pending" described a decision that has
  * long been made. While the storage gate installed nothing there is also nothing
@@ -269,7 +259,6 @@ internal fun settingsSubtitleRes(
     appLockEnabled: Boolean = false,
 ): Int? = when (kind) {
     SettingsSubtitleKind.None -> null
-    SettingsSubtitleKind.AppLockNotEnforced -> appLockSubtitleRes()
     SettingsSubtitleKind.AppLockState ->
         if (appLockEnabled) R.string.settings_app_lock_on else R.string.settings_app_lock_off
     SettingsSubtitleKind.ThemeValue -> when (themeMode) {
