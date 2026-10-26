@@ -74,6 +74,8 @@ fun EventDetailScreen(
     callbacks: EventDetailCallbacks,
     modifier: Modifier = Modifier,
     actionsAvailable: Boolean = false,
+    /** Shows Export alone, when a real exporter stands behind it (§5.5, A-37). */
+    exportAvailable: Boolean = false,
     /** Decrypts one evidence payload by id (off the main thread). Null in previews/pure contexts. */
     loadEvidence: (suspend (String) -> ByteArray?)? = null,
 ) {
@@ -175,9 +177,9 @@ fun EventDetailScreen(
             }
 
             // Delete and Export are shown only when the caller has a real action behind them.
-            if (actionsAvailable) item {
+            if (actionsAvailable || exportAvailable) item {
                 DestructiveActions(
-                    onDelete = callbacks.onDelete,
+                    onDelete = if (actionsAvailable) callbacks.onDelete else null,
                     onExport = callbacks.onExport,
                     modifier = Modifier.padding(horizontal = spacing.l),
                 )
@@ -388,7 +390,7 @@ private fun DetailRow(label: String, value: String) {
 
 @Composable
 private fun DestructiveActions(
-    onDelete: () -> Unit,
+    onDelete: (() -> Unit)?,
     onExport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -396,7 +398,7 @@ private fun DestructiveActions(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        ShieldraButton(
+        if (onDelete != null) ShieldraButton(
             text = stringResource(R.string.action_delete),
             onClick = onDelete,
             variant = ShieldraButtonVariant.Destructive,

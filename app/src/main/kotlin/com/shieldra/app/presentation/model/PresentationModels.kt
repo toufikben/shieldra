@@ -102,7 +102,12 @@ data class EventDetailUiModel(
     val photoEvidenceId: String? = null,
     val audioEvidenceId: String? = null,
     val locationEvidenceId: String? = null,
+    /** Every evidence payload the event carries (id + stored kind), for export. */
+    val evidenceItems: List<EvidenceItemUi> = emptyList(),
 )
+
+/** One stored evidence payload as the export flow needs it. */
+data class EvidenceItemUi(val id: String, val kind: String)
 
 data class DashboardUiModel(
     val protectionState: ProtectionVisualState,
