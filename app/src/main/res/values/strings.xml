@@ -390,6 +390,11 @@
     <string name="evidence_audio">Audio evidence</string>
     <string name="evidence_play">Play</string>
     <string name="evidence_pause">Pause</string>
+    <string name="history_week_title">Last 7 days</string>
+    <string name="history_week_total">%1$d events</string>
+    <string name="history_today">Today</string>
+    <string name="history_yesterday">Yesterday</string>
+    <string name="history_earlier">Earlier</string>
     <string name="stat_protection">Protection</string>
     <string name="motion_card_on_title">Motion guard is on</string>
     <string name="motion_card_on_hint">Tap to stop — your screen lock is required</string>

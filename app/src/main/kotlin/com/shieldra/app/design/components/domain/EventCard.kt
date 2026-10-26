@@ -1,6 +1,7 @@
 package com.shieldra.app.design.components.domain
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,17 @@ private fun deliveryColor(status: DeliveryStatus): Color = when (status) {
     DeliveryStatus.NotAttempted -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
+/** The accent a row takes from the guard it belongs to, so the list reads at a glance. */
+@Composable
+private fun typeAccent(type: EventType): Color = when (type) {
+    EventType.FailedUnlock, EventType.Panic -> ShieldraTheme.semantic.securityEvent
+    EventType.Motion -> ShieldraTheme.semantic.suspicious
+    EventType.SimChange -> MaterialTheme.colorScheme.tertiary
+    EventType.Battery -> ShieldraTheme.semantic.attention
+    EventType.Countdown -> ShieldraTheme.semantic.protection
+    EventType.Other -> MaterialTheme.colorScheme.primary
+}
+
 /**
  * The chip's sentence comes from the pure decision beside the model, so a recorded
  * event that no delivery ever claimed is worded as "not attempted" instead of the
@@ -76,11 +88,13 @@ fun EventCard(
         deliveryDescription,
     )
 
+    val accent = typeAccent(event.type)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, accent.copy(alpha = 0.22f), shape)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(spacing.l)
             .semantics(mergeDescendants = true) {
@@ -92,13 +106,13 @@ fun EventCard(
             modifier = Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .background(accent.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = event.type.icon(),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = accent,
                 modifier = Modifier.size(22.dp),
             )
         }

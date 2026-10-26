@@ -81,6 +81,8 @@ data class EventUiModel(
     val deliveryStatus: DeliveryStatus,
     val hasPhoto: Boolean,
     val hasLocation: Boolean,
+    /** When the event was recorded (epoch ms); 0 when unknown. Drives the week chart and day groups. */
+    val createdAtEpochMs: Long = 0L,
 )
 
 data class EventDetailUiModel(
