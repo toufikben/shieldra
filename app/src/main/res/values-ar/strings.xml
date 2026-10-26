@@ -386,4 +386,14 @@
     <string name="evidence_audio">تسجيل صوتي</string>
     <string name="evidence_play">تشغيل</string>
     <string name="evidence_pause">إيقاف</string>
+    <string name="export_title">تصدير هذه الأدلّة</string>
+    <string name="export_hint">يُختَم التصدير بعبارة مرور تختارها. احفظها جيّداً — بدونها لا يمكن فتح الملف ولا استرجاعه.</string>
+    <string name="export_passphrase">عبارة المرور (8 أحرف فأكثر)</string>
+    <string name="export_include_location">تضمين الموقع</string>
+    <string name="export_confirm">تصدير</string>
+    <string name="export_auth_title">أكّد أنّك أنت</string>
+    <string name="export_auth_subtitle">تصدير الأدلّة يتطلّب قفل الشاشة.</string>
+    <string name="export_done">حُفظ التصدير المشفّر.</string>
+    <string name="export_failed">تعذّر إكمال التصدير.</string>
+    <string name="export_refused">أُلغي التصدير: لم تتأكّد الهوية.</string>
 </resources>

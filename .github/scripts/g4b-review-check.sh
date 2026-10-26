@@ -179,21 +179,36 @@ pass "evidence export is disabled by default (§5.5)"
 #       existing callback, or name the policy in the same file, so a real exporter can
 #       only arrive as a deliberate change that also changes this gate.
 EGRESS_PATTERN='ACTION_SEND|ACTION_CREATE_DOCUMENT|EXTRA_STREAM|FileProvider|ClipboardManager|CreateDocument|MediaStore|Retrofit|OkHttp|MultipartBody|UploadManager'
-egress_hits="$(grep -rEl "$EGRESS_PATTERN" app/src/main || true)"
+#
+# A-37 (2026-10-26, owner-approved): a real exporter now exists. The egress primitives stay banned
+# everywhere EXCEPT in a file that names EvidenceExportPolicy (the one export flow), and that flow
+# is checked positively below to go through the exporter and the owner check.
+egress_hits=""
+for egress_file in $(grep -rEl "$EGRESS_PATTERN" app/src/main || true); do
+  grep -q 'EvidenceExportPolicy' "$egress_file" || egress_hits="$egress_hits $egress_file"
+done
 [ -z "$egress_hits" ] || fail "F-K3: an evidence-egress path exists outside the export policy:$egress_hits"
-pass "no evidence-egress primitive exists anywhere in the production sources (§5.5, F-K3)"
+pass "no evidence-egress primitive exists outside the policy-named export flow (§5.5, F-K3, A-37)"
+
+EXPORT_FLOW=app/src/main/kotlin/com/shieldra/app/presentation/export/EvidenceExportFlow.kt
+[ -s "$EXPORT_FLOW" ] || fail "A-37: the export flow file is missing"
+grep -q 'EvidenceExporter(' "$EXPORT_FLOW" || fail "A-37: the export flow must run through EvidenceExporter"
+grep -q 'OwnerCheck.request' "$EXPORT_FLOW" || fail "A-37: the export flow must confirm the owner first (AUTHENTICATION gate)"
+grep -q 'EvidenceExportPolicy' "$EXPORT_FLOW" || fail "A-37: the export flow must name EvidenceExportPolicy"
+grep -q 'explicitAction = true' "$EXPORT_FLOW" || fail "A-37: the export flow must pass an explicit user action"
+pass "the export flow goes through the exporter, the policy and the owner check (A-37)"
 
 export_wiring="$(grep -rn 'onExport = ' app/src/main/kotlin || true)"
 if [ -n "$export_wiring" ]; then
   while IFS= read -r hit; do
     wiring_file="${hit%%:*}"
     wiring_text="${hit#*:}"
-    grep -qE 'defer\(|EvidenceExportPolicy|callbacks\.onExport|= onExport' <<<"$wiring_text" && continue
+    grep -qE 'defer\(|EvidenceExportPolicy|callbacks\.onExport|= onExport|exportFlow\.begin' <<<"$wiring_text" && continue
     grep -q 'EvidenceExportPolicy' "$wiring_file" \
       || fail "F-K3: an export affordance is wired without the policy: $hit"
   done <<< "$export_wiring"
 fi
-pass "the export affordance is wired only through the deferred path or the policy (F-K3)"
+pass "the export affordance is wired only through the deferred path or the A-37 export flow (F-K3)"
 
 # §6 security failure semantics
 SEMANTICS=app/src/main/kotlin/com/shieldra/storage/SecurityFailureSemantics.kt

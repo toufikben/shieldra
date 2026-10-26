@@ -147,6 +147,17 @@ fun ShieldraNavHost(
     // Real local notifications (A-6). The permission is requested only from the
     // notification setup screen; a Panic press never triggers a request.
     val context = LocalContext.current
+    // §5.5 / A-37: the one real evidence exporter. Every export is owner-confirmed, passphrase-sealed
+    // and audited; the flow itself names the policy (see presentation/export).
+    val exportAudit = remember(context) {
+        com.shieldra.storage.ExportAuditLog(java.io.File(context.filesDir, "export_audit.log"))
+    }
+    val exportFlow = com.shieldra.app.presentation.export.rememberEvidenceExportFlow(
+        readEvidence = { id -> runCatching { installedStorage?.evidenceFiles?.read(id) }.getOrNull() },
+        auditLog = exportAudit,
+        activity = context.findFragmentActivity(),
+        onMessage = { message -> scope.launch { snackbarHostState.showSnackbar(message) } },
+    )
     val notifier = remember(context) { LocalEventNotifier(context) }
     var lastPostResult by remember { mutableStateOf<LocalPostResult?>(null) }
     // Bumped when the system dialog has been answered, so the screen re-reads the
@@ -679,8 +690,9 @@ fun ShieldraNavHost(
                                 Unit
                             },
                             onDelete = { defer() },
-                            onExport = { defer() },
+                            onExport = { exportFlow.begin(detail) },
                         ),
+                        exportAvailable = installedStorage != null && detail.evidenceItems.isNotEmpty(),
                         loadEvidence = { id ->
                             withContext(Dispatchers.IO) {
                                 runCatching { installedStorage?.evidenceFiles?.read(id) }.getOrNull()

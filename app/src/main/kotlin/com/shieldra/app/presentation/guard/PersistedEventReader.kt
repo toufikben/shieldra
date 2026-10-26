@@ -79,6 +79,7 @@ class PersistedEventReader(
         photoEvidenceId = evidenceReferences.firstOrNull { it.kind.contains("PHOTO", ignoreCase = true) }?.id,
         audioEvidenceId = evidenceReferences.firstOrNull { it.kind.equals("AUDIO", ignoreCase = true) }?.id,
         locationEvidenceId = evidenceReferences.firstOrNull { it.kind.equals("LOCATION", ignoreCase = true) }?.id,
+        evidenceItems = evidenceReferences.map { com.shieldra.app.presentation.model.EvidenceItemUi(it.id, it.kind) },
     )
 
     private companion object {

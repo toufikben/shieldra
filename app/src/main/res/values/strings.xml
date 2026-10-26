@@ -387,4 +387,14 @@
     <string name="evidence_audio">Audio evidence</string>
     <string name="evidence_play">Play</string>
     <string name="evidence_pause">Pause</string>
+    <string name="export_title">Export this evidence</string>
+    <string name="export_hint">The export is sealed with a passphrase you choose. Keep it safe — without it the file cannot be opened, and it cannot be recovered.</string>
+    <string name="export_passphrase">Passphrase (8+ characters)</string>
+    <string name="export_include_location">Include location</string>
+    <string name="export_confirm">Export</string>
+    <string name="export_auth_title">Confirm it\'s you</string>
+    <string name="export_auth_subtitle">Exporting evidence needs your screen lock.</string>
+    <string name="export_done">Encrypted export saved.</string>
+    <string name="export_failed">The export could not be completed.</string>
+    <string name="export_refused">Export cancelled: identity not confirmed.</string>
 </resources>
