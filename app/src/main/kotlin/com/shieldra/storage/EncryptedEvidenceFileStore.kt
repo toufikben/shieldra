@@ -160,6 +160,13 @@ class EncryptedEvidenceFileStore(
             )
         }
 
+    /** Total size on disk of the stored (encrypted) evidence payloads, for the Storage screen. */
+    fun payloadBytes(): Long = rootDirectory
+        .listFiles()
+        .orEmpty()
+        .filter { Files.isRegularFile(it.toPath(), NOFOLLOW_LINKS) && it.name.endsWith(FILE_SUFFIX) }
+        .sumOf { it.length() }
+
     fun orphanedEvidence(referencedIds: Set<String>): Set<String> = rootDirectory
         .listFiles()
         .orEmpty()

@@ -17,6 +17,11 @@ object ShieldraRoutes {
     const val ALERT_CHANNELS = "main/settings/alerts"
     /** Protection setup (amendments A-33/A-34): arm the guards and tune them. */
     const val PROTECTION_SETUP = "main/settings/protection"
+    /** Read-only information pages behind the Settings rows: real figures, the retention policy, about, help. */
+    const val STORAGE_INFO = "main/settings/storage"
+    const val RETENTION_INFO = "main/settings/retention"
+    const val ABOUT_INFO = "main/settings/about"
+    const val HELP_INFO = "main/settings/help"
     /** Read-only protection health check: what is really protecting the phone now. */
     const val HEALTH_CHECK = "main/health"
 

@@ -20,6 +20,15 @@ class LocalShieldraStorage private constructor(
     private val rotation: EvidenceRotationOrchestrator,
     private val retention: EvidenceRetentionSweeper,
 ) : AutoCloseable {
+    /** What this phone really holds right now: measured, never estimated (Storage screen). */
+    data class Figures(val eventRows: Int, val evidenceFiles: Int, val evidenceBytes: Long)
+
+    fun figures(): Figures = Figures(
+        eventRows = database.securityEventDao().count(),
+        evidenceFiles = evidenceFiles.evidenceAges().size,
+        evidenceBytes = evidenceFiles.payloadBytes(),
+    )
+
     fun reconcileEvidence(): EvidenceReconciliationReport =
         evidenceFiles.reconcile(database.evidenceReferenceDao().findAll().map { it.evidenceId }.toSet())
 

@@ -60,6 +60,10 @@ import com.shieldra.app.presentation.guard.ageQuantityRes
 import com.shieldra.app.presentation.guard.eventStateLabelRes
 import com.shieldra.app.presentation.guard.lockGuardDashboard
 import com.shieldra.app.presentation.model.EventUiModel
+import com.shieldra.app.presentation.settings.ChoiceDialog
+import com.shieldra.app.settings.AppLanguage
+import com.shieldra.app.settings.AppSettings
+import com.shieldra.app.settings.ThemeMode
 import com.shieldra.app.presentation.model.NetworkStatus
 import kotlinx.coroutines.delay
 import com.shieldra.app.presentation.model.EventDetailUiModel
@@ -88,6 +92,11 @@ import com.shieldra.app.presentation.settings.honestSettingsRows
 import com.shieldra.app.presentation.screen.settings.SettingsCallbacks
 import com.shieldra.app.presentation.screen.settings.SettingsScreen
 import com.shieldra.app.presentation.screen.settings.NotificationSetupScreen
+import com.shieldra.app.presentation.screen.settings.AboutScreen
+import com.shieldra.app.presentation.screen.settings.HelpScreen
+import com.shieldra.app.presentation.screen.settings.RetentionScreen
+import com.shieldra.app.presentation.screen.settings.StorageScreen
+import com.shieldra.storage.LocalShieldraStorage
 import com.shieldra.app.presentation.screen.settings.ProtectionSetupScreen as ProtectionGuardsScreen
 import com.shieldra.app.presentation.screen.settings.ProtectionPermissions
 import com.shieldra.protection.ProtectionRuntime
@@ -196,6 +205,45 @@ fun ShieldraNavHost(
             .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName)
         runCatching { context.startActivity(intent) }
         Unit
+    }
+    // The owner's own choices (theme, language, app lock) and the dialog that edits them.
+    val themeMode by AppSettings.theme.collectAsState()
+    var language by remember { mutableStateOf(AppSettings.language(context)) }
+    var appLockOn by remember { mutableStateOf(AppSettings.appLockEnabled(context)) }
+    var settingsDialog by remember { mutableStateOf<SettingsDialog?>(null) }
+    when (settingsDialog) {
+        SettingsDialog.Theme -> ChoiceDialog(
+            title = stringResource(R.string.settings_theme),
+            options = listOf(
+                ThemeMode.SYSTEM to stringResource(R.string.settings_match_system),
+                ThemeMode.LIGHT to stringResource(R.string.theme_light),
+                ThemeMode.DARK to stringResource(R.string.theme_dark),
+            ),
+            selected = themeMode,
+            onSelect = {
+                AppSettings.setTheme(context, it)
+                settingsDialog = null
+            },
+            onDismiss = { settingsDialog = null },
+        )
+        SettingsDialog.Language -> ChoiceDialog(
+            title = stringResource(R.string.settings_language),
+            options = listOf(
+                AppLanguage.SYSTEM to stringResource(R.string.settings_match_system),
+                AppLanguage.ENGLISH to stringResource(R.string.language_english),
+                AppLanguage.ARABIC to stringResource(R.string.language_arabic),
+            ),
+            selected = language,
+            onSelect = {
+                AppSettings.setLanguage(context, it)
+                language = it
+                settingsDialog = null
+                // The activity's resources are rebuilt in the chosen language.
+                context.findFragmentActivity()?.recreate()
+            },
+            onDismiss = { settingsDialog = null },
+        )
+        null -> Unit
     }
     val monitoringStoppedMessage = stringResource(R.string.motion_monitoring_stopped)
     val monitoringNeedsPermissionMessage = stringResource(R.string.motion_monitoring_needs_permission)
@@ -538,14 +586,17 @@ fun ShieldraNavHost(
                         notificationState = remember(permissionRequests) { notifier.permissionState() },
                         alertChannelsActive = deliverySettings?.activeChannels()?.isNotEmpty() == true,
                         protectionArmed = protectionArmed,
+                        themeMode = themeMode,
+                        language = language,
+                        appLockEnabled = appLockOn,
                     ),
                     callbacks = SettingsCallbacks { id, _ ->
                         when (SettingsContent.targetOf(id)) {
-                            // The A-6 setup screen.
+                            // The A-6 setup screen (first-run only now; Settings merges it into alerts).
                             SettingsRowTarget.NotificationSetup ->
                                 navController.navigate(ShieldraRoutes.NOTIFICATION_SETUP)
 
-                            // A-32: where alerts leave the phone.
+                            // A-32: where alerts leave the phone (with the notification permission).
                             SettingsRowTarget.AlertChannels ->
                                 navController.navigate(ShieldraRoutes.ALERT_CHANNELS)
 
@@ -553,11 +604,62 @@ fun ShieldraNavHost(
                             SettingsRowTarget.ProtectionSetup ->
                                 navController.navigate(ShieldraRoutes.PROTECTION_SETUP)
 
+                            SettingsRowTarget.Health -> navController.navigate(ShieldraRoutes.HEALTH_CHECK)
+
+                            // Safe zones live on the Map tab: go there like any bottom-bar destination.
+                            SettingsRowTarget.SafeZones -> navController.navigate(ShieldraRoutes.MAP) {
+                                popUpTo(ShieldraRoutes.DASHBOARD) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+
+                            SettingsRowTarget.Theme -> settingsDialog = SettingsDialog.Theme
+                            SettingsRowTarget.Language -> settingsDialog = SettingsDialog.Language
+
+                            SettingsRowTarget.Storage -> navController.navigate(ShieldraRoutes.STORAGE_INFO)
+                            SettingsRowTarget.Retention -> navController.navigate(ShieldraRoutes.RETENTION_INFO)
+                            SettingsRowTarget.About -> navController.navigate(ShieldraRoutes.ABOUT_INFO)
+                            SettingsRowTarget.Help -> navController.navigate(ShieldraRoutes.HELP_INFO)
+
+                            SettingsRowTarget.AppLock,
                             SettingsRowTarget.NotAvailable -> defer()
                         }
                     },
                 )
             }
+
+            composable(ShieldraRoutes.STORAGE_INFO) {
+                val figures by produceState<LocalShieldraStorage.Figures?>(initialValue = null, installedStorage) {
+                    value = withContext(Dispatchers.IO) { runCatching { installedStorage?.figures() }.getOrNull() }
+                }
+                StorageScreen(
+                    figures = figures,
+                    storageInstalled = storageInstalled,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(ShieldraRoutes.RETENTION_INFO) {
+                var report by remember { mutableStateOf(installedStorage?.lastRetentionReport) }
+                var running by remember { mutableStateOf(false) }
+                RetentionScreen(
+                    storageInstalled = storageInstalled,
+                    lastReport = report,
+                    running = running,
+                    onRunNow = {
+                        scope.launch {
+                            running = true
+                            val fresh = withContext(Dispatchers.IO) {
+                                runCatching { installedStorage?.sweepExpiredEvidence() }.getOrNull()
+                            }
+                            if (fresh != null) report = fresh
+                            running = false
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(ShieldraRoutes.ABOUT_INFO) { AboutScreen(onBack = { navController.popBackStack() }) }
+            composable(ShieldraRoutes.HELP_INFO) { HelpScreen(onBack = { navController.popBackStack() }) }
 
             composable(ShieldraRoutes.ALERT_CHANNELS) {
                 val saved = deliverySettings
@@ -590,6 +692,11 @@ fun ShieldraNavHost(
                             }
                         },
                         onBack = { navController.popBackStack() },
+                        notificationState = remember(permissionRequests) { notifier.permissionState() },
+                        onRequestNotifications = {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        },
+                        onOpenNotificationSettings = openNotificationSettings,
                     )
                 }
             }
@@ -859,3 +966,6 @@ private fun scoreFor(checks: HealthChecks, settings: ProtectionSettings): Int = 
         anyChannelActive = checks.channel,
     ),
 )
+
+/** Which small Settings editor is open. */
+private enum class SettingsDialog { Theme, Language }

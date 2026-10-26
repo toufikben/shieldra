@@ -7,6 +7,9 @@ import androidx.room.Query
 
 @Dao
 interface SecurityEventDao {
+    @Query("SELECT COUNT(*) FROM security_events")
+    fun count(): Int
+
     @Query("SELECT * FROM security_events WHERE event_id = :eventId LIMIT 1")
     fun find(eventId: String): SecurityEventEntity?
 
