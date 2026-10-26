@@ -213,7 +213,7 @@
     <string name="charging">جارٍ الشحن</string>
     <string name="not_charging">غير متصل بالشحن</string>
     <string name="phase3_deferred">هذه الميزة غير متاحة بعد.</string>
-    <string name="dashboard_events_disclosure">تُسجَّل الأحداث الأمنية وتُحفظ على هذا الهاتف. لا توجد مراقبة مستمرة تعمل بعد.</string>
+    <string name="dashboard_events_disclosure">تُسجَّل الأحداث الأمنية وتُحفظ على هذا الهاتف. مراقبة الحركة متوقفة حتى تبدأها.</string>
     <string name="dashboard_motion_disclosure">تُسجَّل الأحداث الأمنية وتُحفظ على هذا الهاتف. مراقبة الحركة تعمل الآن.</string>
     <string name="dashboard_no_storage_disclosure">لا شيء محفوظ على هذا الهاتف بعد. لا توجد مراقبة مستمرة تعمل.</string>
     <string name="action_get_started">ابدأ الآن</string>
@@ -267,6 +267,9 @@
     <string name="protection_disabled_accessibility">الحماية معطلة</string>
     <string name="last_check_seconds">آخر تحقق: منذ %1$d ث</string>
     <string name="last_check_none">لا يوجد فحص بعد</string>
+    <string name="ago_seconds">منذ %1$d ث</string>
+    <string name="ago_minutes">منذ %1$d د</string>
+    <string name="ago_hours">منذ %1$d س</string>
     <string name="last_check_minutes">آخر تحقق: منذ %1$d د</string>
     <string name="last_check_hours">آخر تحقق: منذ %1$d س</string>
     <string name="seconds_ago">منذ %1$d ث</string>

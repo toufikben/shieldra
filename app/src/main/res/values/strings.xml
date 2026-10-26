@@ -213,7 +213,7 @@
     <string name="charging">Charging</string>
     <string name="not_charging">Not charging</string>
     <string name="phase3_deferred">This feature is not available yet.</string>
-    <string name="dashboard_events_disclosure">Security events are recorded and stored on this phone. No continuous monitoring is running yet.</string>
+    <string name="dashboard_events_disclosure">Security events are recorded and stored on this phone. Motion monitoring is off until you start it.</string>
     <string name="dashboard_motion_disclosure">Security events are recorded and stored on this phone. Motion monitoring is running.</string>
     <string name="dashboard_no_storage_disclosure">Nothing is stored on this phone yet. No continuous monitoring is running.</string>
     <string name="action_get_started">Get started</string>
@@ -267,6 +267,9 @@
     <string name="protection_disabled_accessibility">Protection disabled</string>
     <string name="last_check_seconds">Last check: %1$ds ago</string>
     <string name="last_check_none">No check yet</string>
+    <string name="ago_seconds">%1$ds ago</string>
+    <string name="ago_minutes">%1$dm ago</string>
+    <string name="ago_hours">%1$dh ago</string>
     <string name="last_check_minutes">Last check: %1$dm ago</string>
     <string name="last_check_hours">Last check: %1$dh ago</string>
     <string name="seconds_ago">%1$ds ago</string>
