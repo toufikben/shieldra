@@ -113,6 +113,13 @@ class ProtectionSettingsStore(context: Context) {
         prefs.edit().putBoolean(KEY_ARMED, armed).apply()
     }
 
+    /** When a protection guard last really ran a check (A-38); 0 means never. */
+    fun lastCheckEpochMs(): Long = prefs.getLong(KEY_LAST_CHECK, 0L)
+
+    fun markCheck(nowMs: Long = System.currentTimeMillis()) {
+        prefs.edit().putLong(KEY_LAST_CHECK, nowMs).apply()
+    }
+
     /** The owner's safe zones (A-36); leaving them all while armed alerts. */
     fun safeZones(): List<SafeZone> =
         prefs.getStringSet(KEY_SAFE_ZONES, emptySet()).orEmpty().mapNotNull(::decodeZone)
@@ -186,6 +193,7 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_GEOFENCE = "geofence_enabled"
         const val KEY_GEOFENCE_INTERVAL = "geofence_interval_minutes"
         const val KEY_SAFE_ZONES = "safe_zones"
+        const val KEY_LAST_CHECK = "last_check_epoch_ms"
         const val KEY_OWNER_CONTACT = "owner_contact"
         const val KEY_LOST_MESSAGE = "lost_message"
         const val KEY_TIER = "tier"

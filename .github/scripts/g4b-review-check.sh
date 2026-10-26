@@ -567,7 +567,9 @@ done
 grep -q 'fun lastCheckSeconds(state: LockGuardState): Long? = null' \
   app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDecision.kt \
   || fail "the guard decision must report that no check has ever run"
-grep -q 'lastCheckSeconds = LockGuardDecision.lastCheckSeconds(state)' \
+# A-38: a real guard-pass stamp may supply the value; with none, the honest fallback (no check has
+# ever run) is still LockGuardDecision's, so the dashboard can never invent a time.
+grep -q 'lastCheckSeconds = measuredLastCheckSeconds ?: LockGuardDecision.lastCheckSeconds(state)' \
   app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDashboardFactory.kt \
   || fail "the dashboard is inventing a last-check time again"
 pass "no screen claims a check or a guard that does not exist"
@@ -962,8 +964,11 @@ fi
 grep -q 'NetworkStatus.Offline -> R.string.status_network_offline' \
   app/src/main/kotlin/com/shieldra/app/presentation/guard/HonestWording.kt \
   || fail "the offline label is no longer the only non-null branch of the network seam (F-K7)"
-grep -q 'networkStatus = NetworkStatus.Unknown' app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDashboardFactory.kt \
-  || fail "the dashboard stopped declaring its network state as unmeasured (F-K7)"
+# A-38 (2026-10-26, owner-approved): the dashboard now shows the phone's own measured battery, link
+# and last-check. The honest default stays: a caller with no reading renders "not measured", and
+# nothing can reach the Offline wording except a reading that measured it.
+grep -q 'networkStatus: NetworkStatus = NetworkStatus.Unknown' app/src/main/kotlin/com/shieldra/app/presentation/guard/LockGuardDashboardFactory.kt \
+  || fail "the dashboard factory no longer defaults its network state to unmeasured (F-K7, A-38)"
 # (ج) F-K11/Q-K-4: an age is a count, so it is a quantity resource in both locales, never a fixed
 #     sentence that a number has to decline itself.
 for locale_dir in values values-ar; do

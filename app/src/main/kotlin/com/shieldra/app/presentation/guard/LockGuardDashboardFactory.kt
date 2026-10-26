@@ -35,6 +35,13 @@ fun lockGuardDashboard(
     lockOn: Boolean = false,
     simOn: Boolean = false,
     batteryOn: Boolean = false,
+    // A-38: the phone's own readings. Each defaults to "not measured", so a caller that has no reading
+    // still renders the honest unmeasured state; only a real reading can replace it.
+    batteryPercent: Int? = null,
+    networkStatus: NetworkStatus = NetworkStatus.Unknown,
+    networkLabel: String? = null,
+    measuredLastCheckSeconds: Long? = null,
+    protectionScore: Int? = null,
 ): DashboardUiModel {
     val statuses = LockGuardDecision.guardStatuses(state)
     val inactiveSubtitle = stringResource(R.string.guard_subtitle_inactive)
@@ -68,14 +75,15 @@ fun lockGuardDashboard(
         if (protectionArmed) ProtectionVisualState.Protected else LockGuardDecision.protectionState(state)
     return DashboardUiModel(
         protectionState = protectionState,
-        lastCheckSeconds = LockGuardDecision.lastCheckSeconds(state),
+        lastCheckSeconds = measuredLastCheckSeconds ?: LockGuardDecision.lastCheckSeconds(state),
         guards = guards,
         recentEvents = recentEvents,
-        batteryPercent = null,
-        networkLabel = stringResource(R.string.status_network_unknown),
-        networkStatus = NetworkStatus.Unknown,
+        batteryPercent = batteryPercent,
+        networkLabel = networkLabel ?: stringResource(R.string.status_network_unknown),
+        networkStatus = networkStatus,
         showAds = false,
         storageInstalled = state == LockGuardState.StorageIdle,
+        protectionScore = protectionScore,
     )
 }
 

@@ -311,6 +311,9 @@
     <string name="guard_subtitle_motion_active">Motion monitoring is active</string>
     <string name="event_security_event">Security event</string>
     <string name="status_network_unknown">Not measured</string>
+    <string name="status_network_wifi">Wi-Fi</string>
+    <string name="status_network_cellular">Mobile data</string>
+    <string name="status_network_other">Online</string>
 
     <string name="location_source_gps">GPS</string>
     <string name="location_source_fused">Fused</string>
@@ -387,6 +390,11 @@
     <string name="evidence_audio">Audio evidence</string>
     <string name="evidence_play">Play</string>
     <string name="evidence_pause">Pause</string>
+    <string name="stat_protection">Protection</string>
+    <string name="motion_card_on_title">Motion guard is on</string>
+    <string name="motion_card_on_hint">Tap to stop — your screen lock is required</string>
+    <string name="motion_card_off_title">Start motion guard</string>
+    <string name="motion_card_off_hint">Get alerted the moment this phone is moved</string>
     <string name="export_title">Export this evidence</string>
     <string name="export_hint">The export is sealed with a passphrase you choose. Keep it safe — without it the file cannot be opened, and it cannot be recovered.</string>
     <string name="export_passphrase">Passphrase (8+ characters)</string>

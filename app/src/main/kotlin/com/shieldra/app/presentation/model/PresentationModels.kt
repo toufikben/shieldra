@@ -122,6 +122,8 @@ data class DashboardUiModel(
     val showAds: Boolean,
     /** Whether this process really opened local storage; decides the disclosure line. */
     val storageInstalled: Boolean = false,
+    /** The honest 0-100 protection score, computed from real state; null when not computed. */
+    val protectionScore: Int? = null,
 )
 
 enum class HistoryTypeFilter { All, Lock, Motion, Sim, Panic, Battery }
