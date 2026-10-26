@@ -23,8 +23,10 @@ android {
         applicationId = "com.shieldra.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // Google Play rejects a repeated versionCode, so CI builds take the workflow run number (always
+        // rising); a local build falls back to 2.
+        versionCode = maxOf(2, System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 2)
+        versionName = "0.2.0"
     }
 
     signingConfigs {
