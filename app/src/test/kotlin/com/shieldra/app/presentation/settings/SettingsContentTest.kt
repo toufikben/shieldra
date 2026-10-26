@@ -15,26 +15,35 @@ import kotlin.test.assertTrue
  */
 class SettingsContentTest {
 
-    // F7.9 — no Settings row may imply a delivery channel that does not exist.
+    // F7.9 — no Settings row may imply a delivery channel that does not exist. Notifications are
+    // folded into the alerts row (one place for where alerts leave and whether the phone may show its
+    // own), so the alerts row stands in for the old standalone notification entry.
     @Test
     fun the_settings_rows_have_a_notification_entry_and_no_delivery_entry() {
         val ids = SettingsContent.rowIds()
 
-        assertTrue(SettingsContent.NOTIFICATION_ROW_ID in ids)
+        assertTrue(SettingsContent.ALERT_CHANNELS_ROW_ID in ids)
+        assertFalse(SettingsContent.NOTIFICATION_ROW_ID in ids, "notifications are merged into the alerts row")
         assertFalse("delivery" in ids)
     }
 
     @Test
-    fun the_notification_row_is_the_one_that_opens_the_real_permission_screen() {
+    fun the_alerts_row_opens_the_screen_that_holds_channels_and_the_notification_permission() {
         assertEquals(
-            SettingsRowTarget.NotificationSetup,
-            SettingsContent.targetOf(SettingsContent.NOTIFICATION_ROW_ID),
+            SettingsRowTarget.AlertChannels,
+            SettingsContent.targetOf(SettingsContent.ALERT_CHANNELS_ROW_ID),
         )
     }
 
     @Test
-    fun a_row_that_does_nothing_yet_is_declared_dead_instead_of_promising_a_screen() {
-        assertEquals(SettingsRowTarget.NotAvailable, SettingsContent.targetOf("retention"))
+    fun every_row_has_a_real_destination_and_only_an_unknown_id_is_dead() {
+        SettingsContent.rowIds().forEach { id ->
+            assertNotEquals(
+                SettingsRowTarget.NotAvailable,
+                SettingsContent.targetOf(id),
+                "the row '$id' must open something real, not a deferred stub",
+            )
+        }
         assertEquals(SettingsRowTarget.NotAvailable, SettingsContent.targetOf("unknown_row"))
     }
 
@@ -121,14 +130,15 @@ class SettingsContentTest {
         )
         assertEquals(
             listOf(
-                "notifications",
-                "alert_channels",
                 "protection",
+                "alert_channels",
+                "health",
+                "safe_zones",
+                "storage",
+                "retention",
                 "app_lock",
                 "theme",
                 "language",
-                "storage",
-                "retention",
                 "about",
                 "help",
             ),

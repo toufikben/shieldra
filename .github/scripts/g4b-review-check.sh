@@ -950,8 +950,16 @@ BANNED_CLAIMS="$(grep -RInE 'Policy pending|قيد التحديد|Require authen
 #     interface: EvidenceKeyPolicy is the one that says no authentication is required (A-26).
 grep -Eq 'requireUserAuthentication = false' app/src/main/kotlin/com/shieldra/storage/EvidenceKeyPolicy.kt \
   || fail "EvidenceKeyPolicy no longer states requireUserAuthentication = false; the app-lock wording was written against this fact (A-26)"
-grep -q '<string name="settings_app_lock_not_enforced">Not enforced in this build</string>' "$STRINGS_EN" \
-  || fail "the app-lock row no longer says the interface truth: no lock is enforced in this build (F-K9)"
+# A-39 (2026-10-27, owner-approved): the app lock is real now, so the old "Not enforced in this build"
+# sentence is gone. What stays true, and is still pinned, is the SCOPE: the lock is a screen-lock gate in
+# front of the app, and the evidence keys are not tied to it (EvidenceKeyPolicy above).
+if ! grep -q 'name="settings_app_lock_scope"' "$STRINGS_EN" \
+  || ! grep -q 'Evidence encryption keys are not tied to it' "$STRINGS_EN"; then
+  fail "the app-lock scope note must keep saying the evidence keys are not tied to the lock (F-K9, A-39)"
+fi
+if grep -q 'settings_app_lock_not_enforced' "$STRINGS_EN" "$STRINGS_AR"; then
+  fail "the withdrawn not-enforced app-lock wording is back although the lock is enforced (A-39)"
+fi
 # (ب) F-K7: "Offline" is a measurement, so it is reachable only from the state that measured it.
 if grep -rn 'networkOk' app/src/main/kotlin app/src/test app/src/androidTest --include='*.kt'; then
   fail "a boolean network field is back; an unmeasured state must not collapse into the offline claim (F-K7)"

@@ -37,6 +37,7 @@ import com.shieldra.app.design.components.foundation.ShieldraSwitch
 import com.shieldra.app.design.components.foundation.ShieldraTextField
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.design.tokens.ShieldraCardShape
+import com.shieldra.notification.NotificationPermissionState
 import com.shieldra.delivery.ChannelResult
 import com.shieldra.delivery.DeliverySettings
 import com.shieldra.delivery.EmailConfig
@@ -56,6 +57,10 @@ fun AlertChannelsScreen(
     onTest: suspend (DeliverySettings, testTelegram: Boolean) -> ChannelResult,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The local-notification permission, shown in the same place as the channels (merged row). */
+    notificationState: NotificationPermissionState = NotificationPermissionState.NotRequired,
+    onRequestNotifications: () -> Unit = {},
+    onOpenNotificationSettings: () -> Unit = {},
 ) {
     val spacing = ShieldraTheme.spacing
     val scope = rememberCoroutineScope()
@@ -142,6 +147,12 @@ fun AlertChannelsScreen(
             text = stringResource(R.string.alert_channels_intro),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        NotificationPermissionCard(
+            state = notificationState,
+            onRequest = onRequestNotifications,
+            onOpenSettings = onOpenNotificationSettings,
         )
 
         ChannelCard(
@@ -288,6 +299,60 @@ private fun HelpBlock(title: String, body: String) {
     ) {
         Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
         Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * The local-notification permission, folded into the alerts screen: the same place the owner sets
+ * where alerts leave the phone also says whether the phone may show its own. The state is read from
+ * the platform; the one button is the only action Android allows for that state.
+ */
+@Composable
+private fun NotificationPermissionCard(
+    state: NotificationPermissionState,
+    onRequest: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    val spacing = ShieldraTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(ShieldraCardShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(spacing.l),
+        verticalArrangement = Arrangement.spacedBy(spacing.s),
+    ) {
+        Text(
+            text = stringResource(R.string.notifications),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stringResource(
+                when (state) {
+                    NotificationPermissionState.NotRequired -> R.string.notification_permission_not_required
+                    NotificationPermissionState.NotRequested -> R.string.notification_permission_not_requested
+                    NotificationPermissionState.Granted -> R.string.notification_permission_allowed
+                    NotificationPermissionState.Denied -> R.string.notification_permission_denied
+                },
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        when (state) {
+            NotificationPermissionState.NotRequested -> ShieldraFullWidthButton(
+                text = stringResource(R.string.notification_turn_on),
+                onClick = onRequest,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // Android stops asking after a refusal; the app's own system settings page is the only way.
+            NotificationPermissionState.Denied -> ShieldraFullWidthButton(
+                text = stringResource(R.string.notification_open_settings),
+                onClick = onOpenSettings,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            NotificationPermissionState.Granted, NotificationPermissionState.NotRequired -> Unit
+        }
     }
 }
 

@@ -9,7 +9,9 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Timer
@@ -46,4 +48,6 @@ fun SettingsIcon.icon(): ImageVector = when (this) {
     SettingsIcon.Retention -> Icons.Filled.DeleteOutline
     SettingsIcon.Info -> Icons.Filled.Info
     SettingsIcon.Help -> Icons.AutoMirrored.Filled.HelpOutline
+    SettingsIcon.Health -> Icons.Filled.Shield
+    SettingsIcon.Zones -> Icons.Filled.LocationOn
 }

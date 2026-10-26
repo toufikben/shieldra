@@ -4,6 +4,8 @@ import androidx.annotation.StringRes
 import com.shieldra.app.R
 import com.shieldra.app.presentation.model.SettingsIcon
 import com.shieldra.app.presentation.model.SettingsSection
+import com.shieldra.app.settings.AppLanguage
+import com.shieldra.app.settings.ThemeMode
 import com.shieldra.notification.NotificationPermissionState
 
 /**
@@ -17,7 +19,9 @@ enum class SettingsSubtitleKind {
     NotificationState,
     AlertChannelsState,
     ProtectionState,
-    AppLockNotEnforced,
+    AppLockState,
+    ThemeValue,
+    LanguageValue,
     MatchSystem,
     StorageState,
     RetentionWindows,
@@ -45,6 +49,15 @@ enum class SettingsRowTarget {
     NotificationSetup,
     AlertChannels,
     ProtectionSetup,
+    Health,
+    SafeZones,
+    AppLock,
+    Theme,
+    Language,
+    Storage,
+    Retention,
+    About,
+    Help,
     NotAvailable,
 }
 
@@ -102,63 +115,74 @@ object SettingsContent {
      * build and a setting that offers a guard the owner cannot enable is a claim, not a setting.
      */
     val rows: List<SettingsRowSpec> = listOf(
-        SettingsRowSpec(
-            NOTIFICATION_ROW_ID,
-            R.string.notifications,
-            SettingsIcon.Notifications,
-            SettingsSection.Notifications,
-            subtitle = SettingsSubtitleKind.NotificationState,
-        ),
-        SettingsRowSpec(
-            ALERT_CHANNELS_ROW_ID,
-            R.string.settings_alert_channels,
-            SettingsIcon.Notifications,
-            SettingsSection.Notifications,
-            subtitle = SettingsSubtitleKind.AlertChannelsState,
-        ),
+        // Protection & alerts: arm the guards, set where alerts leave (with the notification
+        // permission in the same place), read what is really protecting the phone, mark safe zones.
         SettingsRowSpec(
             PROTECTION_ROW_ID,
             R.string.protection_title,
             SettingsIcon.Lock,
-            SettingsSection.SecurityApp,
+            SettingsSection.Notifications,
             subtitle = SettingsSubtitleKind.ProtectionState,
         ),
         SettingsRowSpec(
-            "app_lock",
-            R.string.settings_app_lock,
-            SettingsIcon.Lock,
-            SettingsSection.SecurityApp,
-            // F-K9: the row used to read "Require authentication" above a key policy that requires
-            // none (EvidenceKeyPolicy.requireUserAuthentication = false), and the flag rendered
-            // nothing. The interface now says what the policy does, and no row claims a gate it
-            // does not enforce (Q-K-4, A-26).
-            subtitle = SettingsSubtitleKind.AppLockNotEnforced,
+            ALERT_CHANNELS_ROW_ID,
+            R.string.settings_alerts_and_notifications,
+            SettingsIcon.Notifications,
+            SettingsSection.Notifications,
+            subtitle = SettingsSubtitleKind.AlertChannelsState,
         ),
+        SettingsRowSpec(HEALTH_ROW_ID, R.string.health_title, SettingsIcon.Health, SettingsSection.Notifications),
+        SettingsRowSpec(SAFE_ZONES_ROW_ID, R.string.safe_zones_title, SettingsIcon.Zones, SettingsSection.Notifications),
+        // Data & privacy: what is stored, for how long.
         SettingsRowSpec(
-            "theme",
-            R.string.settings_theme,
-            SettingsIcon.Theme,
-            SettingsSection.Appearance,
-            subtitle = SettingsSubtitleKind.MatchSystem,
-        ),
-        SettingsRowSpec("language", R.string.settings_language, SettingsIcon.Language, SettingsSection.Appearance),
-        SettingsRowSpec(
-            "storage",
+            STORAGE_ROW_ID,
             R.string.settings_storage,
             SettingsIcon.Storage,
             SettingsSection.PrivacyData,
             subtitle = SettingsSubtitleKind.StorageState,
         ),
         SettingsRowSpec(
-            "retention",
+            RETENTION_ROW_ID,
             R.string.settings_retention,
             SettingsIcon.Retention,
             SettingsSection.PrivacyData,
             subtitle = SettingsSubtitleKind.RetentionWindows,
         ),
-        SettingsRowSpec("about", R.string.settings_about_shieldra, SettingsIcon.Info, SettingsSection.About),
-        SettingsRowSpec("help", R.string.settings_help, SettingsIcon.Help, SettingsSection.About),
+        // Security: the owner's screen lock in front of the app (A-39).
+        SettingsRowSpec(
+            APP_LOCK_ROW_ID,
+            R.string.settings_app_lock,
+            SettingsIcon.Lock,
+            SettingsSection.SecurityApp,
+            subtitle = SettingsSubtitleKind.AppLockState,
+        ),
+        SettingsRowSpec(
+            THEME_ROW_ID,
+            R.string.settings_theme,
+            SettingsIcon.Theme,
+            SettingsSection.Appearance,
+            subtitle = SettingsSubtitleKind.ThemeValue,
+        ),
+        SettingsRowSpec(
+            LANGUAGE_ROW_ID,
+            R.string.settings_language,
+            SettingsIcon.Language,
+            SettingsSection.Appearance,
+            subtitle = SettingsSubtitleKind.LanguageValue,
+        ),
+        SettingsRowSpec(ABOUT_ROW_ID, R.string.settings_about_shieldra, SettingsIcon.Info, SettingsSection.About),
+        SettingsRowSpec(HELP_ROW_ID, R.string.settings_help, SettingsIcon.Help, SettingsSection.About),
     )
+
+    const val HEALTH_ROW_ID: String = "health"
+    const val SAFE_ZONES_ROW_ID: String = "safe_zones"
+    const val STORAGE_ROW_ID: String = "storage"
+    const val RETENTION_ROW_ID: String = "retention"
+    const val APP_LOCK_ROW_ID: String = "app_lock"
+    const val THEME_ROW_ID: String = "theme"
+    const val LANGUAGE_ROW_ID: String = "language"
+    const val ABOUT_ROW_ID: String = "about"
+    const val HELP_ROW_ID: String = "help"
 
     fun rowIds(): List<String> = rows.map { it.id }
 
@@ -166,6 +190,15 @@ object SettingsContent {
         NOTIFICATION_ROW_ID -> SettingsRowTarget.NotificationSetup
         ALERT_CHANNELS_ROW_ID -> SettingsRowTarget.AlertChannels
         PROTECTION_ROW_ID -> SettingsRowTarget.ProtectionSetup
+        HEALTH_ROW_ID -> SettingsRowTarget.Health
+        SAFE_ZONES_ROW_ID -> SettingsRowTarget.SafeZones
+        APP_LOCK_ROW_ID -> SettingsRowTarget.AppLock
+        THEME_ROW_ID -> SettingsRowTarget.Theme
+        LANGUAGE_ROW_ID -> SettingsRowTarget.Language
+        STORAGE_ROW_ID -> SettingsRowTarget.Storage
+        RETENTION_ROW_ID -> SettingsRowTarget.Retention
+        ABOUT_ROW_ID -> SettingsRowTarget.About
+        HELP_ROW_ID -> SettingsRowTarget.Help
         else -> SettingsRowTarget.NotAvailable
     }
 
@@ -195,15 +228,6 @@ internal fun storageRowSubtitleRes(state: SettingsContent.StorageRowState): Int 
 }
 
 /**
- * The app-lock row's subtitle (F-K9). The evidence key policy sets
- * `requireUserAuthentication = false`, so the honest sentence is that no lock is
- * enforced. The interface was changed to match the policy; the policy was not
- * changed to match the interface.
- */
-@StringRes
-internal fun appLockSubtitleRes(): Int = R.string.settings_app_lock_not_enforced
-
-/**
  * The retention row's subtitle (F-K6). §5.4 with amendment A-1 fixed the windows
  * and Q-K-2 made the sweeps run, so "Policy pending" described a decision that has
  * long been made. While the storage gate installed nothing there is also nothing
@@ -230,9 +254,23 @@ internal fun settingsSubtitleRes(
     notificationState: NotificationPermissionState,
     alertChannelsActive: Boolean = false,
     protectionArmed: Boolean = false,
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    language: AppLanguage = AppLanguage.SYSTEM,
+    appLockEnabled: Boolean = false,
 ): Int? = when (kind) {
     SettingsSubtitleKind.None -> null
-    SettingsSubtitleKind.AppLockNotEnforced -> appLockSubtitleRes()
+    SettingsSubtitleKind.AppLockState ->
+        if (appLockEnabled) R.string.settings_app_lock_on else R.string.settings_app_lock_off
+    SettingsSubtitleKind.ThemeValue -> when (themeMode) {
+        ThemeMode.SYSTEM -> R.string.settings_match_system
+        ThemeMode.LIGHT -> R.string.theme_light
+        ThemeMode.DARK -> R.string.theme_dark
+    }
+    SettingsSubtitleKind.LanguageValue -> when (language) {
+        AppLanguage.SYSTEM -> R.string.settings_match_system
+        AppLanguage.ENGLISH -> R.string.language_english
+        AppLanguage.ARABIC -> R.string.language_arabic
+    }
     SettingsSubtitleKind.MatchSystem -> R.string.settings_match_system
     SettingsSubtitleKind.RetentionWindows -> retentionSubtitleRes(storageInstalled)
     SettingsSubtitleKind.NotificationState -> notificationStateRes(notificationState)
