@@ -126,6 +126,8 @@ data class DashboardUiModel(
     val storageInstalled: Boolean = false,
     /** The honest 0-100 protection score, computed from real state; null when not computed. */
     val protectionScore: Int? = null,
+    /** True while Google Play reports an active Pro subscription; drives the top-bar Pro button. */
+    val proActive: Boolean = false,
 )
 
 enum class HistoryTypeFilter { All, Lock, Motion, Sim, Panic, Battery }

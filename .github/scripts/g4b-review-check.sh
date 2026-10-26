@@ -87,6 +87,19 @@ if grep -q 'demo_premium_price' app/src/main/res/values/strings.xml; then
 fi
 pass "no purchasable-looking Premium surface is reachable in this release"
 
+# A-40 (2026-10-27, owner-approved): a REAL Pro subscription now exists behind Google Play Billing, so
+# the Pro screen is allowed — the Q-K-1 rules above (no Premium screen, route or demo price) stay. What
+# makes it honest instead of a false advertisement: every price on it comes from Play, and it reaches
+# billing only through ProStore.
+PRO_SCREEN=app/src/main/kotlin/com/shieldra/app/presentation/screen/pro/ProScreen.kt
+[ -s "$PRO_SCREEN" ] || fail "the Pro screen is missing (A-40)"
+if grep -Eq '[$€£][0-9]|USD|EUR|DZD' "$PRO_SCREEN"; then
+  fail "the Pro screen hard-codes a price or currency; every price must come from Google Play (A-40)"
+fi
+grep -q 'recurringPrice' "$PRO_SCREEN" || fail "the Pro screen no longer shows Play's own price text (A-40)"
+grep -q 'ProStore' app/src/main/kotlin/com/shieldra/billing/ProModels.kt || fail "the ProStore seam is missing (A-40)"
+pass "the Pro screen shows only Google Play's prices and reaches billing through ProStore (A-40)"
+
 # Q-K-3 (owner answer 2026-10-02): raise to API 36 now rather than ask Play for
 # an extension. Google Play requires new apps and updates to target Android 16
 # (API 36) or higher, in force since 2026-08-31

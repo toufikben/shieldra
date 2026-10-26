@@ -12,6 +12,6 @@ data class DashboardCallbacks(
     val onMotionMonitoringToggle: () -> Unit = {},
     /** A plain tap on Panic, which only explains that Panic needs a press-and-hold. */
     val onPanicTapHint: () -> Unit = {},
-    /** Opens Settings from the dashboard top bar. */
-    val onOpenSettings: () -> Unit = {},
+    /** Opens the Pro screen from the dashboard top bar (A-40). */
+    val onOpenPro: () -> Unit = {},
 )

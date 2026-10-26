@@ -77,6 +77,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.shieldra.app.design.components.domain.ErrorStateFullScreen
 import com.shieldra.app.presentation.screen.dashboard.DashboardCallbacks
 import com.shieldra.app.presentation.screen.dashboard.DashboardScreen
+import com.shieldra.app.presentation.screen.pro.ProScreen
 import com.shieldra.app.presentation.screen.eventdetail.EventDetailCallbacks
 import com.shieldra.app.presentation.screen.eventdetail.EventDetailScreen
 import com.shieldra.app.presentation.screen.history.HistoryCallbacks
@@ -414,6 +415,7 @@ fun ShieldraNavHost(
                     com.shieldra.protection.LinkKind.OFFLINE -> NetworkStatus.Offline to null
                     com.shieldra.protection.LinkKind.UNKNOWN -> NetworkStatus.Unknown to null
                 }
+                val proState by (context.applicationContext as ShieldraApp).proStore.state.collectAsState()
                 val healthChecks = readHealthChecks(
                     context = context,
                     notifier = notifier,
@@ -435,6 +437,7 @@ fun ShieldraNavHost(
                         networkLabel = networkLabel,
                         measuredLastCheckSeconds = device.lastCheckSeconds,
                         protectionScore = scoreFor(healthChecks, protectionSettings),
+                        proActive = proState.entitled,
                     ),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->
@@ -498,8 +501,8 @@ fun ShieldraNavHost(
                         onViewAllEvents = {
                             navController.navigate(ShieldraRoutes.HISTORY)
                         },
-                        onOpenSettings = {
-                            navController.navigate(ShieldraRoutes.SETTINGS)
+                        onOpenPro = {
+                            navController.navigate(ShieldraRoutes.PRO)
                         },
                         onMotionMonitoringToggle = {
                             if (motionClaim.claimsProtection) {
@@ -593,6 +596,28 @@ fun ShieldraNavHost(
                     },
                 )
             }
+            composable(ShieldraRoutes.PRO) {
+                val proStore = (context.applicationContext as ShieldraApp).proStore
+                val proState by proStore.state.collectAsState()
+                // Re-ask Google Play whenever the screen opens, so a purchase made elsewhere shows up.
+                LaunchedEffect(Unit) { proStore.refresh() }
+                ProScreen(
+                    state = proState,
+                    onBack = { navController.popBackStack() },
+                    onPurchase = { basePlanId ->
+                        context.findFragmentActivity()?.let { proStore.purchase(it, basePlanId) }
+                    },
+                    onRefresh = proStore::refresh,
+                    onManage = {
+                        val uri = android.net.Uri.parse(
+                            "https://play.google.com/store/account/subscriptions?sku=${com.shieldra.billing.ProCatalog.PRODUCT_ID}&package=${context.packageName}",
+                        )
+                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+                        Unit
+                    },
+                )
+            }
+
             composable(ShieldraRoutes.HEALTH_CHECK) {
                 val checks = readHealthChecks(
                     context = context,
@@ -768,6 +793,11 @@ fun ShieldraNavHost(
                 }
                 ProtectionGuardsScreen(
                     armed = protectionArmed,
+                    planSwitchAllowed = !com.shieldra.billing.InstallSource.isGooglePlay(context),
+                    onTierChange = { tier ->
+                        ProtectionSettingsStore(context).setTier(tier)
+                        protectionSettings = protectionSettings.copy(tier = tier)
+                    },
                     permissions = permissions,
                     settings = protectionSettings,
                     onGrantCamera = { protectionPermissionLauncher.launch(arrayOf(Manifest.permission.CAMERA)) },

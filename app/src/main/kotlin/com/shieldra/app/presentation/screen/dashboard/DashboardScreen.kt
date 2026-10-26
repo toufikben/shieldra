@@ -25,7 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -113,13 +113,7 @@ fun DashboardScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                IconButton(onClick = callbacks.onOpenSettings) {
-                    Icon(
-                        imageVector = Icons.Filled.Settings,
-                        contentDescription = stringResource(R.string.tab_settings),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                ProPill(active = model.proActive, onClick = callbacks.onOpenPro)
             }
         }
 
@@ -510,6 +504,47 @@ private fun DashboardDisabledPreview() {
         DashboardScreen(
             model = DemoData.dashboardDisabled(),
             callbacks = DashboardCallbacks({}, {}, {}, {}),
+        )
+    }
+}
+
+/**
+ * The Pro button in the top bar (A-40): gold and gently breathing while the plan is Free, teal and calm
+ * once Pro is active. Both open the Pro screen (buy, or manage).
+ */
+@Composable
+private fun ProPill(active: Boolean, onClick: () -> Unit) {
+    val color = if (active) ShieldraTheme.semantic.protection else ShieldraTheme.semantic.suspicious
+    val transition = rememberInfiniteTransition(label = "pro_pill")
+    val glow by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(tween(1600), androidx.compose.animation.core.RepeatMode.Reverse),
+        label = "pro_pill_glow",
+    )
+    val borderAlpha = if (active) 0.5f else glow
+    Row(
+        modifier = Modifier
+            .padding(end = ShieldraTheme.spacing.s)
+            .clip(CircleShape)
+            .background(Brush.horizontalGradient(listOf(color.copy(alpha = 0.30f), color.copy(alpha = 0.10f))))
+            .border(1.dp, color.copy(alpha = borderAlpha), CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .defaultMinSize(minHeight = 40.dp)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.WorkspacePremium,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.size(6.dp))
+        Text(
+            text = stringResource(R.string.pro_pill),
+            style = MaterialTheme.typography.labelLarge,
+            color = color,
         )
     }
 }

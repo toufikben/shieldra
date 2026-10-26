@@ -105,8 +105,15 @@ class ProtectionSettingsStore(context: Context) {
             .putInt(KEY_GEOFENCE_INTERVAL, settings.geofenceIntervalMinutes.coerceIn(1, 60))
             .putString(KEY_OWNER_CONTACT, settings.ownerContact.trim())
             .putString(KEY_LOST_MESSAGE, settings.lostMessage.trim())
-            .putString(KEY_TIER, settings.tier.name)
             .apply()
+    }
+
+    /**
+     * The plan is written only here, never by [save]: a settings screen holding an older snapshot must not
+     * overwrite what Google Play last said (A-40).
+     */
+    fun setTier(tier: com.shieldra.billing.Tier) {
+        prefs.edit().putString(KEY_TIER, tier.name).apply()
     }
 
     fun setArmed(armed: Boolean) {

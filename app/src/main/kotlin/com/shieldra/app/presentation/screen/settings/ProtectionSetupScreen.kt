@@ -76,6 +76,9 @@ fun ProtectionSetupScreen(
     onSave: (ProtectionSettings) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** True only for copies not installed from Google Play (see the plan switch below). */
+    planSwitchAllowed: Boolean = false,
+    onTierChange: (com.shieldra.billing.Tier) -> Unit = {},
 ) {
     val spacing = ShieldraTheme.spacing
     var draft by remember(settings) { mutableStateOf(settings) }
@@ -110,25 +113,35 @@ fun ProtectionSetupScreen(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        // ===== Plan (free / premium) =====
-        SectionTitle(stringResource(R.string.protection_plan_title))
-        Text(
-            text = stringResource(R.string.protection_plan_desc),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(spacing.s))
-        Row(horizontalArrangement = Arrangement.spacedBy(spacing.s)) {
-            ShieldraChip(
-                label = stringResource(R.string.protection_plan_free),
-                selected = draft.tier == com.shieldra.billing.Tier.FREE,
-                onClick = { draft = draft.copy(tier = com.shieldra.billing.Tier.FREE) },
+        // ===== Plan (test switch) =====
+        // The plan is Google Play's to decide (A-40). This manual switch exists only for copies that were
+        // not installed from Play, so a sideloaded test build can try both plans; a Play build never shows it.
+        if (planSwitchAllowed) {
+            SectionTitle(stringResource(R.string.protection_plan_title))
+            Text(
+                text = stringResource(R.string.protection_plan_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            ShieldraChip(
-                label = stringResource(R.string.protection_plan_premium),
-                selected = draft.tier == com.shieldra.billing.Tier.PREMIUM,
-                onClick = { draft = draft.copy(tier = com.shieldra.billing.Tier.PREMIUM) },
-            )
+            Spacer(Modifier.height(spacing.s))
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.s)) {
+                ShieldraChip(
+                    label = stringResource(R.string.protection_plan_free),
+                    selected = draft.tier == com.shieldra.billing.Tier.FREE,
+                    onClick = {
+                        draft = draft.copy(tier = com.shieldra.billing.Tier.FREE)
+                        onTierChange(com.shieldra.billing.Tier.FREE)
+                    },
+                )
+                ShieldraChip(
+                    label = stringResource(R.string.protection_plan_premium),
+                    selected = draft.tier == com.shieldra.billing.Tier.PREMIUM,
+                    onClick = {
+                        draft = draft.copy(tier = com.shieldra.billing.Tier.PREMIUM)
+                        onTierChange(com.shieldra.billing.Tier.PREMIUM)
+                    },
+                )
+            }
         }
 
         // ===== Permissions checklist =====

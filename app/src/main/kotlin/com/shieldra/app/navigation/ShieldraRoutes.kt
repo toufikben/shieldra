@@ -22,6 +22,8 @@ object ShieldraRoutes {
     const val RETENTION_INFO = "main/settings/retention"
     const val ABOUT_INFO = "main/settings/about"
     const val HELP_INFO = "main/settings/help"
+    /** The Pro subscription screen (A-40): plans and prices come from Google Play. */
+    const val PRO = "main/pro"
     /** Read-only protection health check: what is really protecting the phone now. */
     const val HEALTH_CHECK = "main/health"
 
