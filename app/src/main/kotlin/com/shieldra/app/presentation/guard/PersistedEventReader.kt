@@ -60,7 +60,8 @@ class PersistedEventReader(
         // A recorded attempt is the stronger fact; without one the label follows the state.
         deliveryStatus = recordedDeliveryStatus() ?: state.toDeliveryStatus(),
         hasPhoto = evidenceReferences.any { it.kind.contains("PHOTO", ignoreCase = true) },
-        hasLocation = false,
+        hasLocation = evidenceReferences.any { it.kind.equals("LOCATION", ignoreCase = true) },
+        createdAtEpochMs = createdAt.toEpochMilli(),
     )
 
     private fun SecurityEvent.toDetailUiModel(now: Instant): EventDetailUiModel = EventDetailUiModel(

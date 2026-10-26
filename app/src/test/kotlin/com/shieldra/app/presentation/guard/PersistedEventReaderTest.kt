@@ -308,10 +308,58 @@ class PersistedEventReaderTest {
         createdAt: Instant,
         state: EventState,
         type: SecurityEventType = SecurityEventType.CONFIRMED_SECURITY_EVENT,
+        references: List<com.shieldra.domain.EvidenceReference> = emptyList(),
     ): SecurityEvent = SecurityEvent.create(
         eventId = EventId.from(UUID.randomUUID()),
         createdAt = createdAt,
         state = state,
         type = type,
+        evidenceReferences = references,
     )
+
+    // The evidence a capture really stored (kind carried end to end) is what the projection may claim.
+    @Test
+    fun stored_photo_audio_and_location_evidence_are_projected_with_their_ids() {
+        val persisted = event(
+            createdAt = now.minus(Duration.ofMinutes(3)),
+            state = EventState.DELIVERED,
+            references = listOf(
+                com.shieldra.domain.EvidenceReference("p1", "FRONT_PHOTO"),
+                com.shieldra.domain.EvidenceReference("a1", "AUDIO"),
+                com.shieldra.domain.EvidenceReference("l1", "LOCATION"),
+            ),
+        )
+        val reader = PersistedEventReader(
+            storageInstalled = true,
+            loadRecent = { listOf(persisted) },
+            loadOne = { persisted },
+        )
+
+        val row = reader.readRecent(limit = 20, now = now).single()
+        assertTrue(row.hasPhoto && row.hasLocation, "stored evidence of both kinds must be claimed")
+        assertEquals(persisted.createdAt.toEpochMilli(), row.createdAtEpochMs)
+
+        val detail = reader.readOne(persisted.id.value.toString(), now)
+        assertNotNull(detail)
+        assertEquals("p1", detail.photoEvidenceId)
+        assertEquals("a1", detail.audioEvidenceId)
+        assertEquals("l1", detail.locationEvidenceId)
+        assertEquals(3, detail.evidenceItems.size)
+    }
+
+    @Test
+    fun an_untyped_old_reference_is_exportable_but_never_called_a_photo() {
+        val persisted = event(
+            createdAt = now.minus(Duration.ofMinutes(3)),
+            state = EventState.DELIVERED,
+            references = listOf(com.shieldra.domain.EvidenceReference("old1")),
+        )
+        val reader = PersistedEventReader(storageInstalled = true, loadRecent = { listOf(persisted) }, loadOne = { persisted })
+
+        val detail = reader.readOne(persisted.id.value.toString(), now)
+        assertNotNull(detail)
+        assertTrue(!detail.hasPhoto, "an UNSPECIFIED payload is not a claimed photo")
+        assertNull(detail.photoEvidenceId)
+        assertEquals(1, detail.evidenceItems.size)
+    }
 }

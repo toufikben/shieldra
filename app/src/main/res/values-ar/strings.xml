@@ -428,6 +428,11 @@
     <string name="theme_dark">داكن</string>
     <string name="language_english">English</string>
     <string name="language_arabic">العربية</string>
+    <string name="history_week_title">آخر 7 أيام</string>
+    <string name="history_week_total">%1$d حدث</string>
+    <string name="history_today">اليوم</string>
+    <string name="history_yesterday">أمس</string>
+    <string name="history_earlier">أقدم</string>
     <string name="stat_protection">الحماية</string>
     <string name="motion_card_on_title">حارس الحركة يعمل</string>
     <string name="motion_card_on_hint">اضغط للإيقاف — يلزم قفل الشاشة</string>
