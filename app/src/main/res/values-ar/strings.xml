@@ -234,7 +234,6 @@
     <string name="evidence_no_photo">لا توجد صورة</string>
     <string name="location_section">الموقع</string>
     <string name="location_unavailable_short">الموقع غير متوفر</string>
-    <string name="map_placeholder_bracket">[ الخريطة ]</string>
     <string name="accuracy_meters">±%1$dم</string>
     <string name="freshness_seconds">منذ %1$ds</string>
     <string name="freshness_minutes">منذ %1$dm</string>

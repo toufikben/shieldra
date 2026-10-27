@@ -234,7 +234,6 @@
     <string name="evidence_no_photo">No photo available</string>
     <string name="location_section">LOCATION</string>
     <string name="location_unavailable_short">Location unavailable</string>
-    <string name="map_placeholder_bracket">[ Map ]</string>
     <string name="accuracy_meters">±%1$dm</string>
     <string name="freshness_seconds">%1$ds old</string>
     <string name="freshness_minutes">%1$dm old</string>
