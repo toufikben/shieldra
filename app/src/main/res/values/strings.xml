@@ -120,10 +120,14 @@
     <string name="notification_channel_protection">Protection service</string>
     <string name="notification_protection_title">SHIELDRA protection is active</string>
     <string name="notification_protection_text">Running in the background.</string>
-    <string name="notification_next_signal">Next signal in</string>
+    <string name="notification_next_signal">Next signal in %1$s</string>
+    <string name="unit_day">d</string>
+    <string name="unit_hour">h</string>
+    <string name="unit_minute">min</string>
+    <string name="unit_less_than_minute">under a minute</string>
     <string name="countdown_channel">Periodic signal</string>
     <string name="countdown_warning_title">Periodic signal</string>
-    <string name="countdown_warning_text">The next signal is due soon.</string>
+    <string name="countdown_warning_text">The next signal is due in %1$s.</string>
     <string name="countdown_snooze">Postpone</string>
     <string name="protection_title">Protection</string>
     <string name="protection_state_armed">Armed — guarding in the background</string>

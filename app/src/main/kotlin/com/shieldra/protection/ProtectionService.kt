@@ -75,6 +75,7 @@ class ProtectionService : Service() {
             override fun run() {
                 if (!ProtectionSettingsStore(applicationContext).load().armed) return
                 checkSim()
+                refreshNoticeNow()
                 heartbeatHandler.postDelayed(this, HEARTBEAT_MS)
             }
         }, HEARTBEAT_MS)
@@ -485,12 +486,13 @@ class ProtectionService : Service() {
             .setOngoing(true)
             .apply {
                 countdownDeadlineEpochMs()?.let { due ->
-                    // The system ticks this down by itself, so the notice always shows the time left.
-                    setContentText(getString(com.shieldra.app.R.string.notification_next_signal))
-                    setWhen(due)
-                    setShowWhen(true)
-                    setUsesChronometer(true)
-                    setChronometerCountDown(true)
+                    // Plain text re-posted every heartbeat: some skins do not draw a notification chronometer.
+                    setContentText(
+                        getString(
+                            com.shieldra.app.R.string.notification_next_signal,
+                            RemainingTimeText.of(this@ProtectionService, due - System.currentTimeMillis()),
+                        ),
+                    )
                 }
             }
             .apply { pending?.let { setContentIntent(it) } }
