@@ -56,6 +56,8 @@ enum class SettingsRowTarget {
     Language,
     Storage,
     Retention,
+    EraseData,
+    Privacy,
     About,
     Help,
     NotAvailable,
@@ -148,6 +150,7 @@ object SettingsContent {
             SettingsSection.PrivacyData,
             subtitle = SettingsSubtitleKind.RetentionWindows,
         ),
+        SettingsRowSpec(ERASE_ROW_ID, R.string.settings_erase_data, SettingsIcon.Erase, SettingsSection.PrivacyData),
         // Security: the owner's screen lock in front of the app (A-39).
         SettingsRowSpec(
             APP_LOCK_ROW_ID,
@@ -172,17 +175,20 @@ object SettingsContent {
         ),
         SettingsRowSpec(ABOUT_ROW_ID, R.string.settings_about_shieldra, SettingsIcon.Info, SettingsSection.About),
         SettingsRowSpec(HELP_ROW_ID, R.string.settings_help, SettingsIcon.Help, SettingsSection.About),
+        SettingsRowSpec(PRIVACY_ROW_ID, R.string.settings_privacy, SettingsIcon.Lock, SettingsSection.About),
     )
 
     const val HEALTH_ROW_ID: String = "health"
     const val SAFE_ZONES_ROW_ID: String = "safe_zones"
     const val STORAGE_ROW_ID: String = "storage"
     const val RETENTION_ROW_ID: String = "retention"
+    const val ERASE_ROW_ID: String = "erase_data"
     const val APP_LOCK_ROW_ID: String = "app_lock"
     const val THEME_ROW_ID: String = "theme"
     const val LANGUAGE_ROW_ID: String = "language"
     const val ABOUT_ROW_ID: String = "about"
     const val HELP_ROW_ID: String = "help"
+    const val PRIVACY_ROW_ID: String = "privacy"
 
     fun rowIds(): List<String> = rows.map { it.id }
 
@@ -197,8 +203,10 @@ object SettingsContent {
         LANGUAGE_ROW_ID -> SettingsRowTarget.Language
         STORAGE_ROW_ID -> SettingsRowTarget.Storage
         RETENTION_ROW_ID -> SettingsRowTarget.Retention
+        ERASE_ROW_ID -> SettingsRowTarget.EraseData
         ABOUT_ROW_ID -> SettingsRowTarget.About
         HELP_ROW_ID -> SettingsRowTarget.Help
+        PRIVACY_ROW_ID -> SettingsRowTarget.Privacy
         else -> SettingsRowTarget.NotAvailable
     }
 

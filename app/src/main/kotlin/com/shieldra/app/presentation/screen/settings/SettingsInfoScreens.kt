@@ -257,3 +257,33 @@ fun HelpScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** What Shieldra stores, where it can go, and what the owner controls. */
+@Composable
+fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    InfoPage(title = stringResource(R.string.settings_privacy), onBack = onBack, modifier = modifier) {
+        listOf(
+            R.string.privacy_collect_title to R.string.privacy_collect_body,
+            R.string.privacy_where_title to R.string.privacy_where_body,
+            R.string.privacy_never_title to R.string.privacy_never_body,
+            R.string.privacy_permissions_title to R.string.privacy_permissions_body,
+            R.string.privacy_billing_title to R.string.privacy_billing_body,
+            R.string.privacy_control_title to R.string.privacy_control_body,
+        ).forEach { (title, body) ->
+            GlassCard {
+                Text(
+                    text = stringResource(title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ShieldraTheme.semantic.protection,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}

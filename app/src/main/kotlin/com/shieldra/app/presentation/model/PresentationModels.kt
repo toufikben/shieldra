@@ -139,7 +139,7 @@ data class HistoryFilterState(
 )
 
 enum class SettingsSection { Notifications, Appearance, PrivacyData, SecurityApp, About }
-enum class SettingsIcon { Notifications, Lock, Theme, Language, Storage, Retention, Info, Help, Health, Zones }
+enum class SettingsIcon { Notifications, Lock, Theme, Language, Storage, Retention, Erase, Info, Help, Health, Zones }
 
 data class SettingsRowUiModel(
     val id: String,

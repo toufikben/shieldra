@@ -117,19 +117,11 @@ fun LocationEvidenceCard(
                 LocationBadge(location.kind)
                 Spacer(Modifier.height(spacing.s))
 
-                val mapPlaceholder = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-
-                Box(mapPlaceholder, contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.map_placeholder_bracket),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                LocatorPanel(
+                    latitude = location.latitude,
+                    longitude = location.longitude,
+                    accuracyMeters = location.accuracyMeters,
+                )
 
                 Spacer(Modifier.height(spacing.s))
 
@@ -182,5 +174,51 @@ private fun LocationEvidenceCardPreview() {
             onOpenInMaps = {},
             modifier = Modifier.padding(16.dp),
         )
+    }
+}
+
+/**
+ * A map-less locator: the pin on a grid with the measured accuracy as a ring, and the exact
+ * coordinates. It draws from the stored fix alone, so viewing an event never asks a map server
+ * about where the phone was.
+ */
+@Composable
+private fun LocatorPanel(latitude: Double?, longitude: Double?, accuracyMeters: Int?) {
+    val line = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    val ring = ShieldraTheme.semantic.protection
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
+            val step = 32.dp.toPx()
+            var x = size.width / 2f % step
+            while (x < size.width) {
+                drawLine(line, androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height))
+                x += step
+            }
+            var y = size.height / 2f % step
+            while (y < size.height) {
+                drawLine(line, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y))
+                y += step
+            }
+            val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+            val radius = (accuracyMeters ?: 0).coerceIn(0, 400) / 400f * (size.height / 2f - 10.dp.toPx())
+            drawCircle(ring.copy(alpha = 0.18f), radius = maxOf(radius, 14.dp.toPx()), center = center)
+            drawCircle(ring, radius = maxOf(radius, 14.dp.toPx()), center = center, style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx()))
+            drawCircle(ring, radius = 6.dp.toPx(), center = center)
+        }
+        if (latitude != null && longitude != null) {
+            Text(
+                text = "%.5f, %.5f".format(java.util.Locale.US, latitude, longitude),
+                style = ShieldraTextStyles.NumericData,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
+            )
+        }
     }
 }

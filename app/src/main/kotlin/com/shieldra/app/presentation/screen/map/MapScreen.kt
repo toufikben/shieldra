@@ -77,7 +77,7 @@ fun MapScreen(
         )
 
         // Tracking status
-        GlassCard {
+        GlassCard(Modifier.fillMaxWidth()) {
             StatusRow(
                 accent = accent,
                 on = armed,
@@ -115,7 +115,7 @@ fun MapScreen(
         }
 
         // Safe zones
-        GlassCard {
+        GlassCard(Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Shield, contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.size(10.dp))
@@ -161,7 +161,7 @@ fun MapScreen(
         }
 
         // Last recorded location
-        GlassCard {
+        GlassCard(Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.LocationOn, contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.size(10.dp))
@@ -196,7 +196,7 @@ fun MapScreen(
         }
 
         // Remote hint
-        GlassCard {
+        GlassCard(Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Shield, contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.size(10.dp))

@@ -136,11 +136,13 @@ class SettingsContentTest {
                 "safe_zones",
                 "storage",
                 "retention",
+                "erase_data",
                 "app_lock",
                 "theme",
                 "language",
                 "about",
                 "help",
+                "privacy",
             ),
             SettingsContent.rowIds(),
         )

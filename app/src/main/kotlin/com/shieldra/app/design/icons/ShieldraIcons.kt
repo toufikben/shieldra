@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
@@ -46,6 +47,7 @@ fun SettingsIcon.icon(): ImageVector = when (this) {
     SettingsIcon.Language -> Icons.Filled.Language
     SettingsIcon.Storage -> Icons.Filled.Storage
     SettingsIcon.Retention -> Icons.Filled.DeleteOutline
+    SettingsIcon.Erase -> Icons.Filled.DeleteForever
     SettingsIcon.Info -> Icons.Filled.Info
     SettingsIcon.Help -> Icons.AutoMirrored.Filled.HelpOutline
     SettingsIcon.Health -> Icons.Filled.Shield
