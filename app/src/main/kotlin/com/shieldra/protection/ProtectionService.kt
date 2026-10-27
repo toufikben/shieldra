@@ -483,8 +483,30 @@ class ProtectionService : Service() {
             .setContentTitle(getString(com.shieldra.app.R.string.notification_protection_title))
             .setContentText(getString(com.shieldra.app.R.string.notification_protection_text))
             .setOngoing(true)
+            .apply {
+                countdownDeadlineEpochMs()?.let { due ->
+                    // The system ticks this down by itself, so the notice always shows the time left.
+                    setContentText(getString(com.shieldra.app.R.string.notification_next_signal))
+                    setWhen(due)
+                    setShowWhen(true)
+                    setUsesChronometer(true)
+                    setChronometerCountDown(true)
+                }
+            }
             .apply { pending?.let { setContentIntent(it) } }
             .build()
+    }
+
+    /** The stored next-signal time, only while the periodic signal is on and a cycle is running. */
+    private fun countdownDeadlineEpochMs(): Long? {
+        val store = ProtectionSettingsStore(applicationContext)
+        if (!store.load().countdownEnabled) return null
+        return store.countdownDeadline()?.epochDeadlineMs?.takeIf { it > System.currentTimeMillis() }
+    }
+
+    private fun refreshNoticeNow() {
+        if (!promoted) return
+        getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, buildNotice())
     }
 
     private fun acquireWakeLock(): PowerManager.WakeLock? = runCatching {
@@ -528,6 +550,11 @@ class ProtectionService : Service() {
 
         /** True while a camera-capable instance exists, so a background trigger can reach it. */
         val isLive: Boolean get() = liveInstance != null
+
+        /** Re-posts the ongoing notice, so it shows the new next-signal time (or none after a cancel). */
+        fun refreshNotice() {
+            liveInstance?.refreshNoticeNow()
+        }
 
         /**
          * Captures a photo and a fix for an already-created event (the Motion guard's) and sends it,

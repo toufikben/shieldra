@@ -31,6 +31,9 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -107,6 +110,7 @@ import com.shieldra.storage.LocalShieldraStorage
 import com.shieldra.app.presentation.screen.settings.ProtectionSetupScreen as ProtectionGuardsScreen
 import com.shieldra.app.presentation.screen.settings.ProtectionPermissions
 import com.shieldra.protection.ProtectionRuntime
+import com.shieldra.protection.ProtectionChange
 import com.shieldra.protection.ProtectionSettings
 import com.shieldra.protection.ProtectionSettingsStore
 import com.shieldra.protection.LockGuardReceiver
@@ -204,6 +208,21 @@ fun ShieldraNavHost(
     val ownerCheckTitle = stringResource(R.string.owner_check_stop_title)
     val ownerCheckSubtitle = stringResource(R.string.owner_check_stop_subtitle)
     val ownerCheckRefusedMessage = stringResource(R.string.owner_check_refused)
+    // Anything that weakens protection or redirects alerts proves it is the owner first (screen lock).
+    val ownerChangeSubtitle = stringResource(R.string.owner_check_change_subtitle)
+    val requireOwner: (() -> Unit) -> Unit = { action ->
+        val activity = context.findFragmentActivity()
+        if (activity == null) {
+            action()
+        } else {
+            OwnerCheck.request(activity, ownerCheckTitle, ownerChangeSubtitle) { result ->
+                when (result) {
+                    OwnerCheckResult.Confirmed, OwnerCheckResult.NoScreenLock -> action()
+                    OwnerCheckResult.Refused -> scope.launch { snackbarHostState.showSnackbar(ownerCheckRefusedMessage) }
+                }
+            }
+        }
+    }
     // The system settings page can change the permission behind the app's back, so the state is
     // re-read whenever the app comes back to the front.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { permissionRequests += 1 }
@@ -390,6 +409,11 @@ fun ShieldraNavHost(
             navController = navController,
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding),
+            // The default is a 700 ms crossfade, which reads as lag on every tab change.
+            enterTransition = { fadeIn(tween(140)) },
+            exitTransition = { fadeOut(tween(90)) },
+            popEnterTransition = { fadeIn(tween(140)) },
+            popExitTransition = { fadeOut(tween(90)) },
         ) {
             // ===== Onboarding =====
             composable(ShieldraRoutes.ONBOARDING_WELCOME) {
@@ -628,8 +652,11 @@ fun ShieldraNavHost(
                     geofenceEnabled = geofenceOn,
                     zoneNames = zoneNames,
                     onToggleGeofence = { enabled ->
-                        ProtectionRuntime.setGeofenceEnabled(context, enabled)
-                        geofenceRefresh++
+                        val apply: () -> Unit = {
+                            ProtectionRuntime.setGeofenceEnabled(context, enabled)
+                            geofenceRefresh++
+                        }
+                        if (enabled) apply() else requireOwner(apply)
                     },
                     onAddZone = {
                         scope.launch {
@@ -641,8 +668,10 @@ fun ShieldraNavHost(
                         }
                     },
                     onRemoveZone = { name ->
-                        ProtectionRuntime.removeZone(context, name)
-                        geofenceRefresh++
+                        requireOwner {
+                            ProtectionRuntime.removeZone(context, name)
+                            geofenceRefresh++
+                        }
                     },
                 )
             }
@@ -794,13 +823,15 @@ fun ShieldraNavHost(
                     AlertChannelsScreen(
                         saved = saved,
                         onSave = { updated ->
-                            scope.launch {
-                                deliverySettings = withContext(Dispatchers.IO) {
-                                    deliveryStore.save(updated)
-                                    deliveryStore.load()
+                            requireOwner {
+                                scope.launch {
+                                    deliverySettings = withContext(Dispatchers.IO) {
+                                        deliveryStore.save(updated)
+                                        deliveryStore.load()
+                                    }
+                                    navController.popBackStack()
+                                    snackbarHostState.showSnackbar(channelsSavedMessage)
                                 }
-                                navController.popBackStack()
-                                snackbarHostState.showSnackbar(channelsSavedMessage)
                             }
                         },
                         onTest = { candidate, telegram ->
@@ -877,11 +908,14 @@ fun ShieldraNavHost(
                         permissionRefresh += 1
                     },
                     onArmToggle = {
-                        if (protectionArmed) ProtectionRuntime.disarm(context) else ProtectionRuntime.arm(context)
+                        if (protectionArmed) requireOwner { ProtectionRuntime.disarm(context) } else ProtectionRuntime.arm(context)
                     },
                     onSave = { updated ->
-                        protectionSettings = updated
-                        ProtectionRuntime.applySettings(context, updated)
+                        val apply: () -> Unit = {
+                            protectionSettings = updated
+                            ProtectionRuntime.applySettings(context, updated)
+                        }
+                        if (ProtectionChange.weakens(protectionSettings, updated)) requireOwner(apply) else apply()
                     },
                     onBack = { navController.popBackStack() },
                 )

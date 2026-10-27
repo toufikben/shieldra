@@ -64,6 +64,7 @@ object CountdownScheduler {
         )
         store.setCountdownDeadline(deadline)
         schedule(context, deadline)
+        ProtectionService.refreshNotice()
     }
 
     /** Re-arms the next cycle after one fired or was snoozed; identical to [start] by design. */
@@ -94,6 +95,7 @@ object CountdownScheduler {
         alarmManager.cancel(pending(context, CountdownReceiver.ACTION_WARNING, WARNING_REQUEST))
         context.getSystemService(NotificationManager::class.java)?.cancel(WARNING_NOTIFICATION_ID)
         ProtectionSettingsStore(context).setCountdownDeadline(null)
+        ProtectionService.refreshNotice()
     }
 
     private fun schedule(context: Context, deadline: CountdownDeadline) {
@@ -138,6 +140,14 @@ object CountdownScheduler {
             .setSmallIcon(com.shieldra.app.R.drawable.ic_shield_notification)
             .setContentTitle(context.getString(com.shieldra.app.R.string.countdown_warning_title))
             .setContentText(context.getString(com.shieldra.app.R.string.countdown_warning_text))
+            .apply {
+                ProtectionSettingsStore(context).countdownDeadline()?.epochDeadlineMs?.let { due ->
+                    setWhen(due)
+                    setShowWhen(true)
+                    setUsesChronometer(true)
+                    setChronometerCountDown(true)
+                }
+            }
             .addAction(0, context.getString(com.shieldra.app.R.string.countdown_snooze), snooze)
             .setAutoCancel(true)
             .build()
