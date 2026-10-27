@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.SystemBarStyle
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -81,6 +82,26 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    /** With the app lock on, the recents thumbnail and screenshots must not show what the lock hides. */
+    private fun applyScreenSecurity() {
+        if (AppSettings.appLockEnabled(this)) {
+            window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        applyScreenSecurity()
+    }
+
+    override fun onPause() {
+        // Set before the system takes the recents snapshot, so a lock switched on this session counts.
+        applyScreenSecurity()
+        super.onPause()
     }
 
     override fun onStop() {

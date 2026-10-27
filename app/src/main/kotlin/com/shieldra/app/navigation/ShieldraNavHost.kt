@@ -31,7 +31,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import com.shieldra.storage.FactoryResetResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -96,6 +100,7 @@ import com.shieldra.app.presentation.screen.settings.SettingsScreen
 import com.shieldra.app.presentation.screen.settings.NotificationSetupScreen
 import com.shieldra.app.presentation.screen.settings.AboutScreen
 import com.shieldra.app.presentation.screen.settings.HelpScreen
+import com.shieldra.app.presentation.screen.settings.PrivacyScreen
 import com.shieldra.app.presentation.screen.settings.RetentionScreen
 import com.shieldra.app.presentation.screen.settings.StorageScreen
 import com.shieldra.storage.LocalShieldraStorage
@@ -288,6 +293,51 @@ fun ShieldraNavHost(
                     }
                 },
                 onDismiss = { settingsDialog = null },
+            )
+        }
+        SettingsDialog.Erase -> {
+            val authTitle = stringResource(R.string.erase_prompt_title)
+            val authSubtitle = stringResource(R.string.erase_prompt_subtitle)
+            val noScreenLock = stringResource(R.string.erase_needs_screen_lock)
+            val refused = stringResource(R.string.erase_refused)
+            val failed = stringResource(R.string.erase_failed)
+            AlertDialog(
+                onDismissRequest = { settingsDialog = null },
+                title = { Text(stringResource(R.string.erase_title)) },
+                text = { Text(stringResource(R.string.erase_body)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            settingsDialog = null
+                            val activity = context.findFragmentActivity() ?: return@TextButton
+                            OwnerCheck.request(activity, authTitle, authSubtitle) { result ->
+                                when (result) {
+                                    OwnerCheckResult.Confirmed -> scope.launch {
+                                        ProtectionRuntime.disarm(context)
+                                        val outcome = withContext(Dispatchers.IO) {
+                                            LocalShieldraStorage.eraseAll(context, installedStorage)
+                                        }
+                                        if (outcome is FactoryResetResult.Completed) {
+                                            // The database is closed and the keys are gone: start clean.
+                                            val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+                                            if (launch != null) context.startActivity(android.content.Intent.makeRestartActivityTask(launch.component))
+                                            android.os.Process.killProcess(android.os.Process.myPid())
+                                        } else {
+                                            snackbarHostState.showSnackbar(failed)
+                                        }
+                                    }
+                                    OwnerCheckResult.NoScreenLock ->
+                                        scope.launch { snackbarHostState.showSnackbar(noScreenLock) }
+                                    OwnerCheckResult.Refused ->
+                                        scope.launch { snackbarHostState.showSnackbar(refused) }
+                                }
+                            }
+                        },
+                    ) { Text(stringResource(R.string.erase_confirm), color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { settingsDialog = null }) { Text(stringResource(R.string.erase_cancel)) }
+                },
             )
         }
         null -> Unit
@@ -689,8 +739,10 @@ fun ShieldraNavHost(
 
                             SettingsRowTarget.Storage -> navController.navigate(ShieldraRoutes.STORAGE_INFO)
                             SettingsRowTarget.Retention -> navController.navigate(ShieldraRoutes.RETENTION_INFO)
+                            SettingsRowTarget.EraseData -> settingsDialog = SettingsDialog.Erase
                             SettingsRowTarget.About -> navController.navigate(ShieldraRoutes.ABOUT_INFO)
                             SettingsRowTarget.Help -> navController.navigate(ShieldraRoutes.HELP_INFO)
+                            SettingsRowTarget.Privacy -> navController.navigate(ShieldraRoutes.PRIVACY_INFO)
 
                             SettingsRowTarget.AppLock -> settingsDialog = SettingsDialog.AppLock
 
@@ -732,6 +784,7 @@ fun ShieldraNavHost(
             }
             composable(ShieldraRoutes.ABOUT_INFO) { AboutScreen(onBack = { navController.popBackStack() }) }
             composable(ShieldraRoutes.HELP_INFO) { HelpScreen(onBack = { navController.popBackStack() }) }
+            composable(ShieldraRoutes.PRIVACY_INFO) { PrivacyScreen(onBack = { navController.popBackStack() }) }
 
             composable(ShieldraRoutes.ALERT_CHANNELS) {
                 val saved = deliverySettings
@@ -1045,4 +1098,4 @@ private fun scoreFor(checks: HealthChecks, settings: ProtectionSettings): Int = 
 )
 
 /** Which small Settings editor is open. */
-private enum class SettingsDialog { Theme, Language, AppLock }
+private enum class SettingsDialog { Theme, Language, AppLock, Erase }

@@ -164,6 +164,27 @@ class LocalShieldraStorage private constructor(
                 create(context, encryptor, keyAlias, policy, databaseName, evidenceDirectory)
             }
 
+        /**
+         * The owner's confirmed "delete all data" (§5.7): every event row, every evidence file and both
+         * evidence keys. The caller restarts the process afterwards, because nothing may keep using the
+         * closed database or the destroyed keys.
+         */
+        fun eraseAll(context: Context, open: LocalShieldraStorage?): FactoryResetResult {
+            open?.close()
+            val app = context.applicationContext
+            val encryptor = AndroidKeystoreEncryptor(applicationContext = app)
+            val result = FactoryReset(
+                evidenceDirectory = File(app.noBackupFilesDir, EVIDENCE_DIRECTORY),
+                metadataDatabase = app.getDatabasePath(DEFAULT_DATABASE_NAME),
+                keyDeletion = encryptor::deleteEvidenceKeyIrreversibly,
+            ).execute(
+                aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS, EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS_V2),
+                confirmed = true,
+            )
+            FileBackedKeyLifecycle.fileIn(app.noBackupFilesDir).delete()
+            return result
+        }
+
         private const val DEFAULT_DATABASE_NAME = "shieldra.db"
         private const val EVIDENCE_DIRECTORY = "shieldra-evidence"
     }
