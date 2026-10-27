@@ -652,7 +652,7 @@ fun ShieldraNavHost(
                     geofenceEnabled = geofenceOn,
                     zoneNames = zoneNames,
                     onToggleGeofence = { enabled ->
-                        val apply = {
+                        val apply: () -> Unit = {
                             ProtectionRuntime.setGeofenceEnabled(context, enabled)
                             geofenceRefresh++
                         }
@@ -911,7 +911,7 @@ fun ShieldraNavHost(
                         if (protectionArmed) requireOwner { ProtectionRuntime.disarm(context) } else ProtectionRuntime.arm(context)
                     },
                     onSave = { updated ->
-                        val apply = {
+                        val apply: () -> Unit = {
                             protectionSettings = updated
                             ProtectionRuntime.applySettings(context, updated)
                         }
