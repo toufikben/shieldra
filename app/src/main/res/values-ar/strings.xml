@@ -120,10 +120,14 @@
     <string name="notification_channel_protection">خدمة الحماية</string>
     <string name="notification_protection_title">حماية SHIELDRA نشِطة</string>
     <string name="notification_protection_text">تعمل في الخلفية.</string>
-    <string name="notification_next_signal">الإشارة التالية بعد</string>
+    <string name="notification_next_signal">الإشارة التالية بعد %1$s</string>
+    <string name="unit_day">ي</string>
+    <string name="unit_hour">س</string>
+    <string name="unit_minute">د</string>
+    <string name="unit_less_than_minute">أقل من دقيقة</string>
     <string name="countdown_channel">إشارة دورية</string>
     <string name="countdown_warning_title">إشارة دورية</string>
-    <string name="countdown_warning_text">الإشارة التالية ستُرسل قريباً.</string>
+    <string name="countdown_warning_text">الإشارة التالية ستُرسل بعد %1$s.</string>
     <string name="countdown_snooze">تأجيل</string>
     <string name="protection_title">الحماية</string>
     <string name="protection_state_armed">مُفعّلة — تحرس في الخلفية</string>

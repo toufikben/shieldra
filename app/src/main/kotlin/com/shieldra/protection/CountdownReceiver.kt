@@ -139,15 +139,16 @@ object CountdownScheduler {
         val notice = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(com.shieldra.app.R.drawable.ic_shield_notification)
             .setContentTitle(context.getString(com.shieldra.app.R.string.countdown_warning_title))
-            .setContentText(context.getString(com.shieldra.app.R.string.countdown_warning_text))
-            .apply {
-                ProtectionSettingsStore(context).countdownDeadline()?.epochDeadlineMs?.let { due ->
-                    setWhen(due)
-                    setShowWhen(true)
-                    setUsesChronometer(true)
-                    setChronometerCountDown(true)
-                }
-            }
+            .setContentText(
+                context.getString(
+                    com.shieldra.app.R.string.countdown_warning_text,
+                    RemainingTimeText.of(
+                        context,
+                        (ProtectionSettingsStore(context).countdownDeadline()?.epochDeadlineMs ?: System.currentTimeMillis()) -
+                            System.currentTimeMillis(),
+                    ),
+                ),
+            )
             .addAction(0, context.getString(com.shieldra.app.R.string.countdown_snooze), snooze)
             .setAutoCancel(true)
             .build()
