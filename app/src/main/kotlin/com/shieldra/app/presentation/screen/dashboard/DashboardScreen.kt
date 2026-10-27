@@ -182,7 +182,7 @@ fun DashboardScreen(
 
         item {
             LiveStatusStrip(
-                lastCheckLabel = lastCheckText(model.lastCheckSeconds),
+                lastCheckLabel = lastCheckAgo(model.lastCheckSeconds),
                 batteryPercent = model.batteryPercent,
                 networkLabel = model.networkLabel,
                 networkStatus = model.networkStatus,
@@ -246,13 +246,13 @@ fun DashboardScreen(
     }
 }
 
-/** "12s ago" / "5 min ago" / "2 h ago": a measured age in the largest honest unit. */
+/** The strip's own label already says "Last check", so it carries the bare age. */
 @Composable
-private fun lastCheckText(seconds: Long?): String = when {
+private fun lastCheckAgo(seconds: Long?): String = when {
     seconds == null -> stringResource(R.string.last_check_none)
-    seconds < 60 -> stringResource(R.string.last_check_seconds, seconds)
-    seconds < 3600 -> stringResource(R.string.last_check_minutes, seconds / 60)
-    else -> stringResource(R.string.last_check_hours, seconds / 3600)
+    seconds < 60 -> stringResource(R.string.ago_seconds, seconds)
+    seconds < 3600 -> stringResource(R.string.ago_minutes, seconds / 60)
+    else -> stringResource(R.string.ago_hours, seconds / 3600)
 }
 
 @Composable
