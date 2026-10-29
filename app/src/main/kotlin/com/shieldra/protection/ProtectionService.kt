@@ -57,6 +57,7 @@ class ProtectionService : Service() {
     private var promoted = false
     private val battery by lazy { BatteryBreathLogic(mainThreshold = { ProtectionSettingsStore(applicationContext).load().batteryThreshold }) }
     private var batteryReceiver: android.content.BroadcastReceiver? = null
+    private var shutdownReceiver: android.content.BroadcastReceiver? = null
     private val simGuard by lazy { SimGuard(applicationContext) }
     private var lastSimVerdict: SimGuardLogic.Verdict = SimGuardLogic.Verdict.Normal
     private var networkLostChecks = 0
@@ -227,6 +228,29 @@ class ProtectionService : Service() {
         liveInstance = this
     }
 
+    /**
+     * A thief who powers the phone off silences every guard, so the owner gets one last message as the
+     * shutdown begins (sent best-effort: the system gives the app only a few seconds).
+     */
+    private fun startShutdownGuard() {
+        if (shutdownReceiver != null) return
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (!ProtectionSettingsStore(applicationContext).load().armed) return
+                runCatching { com.shieldra.delivery.AlertRuntime.alert(applicationContext, com.shieldra.delivery.AlertKind.SHUTDOWN, null) }
+            }
+        }
+        runCatching {
+            ContextCompat.registerReceiver(
+                this,
+                receiver,
+                android.content.IntentFilter(Intent.ACTION_SHUTDOWN),
+                ContextCompat.RECEIVER_EXPORTED,
+            )
+            shutdownReceiver = receiver
+        }
+    }
+
     /** Watches the battery while protection runs; a crossed level fires one "last breath" capture. */
     private fun startBatteryGuard() {
         if (batteryReceiver != null) return
@@ -274,6 +298,7 @@ class ProtectionService : Service() {
                     return START_NOT_STICKY
                 }
                 startBatteryGuard()
+                startShutdownGuard()
                 startGeofenceSampler()
                 startHeartbeat()
                 simGuard.captureBaselineIfNeeded()
@@ -304,6 +329,8 @@ class ProtectionService : Service() {
         remoteCommands.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
         batteryReceiver = null
+        shutdownReceiver?.let { runCatching { unregisterReceiver(it) } }
+        shutdownReceiver = null
         scope.coroutineContext[Job]?.cancel()
         super.onDestroy()
     }
