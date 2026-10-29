@@ -57,8 +57,10 @@ class ProtectionService : Service() {
     private var promoted = false
     private val battery by lazy { BatteryBreathLogic(mainThreshold = { ProtectionSettingsStore(applicationContext).load().batteryThreshold }) }
     private var batteryReceiver: android.content.BroadcastReceiver? = null
+    private var shutdownReceiver: android.content.BroadcastReceiver? = null
     private val simGuard by lazy { SimGuard(applicationContext) }
     private var lastSimVerdict: SimGuardLogic.Verdict = SimGuardLogic.Verdict.Normal
+    private var networkLostChecks = 0
     private val remoteCommands by lazy { RemoteCommandPoller(applicationContext) }
     private val trackingHandler = Handler(Looper.getMainLooper())
     private var trackingTicksLeft = 0
@@ -105,8 +107,9 @@ class ProtectionService : Service() {
                 scope.launch {
                     val fix = runCatching { location.current() }.getOrNull()
                     if (fix != null) {
-                        val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, zones, wasInsideSafeZone)
-                        wasInsideSafeZone = GeofenceLogic.isInsideAny(fix.latitude, fix.longitude, zones)
+                        val accuracy = (fix.accuracyMeters ?: 0f).toDouble()
+                        val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, accuracy, zones, wasInsideSafeZone)
+                        wasInsideSafeZone = GeofenceLogic.nextInsideState(fix.latitude, fix.longitude, accuracy, zones, wasInsideSafeZone)
                         if (left) {
                             val base = AlertRuntime.snapshot(applicationContext, AlertKind.TRACKING, null)
                             AlertRuntime.alert(
@@ -181,6 +184,14 @@ class ProtectionService : Service() {
         val settings = ProtectionSettingsStore(applicationContext).load()
         if (!settings.simEnabled) return
         val verdict = simGuard.check() ?: return
+        // A tunnel or a lift lasts a minute; a thief cutting the network lasts. Only a loss seen on two
+        // checks in a row (about two minutes) is reported, so a short dead spot is not an alarm.
+        if (verdict == SimGuardLogic.Verdict.NetworkLost) {
+            networkLostChecks += 1
+            if (networkLostChecks < NETWORK_LOST_CONFIRM_CHECKS) return
+        } else {
+            networkLostChecks = 0
+        }
         if (verdict == lastSimVerdict) return
         lastSimVerdict = verdict
         if (verdict != SimGuardLogic.Verdict.Normal) {
@@ -215,6 +226,29 @@ class ProtectionService : Service() {
     override fun onCreate() {
         super.onCreate()
         liveInstance = this
+    }
+
+    /**
+     * A thief who powers the phone off silences every guard, so the owner gets one last message as the
+     * shutdown begins (sent best-effort: the system gives the app only a few seconds).
+     */
+    private fun startShutdownGuard() {
+        if (shutdownReceiver != null) return
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (!ProtectionSettingsStore(applicationContext).load().armed) return
+                runCatching { com.shieldra.delivery.AlertRuntime.alert(applicationContext, com.shieldra.delivery.AlertKind.SHUTDOWN, null) }
+            }
+        }
+        runCatching {
+            ContextCompat.registerReceiver(
+                this,
+                receiver,
+                android.content.IntentFilter(Intent.ACTION_SHUTDOWN),
+                ContextCompat.RECEIVER_EXPORTED,
+            )
+            shutdownReceiver = receiver
+        }
     }
 
     /** Watches the battery while protection runs; a crossed level fires one "last breath" capture. */
@@ -264,6 +298,7 @@ class ProtectionService : Service() {
                     return START_NOT_STICKY
                 }
                 startBatteryGuard()
+                startShutdownGuard()
                 startGeofenceSampler()
                 startHeartbeat()
                 simGuard.captureBaselineIfNeeded()
@@ -294,6 +329,8 @@ class ProtectionService : Service() {
         remoteCommands.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
         batteryReceiver = null
+        shutdownReceiver?.let { runCatching { unregisterReceiver(it) } }
+        shutdownReceiver = null
         scope.coroutineContext[Job]?.cancel()
         super.onDestroy()
     }
@@ -539,6 +576,7 @@ class ProtectionService : Service() {
         private const val CHANNEL_ID = "shieldra_protection"
         private const val NOTIFICATION_ID = 20_003
         private const val HEARTBEAT_MS = 60_000L
+        private const val NETWORK_LOST_CONFIRM_CHECKS = 2
 
         const val ACTION_ARM = "com.shieldra.protection.ARM"
         const val ACTION_CAPTURE = "com.shieldra.protection.CAPTURE"

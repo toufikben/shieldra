@@ -18,7 +18,10 @@ data class SafeZone(
     val zone: GeofenceLogic.Zone,
 ) {
     companion object {
-        const val DEFAULT_RADIUS_M = 150.0
+        const val DEFAULT_RADIUS_M = 200.0
+
+        /** The sizes the owner may pick: a flat or house, a block, a neighbourhood, a district. */
+        val RADIUS_CHOICES_M: List<Int> = listOf(100, 200, 500, 1000)
     }
 }
 
@@ -56,4 +59,25 @@ object GeofenceLogic {
      */
     fun hasLeftSafeZone(lat: Double, lon: Double, zones: List<Zone>, wasInside: Boolean): Boolean =
         zones.isNotEmpty() && wasInside && !isInsideAny(lat, lon, zones)
+
+    /**
+     * Outside every zone even after giving the fix its own error: a fused fix of ±300 m that sits 200 m
+     * from the edge may really be inside, so it proves nothing. Only a fix whose whole uncertainty
+     * circle clears every zone counts as having left.
+     */
+    fun isConfidentlyOutside(lat: Double, lon: Double, accuracyMeters: Double, zones: List<Zone>): Boolean =
+        zones.isNotEmpty() && zones.all {
+            distanceMeters(lat, lon, it.latitude, it.longitude) - accuracyMeters.coerceAtLeast(0.0) > it.radiusMeters
+        }
+
+    /** Leaving is decided only by a confident fix; an ambiguous one changes nothing. */
+    fun hasLeftSafeZone(lat: Double, lon: Double, accuracyMeters: Double, zones: List<Zone>, wasInside: Boolean): Boolean =
+        wasInside && isConfidentlyOutside(lat, lon, accuracyMeters, zones)
+
+    /** The state to carry to the next fix: decisively inside, decisively outside, or unchanged if unsure. */
+    fun nextInsideState(lat: Double, lon: Double, accuracyMeters: Double, zones: List<Zone>, previous: Boolean): Boolean = when {
+        isInsideAny(lat, lon, zones) -> true
+        isConfidentlyOutside(lat, lon, accuracyMeters, zones) -> false
+        else -> previous
+    }
 }

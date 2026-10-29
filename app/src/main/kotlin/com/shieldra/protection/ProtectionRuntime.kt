@@ -61,13 +61,17 @@ object ProtectionRuntime {
      * Marks the phone's current position as a safe zone. The fix is taken inside the protection
      * package (group-c/A-34), so the UI never touches location itself. Returns false if no fix.
      */
-    suspend fun addCurrentLocationAsZone(context: Context, name: String): Boolean {
+    suspend fun addCurrentLocationAsZone(
+        context: Context,
+        name: String,
+        radiusMeters: Double = SafeZone.DEFAULT_RADIUS_M,
+    ): Boolean {
         val app = context.applicationContext
         val fix = LocationFix(app).current() ?: return false
         val store = ProtectionSettingsStore(app)
         val zones = store.safeZones().toMutableList()
         val label = name.ifBlank { "Zone ${zones.size + 1}" }
-        zones.add(SafeZone(label, GeofenceLogic.Zone(fix.latitude, fix.longitude, SafeZone.DEFAULT_RADIUS_M)))
+        zones.add(SafeZone(label, GeofenceLogic.Zone(fix.latitude, fix.longitude, radiusMeters)))
         store.setSafeZones(zones)
         return true
     }

@@ -33,6 +33,7 @@
     <string name="safe_zones_enable">تنبيه عند المغادرة</string>
     <string name="safe_zones_add">علّم هذا المكان كآمن</string>
     <string name="safe_zones_empty">لا مناطق آمنة بعد</string>
+    <string name="safe_zones_radius">حجم المنطقة الجديدة (نصف القطر)</string>
     <string name="safe_zones_remove">حذف المنطقة الآمنة</string>
     <string name="safe_zones_added">حُفظت المنطقة الآمنة</string>
     <string name="safe_zones_no_fix">تعذّر الحصول على موقع</string>
@@ -158,6 +159,8 @@
     <string name="protection_evidence_title">الأدلّة</string>
     <string name="protection_dual_camera">الكاميرتان</string>
     <string name="protection_dual_camera_desc">التقاط صورة خلفية للمحيط أيضاً.</string>
+    <string name="protection_motion_with_arming">حارس الحركة مع التفعيل</string>
+    <string name="protection_motion_with_arming_desc">التفعيل يشغّل مراقبة الحركة والإيقاف يوقفها. رفع واحد يعطي تنبيهاً واحداً كل 10 دقائق، وفتح القفل خلال مهلة السماح يلغيه.</string>
     <string name="protection_audio">مقطع صوتي قصير</string>
     <string name="protection_audio_desc">تسجيل بضع ثوانٍ من الصوت حول الهاتف.</string>
     <string name="protection_audio_seconds">الصوت: %1$d ثانية</string>
@@ -352,6 +355,7 @@
     <string name="alert_title_lock">محاولات فتح قفل فاشلة</string>
     <string name="alert_title_sim">تغيّرت الشريحة</string>
     <string name="alert_title_battery">بطارية منخفضة</string>
+    <string name="alert_title_shutdown">الهاتف يُطفأ الآن</string>
     <string name="alert_title_countdown">إشارة دورية</string>
     <string name="alert_title_tracking">موقع مباشر</string>
     <string name="alert_label_location">الموقع</string>

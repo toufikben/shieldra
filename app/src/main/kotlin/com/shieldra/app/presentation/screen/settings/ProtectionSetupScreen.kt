@@ -187,6 +187,12 @@ fun ProtectionSetupScreen(
             ) { draft = draft.copy(batteryThreshold = it.toInt()) }
         }
 
+        GuardToggle(
+            title = stringResource(R.string.protection_motion_with_arming),
+            subtitle = stringResource(R.string.protection_motion_with_arming_desc),
+            checked = draft.motionWithArming,
+        ) { draft = draft.copy(motionWithArming = it) }
+
         // ===== Evidence (dual camera + audio) =====
         SectionTitle(stringResource(R.string.protection_evidence_title))
         GuardToggle(

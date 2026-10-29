@@ -27,6 +27,8 @@ data class ProtectionSettings(
     val trackingDurationMinutes: Int = 30,
     val dualCameraEnabled: Boolean = false,
     val audioEnabled: Boolean = false,
+    /** Arming also starts Motion monitoring, and disarming stops it (opt-in). */
+    val motionWithArming: Boolean = false,
     val audioSeconds: Int = 10,
     val escalationEnabled: Boolean = false,
     val escalationThreshold: Int = EscalationPolicy.DEFAULT_THRESHOLD,
@@ -67,6 +69,7 @@ class ProtectionSettingsStore(context: Context) {
         trackingDurationMinutes = prefs.getInt(KEY_TRACK_DURATION, 30),
         dualCameraEnabled = prefs.getBoolean(KEY_DUAL_CAM, false),
         audioEnabled = prefs.getBoolean(KEY_AUDIO, false),
+        motionWithArming = prefs.getBoolean(KEY_MOTION_WITH_ARMING, false),
         audioSeconds = prefs.getInt(KEY_AUDIO_SECONDS, 10),
         escalationEnabled = prefs.getBoolean(KEY_ESCALATION, false),
         escalationThreshold = prefs.getInt(KEY_ESCALATION_THRESHOLD, EscalationPolicy.DEFAULT_THRESHOLD),
@@ -98,6 +101,7 @@ class ProtectionSettingsStore(context: Context) {
             .putInt(KEY_TRACK_DURATION, settings.trackingDurationMinutes)
             .putBoolean(KEY_DUAL_CAM, settings.dualCameraEnabled)
             .putBoolean(KEY_AUDIO, settings.audioEnabled)
+            .putBoolean(KEY_MOTION_WITH_ARMING, settings.motionWithArming)
             .putInt(KEY_AUDIO_SECONDS, settings.audioSeconds)
             .putBoolean(KEY_ESCALATION, settings.escalationEnabled)
             .putInt(KEY_ESCALATION_THRESHOLD, settings.escalationThreshold.coerceIn(EscalationPolicy.MIN_THRESHOLD, EscalationPolicy.MAX_THRESHOLD))
@@ -194,6 +198,7 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_TRACK_DURATION = "tracking_duration_minutes"
         const val KEY_DUAL_CAM = "dual_camera_enabled"
         const val KEY_AUDIO = "audio_enabled"
+        const val KEY_MOTION_WITH_ARMING = "motion_with_arming"
         const val KEY_AUDIO_SECONDS = "audio_seconds"
         const val KEY_ESCALATION = "escalation_enabled"
         const val KEY_ESCALATION_THRESHOLD = "escalation_threshold"
