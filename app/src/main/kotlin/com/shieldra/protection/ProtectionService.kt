@@ -59,6 +59,7 @@ class ProtectionService : Service() {
     private var batteryReceiver: android.content.BroadcastReceiver? = null
     private val simGuard by lazy { SimGuard(applicationContext) }
     private var lastSimVerdict: SimGuardLogic.Verdict = SimGuardLogic.Verdict.Normal
+    private var networkLostChecks = 0
     private val remoteCommands by lazy { RemoteCommandPoller(applicationContext) }
     private val trackingHandler = Handler(Looper.getMainLooper())
     private var trackingTicksLeft = 0
@@ -182,6 +183,14 @@ class ProtectionService : Service() {
         val settings = ProtectionSettingsStore(applicationContext).load()
         if (!settings.simEnabled) return
         val verdict = simGuard.check() ?: return
+        // A tunnel or a lift lasts a minute; a thief cutting the network lasts. Only a loss seen on two
+        // checks in a row (about two minutes) is reported, so a short dead spot is not an alarm.
+        if (verdict == SimGuardLogic.Verdict.NetworkLost) {
+            networkLostChecks += 1
+            if (networkLostChecks < NETWORK_LOST_CONFIRM_CHECKS) return
+        } else {
+            networkLostChecks = 0
+        }
         if (verdict == lastSimVerdict) return
         lastSimVerdict = verdict
         if (verdict != SimGuardLogic.Verdict.Normal) {
@@ -540,6 +549,7 @@ class ProtectionService : Service() {
         private const val CHANNEL_ID = "shieldra_protection"
         private const val NOTIFICATION_ID = 20_003
         private const val HEARTBEAT_MS = 60_000L
+        private const val NETWORK_LOST_CONFIRM_CHECKS = 2
 
         const val ACTION_ARM = "com.shieldra.protection.ARM"
         const val ACTION_CAPTURE = "com.shieldra.protection.CAPTURE"

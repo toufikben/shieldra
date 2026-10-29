@@ -149,7 +149,14 @@ object CountdownScheduler {
                     ),
                 ),
             )
-            .addAction(0, context.getString(com.shieldra.app.R.string.countdown_snooze), snooze)
+            // Postponing the signal is the owner's alone: the lock screen must be opened first, so
+            // whoever merely holds a locked phone cannot silence the dead-man switch.
+            .addAction(
+                NotificationCompat.Action.Builder(0, context.getString(com.shieldra.app.R.string.countdown_snooze), snooze)
+                    .setAuthenticationRequired(true)
+                    .build(),
+            )
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setAutoCancel(true)
             .build()
         manager.notify(WARNING_NOTIFICATION_ID, notice)
