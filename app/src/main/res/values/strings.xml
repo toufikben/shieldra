@@ -423,15 +423,11 @@
     <string name="help_start_title">Get started</string>
     <string name="help_start_body">1. Open Settings, then Protection, and grant the permissions it lists.\n2. Turn on the guards you want: failed unlock, SIM, battery, motion.\n3. Arm protection. Shieldra then guards silently in the background — nothing is shown to whoever holds the phone.</string>
     <string name="help_telegram_title">Telegram alerts</string>
-    <string name="help_telegram_body">1. In Telegram open @BotFather, send /newbot and copy the token of your own bot.\n2. Send any message to your new bot, then find your chat ID (for example with @userinfobot).\n3. Paste both in Settings, Alerts &amp; notifications, and tap Test.
-
-Telegram alerts need Shieldra Pro; the free plan sends alerts by email.</string>
+    <string name="help_telegram_body">1. In Telegram open @BotFather, send /newbot and copy the token of your own bot.\n2. Send any message to your new bot, then find your chat ID (for example with @userinfobot).\n3. Paste both in Settings, Alerts &amp; notifications, and tap Test.\n\nTelegram alerts need Shieldra Pro; the free plan sends alerts by email.</string>
     <string name="help_email_title">Email alerts</string>
     <string name="help_email_body">Use your own email account with an app password, not your normal password. In Alerts &amp; notifications choose the server, port and security, enter your address and the app password, then tap Test.</string>
     <string name="help_commands_title">Remote commands</string>
-    <string name="help_commands_body">Turn on remote commands in Protection. From your own Telegram chat you can send:\n/locate — current position\n/photo — front-camera photo\n/alarm and /stopalarm\n/track on and /track off — repeating location\n/lost and /found — owner message on the lock screen\n/status — battery and network
-
-Remote commands are part of Shieldra Pro.</string>
+    <string name="help_commands_body">Turn on remote commands in Protection. From your own Telegram chat you can send:\n/locate — current position\n/photo — front-camera photo\n/alarm and /stopalarm\n/track on and /track off — repeating location\n/lost and /found — owner message on the lock screen\n/status — battery and network\n\nRemote commands are part of Shieldra Pro.</string>
     <string name="help_zones_title">Safe zones</string>
     <string name="help_zones_body">On the Map tab, stand in a safe place such as home or work and tap Mark this place as safe, then turn on Alert on leaving. While armed, Shieldra checks the position every few minutes and alerts you when the phone is outside every safe zone.</string>
     <string name="help_export_title">Exporting evidence</string>

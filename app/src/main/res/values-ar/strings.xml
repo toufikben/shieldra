@@ -422,15 +422,11 @@
     <string name="help_start_title">البداية</string>
     <string name="help_start_body">١. افتح الإعدادات ثم الحماية وامنح الأذونات المذكورة.\n٢. شغّل الحرّاس التي تريدها: الفتح الفاشل، الشريحة، البطارية، الحركة.\n٣. فعّل الحماية. بعدها يحرس Shieldra بصمت في الخلفية — لا يظهر شيء لمن يحمل الهاتف.</string>
     <string name="help_telegram_title">تنبيهات تلغرام</string>
-    <string name="help_telegram_body">١. في تلغرام افتح @BotFather وأرسل /newbot وانسخ رمز بوتّك الخاص.\n٢. أرسل أي رسالة إلى بوتّك الجديد ثم اعرف معرّف المحادثة (مثلاً عبر @userinfobot).\n٣. الصقهما في الإعدادات، التنبيهات والإشعارات، ثم اضغط اختبار.
-
-تنبيهات Telegram تحتاج Shieldra Pro؛ الخطة المجانية ترسل التنبيهات بالبريد.</string>
+    <string name="help_telegram_body">١. في تلغرام افتح @BotFather وأرسل /newbot وانسخ رمز بوتّك الخاص.\n٢. أرسل أي رسالة إلى بوتّك الجديد ثم اعرف معرّف المحادثة (مثلاً عبر @userinfobot).\n٣. الصقهما في الإعدادات، التنبيهات والإشعارات، ثم اضغط اختبار.\n\nتنبيهات Telegram تحتاج Shieldra Pro؛ الخطة المجانية ترسل التنبيهات بالبريد.</string>
     <string name="help_email_title">تنبيهات البريد</string>
     <string name="help_email_body">استعمل حساب بريدك الخاص مع كلمة مرور تطبيق لا كلمة مرورك العادية. في التنبيهات والإشعارات اختر الخادم والمنفذ والأمان وأدخل عنوانك وكلمة مرور التطبيق ثم اضغط اختبار.</string>
     <string name="help_commands_title">الأوامر عن بُعد</string>
-    <string name="help_commands_body">فعّل الأوامر عن بُعد في الحماية. من محادثة تلغرام الخاصة بك يمكنك إرسال:\n/locate — الموقع الحالي\n/photo — صورة بالكاميرا الأمامية\n/alarm و /stopalarm\n/track on و /track off — موقع متكرّر\n/lost و /found — رسالة المالك على شاشة القفل\n/status — البطارية والشبكة
-
-الأوامر عن بُعد جزء من Shieldra Pro.</string>
+    <string name="help_commands_body">فعّل الأوامر عن بُعد في الحماية. من محادثة تلغرام الخاصة بك يمكنك إرسال:\n/locate — الموقع الحالي\n/photo — صورة بالكاميرا الأمامية\n/alarm و /stopalarm\n/track on و /track off — موقع متكرّر\n/lost و /found — رسالة المالك على شاشة القفل\n/status — البطارية والشبكة\n\nالأوامر عن بُعد جزء من Shieldra Pro.</string>
     <string name="help_zones_title">المناطق الآمنة</string>
     <string name="help_zones_body">في تبويب الخريطة قِف في مكان آمن كالمنزل أو العمل واضغط علّم هذا المكان كآمن ثم شغّل التنبيه عند المغادرة. أثناء التفعيل يفحص Shieldra الموقع كل بضع دقائق وينبّهك حين يصبح الهاتف خارج كل المناطق الآمنة.</string>
     <string name="help_export_title">تصدير الأدلّة</string>
