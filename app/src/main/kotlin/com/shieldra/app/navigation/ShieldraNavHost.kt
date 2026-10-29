@@ -911,7 +911,22 @@ fun ShieldraNavHost(
                         permissionRefresh += 1
                     },
                     onArmToggle = {
-                        if (protectionArmed) requireOwner { ProtectionRuntime.disarm(context) } else ProtectionRuntime.arm(context)
+                        if (protectionArmed) {
+                            requireOwner {
+                                ProtectionRuntime.disarm(context)
+                                if (protectionSettings.motionWithArming && motionClaim.claimsProtection) {
+                                    stopWasRequested = true
+                                    MotionRuntime.stopMonitoring(context)
+                                }
+                            }
+                        } else {
+                            ProtectionRuntime.arm(context)
+                            // Opt-in: arming starts the Motion guard too. A refusal (no notification
+                            // permission, say) leaves arming itself intact; the Home button says why.
+                            if (protectionSettings.motionWithArming && !motionClaim.claimsProtection) {
+                                MotionRuntime.startMonitoring(context, storageInstalled)
+                            }
+                        }
                     },
                     onSave = { updated ->
                         val apply: () -> Unit = {

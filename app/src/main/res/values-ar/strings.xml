@@ -159,6 +159,8 @@
     <string name="protection_evidence_title">الأدلّة</string>
     <string name="protection_dual_camera">الكاميرتان</string>
     <string name="protection_dual_camera_desc">التقاط صورة خلفية للمحيط أيضاً.</string>
+    <string name="protection_motion_with_arming">حارس الحركة مع التفعيل</string>
+    <string name="protection_motion_with_arming_desc">التفعيل يشغّل مراقبة الحركة والإيقاف يوقفها. رفع واحد يعطي تنبيهاً واحداً كل 10 دقائق، وفتح القفل خلال مهلة السماح يلغيه.</string>
     <string name="protection_audio">مقطع صوتي قصير</string>
     <string name="protection_audio_desc">تسجيل بضع ثوانٍ من الصوت حول الهاتف.</string>
     <string name="protection_audio_seconds">الصوت: %1$d ثانية</string>

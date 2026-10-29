@@ -159,6 +159,8 @@
     <string name="protection_evidence_title">Evidence</string>
     <string name="protection_dual_camera">Both cameras</string>
     <string name="protection_dual_camera_desc">Also take a back-camera photo of the surroundings.</string>
+    <string name="protection_motion_with_arming">Motion guard with arming</string>
+    <string name="protection_motion_with_arming_desc">Arming also starts Motion monitoring and disarming stops it. One lift gives one alert per 10 minutes; unlocking within the grace time cancels it.</string>
     <string name="protection_audio">Short audio clip</string>
     <string name="protection_audio_desc">Record a few seconds of sound around the phone.</string>
     <string name="protection_audio_seconds">Audio: %1$d seconds</string>
