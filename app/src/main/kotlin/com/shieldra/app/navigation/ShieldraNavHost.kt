@@ -379,6 +379,13 @@ fun ShieldraNavHost(
     val protectionArmed by ProtectionRuntime.armed.collectAsState()
     val protectionStore = remember(context) { ProtectionSettingsStore(context) }
     var protectionSettings by remember { mutableStateOf(protectionStore.load()) }
+    // The plan is written by the billing store when Google Play answers (after a purchase, a restore or
+    // an app start). This copy of the settings was read once, so it would keep showing Free after a
+    // purchase and send the owner back to the Pro screen; re-read the plan whenever Play's answer changes.
+    val playProState by (context.applicationContext as ShieldraApp).proStore.state.collectAsState()
+    LaunchedEffect(playProState.entitled) {
+        protectionSettings = protectionSettings.copy(tier = protectionStore.load().tier)
+    }
     var permissionRefresh by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) { ProtectionRuntime.refresh(context) }
     val protectionPermissionLauncher = rememberLauncherForActivityResult(
