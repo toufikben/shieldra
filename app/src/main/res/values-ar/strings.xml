@@ -385,6 +385,7 @@
     <string name="alert_advanced_show">إعدادات متقدمة (الخادم)</string>
     <string name="alert_email_help_title">كيفية الحصول على كلمة مرور التطبيق</string>
     <string name="alert_email_help_body">كلمة مرور التطبيق ليست كلمة مرورك العادية. Gmail: فعّل التحقق بخطوتين، ثم افتح myaccount.google.com/apppasswords وأنشئ واحدة لـ \"Mail\" والصق الحروف الستة عشر هنا. Outlook وYahoo بهما الخيار نفسه في إعدادات أمان الحساب. تُملأ حقول الخادم تلقائياً لـ Gmail وOutlook وYahoo وiCloud.</string>
+    <string name="alert_telegram_needs_pro">تنبيهات Telegram جزء من Shieldra Pro. في الخطة المجانية تصل التنبيهات بالبريد فقط. اضغط لرؤية Pro.</string>
     <string name="alert_telegram_help_title">كيفية الحصول على التوكن ومعرّف المحادثة</string>
     <string name="alert_telegram_help_body">١) في تلغرام افتح @BotFather وأرسل /newbot واتبع الخطوات وانسخ التوكن. ٢) افتح البوت الجديد وأرسل له أي رسالة. ٣) افتح @userinfobot فيردّ بمعرّف محادثتك — الصق ذلك الرقم هنا.</string>
     <string name="alert_send_test">إرسال تجربة</string>
@@ -492,6 +493,10 @@
     <string name="pro_price_per_year">%1$s / سنة</string>
     <string name="pro_price_per_month">%1$s / شهر</string>
     <string name="pro_price_plain">%1$s</string>
+    <string name="pro_plan_lifetime">مدى الحياة</string>
+    <string name="pro_price_once">%1$s مرة واحدة</string>
+    <string name="pro_buy_lifetime">اشترِ مرة واحدة</string>
+    <string name="pro_lifetime_note">دفعة واحدة وتبقى لك دائماً. لا تجديد.</string>
     <string name="pro_trial_days">تجربة مجانية %1$d أيام</string>
     <string name="pro_start_trial">ابدأ التجربة المجانية</string>
     <string name="pro_subscribe">اشترك</string>

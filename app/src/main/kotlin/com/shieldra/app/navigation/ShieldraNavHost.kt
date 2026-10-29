@@ -826,6 +826,8 @@ fun ShieldraNavHost(
                 } else {
                     AlertChannelsScreen(
                         saved = saved,
+                        telegramNeedsPro = !com.shieldra.billing.TierGate.allowsTelegram(protectionSettings.tier),
+                        onOpenPro = { navController.navigate(ShieldraRoutes.PRO) },
                         onSave = { updated ->
                             requireOwner {
                                 scope.launch {
@@ -882,6 +884,7 @@ fun ShieldraNavHost(
                 ProtectionGuardsScreen(
                     armed = protectionArmed,
                     planSwitchAllowed = !com.shieldra.billing.InstallSource.isGooglePlay(context),
+                    onOpenPro = { navController.navigate(ShieldraRoutes.PRO) },
                     onTierChange = { tier ->
                         ProtectionSettingsStore(context).setTier(tier)
                         protectionSettings = protectionSettings.copy(tier = tier)

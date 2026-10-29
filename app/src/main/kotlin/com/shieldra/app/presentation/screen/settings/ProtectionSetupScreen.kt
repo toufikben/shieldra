@@ -1,6 +1,7 @@
 package com.shieldra.app.presentation.screen.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -79,6 +80,8 @@ fun ProtectionSetupScreen(
     /** True only for copies not installed from Google Play (see the plan switch below). */
     planSwitchAllowed: Boolean = false,
     onTierChange: (com.shieldra.billing.Tier) -> Unit = {},
+    /** Opens the Pro screen; a feature the free plan lacks sends the owner there. */
+    onOpenPro: () -> Unit = {},
 ) {
     val spacing = ShieldraTheme.spacing
     var draft by remember(settings) { mutableStateOf(settings) }
@@ -198,12 +201,16 @@ fun ProtectionSetupScreen(
         GuardToggle(
             title = stringResource(R.string.protection_dual_camera),
             subtitle = stringResource(R.string.protection_dual_camera_desc),
-            checked = draft.dualCameraEnabled,
+            checked = draft.dualCameraEnabled && com.shieldra.billing.TierGate.allowsBackCamera(draft.tier),
+            locked = !com.shieldra.billing.TierGate.allowsBackCamera(draft.tier),
+            onLocked = onOpenPro,
         ) { draft = draft.copy(dualCameraEnabled = it) }
         GuardToggle(
             title = stringResource(R.string.protection_audio),
             subtitle = stringResource(R.string.protection_audio_desc),
-            checked = draft.audioEnabled,
+            checked = draft.audioEnabled && com.shieldra.billing.TierGate.allowsAudio(draft.tier),
+            locked = !com.shieldra.billing.TierGate.allowsAudio(draft.tier),
+            onLocked = onOpenPro,
         ) { draft = draft.copy(audioEnabled = it) }
         if (draft.audioEnabled) {
             StepperRow(
@@ -255,7 +262,9 @@ fun ProtectionSetupScreen(
         GuardToggle(
             title = stringResource(R.string.protection_countdown_enable),
             subtitle = stringResource(R.string.protection_countdown_desc),
-            checked = draft.countdownEnabled,
+            checked = draft.countdownEnabled && com.shieldra.billing.TierGate.allowsCountdown(draft.tier),
+            locked = !com.shieldra.billing.TierGate.allowsCountdown(draft.tier),
+            onLocked = onOpenPro,
         ) { draft = draft.copy(countdownEnabled = it) }
         if (draft.countdownEnabled) {
             Spacer(Modifier.height(spacing.s))
@@ -296,7 +305,9 @@ fun ProtectionSetupScreen(
         GuardToggle(
             title = stringResource(R.string.protection_remote_enable),
             subtitle = stringResource(R.string.protection_remote_desc),
-            checked = draft.remoteCommandsEnabled,
+            checked = draft.remoteCommandsEnabled && com.shieldra.billing.TierGate.allowsRemote(draft.tier),
+            locked = !com.shieldra.billing.TierGate.allowsRemote(draft.tier),
+            onLocked = onOpenPro,
         ) { draft = draft.copy(remoteCommandsEnabled = it) }
         if (draft.remoteCommandsEnabled) {
             Text(
@@ -320,7 +331,9 @@ fun ProtectionSetupScreen(
         GuardToggle(
             title = stringResource(R.string.protection_track_enable),
             subtitle = stringResource(R.string.protection_track_desc),
-            checked = draft.liveTrackingEnabled,
+            checked = draft.liveTrackingEnabled && com.shieldra.billing.TierGate.allowsTracking(draft.tier),
+            locked = !com.shieldra.billing.TierGate.allowsTracking(draft.tier),
+            onLocked = onOpenPro,
         ) { draft = draft.copy(liveTrackingEnabled = it) }
 
         Spacer(Modifier.height(spacing.xl))
@@ -388,17 +401,35 @@ private fun PermissionRow(label: String, granted: Boolean, onGrant: () -> Unit) 
 }
 
 @Composable
-private fun GuardToggle(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun GuardToggle(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    locked: Boolean = false,
+    onLocked: () -> Unit = {},
+    onChange: (Boolean) -> Unit,
+) {
     val spacing = ShieldraTheme.spacing
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.s),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (locked) Modifier.clickable(onClick = onLocked) else Modifier)
+            .padding(vertical = spacing.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
+            Text(
+                text = if (locked) "$title  ·  ${stringResource(R.string.pro_pill)}" else title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        ShieldraSwitch(checked = checked, onCheckedChange = onChange)
+        if (locked) {
+            ShieldraSwitch(checked = false, onCheckedChange = { onLocked() })
+        } else {
+            ShieldraSwitch(checked = checked, onCheckedChange = onChange)
+        }
     }
 }
 

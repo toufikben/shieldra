@@ -1,5 +1,6 @@
 package com.shieldra.app.presentation.screen.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -61,6 +62,9 @@ fun AlertChannelsScreen(
     notificationState: NotificationPermissionState = NotificationPermissionState.NotRequired,
     onRequestNotifications: () -> Unit = {},
     onOpenNotificationSettings: () -> Unit = {},
+    /** True on the free plan: Telegram alerts are a Pro feature, so the card says so. */
+    telegramNeedsPro: Boolean = false,
+    onOpenPro: () -> Unit = {},
 ) {
     val spacing = ShieldraTheme.spacing
     val scope = rememberCoroutineScope()
@@ -160,6 +164,14 @@ fun AlertChannelsScreen(
             enabled = telegramEnabled,
             onEnabledChange = { telegramEnabled = it },
         ) {
+            if (telegramNeedsPro) {
+                Text(
+                    text = stringResource(R.string.alert_telegram_needs_pro),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ShieldraTheme.semantic.attention,
+                    modifier = Modifier.clickable(onClick = onOpenPro),
+                )
+            }
             ShieldraTextField(
                 value = botToken,
                 onValueChange = { botToken = it },

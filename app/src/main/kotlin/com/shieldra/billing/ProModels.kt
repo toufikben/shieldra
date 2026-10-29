@@ -8,14 +8,21 @@ object ProCatalog {
     const val PRODUCT_ID = "shieldra_pro"
     const val PLAN_MONTHLY = "pro-monthly"
     const val PLAN_YEARLY = "pro-yearly"
+
+    /** The one-time purchase (Monetize → In-app products): Pro for good, no renewal. */
+    const val LIFETIME_PRODUCT_ID = "shieldra_pro_lifetime"
+
+    /** The id the screen uses for the lifetime choice; it is not a Play base plan. */
+    const val PLAN_LIFETIME = "pro-lifetime"
 }
 
-enum class ProPeriod { MONTHLY, YEARLY, OTHER }
+enum class ProPeriod { MONTHLY, YEARLY, LIFETIME, OTHER }
 
 /** One plan the screen can sell: the price text comes from Google Play, never from this app. */
 data class ProPlan(
     val basePlanId: String,
     val period: ProPeriod,
+    /** The subscription offer to buy; empty for the one-time lifetime purchase. */
     val offerToken: String,
     /** The recurring price as Play formats it for this user's country and currency. */
     val recurringPrice: String,
@@ -35,7 +42,7 @@ sealed interface ProAvailability {
 data class ProState(
     val availability: ProAvailability = ProAvailability.Connecting,
     val plans: List<ProPlan> = emptyList(),
-    /** True only while Google Play reports an active, purchased Pro subscription. */
+    /** True only while Google Play reports an owned Pro subscription or lifetime purchase. */
     val entitled: Boolean = false,
     /** A purchase Play has accepted but not completed yet (for example a cash payment). */
     val purchasePending: Boolean = false,

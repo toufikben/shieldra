@@ -46,6 +46,7 @@ class PlayProStore(context: Context) : ProStore {
 
     private var client: BillingClient? = null
     private var productDetails: ProductDetails? = null
+    private var lifetimeDetails: ProductDetails? = null
 
     private val purchasesListener = PurchasesUpdatedListener { result, purchases ->
         if (result.responseCode == BillingClient.BillingResponseCode.OK) {
@@ -88,12 +89,18 @@ class PlayProStore(context: Context) : ProStore {
 
     override fun purchase(activity: Activity, basePlanId: String) {
         val c = client ?: return
-        val details = productDetails ?: return
         val plan = mutableState.value.plans.firstOrNull { it.basePlanId == basePlanId } ?: return
-        val product = BillingFlowParams.ProductDetailsParams.newBuilder()
-            .setProductDetails(details)
-            .setOfferToken(plan.offerToken)
-            .build()
+        val product = if (plan.period == ProPeriod.LIFETIME) {
+            // A one-time product has no offer token.
+            BillingFlowParams.ProductDetailsParams.newBuilder()
+                .setProductDetails(lifetimeDetails ?: return)
+                .build()
+        } else {
+            BillingFlowParams.ProductDetailsParams.newBuilder()
+                .setProductDetails(productDetails ?: return)
+                .setOfferToken(plan.offerToken)
+                .build()
+        }
         val flow = BillingFlowParams.newBuilder().setProductDetailsParamsList(listOf(product)).build()
         c.launchBillingFlow(activity, flow)
     }
@@ -105,25 +112,18 @@ class PlayProStore(context: Context) : ProStore {
 
     private suspend fun loadProducts() {
         val c = client ?: return
-        val params = QueryProductDetailsParams.newBuilder()
-            .setProductList(
-                listOf(
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(ProCatalog.PRODUCT_ID)
-                        .setProductType(BillingClient.ProductType.SUBS)
-                        .build(),
-                ),
-            )
-            .build()
-        val result = c.queryProductDetails(params)
-        val details = result.productDetailsList?.firstOrNull()
-        if (result.billingResult.responseCode != BillingClient.BillingResponseCode.OK || details == null) {
-            Log.w(TAG, "Pro product not available: ${result.billingResult.debugMessage}")
-            mutableState.update { it.copy(availability = ProAvailability.Unavailable(ProUnavailable.PRODUCT_NOT_FOUND)) }
-            return
-        }
-        productDetails = details
-        val offers = details.subscriptionOfferDetails.orEmpty().map { offer ->
+        // A query holds one product type, so the subscription and the one-time product are asked apart.
+        val subsResult = c.queryProductDetails(productQuery(ProCatalog.PRODUCT_ID, BillingClient.ProductType.SUBS))
+        val lifetimeResult = c.queryProductDetails(
+            productQuery(ProCatalog.LIFETIME_PRODUCT_ID, BillingClient.ProductType.INAPP),
+        )
+        val subs = subsResult.productDetailsList?.firstOrNull()
+            ?.takeIf { subsResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK }
+        val lifetime = lifetimeResult.productDetailsList?.firstOrNull()
+            ?.takeIf { lifetimeResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK }
+        productDetails = subs
+        lifetimeDetails = lifetime
+        val offers = subs?.subscriptionOfferDetails.orEmpty().map { offer ->
             RawOffer(
                 basePlanId = offer.basePlanId,
                 offerId = offer.offerId,
@@ -133,7 +133,19 @@ class PlayProStore(context: Context) : ProStore {
                 },
             )
         }
-        val plans = PlanChooser.plans(offers)
+        val lifetimePlan = lifetime?.oneTimePurchaseOfferDetails?.let {
+            ProPlan(
+                basePlanId = ProCatalog.PLAN_LIFETIME,
+                period = ProPeriod.LIFETIME,
+                offerToken = "",
+                recurringPrice = it.formattedPrice,
+                trialDays = null,
+            )
+        }
+        val plans = PlanChooser.plans(offers) + listOfNotNull(lifetimePlan)
+        if (plans.isEmpty()) {
+            Log.w(TAG, "Pro not available: ${subsResult.billingResult.debugMessage} / ${lifetimeResult.billingResult.debugMessage}")
+        }
         mutableState.update {
             it.copy(
                 availability = if (plans.isEmpty()) {
@@ -146,19 +158,37 @@ class PlayProStore(context: Context) : ProStore {
         }
     }
 
+    private fun productQuery(productId: String, type: String): QueryProductDetailsParams =
+        QueryProductDetailsParams.newBuilder()
+            .setProductList(
+                listOf(
+                    QueryProductDetailsParams.Product.newBuilder()
+                        .setProductId(productId)
+                        .setProductType(type)
+                        .build(),
+                ),
+            )
+            .build()
+
     private suspend fun refreshPurchases() {
         val c = client ?: return
-        val result = c.queryPurchasesAsync(
+        val subs = c.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build(),
         )
+        val once = c.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build(),
+        )
         applyPurchases(
-            result.purchasesList,
-            queryOk = result.billingResult.responseCode == BillingClient.BillingResponseCode.OK,
+            subs.purchasesList + once.purchasesList,
+            queryOk = subs.billingResult.responseCode == BillingClient.BillingResponseCode.OK &&
+                once.billingResult.responseCode == BillingClient.BillingResponseCode.OK,
         )
     }
 
     private suspend fun applyPurchases(purchases: List<Purchase>, queryOk: Boolean) {
-        val pro = purchases.filter { ProCatalog.PRODUCT_ID in it.products }
+        val pro = purchases.filter {
+            ProCatalog.PRODUCT_ID in it.products || ProCatalog.LIFETIME_PRODUCT_ID in it.products
+        }
         val owned = pro.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
         val pending = pro.any { it.purchaseState == Purchase.PurchaseState.PENDING }
         // Play refunds a purchase that is not acknowledged within three days, so acknowledge at once.
