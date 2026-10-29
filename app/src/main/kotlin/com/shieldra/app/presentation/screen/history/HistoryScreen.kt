@@ -83,6 +83,11 @@ fun HistoryScreen(
     }
     val locale = LocalConfiguration.current.locales[0]
     val dateFormat = remember(locale) { DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale) }
+    val timeFormat = remember(locale) { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale) }
+    // One pass per events change, not six passes on every recomposition.
+    val typeCounts = remember(events) {
+        HistoryTypeFilter.entries.associateWith { filterHistoryEvents(events, HistoryFilterState(type = it)).size }
+    }
 
     LazyColumn(
         modifier = modifier
