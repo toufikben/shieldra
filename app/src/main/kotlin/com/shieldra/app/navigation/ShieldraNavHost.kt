@@ -635,7 +635,9 @@ fun ShieldraNavHost(
                 val locationGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 var geofenceRefresh by remember { mutableStateOf(0) }
-                val zoneNames = remember(geofenceRefresh) { ProtectionRuntime.zones(context).map { it.name } }
+                val zoneList = remember(geofenceRefresh) { ProtectionRuntime.zones(context) }
+                val zoneNames = zoneList.map { it.name }
+                val zoneRadii = zoneList.associate { it.name to it.zone.radiusMeters.toInt() }
                 val geofenceOn = remember(geofenceRefresh) { ProtectionRuntime.geofenceEnabled(context) }
                 val safeZoneSaved = stringResource(R.string.safe_zones_added)
                 val safeZoneNoFix = stringResource(R.string.safe_zones_no_fix)
@@ -651,6 +653,7 @@ fun ShieldraNavHost(
                     onOpenHealthCheck = { navController.navigate(ShieldraRoutes.HEALTH_CHECK) },
                     geofenceEnabled = geofenceOn,
                     zoneNames = zoneNames,
+                    zoneRadii = zoneRadii,
                     onToggleGeofence = { enabled ->
                         val apply: () -> Unit = {
                             ProtectionRuntime.setGeofenceEnabled(context, enabled)
@@ -658,10 +661,10 @@ fun ShieldraNavHost(
                         }
                         if (enabled) apply() else requireOwner(apply)
                     },
-                    onAddZone = {
+                    onAddZone = { radius ->
                         scope.launch {
                             val ok = withContext(Dispatchers.IO) {
-                                ProtectionRuntime.addCurrentLocationAsZone(context, "")
+                                ProtectionRuntime.addCurrentLocationAsZone(context, "", radius.toDouble())
                             }
                             geofenceRefresh++
                             snackbarHostState.showSnackbar(if (ok) safeZoneSaved else safeZoneNoFix)

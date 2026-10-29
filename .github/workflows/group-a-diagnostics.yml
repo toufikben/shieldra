@@ -80,6 +80,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/publish-device-apks.sh
 
+      - name: Build the optimised phone APK (release code, debug key) and publish it
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ./gradlew assemblePhone --stacktrace
+          cp app/build/outputs/apk/phone/app-phone.apk app-phone.apk
+          gh release upload device-apks app-phone.apk --clobber
+
       - name: Build the signed release APK and AAB
         if: success()
         shell: bash

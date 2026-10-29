@@ -33,6 +33,7 @@
     <string name="safe_zones_enable">تنبيه عند المغادرة</string>
     <string name="safe_zones_add">علّم هذا المكان كآمن</string>
     <string name="safe_zones_empty">لا مناطق آمنة بعد</string>
+    <string name="safe_zones_radius">حجم المنطقة الجديدة (نصف القطر)</string>
     <string name="safe_zones_remove">حذف المنطقة الآمنة</string>
     <string name="safe_zones_added">حُفظت المنطقة الآمنة</string>
     <string name="safe_zones_no_fix">تعذّر الحصول على موقع</string>

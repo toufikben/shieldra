@@ -20,6 +20,12 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.shieldra.app.design.components.foundation.ShieldraChip
+import com.shieldra.protection.SafeZone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,12 +63,14 @@ fun MapScreen(
     onOpenHealthCheck: () -> Unit,
     geofenceEnabled: Boolean,
     zoneNames: List<String>,
+    zoneRadii: Map<String, Int>,
     onToggleGeofence: (Boolean) -> Unit,
-    onAddZone: () -> Unit,
+    onAddZone: (Int) -> Unit,
     onRemoveZone: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val accent = ShieldraTheme.semantic.protection
+    var newRadius by remember { mutableStateOf(SafeZone.DEFAULT_RADIUS_M.toInt()) }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -145,15 +153,31 @@ fun MapScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.LocationOn, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.size(8.dp))
-                        Text(name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Text(
+                            text = zoneRadii[name]?.let { "$name  ·  ${formatRadius(it)}" } ?: name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
                         IconButton(onClick = { onRemoveZone(name) }) {
                             Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.safe_zones_remove), modifier = Modifier.size(18.dp))
                         }
                     }
                 }
             }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = stringResource(R.string.safe_zones_radius),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(Modifier.height(6.dp))
-            Button(onClick = onAddZone) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SafeZone.RADIUS_CHOICES_M.forEach { choice ->
+                    ShieldraChip(label = formatRadius(choice), selected = choice == newRadius, onClick = { newRadius = choice })
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Button(onClick = { onAddZone(newRadius) }) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(6.dp))
                 Text(stringResource(R.string.safe_zones_add))
@@ -224,3 +248,5 @@ private fun StatusRow(accent: Color, on: Boolean, title: String) {
         Text(title, style = MaterialTheme.typography.bodyLarge)
     }
 }
+
+private fun formatRadius(meters: Int): String = if (meters >= 1000) "${meters / 1000} km" else "$meters m"

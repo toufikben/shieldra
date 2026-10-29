@@ -44,3 +44,37 @@ class GeofenceLogicTest {
         assertFalse(GeofenceLogic.hasLeftSafeZone(36.005, 3.0, zones, wasInside = true))
     }
 }
+
+class GeofenceAccuracyTest {
+    private val home = GeofenceLogic.Zone(36.0, 3.0, 200.0)
+
+    // ~500 m north of home: 0.0045 deg latitude is about 500 m.
+    private val farLat = 36.0045
+
+    @Test
+    fun `a precise fix well outside counts as having left`() {
+        assertTrue(GeofenceLogic.hasLeftSafeZone(farLat, 3.0, 20.0, listOf(home), wasInside = true))
+    }
+
+    @Test
+    fun `a vague fix that could still be inside does not fire`() {
+        assertFalse(GeofenceLogic.hasLeftSafeZone(farLat, 3.0, 400.0, listOf(home), wasInside = true))
+    }
+
+    @Test
+    fun `an ambiguous fix leaves the previous state alone`() {
+        assertTrue(GeofenceLogic.nextInsideState(farLat, 3.0, 400.0, listOf(home), previous = true))
+        assertFalse(GeofenceLogic.nextInsideState(farLat, 3.0, 400.0, listOf(home), previous = false))
+    }
+
+    @Test
+    fun `a decisive fix sets the state`() {
+        assertFalse(GeofenceLogic.nextInsideState(farLat, 3.0, 20.0, listOf(home), previous = true))
+        assertTrue(GeofenceLogic.nextInsideState(36.0, 3.0, 20.0, listOf(home), previous = false))
+    }
+
+    @Test
+    fun `no zones never fires`() {
+        assertFalse(GeofenceLogic.hasLeftSafeZone(farLat, 3.0, 5.0, emptyList(), wasInside = true))
+    }
+}

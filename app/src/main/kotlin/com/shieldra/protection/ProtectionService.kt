@@ -105,8 +105,9 @@ class ProtectionService : Service() {
                 scope.launch {
                     val fix = runCatching { location.current() }.getOrNull()
                     if (fix != null) {
-                        val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, zones, wasInsideSafeZone)
-                        wasInsideSafeZone = GeofenceLogic.isInsideAny(fix.latitude, fix.longitude, zones)
+                        val accuracy = (fix.accuracyMeters ?: 0f).toDouble()
+                        val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, accuracy, zones, wasInsideSafeZone)
+                        wasInsideSafeZone = GeofenceLogic.nextInsideState(fix.latitude, fix.longitude, accuracy, zones, wasInsideSafeZone)
                         if (left) {
                             val base = AlertRuntime.snapshot(applicationContext, AlertKind.TRACKING, null)
                             AlertRuntime.alert(

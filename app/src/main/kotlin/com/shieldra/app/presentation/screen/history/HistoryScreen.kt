@@ -106,7 +106,7 @@ fun HistoryScreen(
         item {
             TypeFilterRow(
                 current = filterState.type,
-                countOf = { filterHistoryEvents(events, HistoryFilterState(type = it)).size },
+                countOf = { typeCounts[it] ?: 0 },
                 onSelect = { newType ->
                     callbacks.onFilterChange(HistoryFilterStateChanged(newType, filterState.status))
                 },
@@ -142,7 +142,7 @@ fun HistoryScreen(
                             DayGroup.Yesterday -> stringResource(R.string.history_yesterday)
                             DayGroup.Unknown -> stringResource(R.string.history_earlier)
                             is DayGroup.Dated -> group.date.format(dateFormat)
-                        },
+                        } + "  ·  " + groupEvents.size,
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = spacing.l, end = spacing.l, top = spacing.l, bottom = spacing.s),
@@ -150,7 +150,13 @@ fun HistoryScreen(
                 }
                 items(groupEvents, key = { it.id }) { event ->
                     EventCard(
-                        event = event,
+                        event = if (event.createdAtEpochMs > 0L) {
+                            // Under a day header the clock time is the useful part; today keeps the age too.
+                            val clock = java.time.Instant.ofEpochMilli(event.createdAtEpochMs).atZone(zone).format(timeFormat)
+                            event.copy(timestampLabel = if (group == DayGroup.Today) "$clock  ·  ${event.timestampLabel}" else clock)
+                        } else {
+                            event
+                        },
                         onClick = { callbacks.onEventClick(event.id) },
                         modifier = Modifier.padding(horizontal = spacing.l, vertical = spacing.xs),
                     )

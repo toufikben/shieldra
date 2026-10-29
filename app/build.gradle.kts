@@ -77,11 +77,22 @@ android {
 
     buildTypes {
         release {
+            // R8 + resource shrinking: a Compose app runs and starts noticeably faster once optimised.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = if (keystoreProperties.getProperty("storeFile") != null) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
             }
+        }
+        // The release code path signed with the committed debug key, so `adb install -r` upgrades the
+        // owner's phone in place (data kept) and what they feel is the real, optimised app.
+        create("phone") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
         }
     }
 }
