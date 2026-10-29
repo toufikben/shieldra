@@ -128,6 +128,8 @@ data class DashboardUiModel(
     val protectionScore: Int? = null,
     /** True while Google Play reports an active Pro subscription; drives the top-bar Pro button. */
     val proActive: Boolean = false,
+    /** Every stored event, when known; the list above is only the newest few. */
+    val totalEvents: Int? = null,
 )
 
 enum class HistoryTypeFilter { All, Lock, Motion, Sim, Panic, Battery }

@@ -199,7 +199,7 @@ fun DashboardScreen(
             ) {
                 StatTile(stringResource(R.string.stat_guards), "$activeGuards/${model.guards.size}", Modifier.weight(1f))
                 StatTile(stringResource(R.string.stat_protection), model.protectionScore?.let { "$it" } ?: "—", Modifier.weight(1f))
-                StatTile(stringResource(R.string.stat_events), "${model.recentEvents.size}", Modifier.weight(1f))
+                StatTile(stringResource(R.string.stat_events), "${model.totalEvents ?: model.recentEvents.size}", Modifier.weight(1f))
             }
         }
 

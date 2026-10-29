@@ -43,6 +43,7 @@ fun lockGuardDashboard(
     measuredLastCheckSeconds: Long? = null,
     protectionScore: Int? = null,
     proActive: Boolean = false,
+    totalEvents: Int? = null,
 ): DashboardUiModel {
     val statuses = LockGuardDecision.guardStatuses(state)
     val inactiveSubtitle = stringResource(R.string.guard_subtitle_inactive)
@@ -86,6 +87,7 @@ fun lockGuardDashboard(
         storageInstalled = state == LockGuardState.StorageIdle,
         protectionScore = protectionScore,
         proActive = proActive,
+        totalEvents = totalEvents,
     )
 }
 

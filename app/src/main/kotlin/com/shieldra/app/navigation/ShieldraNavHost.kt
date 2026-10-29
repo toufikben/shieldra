@@ -512,6 +512,7 @@ fun ShieldraNavHost(
                         measuredLastCheckSeconds = device.lastCheckSeconds,
                         protectionScore = scoreFor(healthChecks, protectionSettings),
                         proActive = proState.entitled,
+                        totalEvents = recentEvents.size,
                     ),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->
