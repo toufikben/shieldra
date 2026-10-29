@@ -826,6 +826,8 @@ fun ShieldraNavHost(
                 } else {
                     AlertChannelsScreen(
                         saved = saved,
+                        telegramNeedsPro = !com.shieldra.billing.TierGate.allowsTelegram(protectionSettings.tier),
+                        onOpenPro = { navController.navigate(ShieldraRoutes.PRO) },
                         onSave = { updated ->
                             requireOwner {
                                 scope.launch {
