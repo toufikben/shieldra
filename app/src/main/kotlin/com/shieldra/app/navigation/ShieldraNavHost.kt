@@ -882,6 +882,7 @@ fun ShieldraNavHost(
                 ProtectionGuardsScreen(
                     armed = protectionArmed,
                     planSwitchAllowed = !com.shieldra.billing.InstallSource.isGooglePlay(context),
+                    onOpenPro = { navController.navigate(ShieldraRoutes.PRO) },
                     onTierChange = { tier ->
                         ProtectionSettingsStore(context).setTier(tier)
                         protectionSettings = protectionSettings.copy(tier = tier)

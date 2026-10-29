@@ -44,6 +44,14 @@ data class ProtectionSettings(
 }
 
 class ProtectionSettingsStore(context: Context) {
+    /** Until Play has said what the owner owns, a Play install starts on Free; a sideload keeps Premium for testing. */
+    private val defaultTier: com.shieldra.billing.Tier =
+        if (com.shieldra.billing.InstallSource.isGooglePlay(context.applicationContext)) {
+            com.shieldra.billing.Tier.FREE
+        } else {
+            com.shieldra.billing.Tier.PREMIUM
+        }
+
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
@@ -78,8 +86,8 @@ class ProtectionSettingsStore(context: Context) {
         ownerContact = prefs.getString(KEY_OWNER_CONTACT, "").orEmpty(),
         lostMessage = prefs.getString(KEY_LOST_MESSAGE, "").orEmpty(),
         tier = runCatching {
-            com.shieldra.billing.Tier.valueOf(prefs.getString(KEY_TIER, com.shieldra.billing.Tier.PREMIUM.name).orEmpty())
-        }.getOrDefault(com.shieldra.billing.Tier.PREMIUM),
+            com.shieldra.billing.Tier.valueOf(prefs.getString(KEY_TIER, defaultTier.name).orEmpty())
+        }.getOrDefault(defaultTier),
     )
 
     fun save(settings: ProtectionSettings) {
