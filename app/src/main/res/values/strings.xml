@@ -493,6 +493,10 @@
     <string name="pro_price_per_year">%1$s / year</string>
     <string name="pro_price_per_month">%1$s / month</string>
     <string name="pro_price_plain">%1$s</string>
+    <string name="pro_plan_lifetime">Lifetime</string>
+    <string name="pro_price_once">%1$s once</string>
+    <string name="pro_buy_lifetime">Buy once</string>
+    <string name="pro_lifetime_note">One payment, yours for good. No renewal.</string>
     <string name="pro_trial_days">%1$d-day free trial</string>
     <string name="pro_start_trial">Start free trial</string>
     <string name="pro_subscribe">Subscribe</string>

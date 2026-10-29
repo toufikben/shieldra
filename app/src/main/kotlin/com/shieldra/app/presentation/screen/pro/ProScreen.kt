@@ -168,14 +168,20 @@ fun ProScreen(
                 val chosen = state.plans.firstOrNull { it.basePlanId == selected }
                 ShieldraButton(
                     text = stringResource(
-                        if (chosen?.trialDays != null) R.string.pro_start_trial else R.string.pro_subscribe,
+                        when {
+                            chosen?.period == ProPeriod.LIFETIME -> R.string.pro_buy_lifetime
+                            chosen?.trialDays != null -> R.string.pro_start_trial
+                            else -> R.string.pro_subscribe
+                        },
                     ),
                     onClick = { chosen?.let { onPurchase(it.basePlanId) } },
                     enabled = chosen != null && !state.purchasePending,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    text = stringResource(R.string.pro_cancel_note),
+                    text = stringResource(
+                        if (chosen?.period == ProPeriod.LIFETIME) R.string.pro_lifetime_note else R.string.pro_cancel_note,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -240,6 +246,7 @@ private fun PlanCard(plan: ProPlan, selected: Boolean, gold: Color, onClick: () 
                     when (plan.period) {
                         ProPeriod.YEARLY -> R.string.pro_plan_yearly
                         ProPeriod.MONTHLY -> R.string.pro_plan_monthly
+                        ProPeriod.LIFETIME -> R.string.pro_plan_lifetime
                         ProPeriod.OTHER -> R.string.pro_title
                     },
                 ),
@@ -258,6 +265,7 @@ private fun PlanCard(plan: ProPlan, selected: Boolean, gold: Color, onClick: () 
                 when (plan.period) {
                     ProPeriod.YEARLY -> R.string.pro_price_per_year
                     ProPeriod.MONTHLY -> R.string.pro_price_per_month
+                    ProPeriod.LIFETIME -> R.string.pro_price_once
                     ProPeriod.OTHER -> R.string.pro_price_plain
                 },
                 plan.recurringPrice,
