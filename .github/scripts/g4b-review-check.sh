@@ -4,7 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-fail() { echo "FAIL: $1" >&2; exit 1; }
+# Reporting only the first violation cost more than it saved: a run that failed one check hid the
+# state of the other 285, so each fix needed another full CI run just to learn what was next.
+# A failure is now recorded and the scan continues; the exit code is decided at the end.
+failures=0
+fail() { echo "FAIL: $1" >&2; failures=$((failures + 1)); }
 pass() { echo "PASS: $1"; }
 
 [ "$(grep -c 'android:allowBackup="false"' app/src/main/AndroidManifest.xml)" -eq 1 ] || fail "application backup is not disabled"
@@ -1127,4 +1131,9 @@ pass "Q-K-9 and F-K13 hold: no Lock Guard setting in the rows or the wording, an
 
 git diff --check
 pass "git diff check"
+
+if (( failures > 0 )); then
+    echo "G4-B LOCAL REVIEW FAILED with $failures finding(s): see every FAIL line above." >&2
+    exit 1
+fi
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"

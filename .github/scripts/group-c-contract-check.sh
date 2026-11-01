@@ -57,9 +57,18 @@ fi
 check_absent "No confirmed event creation outside Domain" \
     'SecurityEvent|CONFIRMED_SECURITY_EVENT' \
     app/src/main/kotlin/com/shieldra/detection
-check_absent "No confirmed event creation in UI" \
-    'SecurityEvent|CONFIRMED_SECURITY_EVENT' \
-    app/src/main/kotlin/com/shieldra/ui
+# This rule used to scan com/shieldra/ui, which holds one boundary file — the live Compose layer is
+# com/shieldra/app/presentation, so the check was watching an almost empty tree. Reading persisted
+# events there is legitimate (DeliveryReceiptProjection, PersistedEventReader project rows to UI
+# models), so naming the SecurityEvent type would fail on correct code; the rule that matters is
+# that the UI never creates or advances an event, which is what the creation verbs below are.
+if grep -RInE --exclude-dir=.git 'SecurityEvent\.create|openOrBind|updateState\(|recordEvidence\(|recordDeliveryAttempt\(' \
+    app/src/main/kotlin/com/shieldra/app/presentation app/src/main/kotlin/com/shieldra/app/navigation; then
+    printf 'FAIL: %s\n' "The UI layer creates or advances a security event"
+    failures=$((failures + 1))
+else
+    printf 'PASS: %s\n' "Security-event creation and state changes stay out of the UI layer"
+fi
 check_absent "No Android API dependency in Domain" \
     'android\.content|android\.app|android\.location|android\.hardware|androidx\.' \
     app/src/main/kotlin/com/shieldra/domain
