@@ -41,6 +41,12 @@ data class HealthChecks(
     val batteryExempt: Boolean,
     val channel: Boolean,
     val motionMonitoring: Boolean,
+    /**
+     * Whether the phone can prove who is holding it. It is a health row rather than a warning because
+     * it is the precondition of every other guard: without a screen lock, anyone with the phone can
+     * disarm protection and change where the alerts go (audit B-1).
+     */
+    val screenLock: Boolean,
 )
 
 /**
@@ -106,10 +112,21 @@ fun HealthCheckScreen(
                 R.string.health_check_battery to checks.batteryExempt,
                 R.string.health_check_channel to checks.channel,
                 R.string.health_check_motion to checks.motionMonitoring,
+                R.string.health_check_screen_lock to checks.screenLock,
             )
             rows.forEachIndexed { index, (labelRes, on) ->
                 if (index > 0) Spacer(Modifier.height(12.dp))
                 CheckRow(label = stringResource(labelRes), on = on)
+            }
+            // Stated in words, not only as a grey tick: a row that can read as "off" is missed by the
+            // owner who most needs to know that their guards have no lock in front of them.
+            if (!checks.screenLock) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.health_screen_lock_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
         }
     }

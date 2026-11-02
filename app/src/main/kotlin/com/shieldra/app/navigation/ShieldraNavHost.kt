@@ -208,16 +208,26 @@ fun ShieldraNavHost(
     val ownerCheckTitle = stringResource(R.string.owner_check_stop_title)
     val ownerCheckSubtitle = stringResource(R.string.owner_check_stop_subtitle)
     val ownerCheckRefusedMessage = stringResource(R.string.owner_check_refused)
+    val ownerUnguardedMessage = stringResource(R.string.owner_check_unguarded)
     // Anything that weakens protection or redirects alerts proves it is the owner first (screen lock).
     val ownerChangeSubtitle = stringResource(R.string.owner_check_change_subtitle)
     val requireOwner: (() -> Unit) -> Unit = { action ->
         val activity = context.findFragmentActivity()
         if (activity == null) {
+            // No prompt can be built without an activity to attach it to. The change still goes
+            // ahead — a guard the owner cannot turn off is not a guard — but it is never silent.
             action()
+            scope.launch { snackbarHostState.showSnackbar(ownerUnguardedMessage) }
         } else {
             OwnerCheck.request(activity, ownerCheckTitle, ownerChangeSubtitle) { result ->
                 when (result) {
-                    OwnerCheckResult.Confirmed, OwnerCheckResult.NoScreenLock -> action()
+                    OwnerCheckResult.Confirmed -> action()
+                    // B-1: the pass-through is allowed, the silence is not. The owner is told at the
+                    // moment of the change, and permanently on the Health screen.
+                    OwnerCheckResult.NoScreenLock -> {
+                        action()
+                        scope.launch { snackbarHostState.showSnackbar(ownerUnguardedMessage) }
+                    }
                     OwnerCheckResult.Refused -> scope.launch { snackbarHostState.showSnackbar(ownerCheckRefusedMessage) }
                 }
             }
@@ -1141,6 +1151,7 @@ private fun readHealthChecks(
         batteryExempt = com.shieldra.protection.BackgroundSurvival.isExempt(context),
         channel = channel,
         motionMonitoring = motionMonitoring,
+        screenLock = OwnerCheck.canAskForTheOwner(context),
     )
 }
 
