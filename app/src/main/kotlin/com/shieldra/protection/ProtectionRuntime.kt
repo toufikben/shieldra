@@ -32,14 +32,19 @@ object ProtectionRuntime {
 
     /**
      * Arms protection: the permissions and device-admin consent are the screen's job and must be in
-     * place first. This records the armed flag, starts the service (which captures the SIM baseline
-     * and begins the battery/SIM guards), and starts the countdown if the owner enabled it.
+     * place first. This records the armed flag, starts the service (which begins the battery/SIM
+     * guards), and starts the countdown if the owner enabled it.
+     *
+     * The SIM baseline is taken from the cards actually in the phone at this moment (audit §5.11):
+     * arming is the owner saying "watch for anything other than these", so a baseline left over from
+     * a card they replaced months ago must not turn an honest re-arm into a permanent alarm.
      */
     fun arm(context: Context) {
         val app = context.applicationContext
         val store = ProtectionSettingsStore(app)
         store.setArmed(true)
         runCatching { BootFlags(app).sync(true) }
+        runCatching { SimGuard(app).rebaseline() }
         ProtectionService.arm(app)
         if (store.load().countdownEnabled) CountdownScheduler.start(app)
         armedState.value = true

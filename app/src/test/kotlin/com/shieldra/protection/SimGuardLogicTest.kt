@@ -36,4 +36,39 @@ class SimGuardLogicTest {
         val v = logic.classify(SimSnapshot(simIds = setOf("sim-owner"), airplaneOn = false, hasService = true))
         assertEquals(SimGuardLogic.Verdict.Normal, v)
     }
+
+    /**
+     * A card-less phone armed on purpose still gets a guard. The baseline is recorded as empty when the
+     * readable answer was "no SIM in this phone" (§5.11), and the only reading of that which protects
+     * the owner is to treat any card that appears later as somebody else's.
+     */
+    @Test
+    fun a_card_less_baseline_reports_the_card_that_shows_up_later_as_foreign() {
+        val cardLess = SimGuardLogic(baseline = emptySet())
+
+        assertEquals(
+            SimGuardLogic.Verdict.ForeignInserted,
+            cardLess.classify(SimSnapshot(simIds = setOf("sim-thief"), airplaneOn = false, hasService = true)),
+        )
+    }
+
+    @Test
+    fun an_armed_card_less_phone_without_a_card_stays_calm() {
+        val cardLess = SimGuardLogic(baseline = emptySet())
+
+        assertEquals(
+            SimGuardLogic.Verdict.Normal,
+            cardLess.classify(SimSnapshot(simIds = emptySet(), airplaneOn = false, hasService = false)),
+        )
+    }
+
+    @Test
+    fun a_card_less_phone_still_reports_airplane_mode() {
+        val cardLess = SimGuardLogic(baseline = emptySet())
+
+        assertEquals(
+            SimGuardLogic.Verdict.NetworkLost,
+            cardLess.classify(SimSnapshot(simIds = emptySet(), airplaneOn = true, hasService = false)),
+        )
+    }
 }

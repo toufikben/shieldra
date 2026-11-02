@@ -164,8 +164,20 @@ class ProtectionSettingsStore(context: Context) {
     /** The SIM identities present when protection was armed; the SIM guard compares against these. */
     fun simBaseline(): Set<String> = prefs.getStringSet(KEY_SIM_BASELINE, emptySet()).orEmpty()
 
+    /**
+     * Whether an armed baseline was ever stored. The distinction matters because an *empty* baseline is
+     * an answer, not an absence: "no card was in this phone when protection armed" means a SIM that
+     * appears later is a foreign one, which is exactly what a thief adds to get data on a stolen phone.
+     * Installs from before the flag existed already hold a non-empty baseline, so they read as armed.
+     */
+    fun hasSimBaseline(): Boolean =
+        prefs.getBoolean(KEY_SIM_BASELINE_RECORDED, false) || simBaseline().isNotEmpty()
+
     fun setSimBaseline(ids: Set<String>) {
-        prefs.edit().putStringSet(KEY_SIM_BASELINE, ids).apply()
+        prefs.edit()
+            .putStringSet(KEY_SIM_BASELINE, ids)
+            .putBoolean(KEY_SIM_BASELINE_RECORDED, true)
+            .apply()
     }
 
     /** The current countdown deadline, or null if no cycle is scheduled. */
@@ -218,6 +230,7 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_LOST_MESSAGE = "lost_message"
         const val KEY_TIER = "tier"
         const val KEY_SIM_BASELINE = "sim_baseline"
+        const val KEY_SIM_BASELINE_RECORDED = "sim_baseline_recorded"
         const val KEY_CD_EPOCH = "countdown_epoch_deadline"
         const val KEY_CD_ELAPSED = "countdown_elapsed_deadline"
     }
