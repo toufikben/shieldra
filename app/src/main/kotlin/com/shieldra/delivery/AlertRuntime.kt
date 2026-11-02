@@ -8,10 +8,18 @@ import android.os.BatteryManager
 import android.os.Build
 import com.shieldra.app.R
 import com.shieldra.app.ShieldraApp
+import com.shieldra.storage.SecretText
 import java.time.Instant
 
-/** [PendingAlertStore] in app-private preferences: a few short lines, never a secret. */
-class PreferencesPendingAlertStore(context: Context) : PendingAlertStore {
+/**
+ * [PendingAlertStore] in app-private preferences: a few short lines, and the one that holds a
+ * position is sealed before it is written (audit §5.13). An alert waits here for as long as the phone
+ * stays offline — which, during a theft, is exactly when its coordinates must not be readable.
+ */
+class PreferencesPendingAlertStore(
+    context: Context,
+    private val locationSecret: SecretText = SecretText(context.applicationContext, FIELD_LOCATION),
+) : PendingAlertStore {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
@@ -36,11 +44,19 @@ class PreferencesPendingAlertStore(context: Context) : PendingAlertStore {
         alert.photoEvidenceId.orEmpty(),
         if (alert.evidenceAttempted) "1" else "0",
         alert.failedAttempts?.toString().orEmpty(),
-        alert.location?.let { "${it.latitude};${it.longitude};${it.accuracyMeters ?: ""};${it.fixedAt.toEpochMilli()};${it.provider}" }.orEmpty(),
+        alert.location?.let(::sealedLocation).orEmpty(),
         alert.photoBackEvidenceId.orEmpty(),
         alert.audioEvidenceId.orEmpty(),
         alert.device.replace(SEPARATOR, " "),
     ).joinToString(SEPARATOR)
+
+    /**
+     * Sealed, or an empty field: a position this build cannot seal is dropped rather than written in
+     * the clear. The alert still carries the time, the guard and the battery, so the owner still gets
+     * the news — only the map pin is sacrificed, and the policy that promises encryption is kept.
+     */
+    private fun sealedLocation(location: AlertLocation): String =
+        locationSecret.seal(AlertLocationLine.format(location)) ?: ""
 
     private fun decode(line: String): SecurityAlert? = runCatching {
         val parts = line.split(SEPARATOR, limit = 11)
@@ -53,27 +69,29 @@ class PreferencesPendingAlertStore(context: Context) : PendingAlertStore {
             photoEvidenceId = parts[4].ifBlank { null },
             evidenceAttempted = parts[5] == "1",
             failedAttempts = parts[6].toIntOrNull(),
-            location = parts[7].ifBlank { null }?.let { decodeLocation(it) },
+            location = readLocation(parts[7]),
             photoBackEvidenceId = parts[8].ifBlank { null },
             audioEvidenceId = parts[9].ifBlank { null },
         )
     }.getOrNull()
 
-    private fun decodeLocation(raw: String): AlertLocation? = runCatching {
-        val f = raw.split(";")
-        AlertLocation(
-            latitude = f[0].toDouble(),
-            longitude = f[1].toDouble(),
-            accuracyMeters = f[2].toFloatOrNull(),
-            fixedAt = Instant.ofEpochMilli(f[3].toLong()),
-            provider = f[4],
-        )
-    }.getOrNull()
+    /**
+     * A sealed line is opened with the key; anything else is a position an older build had already
+     * queued before this field was sealed, and is read as written. A line that cannot be opened loses
+     * the pin but keeps the alert.
+     */
+    private fun readLocation(raw: String): AlertLocation? = when {
+        raw.isBlank() -> null
+        SecretText.isSealed(raw) -> locationSecret.open(raw)?.let(AlertLocationLine::parse)
+        else -> AlertLocationLine.parse(raw)
+    }
 
     private companion object {
         const val PREFERENCES_NAME = "shieldra_pending_alerts"
         const val KEY_PENDING = "pending"
         const val SEPARATOR = "|"
+        /** Bound as additional authenticated data, so a sealed position cannot be replayed elsewhere. */
+        const val FIELD_LOCATION = "queued_alert_location"
         /** Oldest are dropped past this: the newest alerts are the ones that matter after a theft. */
         const val MAX_PENDING = 50
     }
