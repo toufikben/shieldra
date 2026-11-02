@@ -1129,6 +1129,41 @@ for name in the_protection_row_opens_a_real_setup_and_the_row_list_stays_pinned 
 done
 pass "Q-K-9 and F-K13 hold: no Lock Guard setting in the rows or the wording, and a Delivery section only where a receipt exists"
 
+# B-3 (audit §5.13): "delete all data" is a claim about every store the app writes to, and the claim is
+# only as good as the list eraseAll wipes. So the list is compared against the preferences files the
+# sources actually declare: a new store that eraseAll forgets fails here, and an entry left behind after
+# a store was renamed fails here too. Either way the reset would silently delete less than the privacy
+# policy promises, which is a Play-review finding rather than a test failure.
+ERASE=app/src/main/kotlin/com/shieldra/storage/LocalStorageFactory.kt
+declared_stores="$(
+  for source in $(grep -RIl --include='*.kt' 'getSharedPreferences(' app/src/main || true); do
+      for key in $(grep -oE 'getSharedPreferences\([A-Za-z_][A-Za-z0-9_]*' "$source" | sed 's/.*(//' || true); do
+          grep -hoE "const val $key(: String)? = \"shieldra[a-z0-9_]*\"" "$source" \
+              | grep -oE '"shieldra[a-z0-9_]*"' | tr -d '"' || true
+      done
+      grep -oE 'getSharedPreferences\("shieldra[a-z0-9_]*"' "$source" | sed 's/.*("//' | tr -d '"' || true
+  done | sort -u | tr '\n' ' ')"
+erased_stores="$( { awk '/OWNER_PREFERENCES = listOf\(/,/^        \)/' "$ERASE";
+    grep 'DEVICE_PROTECTED_PREFERENCE = ' "$ERASE" || true; } | grep -oE '"shieldra[a-z0-9_]*"' \
+  | tr -d '"' | sort -u | tr '\n' ' ' || true)"
+[ -n "$declared_stores" ] || fail "no preferences store was found to check — the B-3 gate is blind"
+[ -n "$erased_stores" ] || fail "eraseAll no longer carries a readable preferences list — the B-3 gate is blind"
+for store in $declared_stores; do
+    case " $erased_stores " in
+        *" $store "*) ;;
+        *) fail "eraseAll does not wipe the $store preferences file (B-3)" ;;
+    esac
+done
+for store in $erased_stores; do
+    grep -RIq --include='*.kt' "\"$store\"" app/src/main \
+        || fail "eraseAll names $store but no preferences store declares it any more"
+done
+grep -q 'createDeviceProtectedStorageContext' "$ERASE" \
+    || fail "eraseAll does not reach device-protected storage, so the Direct Boot flag survives it"
+grep -q 'DEVICE_PROTECTED_PREFERENCE = "shieldra_boot"' "$ERASE" \
+    || fail "eraseAll does not name the device-protected preferences file"
+pass "B-3 holds: eraseAll accounts for every preferences store, including the device-protected one"
+
 git diff --check
 pass "git diff check"
 
