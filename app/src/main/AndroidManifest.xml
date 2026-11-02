@@ -121,11 +121,15 @@
         </receiver>
 
         <!--
-          A-33 (A-10 relaxed): resume the guards the owner had on after a reboot. Exported so the
-          system can deliver BOOT_COMPLETED; it starts nothing unless the stored armed flag is set.
+          A-33 (A-10 relaxed) + audit E-2: resume the guards the owner had on after a reboot. Exported
+          so the system can deliver the boot broadcasts; it starts nothing unless the stored armed flag
+          is set. Direct-boot aware because that is the only way LOCKED_BOOT_COMPLETED is delivered at
+          all, and the only thing it reads before the first unlock is the armed flag in device-protected
+          storage — no secret, no evidence, no delivery coordinate crosses that line.
         -->
         <receiver
             android:name="com.shieldra.protection.BootReceiver"
+            android:directBootAware="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

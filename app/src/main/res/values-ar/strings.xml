@@ -356,6 +356,7 @@
     <string name="alert_title_sim">تغيّرت الشريحة</string>
     <string name="alert_title_battery">بطارية منخفضة</string>
     <string name="alert_title_shutdown">الهاتف يُطفأ الآن</string>
+    <string name="alert_title_restart">أُعيد تشغيل الهاتف والحماية مفعّلة</string>
     <string name="alert_title_countdown">إشارة دورية</string>
     <string name="alert_title_tracking">موقع مباشر</string>
     <string name="alert_label_location">الموقع</string>

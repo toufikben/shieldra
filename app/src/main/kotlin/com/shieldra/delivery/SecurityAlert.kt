@@ -8,9 +8,11 @@ import java.util.Locale
 /**
  * What an alert is about. [TEST] is the owner checking a channel; it belongs to no recorded event.
  * [LOCK] is a wrong PIN/pattern/password past the owner's threshold, [COUNTDOWN] the owner's own
- * periodic signal (A-33): neither is announced on the phone.
+ * periodic signal (A-33): neither is announced on the phone. [RESTART] is the phone coming back from a
+ * reboot that the guards could not watch through (audit E-2): it belongs to no event either, because
+ * nothing was seen while the phone was dark — the point is that the owner hears about the gap.
  */
-enum class AlertKind { PANIC, MOTION, LOCK, SIM, BATTERY, COUNTDOWN, TRACKING, SHUTDOWN, TEST }
+enum class AlertKind { PANIC, MOTION, LOCK, SIM, BATTERY, COUNTDOWN, TRACKING, SHUTDOWN, RESTART, TEST }
 
 /** A position fix the phone really produced: never a guess and never a default. */
 data class AlertLocation(
@@ -65,6 +67,7 @@ data class AlertWording(
     val countdownTitle: String = "Periodic signal",
     val trackingTitle: String = "Live location",
     val shutdownTitle: String = "Phone is shutting down",
+    val restartTitle: String = "Phone was restarted",
     val locationLabel: String = "Location",
     val locationUnavailable: String = "not available",
     val accuracyLabel: String = "accuracy",
@@ -129,6 +132,7 @@ object AlertText {
         AlertKind.COUNTDOWN -> wording.countdownTitle
         AlertKind.TRACKING -> wording.trackingTitle
         AlertKind.SHUTDOWN -> wording.shutdownTitle
+        AlertKind.RESTART -> wording.restartTitle
         AlertKind.TEST -> wording.testTitle
     }
 }

@@ -8,8 +8,12 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * The app-process handle for the protection guards: where the UI reads whether protection is armed,
  * and how arming or disarming reaches the service, the countdown and the stored flag (A-33). It
- * holds no Android state of its own — the single source of truth is the stored `armed` flag, which
- * boot recovery also reads, so what the UI shows and what a reboot restores can never disagree.
+ * holds no Android state of its own — the single source of truth is the stored `armed` flag, which boot
+ * recovery also reads, so what the UI shows and what a reboot restores can never disagree.
+ *
+ * Every write of that flag is mirrored to device-protected storage ([BootFlags]) in the same breath,
+ * because a phone that restarts and stays locked cannot read the real one — and the guards have to be
+ * able to tell the owner that the reboot interrupted them (audit E-2).
  */
 object ProtectionRuntime {
     private val armedState = MutableStateFlow(false)
@@ -19,7 +23,11 @@ object ProtectionRuntime {
 
     /** Re-reads the stored flag; called when a protection screen appears. */
     fun refresh(context: Context) {
-        armedState.value = ProtectionSettingsStore(context.applicationContext).load().armed
+        val app = context.applicationContext
+        val armed = ProtectionSettingsStore(app).load().armed
+        armedState.value = armed
+        // The mirror catches up here too, so an arm made before BootFlags existed is not lost forever.
+        runCatching { BootFlags(app).sync(armed) }
     }
 
     /**
@@ -31,6 +39,7 @@ object ProtectionRuntime {
         val app = context.applicationContext
         val store = ProtectionSettingsStore(app)
         store.setArmed(true)
+        runCatching { BootFlags(app).sync(true) }
         ProtectionService.arm(app)
         if (store.load().countdownEnabled) CountdownScheduler.start(app)
         armedState.value = true
@@ -47,6 +56,7 @@ object ProtectionRuntime {
         ProtectionService.stop(app)
         CountdownScheduler.cancel(app)
         runCatching {
+            BootFlags(app).sync(false)
             PendingCaptures(app).clear()
             PendingCaptureReceiver.cancel(app)
         }
@@ -94,6 +104,7 @@ object ProtectionRuntime {
         val app = context.applicationContext
         val store = ProtectionSettingsStore(app)
         store.save(settings)
+        runCatching { BootFlags(app).sync(settings.armed) }
         if (settings.armed && settings.countdownEnabled) {
             CountdownScheduler.start(app)
         } else {
