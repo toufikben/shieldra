@@ -9,6 +9,7 @@ import android.os.Looper
 import androidx.core.content.ContextCompat
 import com.shieldra.delivery.AlertKind
 import com.shieldra.delivery.AlertRuntime
+import com.shieldra.domain.SecurityEventType
 
 /**
  * Runs the owner's table-mode response when the Motion guard confirms the phone was lifted (A-33).
@@ -59,9 +60,10 @@ object TableModeResponder {
             Siren.start(context)
             handler.postDelayed({ Siren.stop(context) }, SIREN_MAX_MS)
         }
-        // A live (armed) protection service attaches the photo and fix to the Motion event; otherwise
-        // the guard's own text alert still goes out.
-        if (!ProtectionService.captureForEvent(eventId, AlertKind.MOTION)) {
+        // A live (armed) protection service attaches the photo and fix to the Motion event, or keeps the
+        // request for its next free moment; only when neither is possible does the guard's own text
+        // alert go out, so the owner always hears about it.
+        if (!ProtectionService.captureForEvent(eventId, SecurityEventType.MOTION_CONFIRMED_EVENT)) {
             AlertRuntime.alert(context, AlertKind.MOTION, eventId)
         }
     }

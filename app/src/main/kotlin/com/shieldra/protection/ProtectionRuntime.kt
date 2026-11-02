@@ -36,12 +36,20 @@ object ProtectionRuntime {
         armedState.value = true
     }
 
-    /** Disarms everything: clears the flag, stops the service, cancels the countdown. */
+    /**
+     * Disarms everything: clears the flag, stops the service, cancels the countdown, and forgets the
+     * captures that were still waiting. The last part is the point — a queued request to photograph
+     * whoever holds the phone must not outlive the owner's decision to stop watching.
+     */
     fun disarm(context: Context) {
         val app = context.applicationContext
         ProtectionSettingsStore(app).setArmed(false)
         ProtectionService.stop(app)
         CountdownScheduler.cancel(app)
+        runCatching {
+            PendingCaptures(app).clear()
+            PendingCaptureReceiver.cancel(app)
+        }
         armedState.value = false
     }
 
@@ -81,7 +89,7 @@ object ProtectionRuntime {
         store.setSafeZones(store.safeZones().filterNot { it.name == name })
     }
 
-    /** Applies a changed settings object and re-arms the countdown to match it, if armed. */
+    /** Applies changed settings, re-arms the countdown to match, and drops waits if protection went off. */
     fun applySettings(context: Context, settings: ProtectionSettings) {
         val app = context.applicationContext
         val store = ProtectionSettingsStore(app)
@@ -90,6 +98,12 @@ object ProtectionRuntime {
             CountdownScheduler.start(app)
         } else {
             CountdownScheduler.cancel(app)
+        }
+        if (!settings.armed) {
+            runCatching {
+                PendingCaptures(app).clear()
+                PendingCaptureReceiver.cancel(app)
+            }
         }
     }
 }

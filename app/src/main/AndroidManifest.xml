@@ -140,5 +140,13 @@
         <receiver
             android:name="com.shieldra.protection.CountdownReceiver"
             android:exported="false" />
+
+        <!--
+          A-33 capture path: retries the captures that were queued when a background trigger could not
+          start the service. Not exported: it only receives the one short alarm SHIELDRA itself scheduled.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.PendingCaptureReceiver"
+            android:exported="false" />
     </application>
 </manifest>
