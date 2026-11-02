@@ -46,6 +46,9 @@ object ProtectionRuntime {
         runCatching { BootFlags(app).sync(true) }
         runCatching { SimGuard(app).rebaseline() }
         ProtectionService.arm(app)
+        // The patrol is armed alongside the guards, not by them: it is the only thing that can notice
+        // the service stopped stamping checks (audit development أ).
+        runCatching { GuardWatchdog.schedule(app) }
         if (store.load().countdownEnabled) CountdownScheduler.start(app)
         armedState.value = true
     }
@@ -61,6 +64,8 @@ object ProtectionRuntime {
         ProtectionService.stop(app)
         CountdownScheduler.cancel(app)
         runCatching {
+            // The owner chose silence; a patrol that kept waking to report it would be a defect.
+            GuardWatchdog.cancel(app)
             BootFlags(app).sync(false)
             PendingCaptures(app).clear()
             PendingCaptureReceiver.cancel(app)
@@ -115,6 +120,9 @@ object ProtectionRuntime {
         } else {
             CountdownScheduler.cancel(app)
         }
+        // Arming from the settings screen has to arm the patrol with it, and turning protection off has
+        // to stop the patrol asking about a guard the owner switched off on purpose.
+        runCatching { if (settings.armed) GuardWatchdog.schedule(app) else GuardWatchdog.cancel(app) }
         if (!settings.armed) {
             runCatching {
                 PendingCaptures(app).clear()

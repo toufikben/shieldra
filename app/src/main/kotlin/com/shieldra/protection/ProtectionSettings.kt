@@ -139,6 +139,17 @@ class ProtectionSettingsStore(context: Context) {
         prefs.edit().putLong(KEY_LAST_CHECK, nowMs).apply()
     }
 
+    /**
+     * When a guard silence was last reported to the owner (audit development أ); 0 means never. Kept
+     * beside the heartbeat it is judged against because the two are one question: this spell of silence
+     * was reported, or it was not.
+     */
+    fun guardSilenceReportedAt(): Long = prefs.getLong(KEY_GUARD_SILENCE_REPORTED, 0L)
+
+    fun setGuardSilenceReportedAt(nowMs: Long) {
+        prefs.edit().putLong(KEY_GUARD_SILENCE_REPORTED, nowMs).apply()
+    }
+
     /** The owner's safe zones (A-36); leaving them all while armed alerts. */
     fun safeZones(): List<SafeZone> =
         prefs.getStringSet(KEY_SAFE_ZONES, emptySet()).orEmpty().mapNotNull(::decodeZone)
@@ -226,6 +237,7 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_GEOFENCE_INTERVAL = "geofence_interval_minutes"
         const val KEY_SAFE_ZONES = "safe_zones"
         const val KEY_LAST_CHECK = "last_check_epoch_ms"
+        const val KEY_GUARD_SILENCE_REPORTED = "guard_silence_reported_at"
         const val KEY_OWNER_CONTACT = "owner_contact"
         const val KEY_LOST_MESSAGE = "lost_message"
         const val KEY_TIER = "tier"

@@ -152,5 +152,14 @@
         <receiver
             android:name="com.shieldra.protection.PendingCaptureReceiver"
             android:exported="false" />
+
+        <!--
+          Audit development أ: the guard heartbeat patrol. Not exported: it only receives the one alarm
+          SHIELDRA itself scheduled. It lives outside the protection service on purpose — the failure it
+          measures is that service dying, so it cannot be the one asking whether it is still alive.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.GuardWatchdogReceiver"
+            android:exported="false" />
     </application>
 </manifest>

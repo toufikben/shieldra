@@ -68,6 +68,8 @@ class BootReceiver : BroadcastReceiver() {
                         .onFailure { Log.e(TAG, "the restart could not be reported to the owner: ${it.message}", it) }
                 }
                 if (settings.armed) ProtectionService.arm(appContext)
+                // Alarms do not survive a reboot, so the patrol is re-armed with the guards it watches.
+                runCatching { GuardWatchdog.schedule(appContext) }
                 if (settings.countdownEnabled) CountdownScheduler.rescheduleAfterBoot(appContext)
             } catch (error: Exception) {
                 Log.e(TAG, "the boot resume failed: ${error.message}", error)
