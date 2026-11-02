@@ -11,8 +11,10 @@ import java.util.Locale
  * periodic signal (A-33): neither is announced on the phone. [RESTART] is the phone coming back from a
  * reboot that the guards could not watch through (audit E-2): it belongs to no event either, because
  * nothing was seen while the phone was dark — the point is that the owner hears about the gap.
+ * [GUARD_SILENT] is the watchdog finding no guard stamp for longer than the tolerance window (audit
+ * development أ): also no event, because the whole news is the absence of activity.
  */
-enum class AlertKind { PANIC, MOTION, LOCK, SIM, BATTERY, COUNTDOWN, TRACKING, SHUTDOWN, RESTART, TEST }
+enum class AlertKind { PANIC, MOTION, LOCK, SIM, BATTERY, COUNTDOWN, TRACKING, SHUTDOWN, RESTART, GUARD_SILENT, TEST }
 
 /** A position fix the phone really produced: never a guess and never a default. */
 data class AlertLocation(
@@ -48,6 +50,12 @@ data class SecurityAlert(
     val evidenceAttempted: Boolean = false,
     /** Wrong unlock attempts counted so far, for a [AlertKind.LOCK] alert. */
     val failedAttempts: Int? = null,
+    /**
+     * How long the guards have been silent, for a [AlertKind.GUARD_SILENT] alert. Measured from the
+     * last stamp the service wrote, so it is the exposure window the owner actually had — not a guess
+     * from when the alarm happened to fire.
+     */
+    val silentMinutes: Long? = null,
 )
 
 /** The localized wording an alert is written with; resolved by the caller from resources. */
@@ -68,6 +76,9 @@ data class AlertWording(
     val trackingTitle: String = "Live location",
     val shutdownTitle: String = "Phone is shutting down",
     val restartTitle: String = "Phone was restarted",
+    val guardSilentTitle: String = "Guards have gone quiet",
+    /** Carries the measured silence, so the owner learns how long the phone was unprotected. */
+    val silentForLabel: String = "Guards silent for %1\$d min",
     val locationLabel: String = "Location",
     val locationUnavailable: String = "not available",
     val accuracyLabel: String = "accuracy",
@@ -95,6 +106,11 @@ object AlertText {
             append("🕒 ").append(wording.timeLabel).append(": ").append(format.format(alert.occurredAt))
                 .append(" (").append(zone.id).append(")\n")
             alert.failedAttempts?.let { append("🔢 ").append(wording.attemptsLabel).append(": ").append(it).append('\n') }
+            alert.silentMinutes?.let {
+                append("⏳ ")
+                    .append(String.format(wording.locale, wording.silentForLabel, it))
+                    .append('\n')
+            }
             val location = alert.location
             if (location != null) {
                 append("📍 ").append(wording.locationLabel).append(": ")
@@ -133,6 +149,7 @@ object AlertText {
         AlertKind.TRACKING -> wording.trackingTitle
         AlertKind.SHUTDOWN -> wording.shutdownTitle
         AlertKind.RESTART -> wording.restartTitle
+        AlertKind.GUARD_SILENT -> wording.guardSilentTitle
         AlertKind.TEST -> wording.testTitle
     }
 }

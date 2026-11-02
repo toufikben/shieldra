@@ -362,6 +362,8 @@
     <string name="alert_title_battery">Low battery</string>
     <string name="alert_title_shutdown">Phone is shutting down</string>
     <string name="alert_title_restart">Phone was restarted while protection was on</string>
+    <string name="alert_title_guard_silent">SHIELDRA guards have gone quiet</string>
+    <string name="alert_label_silent_for">Guards silent for %1$d min</string>
     <string name="alert_title_countdown">Periodic signal</string>
     <string name="alert_title_tracking">Live location</string>
     <string name="alert_label_location">Location</string>
