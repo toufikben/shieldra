@@ -610,16 +610,36 @@ class ProtectionService : Service() {
                     CHANNEL_ID,
                     getString(com.shieldra.app.R.string.notification_channel_protection),
                     NotificationManager.IMPORTANCE_MIN,
-                ).apply { setShowBadge(false) },
+                ).apply {
+                    setShowBadge(false)
+                    // A channel's lock-screen visibility overrides the one set on the notification, so
+                    // the secrecy has to be declared here as well. An already-created channel keeps the
+                    // settings it was created with, which is why the public version above is the
+                    // upgrade-path safety net.
+                    lockscreenVisibility = Notification.VISIBILITY_SECRET
+                },
             )
         }
         val launch = packageManager.getLaunchIntentForPackage(packageName)
         val pending = launch?.let { PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE) }
+        // The notice says which app is holding the camera and, while a countdown runs, when the next
+        // signal leaves the phone. That is a map of the owner's defences, and a thief glancing at a
+        // locked screen should not get it (audit report §4, the recon leak). VISIBILITY_SECRET keeps
+        // the whole notification off the lock screen. The public version is the fallback for a skin
+        // that draws a body anyway: it can only ever say the app's name and that the content is
+        // hidden, never the title, the camera holder or the countdown.
+        val hidden = Notification.Builder(this, CHANNEL_ID)
+            .setSmallIcon(com.shieldra.app.R.drawable.ic_shield_notification)
+            .setContentTitle(getString(com.shieldra.app.R.string.app_name))
+            .setContentText(getString(com.shieldra.app.R.string.notification_hidden_body))
+            .build()
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(com.shieldra.app.R.drawable.ic_shield_notification)
             .setContentTitle(getString(com.shieldra.app.R.string.notification_protection_title))
             .setContentText(getString(com.shieldra.app.R.string.notification_protection_text))
             .setOngoing(true)
+            .setVisibility(Notification.VISIBILITY_SECRET)
+            .setPublicVersion(hidden)
             .apply {
                 countdownDeadlineEpochMs()?.let { due ->
                     // Plain text re-posted every heartbeat: some skins do not draw a notification chronometer.
