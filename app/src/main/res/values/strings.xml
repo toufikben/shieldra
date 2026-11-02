@@ -51,6 +51,8 @@
     <string name="health_check_battery">Battery-saver exemption</string>
     <string name="health_check_channel">Alert channel connected</string>
     <string name="health_check_motion">Motion monitoring live</string>
+    <string name="health_check_screen_lock">Screen lock can confirm you</string>
+    <string name="health_screen_lock_warning">This phone has no screen lock, so anyone holding it can disarm protection and change where alerts go. Set a screen lock to close that gap.</string>
 
     <string name="nav_back">Back</string>
 
@@ -122,6 +124,7 @@
     <string name="notification_protection_title">SHIELDRA protection is active</string>
     <string name="notification_protection_text">Running in the background.</string>
     <string name="notification_next_signal">Next signal in %1$s</string>
+    <string name="notification_hidden_body">Hidden while the phone is locked</string>
     <string name="unit_day">d</string>
     <string name="unit_hour">h</string>
     <string name="unit_minute">min</string>
@@ -340,6 +343,7 @@
     <string name="owner_check_stop_subtitle">Stopping Motion monitoring needs your screen lock.</string>
     <string name="owner_check_change_subtitle">Changing protection or alert channels needs your screen lock.</string>
     <string name="owner_check_refused">Monitoring is still running: your identity was not confirmed.</string>
+    <string name="owner_check_unguarded">Changed without a lock check: this phone has no screen lock, so anyone holding it could have done this.</string>
     <string name="event_title_motion">Movement detected</string>
     <string name="event_title_panic">Silent panic</string>
     <string name="event_title_lock">Wrong unlock attempts</string>
@@ -463,7 +467,7 @@
     <string name="privacy_control_title">Your control</string>
     <string name="privacy_control_body">Export evidence as an encrypted file, delete it automatically after 90 days (events) and 30 days (evidence), lock the app with your screen lock, or delete all data now in Settings. Uninstalling Shieldra removes everything it stored.</string>
     <string name="erase_title">Delete all data?</string>
-    <string name="erase_body">This permanently deletes every recorded event and every evidence file on this phone, and destroys the keys that open them. It cannot be undone. Your alert channels and settings stay. Shieldra restarts afterwards.</string>
+    <string name="erase_body">This permanently deletes every recorded event, every evidence file, every saved position, your alert channels and your settings on this phone, and destroys the keys that open them. It cannot be undone: Shieldra restarts and looks like a fresh install.</string>
     <string name="erase_confirm">Delete everything</string>
     <string name="erase_cancel">Cancel</string>
     <string name="erase_prompt_title">Confirm it is you</string>
