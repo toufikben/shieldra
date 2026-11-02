@@ -304,7 +304,7 @@ class ProtectionService : Service() {
             else -> {
                 val kindName = intent?.getStringExtra(EXTRA_KIND)
                 val eventId = intent?.getStringExtra(EXTRA_EVENT_ID)
-                val failedAttempts = intent.getIntExtra(EXTRA_FAILED_ATTEMPTS, -1).takeIf { it >= 0 }
+                val failedAttempts = intent?.getIntExtra(EXTRA_FAILED_ATTEMPTS, -1)?.takeIf { it >= 0 }
                 val requested = kindName?.let { name ->
                     runCatching { SecurityEventType.valueOf(name) }.getOrElse {
                         Log.e(TAG, "an unknown capture request arrived: $name")
