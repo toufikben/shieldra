@@ -2,6 +2,11 @@ name: Group A diagnostics
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_phone_apks:
+        description: "Publish this branch's APK pair to its own test release for phone verification"
+        type: boolean
+        default: false
   push:
     branches: [main]
 
@@ -89,6 +94,25 @@ jobs:
           set -euo pipefail
           ./gradlew assemblePhone --stacktrace
           cp app/build/outputs/apk/phone/app-phone.apk app-phone.apk
+
+      # A branch run never touches the rolling device-apks release — that is the install the owner
+      # carries and the source of the Play upload. With the manual input, a branch's pair goes to
+      # its own draft release named after the run, so the phone round installs exactly this commit.
+      - name: Publish this branch's APK pair for phone verification (manual input)
+        if: success() && github.ref != 'refs/heads/main' && inputs.publish_phone_apks
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="test-${GITHUB_RUN_ID}"
+          gh release create "$TAG" --draft --title "Device test ${GITHUB_RUN_ID}" \
+            --notes "APK pair from run ${GITHUB_RUN_ID} at ${GITHUB_SHA}. Phone verification only; not for Play."
+          gh release upload "$TAG" \
+            app/build/outputs/apk/debug/app-debug.apk \
+            app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+            app-phone.apk \
+            --clobber
 
       - name: Publish the phone APK to the rolling draft release (main only)
         if: success() && github.ref == 'refs/heads/main'
