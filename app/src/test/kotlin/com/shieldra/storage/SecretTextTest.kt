@@ -50,8 +50,13 @@ private class ReversingEncryptor(private val refusesToEncrypt: Boolean = false) 
         requireNotNull(associatedData) { "a sealed value must be bound to its field" }
             .also { require(it.isNotEmpty()) { "a sealed value must be bound to a named field" } }
 
-    private fun fingerprint(aad: ByteArray): Byte =
-        aad.fold(0x5A) { accumulator, value -> (accumulator xor value.toInt()).toByte() }
+    private fun fingerprint(aad: ByteArray): Byte {
+        var accumulator = 0x5A
+        for (value in aad) {
+            accumulator = accumulator xor value.toInt()
+        }
+        return accumulator.toByte()
+    }
 
     private fun bind(bytes: ByteArray, aad: ByteArray): ByteArray =
         bytes.mapIndexed { index, value -> (value.toInt() xor aad[index % aad.size].toInt()).toByte() }.toByteArray()
