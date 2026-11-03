@@ -11,7 +11,17 @@ import java.util.Base64
 /** Where the dispatcher gets the channels to use; [DeliverySettings] in the app, fakes in tests. */
 interface ChannelSource {
     fun activeChannels(): List<AlertChannel>
+
+    /**
+     * Channels the owner switched on that cannot be used at all, with the honest reason (B-4). A
+     * channel that silently drops out of [activeChannels] would be the delivery pipeline failing
+     * closed with no record — the one silence the owner can never discover from the phone.
+     */
+    fun unusableChannels(): List<UnusableChannel> = emptyList()
 }
+
+/** A switched-on channel whose saved secret can no longer be opened, and why. */
+data class UnusableChannel(val channel: DeliveryChannel, val reason: String)
 
 /** Everything the owner configured for sending alerts. A channel left off is simply absent. */
 data class DeliverySettings(
@@ -27,6 +37,11 @@ data class DeliverySettings(
         from = "",
         to = "",
     ),
+    /**
+     * Channels whose secret is written but no longer opens. They stay out of [activeChannels] (an
+     * empty token must never be used), but they are not silent: [unusableChannels] names them.
+     */
+    val unreadableSecrets: Set<DeliveryChannel> = emptySet(),
 ) : ChannelSource {
     /** The channels that are switched on and fully filled in; only these are ever used. */
     override fun activeChannels(): List<AlertChannel> = buildList {
@@ -34,9 +49,20 @@ data class DeliverySettings(
         if (emailEnabled && email.isComplete) add(EmailChannel(email))
     }
 
+    override fun unusableChannels(): List<UnusableChannel> = buildList {
+        if (telegramEnabled && DeliveryChannel.TELEGRAM in unreadableSecrets) {
+            add(UnusableChannel(DeliveryChannel.TELEGRAM, REASON_TOKEN_UNREADABLE))
+        }
+        if (emailEnabled && DeliveryChannel.EMAIL in unreadableSecrets) {
+            add(UnusableChannel(DeliveryChannel.EMAIL, REASON_PASSWORD_UNREADABLE))
+        }
+    }
+
     companion object {
         const val DEFAULT_MAIL_HOST = "smtp.gmail.com"
         const val DEFAULT_MAIL_PORT = 465
+        const val REASON_TOKEN_UNREADABLE = "the saved bot token can no longer be opened — re-enter it"
+        const val REASON_PASSWORD_UNREADABLE = "the saved mail password can no longer be opened — re-enter it"
     }
 }
 
@@ -56,25 +82,36 @@ class DeliverySettingsStore(
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
-    fun load(): DeliverySettings = DeliverySettings(
-        telegramEnabled = prefs.getBoolean(KEY_TELEGRAM_ENABLED, false),
-        telegram = TelegramConfig(
-            botToken = readSecret(KEY_TELEGRAM_TOKEN),
-            chatId = prefs.getString(KEY_TELEGRAM_CHAT, "").orEmpty(),
-        ),
-        emailEnabled = prefs.getBoolean(KEY_EMAIL_ENABLED, false),
-        email = EmailConfig(
-            host = prefs.getString(KEY_EMAIL_HOST, DeliverySettings.DEFAULT_MAIL_HOST).orEmpty(),
-            port = prefs.getInt(KEY_EMAIL_PORT, DeliverySettings.DEFAULT_MAIL_PORT),
-            security = runCatching {
-                MailSecurity.valueOf(prefs.getString(KEY_EMAIL_SECURITY, MailSecurity.SSL_TLS.name).orEmpty())
-            }.getOrDefault(MailSecurity.SSL_TLS),
-            username = prefs.getString(KEY_EMAIL_USER, "").orEmpty(),
-            appPassword = readSecret(KEY_EMAIL_PASSWORD),
-            from = prefs.getString(KEY_EMAIL_FROM, "").orEmpty(),
-            to = prefs.getString(KEY_EMAIL_TO, "").orEmpty(),
-        ),
-    )
+    fun load(): DeliverySettings {
+        val token = readSecret(KEY_TELEGRAM_TOKEN)
+        val password = readSecret(KEY_EMAIL_PASSWORD)
+        return DeliverySettings(
+            telegramEnabled = prefs.getBoolean(KEY_TELEGRAM_ENABLED, false),
+            telegram = TelegramConfig(
+                botToken = token,
+                chatId = prefs.getString(KEY_TELEGRAM_CHAT, "").orEmpty(),
+            ),
+            emailEnabled = prefs.getBoolean(KEY_EMAIL_ENABLED, false),
+            email = EmailConfig(
+                host = prefs.getString(KEY_EMAIL_HOST, DeliverySettings.DEFAULT_MAIL_HOST).orEmpty(),
+                port = prefs.getInt(KEY_EMAIL_PORT, DeliverySettings.DEFAULT_MAIL_PORT),
+                security = runCatching {
+                    MailSecurity.valueOf(prefs.getString(KEY_EMAIL_SECURITY, MailSecurity.SSL_TLS.name).orEmpty())
+                }.getOrDefault(MailSecurity.SSL_TLS),
+                username = prefs.getString(KEY_EMAIL_USER, "").orEmpty(),
+                appPassword = password,
+                from = prefs.getString(KEY_EMAIL_FROM, "").orEmpty(),
+                to = prefs.getString(KEY_EMAIL_TO, "").orEmpty(),
+            ),
+            // A secret that was written and now reads empty means its key was lost or its blob was
+            // damaged. Before the audit the channel simply looked "off" and the phone went blind in
+            // silence (B-4); now the pair of facts is carried to the dispatcher, which records it.
+            unreadableSecrets = buildSet {
+                if (token.isEmpty() && prefs.contains(KEY_TELEGRAM_TOKEN)) add(DeliveryChannel.TELEGRAM)
+                if (password.isEmpty() && prefs.contains(KEY_EMAIL_PASSWORD)) add(DeliveryChannel.EMAIL)
+            },
+        )
+    }
 
     /** Saves everything; a secret field left blank keeps the secret already stored. */
     fun save(settings: DeliverySettings) {
