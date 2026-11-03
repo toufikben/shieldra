@@ -47,7 +47,7 @@
     <string name="health_check_camera">إذن الكاميرا</string>
     <string name="health_check_location">إذن الموقع</string>
     <string name="health_check_notifications">الإشعارات</string>
-    <string name="health_check_device_admin">مسؤول الجهاز (حارس الفتح الفاشل)</string>
+    <string name="health_check_device_admin">مسؤول الجهاز (محاولات الفتح والقفل عن بُعد)</string>
     <string name="health_check_battery">استثناء موفّر البطارية</string>
     <string name="health_check_channel">قناة تنبيه متصلة</string>
     <string name="health_check_motion">مراقبة الحركة حيّة</string>
@@ -118,7 +118,7 @@
     <!-- A-9: الصياغة الوحيدة المسموح بها لإشعار دائم بينما خدمة خلفية تعمل فعلًا. لا «24/7» ولا «مضمون». -->
     <string name="notification_motion_ongoing_title">حماية SHIELDRA نشِطة</string>
     <string name="device_admin_label">حماية SHIELDRA</string>
-    <string name="device_admin_description">تتيح لـ SHIELDRA ملاحظة محاولات فتح القفل الفاشلة لحماية الهاتف إذا سُرق.</string>
+    <string name="device_admin_description">تتيح لـ SHIELDRA ملاحظة محاولات فتح القفل الفاشلة وقفل الشاشة عند إرسال /lock، لحماية الهاتف إذا سُرق.</string>
     <string name="device_admin_disable_warning">إيقاف هذا يوقف حماية SHIELDRA للهاتف.</string>
     <string name="notification_channel_protection">خدمة الحماية</string>
     <string name="notification_protection_title">حماية SHIELDRA نشِطة</string>
@@ -146,7 +146,7 @@
     <string name="protection_perm_camera">الكاميرا — صورة أمامية عند أي حدث</string>
     <string name="protection_perm_location">الموقع — أين الهاتف</string>
     <string name="protection_perm_notifications">الإشعارات — الإشعار المستمر</string>
-    <string name="protection_perm_device_admin">مسؤول الجهاز — ملاحظة محاولات الفتح</string>
+    <string name="protection_perm_device_admin">مسؤول الجهاز — محاولات الفتح والقفل عن بُعد</string>
     <string name="protection_perm_phone">الهاتف — تمييز تغيير الشريحة</string>
     <string name="protection_perm_keep_awake">الاستمرار — تجاهل موفّر البطارية</string>
     <string name="protection_perm_exact_alarms">المنبّهات والتذكيرات — إطلاق العدّ في وقته</string>
@@ -185,7 +185,7 @@
     <string name="protection_remote_title">التحكم عن بُعد (تلغرام)</string>
     <string name="protection_remote_enable">التحكم من تلغرام</string>
     <string name="protection_remote_desc">أرسل أوامر لبوتك والهاتف مُفعّل. يتطلب إعداد تلغرام في قنوات التنبيه.</string>
-    <string name="protection_remote_help">أرسل لبوتك: /locate لموقع، /photo لصورة أمامية، /alarm و /stopalarm للصفّارة، /status للبطارية والشبكة، /lost و /found لإظهار جهة اتصالك على شاشة القفل.</string>
+    <string name="protection_remote_help">أرسل لبوتك: /locate لموقع، /photo لصورة أمامية، /alarm و /stopalarm للصفّارة، /lock لقفل الشاشة، /status للبطارية والشبكة، /lost و /found لإظهار جهة اتصالك على شاشة القفل.</string>
     <string name="protection_owner_contact">جهة اتصالك (تظهر مع /lost)</string>
     <string name="protection_lost_message">رسالة شاشة الفقدان (اختياري)</string>
     <string name="lost_channel">هاتف مفقود</string>
@@ -434,7 +434,7 @@
     <string name="help_email_title">تنبيهات البريد</string>
     <string name="help_email_body">استعمل حساب بريدك الخاص مع كلمة مرور تطبيق لا كلمة مرورك العادية. في التنبيهات والإشعارات اختر الخادم والمنفذ والأمان وأدخل عنوانك وكلمة مرور التطبيق ثم اضغط اختبار.</string>
     <string name="help_commands_title">الأوامر عن بُعد</string>
-    <string name="help_commands_body">فعّل الأوامر عن بُعد في الحماية. من محادثة تلغرام الخاصة بك يمكنك إرسال:\n/locate — الموقع الحالي\n/photo — صورة بالكاميرا الأمامية\n/alarm و /stopalarm\n/track on و /track off — موقع متكرّر\n/lost و /found — رسالة المالك على شاشة القفل\n/status — البطارية والشبكة\n\nالأوامر عن بُعد جزء من Shieldra Pro.</string>
+    <string name="help_commands_body">فعّل الأوامر عن بُعد في الحماية. من محادثة تلغرام الخاصة بك يمكنك إرسال:\n/locate — الموقع الحالي\n/photo — صورة بالكاميرا الأمامية\n/alarm و /stopalarm\n/lock — قفل الشاشة\n/track on و /track off — موقع متكرّر\n/lost و /found — رسالة المالك على شاشة القفل\n/status — البطارية والشبكة\n\nالأوامر عن بُعد جزء من Shieldra Pro.</string>
     <string name="help_zones_title">المناطق الآمنة</string>
     <string name="help_zones_body">في تبويب الخريطة قِف في مكان آمن كالمنزل أو العمل واضغط علّم هذا المكان كآمن ثم شغّل التنبيه عند المغادرة. أثناء التفعيل يفحص Shieldra الموقع كل بضع دقائق وينبّهك حين يصبح الهاتف خارج كل المناطق الآمنة.</string>
     <string name="help_export_title">تصدير الأدلّة</string>
@@ -463,7 +463,7 @@
     <string name="privacy_never_title">ما لا يفعله Shieldra أبداً</string>
     <string name="privacy_never_body">لا تحليلات، لا إعلانات، لا تتبّع لك، ولا بيع أو مشاركة للبيانات. يُقرأ الموقع فقط أثناء تفعيل الحماية أو عند طلبك، ويذهب إلى قنواتك أنت فقط.</string>
     <string name="privacy_permissions_title">لماذا يطلب الأذونات</string>
-    <string name="privacy_permissions_body">الكاميرا والميكروفون: أدلة بعد الحادثة. الموقع: مكان الهاتف. مدير الجهاز: لاكتشاف محاولات فتح القفل الفاشلة. الإشعارات: لإبقاء الحماية تعمل وإظهار التنبيهات. قفل الشاشة: لتأكيد أنك أنت عند التصدير والحذف وقفل التطبيق.</string>
+    <string name="privacy_permissions_body">الكاميرا والميكروفون: أدلة بعد الحادثة. الموقع: مكان الهاتف. مدير الجهاز: لاكتشاف محاولات فتح القفل الفاشلة وقفل الشاشة عند إرسال /lock. الإشعارات: لإبقاء الحماية تعمل وإظهار التنبيهات. قفل الشاشة: لتأكيد أنك أنت عند التصدير والحذف وقفل التطبيق.</string>
     <string name="privacy_billing_title">Shieldra Pro</string>
     <string name="privacy_billing_body">الدفع تتولاه Google Play. يعرف Shieldra فقط هل تملك Pro؛ ولا يرى بطاقتك ولا بيانات حسابك.</string>
     <string name="privacy_control_title">تحكّمك</string>
@@ -473,7 +473,7 @@
     <string name="panic_guide_title">هاتفي مسروق — ماذا أفعل الآن؟</string>
     <string name="panic_guide_intro">نفّذ هذه الخطوات من جهاز آخر — حاسوب أو هاتف صديق. ترتيبها يحفظ أكبر قدر: أقفل الجهاز، ثم خذ موقعه، ثم مَن يمسكه، ثم غيّر حساباتك، وأجّل المسح إلى النهاية لأن المسح يدمّر الأدلة المحفوظة داخل الهاتف نفسه.</string>
     <string name="panic_step_lock_title">أقفل الهاتف بأداة جوجل Find My Device</string>
-    <string name="panic_step_lock_body">افتح android.com/find في متصفح وسجّل الدخول بحساب جوجل الموجود على الهاتف المسروق، ثم اقفله من هناك مع رسالة ورقم تواصل لمن يجده. هذا القفل من جوجل لا من Shieldra: لا تملك الأخيرة أي صلاحية إدارية لقفل الجهاز أو مسحه.</string>
+    <string name="panic_step_lock_body">افتح android.com/find في متصفح وسجّل الدخول بحساب جوجل الموجود على الهاتف المسروق، ثم اقفله من هناك مع رسالة ورقم تواصل لمن يجده. هذا يعمل حتى لو لم تكن Shieldra تعمل. وإذا كانت الحماية مُسلّحة و«التحكم من تلغرام» مفتوحًا، يمكنك أيضًا إرسال /lock إلى بوتك؛ تستطيع Shieldra قفل الشاشة، لكنها لا تستطيع مسح الجهاز.</string>
     <string name="panic_step_locate_title">اسأل عن موقعه من محادثة تلغرام الخاصة بك</string>
     <string name="panic_step_locate_body">أرسل /locate فيجيبك الهاتف بدبوس موقع واحد، وأرسل /track on ليُرسل دبوسًا كل فترة تتبع حتى ترسل /track off. يجيب الهاتف فقط إذا كانت الحماية مُسلّحة و«التحكم من تلغرام» مفتوحًا في إعدادات الحماية، والاشتراك Premium، والهاتف متصلًا بشبكة. أوامرك لا تُخزَّن في قائمة انتظار: إن كان الهاتف غير متصل أعد إرسال الأمر.</string>
     <string name="panic_step_photo_title">شاهد مَن يمسك الهاتف</string>
@@ -489,7 +489,7 @@
     <string name="panic_evidence_title">النسخة الوحيدة التي ليست في الهاتف</string>
     <string name="panic_evidence_body">لا يملك Shieldra خادمًا ولا حسابًا، فكل ما سجّله موجود داخل الهاتف المسروق. نسخته خارجه هي ما أرسلته تنبيهاته فعلًا — إلى بوت تلغرام الذي أنشأته والبريد الذي حددته. تلك الرسائل تحمل الوقت والبطارية ورابط الخريطة وصورة حين أمكن التقاطها، وتنجو من المسح لأنها خرجت من قبل.</string>
     <string name="panic_limits_title">ما لا يستطيع Shieldra فعله من أجلك</string>
-    <string name="panic_limits_body">لا يستطيع قفل الشاشة ولا مسح الجهاز ولا قراءة رمز أي شخص — صلاحية الإدارة الوحيدة التي لديه هي أن يُبلَّغ بأن محاولة فتح فشلت. لا يستطيع تحديد موقع هاتف مطفأ أو بلا شبكة، ولا يخزّن أوامرك في قائمة انتظار، ولا يذكر موقعًا لم يقيسه فعلًا. إعادة ضبط المصنع أو إلغاء التثبيت أو مسح بيانات التطبيق تزيل ما كان محفوظًا داخل الهاتف.</string>
+    <string name="panic_limits_body">لا يستطيع مسح الجهاز ولا قراءة رمز أي شخص. يقفل الشاشة فقط عندما ترسل /lock، وفقط إذا كانت الحماية مُسلّحة والأوامر عن بُعد مفتوحة والهاتف متصلًا بشبكة؛ لا يقفل من تلقاء نفسه. لا يستطيع تحديد موقع هاتف مطفأ أو بلا شبكة، ولا يخزّن أوامرك في قائمة انتظار، ولا يذكر موقعًا لم يقسه فعلًا. إعادة ضبط المصنع أو إلغاء التثبيت أو مسح بيانات التطبيق تزيل ما كان محفوظًا داخل الهاتف.</string>
     <!-- دليل مديّر البطارية عند المصنع (التطوير ب): المسارات هي أسماء القوائم الحرفية في ColorOS، واسم
          التطبيق داخلها هو الاسم الذي يظهر في هذه اللغة. -->
     <string name="survival_guide_button">مدير البطارية: ما يجب تغييره</string>

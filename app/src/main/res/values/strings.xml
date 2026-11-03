@@ -47,7 +47,7 @@
     <string name="health_check_camera">Camera permission</string>
     <string name="health_check_location">Location permission</string>
     <string name="health_check_notifications">Notifications</string>
-    <string name="health_check_device_admin">Device admin (failed-unlock guard)</string>
+    <string name="health_check_device_admin">Device admin (failed unlocks, remote lock)</string>
     <string name="health_check_battery">Battery-saver exemption</string>
     <string name="health_check_channel">Alert channel connected</string>
     <string name="health_check_motion">Motion monitoring live</string>
@@ -118,7 +118,7 @@
     <!-- A-9: the exact wording an ongoing notice may carry while a foreground service really runs. Never "24/7", never "guaranteed". -->
     <string name="notification_motion_ongoing_title">SHIELDRA protection is active</string>
     <string name="device_admin_label">SHIELDRA protection</string>
-    <string name="device_admin_description">Lets SHIELDRA notice wrong unlock attempts so it can protect the phone if it is stolen.</string>
+    <string name="device_admin_description">Lets SHIELDRA notice wrong unlock attempts and lock the screen when you send /lock, so it can protect the phone if it is stolen.</string>
     <string name="device_admin_disable_warning">Turning this off stops SHIELDRA from protecting the phone.</string>
     <string name="notification_channel_protection">Protection service</string>
     <string name="notification_protection_title">SHIELDRA protection is active</string>
@@ -146,7 +146,7 @@
     <string name="protection_perm_camera">Camera — front photo on an event</string>
     <string name="protection_perm_location">Location — where the phone is</string>
     <string name="protection_perm_notifications">Notifications — the ongoing notice</string>
-    <string name="protection_perm_device_admin">Device admin — notice wrong unlocks</string>
+    <string name="protection_perm_device_admin">Device admin — failed unlocks and remote lock</string>
     <string name="protection_perm_phone">Phone — tell a SIM swap apart</string>
     <string name="protection_perm_keep_awake">Keep running — ignore battery saver</string>
     <string name="protection_perm_exact_alarms">Alarms and reminders — fire the countdown on time</string>
@@ -185,7 +185,7 @@
     <string name="protection_remote_title">Remote control (Telegram)</string>
     <string name="protection_remote_enable">Control from Telegram</string>
     <string name="protection_remote_desc">Send commands to your bot while the phone is armed. Needs Telegram set up in Alert channels.</string>
-    <string name="protection_remote_help">Send to your bot: /locate for a map pin, /photo for a front-camera photo, /alarm and /stopalarm for the siren, /status for battery and network, /lost and /found to show your contact on the lock screen.</string>
+    <string name="protection_remote_help">Send to your bot: /locate for a map pin, /photo for a front-camera photo, /alarm and /stopalarm for the siren, /lock to lock the screen, /status for battery and network, /lost and /found to show your contact on the lock screen.</string>
     <string name="protection_owner_contact">Your contact (shown by /lost)</string>
     <string name="protection_lost_message">Lost-screen message (optional)</string>
     <string name="lost_channel">Lost phone</string>
@@ -435,7 +435,7 @@
     <string name="help_email_title">Email alerts</string>
     <string name="help_email_body">Use your own email account with an app password, not your normal password. In Alerts &amp; notifications choose the server, port and security, enter your address and the app password, then tap Test.</string>
     <string name="help_commands_title">Remote commands</string>
-    <string name="help_commands_body">Turn on remote commands in Protection. From your own Telegram chat you can send:\n/locate — current position\n/photo — front-camera photo\n/alarm and /stopalarm\n/track on and /track off — repeating location\n/lost and /found — owner message on the lock screen\n/status — battery and network\n\nRemote commands are part of Shieldra Pro.</string>
+    <string name="help_commands_body">Turn on remote commands in Protection. From your own Telegram chat you can send:\n/locate — current position\n/photo — front-camera photo\n/alarm and /stopalarm\n/lock — lock the screen\n/track on and /track off — repeating location\n/lost and /found — owner message on the lock screen\n/status — battery and network\n\nRemote commands are part of Shieldra Pro.</string>
     <string name="help_zones_title">Safe zones</string>
     <string name="help_zones_body">On the Map tab, stand in a safe place such as home or work and tap Mark this place as safe, then turn on Alert on leaving. While armed, Shieldra checks the position every few minutes and alerts you when the phone is outside every safe zone.</string>
     <string name="help_export_title">Exporting evidence</string>
@@ -464,7 +464,7 @@
     <string name="privacy_never_title">What Shieldra never does</string>
     <string name="privacy_never_body">No analytics, no advertising, no tracking of you, and no selling or sharing of data. Location is read only while protection is armed or when you ask, and goes only to your own channels.</string>
     <string name="privacy_permissions_title">Why it asks for permissions</string>
-    <string name="privacy_permissions_body">Camera and microphone: evidence after an incident. Location: where the phone is. Device administrator: to notice failed unlock attempts. Notifications: to keep protection running and show alerts. Screen lock: to confirm it is you for export, deletion and app lock.</string>
+    <string name="privacy_permissions_body">Camera and microphone: evidence after an incident. Location: where the phone is. Device administrator: to notice failed unlock attempts and to lock the screen when you send /lock. Notifications: to keep protection running and show alerts. Screen lock: to confirm it is you for export, deletion and app lock.</string>
     <string name="privacy_billing_title">Shieldra Pro</string>
     <string name="privacy_billing_body">Payment is handled by Google Play. Shieldra only learns whether you own Pro; it never sees your card or account details.</string>
     <string name="privacy_control_title">Your control</string>
@@ -475,7 +475,7 @@
     <string name="panic_guide_title">My phone is stolen — what do I do?</string>
     <string name="panic_guide_intro">Work through this from another device — a laptop or a friend\'s phone. The order keeps the most: lock the handset, take its position, see who holds it, change your numbers, and leave any wipe to last, because a wipe destroys the evidence stored on the phone itself.</string>
     <string name="panic_step_lock_title">Lock it with Google\'s own Find My Device</string>
-    <string name="panic_step_lock_body">Open android.com/find in a browser and sign in with the Google account on the stolen phone, then lock it there with a message and a contact number for whoever finds it. That lock is Google\'s, not Shieldra\'s: Shieldra holds no administrator power to lock or wipe a device.</string>
+    <string name="panic_step_lock_body">Open android.com/find in a browser and sign in with the Google account on the stolen phone, then lock it there with a message and a contact number for whoever finds it. That works even if Shieldra is not running. If protection is armed and \"Control from Telegram\" is on, you can also send /lock to your bot; Shieldra can lock the screen, but it cannot wipe the device.</string>
     <string name="panic_step_locate_title">Ask where it is, from your own Telegram chat</string>
     <string name="panic_step_locate_body">Send /locate and the phone answers with one map pin; /track on keeps sending one at your tracking interval until you send /track off. It answers only while protection is armed, \"Control from Telegram\" is on in Protection settings, your plan is Premium and the phone has a network. Commands are not queued: if the phone was offline, send it again.</string>
     <string name="panic_step_photo_title">See who is holding it</string>
@@ -491,7 +491,7 @@
     <string name="panic_evidence_title">The only copy that is not on the phone</string>
     <string name="panic_evidence_body">Shieldra has no server and no account of its own, so everything it recorded lives on the stolen handset. The copy outside it is what its alerts already delivered — to the Telegram bot you created and the mailbox you configured. Those messages carry the time, the battery, a map link and a photo when one could be taken, and they survive a wipe because they already left.</string>
     <string name="panic_limits_title">What Shieldra cannot do for you</string>
-    <string name="panic_limits_body">It cannot lock the screen, wipe the device or read anyone\'s PIN — the only administrator power it holds is being told that an unlock attempt failed. It cannot locate a phone that is switched off or has no network, it does not queue your commands, and it never reports a position it did not measure. A factory reset, an uninstall or clearing the app storage removes what it kept on the handset.</string>
+    <string name="panic_limits_body">It cannot wipe the device or read anyone\'s PIN. It locks the screen only when you send /lock, and only while protection is armed, remote commands are on and the phone has a network; it never locks on its own. It cannot locate a phone that is switched off or has no network, it does not queue your commands, and it never reports a position it did not measure. A factory reset, an uninstall or clearing the app storage removes what it kept on the handset.</string>
     <!-- The vendor battery-manager guide (audit development ب). The paths are the literal ColorOS menu
          names, and the app label inside them is the launcher name this locale shows. -->
     <string name="survival_guide_button">Battery manager: what to change</string>

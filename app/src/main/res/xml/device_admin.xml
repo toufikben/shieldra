@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  A-33: the Lock guard needs exactly one device-admin policy, WATCH_LOGIN, so the platform tells
-  SHIELDRA that an unlock attempt failed. It never reads the password, never locks or wipes the
-  device, and takes no other administrator power.
+  A-33/A-42: two policies, each with one job.
+  WATCH_LOGIN lets the platform tell SHIELDRA that an unlock attempt failed; FORCE_LOCK lets the
+  owner's /lock command lock the screen on request. SHIELDRA never reads the password, never wipes
+  the device, never changes its password or keyguard and never takes any other administrator power.
+  The owner can switch the role off or uninstall the app at any time.
 -->
 <device-admin xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-policies>
         <watch-login />
+        <force-lock />
     </uses-policies>
 </device-admin>

@@ -810,5 +810,25 @@ Mode (rebooting is forbidden by the owner protocol), the no-screen-lock state, `
 armed Telegram commands, the 12-hour ColorOS soak, and the measurement class above.
 **Left for the owner, untouched:** the branch-cleanup list delivered with this round — 46
 branches carry zero unique commits and are safe to delete, while `feat/ui-redesign` carries two
-unique commits; and `/lock` + `<force-lock/>` were deliberately not written (device admin stays
-minimal, `watch-login` only).
+unique commits; and `/lock` + `<force-lock/>` were deliberately not written in that round (device
+admin stayed minimal, `watch-login` only) — the owner reversed that decision on 2026-11-03, see the
+next section.
+
+## Remote screen lock — amendment A-42 on `fix/audit-round-1` (2026-11-03)
+
+**The owner asked for `/lock` + `<force-lock />` immediately, on condition that Google Play does
+not forbid them; it does not.** The full policy argument and the exclusions are in
+`docs/reports/audit-round-1-force-lock.md`. The administrator now holds exactly two policies —
+`watch-login` (hear a failed unlock) and `force-lock` (lock the screen on the owner's command) — and
+`lockNow()` has exactly one caller, `DeviceScreenLock.kt`, guarded by an admin-active check and a
+four-way honest answer (locked / admin off / needs re-grant / failed). The command parser is a pure
+object with JVM tests (`RemoteCommandTest`), the poller still acts only on the owner's chat id, and
+every shipped string that used to say Shieldra cannot lock now states the one case it can (EN + AR,
+592 keys each). The g4b gate pins the policy pair by exact equality and keeps `lockNow()` in its
+single file.
+
+**CI:** pending at the time this section was written; the run id and test count are added here after
+the push. **Device:** NOT RUN — the owner schedules phone checks; the checklist is prepared outside
+the repo. **Existing administrators** granted before this change keep the old policy set until they
+switch the role off and on once; `/lock` answers with that exact instruction instead of pretending
+it locked.

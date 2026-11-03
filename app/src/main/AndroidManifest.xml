@@ -111,7 +111,8 @@
             android:foregroundServiceType="camera|location|microphone" />
 
         <!--
-          A-33: the Lock guard's device-admin receiver. WATCH_LOGIN only (see @xml/device_admin).
+          A-33/A-42: the Lock guard's device-admin receiver. WATCH_LOGIN + FORCE_LOCK only (see
+          @xml/device_admin): failed unlocks are heard, and /lock locks the screen on request.
           Exported with BIND_DEVICE_ADMIN as the platform requires for an admin receiver.
         -->
         <receiver

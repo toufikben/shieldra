@@ -449,6 +449,26 @@ grep -q 'recordPermissionRequest()' "$NAVHOST" \
   || fail "answering the system dialog is never recorded, so silence and refusal look alike"
 pass "notifications are local, permission-gated, and never claim delivery"
 
+# 5d. A-42 (2026-11-03): the device administrator holds exactly two policies.
+# WATCH_LOGIN hears a failed unlock; FORCE_LOCK locks the screen on the owner's /lock command.
+# Every other policy — wipe, password rules, camera, keyguard — stays out, so a stolen-phone tool
+# can never erase the phone, change its password or blind its camera.
+ADMIN_XML=app/src/main/res/xml/device_admin.xml
+[ -s "$ADMIN_XML" ] || fail "the device-admin policy declaration is missing"
+ADMIN_POLICIES="$(grep -oE '<[a-z-]+[[:space:]]*/>' "$ADMIN_XML" \
+  | sed -E 's/<([a-z-]+).*/\1/' | sort | tr '\n' ' ')"
+if [ "$ADMIN_POLICIES" != "force-lock watch-login " ]; then
+  fail "device-admin policies drifted from the approved watch-login + force-lock pair; got [$ADMIN_POLICIES]"
+fi
+# The screen lock is the one dangerous administrator power: keep it in one guarded caller.
+LOCK_CALLERS="$(grep -rl 'lockNow' app/src/main/kotlin || true)"
+if [ "$LOCK_CALLERS" != "app/src/main/kotlin/com/shieldra/protection/DeviceScreenLock.kt" ]; then
+  fail "lockNow() must be reachable only from DeviceScreenLock.kt; found [$LOCK_CALLERS]"
+fi
+grep -q '"/lock"' app/src/main/kotlin/com/shieldra/protection/RemoteCommandPoller.kt \
+  || fail "the /lock command is not wired into the remote poller"
+pass "device administration is exactly watch-login + force-lock, and lockNow has one guarded caller"
+
 # 6. The dashboard action reaches the real coordinator off the main thread.
 grep -q 'PanicIncidentCoordinator(repository' "$NAVHOST" || fail "NavHost does not build the panic coordinator"
 grep -q 'coordinator.activate()' "$NAVHOST" || fail "NavHost does not activate the panic coordinator"

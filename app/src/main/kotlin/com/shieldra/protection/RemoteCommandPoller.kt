@@ -18,6 +18,7 @@ import kotlinx.coroutines.runBlocking
  *  - `/track on` / `/track off` — start or stop a repeating location stream.
  *  - `/photo`  — take a front-camera photo and reply with it.
  *  - `/alarm` / `/stopalarm` — sound or silence the loud siren.
+ *  - `/lock` — lock the screen now (FORCE_LOCK; the owner must have granted device admin).
  *  - `/status` — reply with battery, network and armed state.
  *
  * It runs on one daemon thread and stops the moment protection is disarmed or the option is turned
@@ -67,10 +68,10 @@ class RemoteCommandPoller(context: Context) {
 
     private fun execute(client: TelegramCommandClient, chat: String, raw: String) {
         // Strip a trailing @botname and any arguments; "/photo@MyBot" -> "/photo".
-        val command = raw.substringBefore(' ').substringBefore('@').lowercase()
-        when (command) {
+        val command = RemoteCommand.parse(raw)
+        when (command.verb) {
             "/track" -> {
-                if (raw.substringAfter(' ', "").trim().lowercase() == "off") {
+                if (command.argument == "off") {
                     stopTrack()
                     client.replyText(chat, "SHIELDRA: tracking off")
                 } else {
@@ -96,6 +97,7 @@ class RemoteCommandPoller(context: Context) {
                 Siren.stop(app)
                 client.replyText(chat, "SHIELDRA: alarm off")
             }
+            "/lock" -> client.replyText(chat, lockReply(DeviceScreenLock.now(app)))
             "/status" -> client.replyText(chat, status())
             "/lost" -> {
                 val settings = ProtectionSettingsStore(app).load()
@@ -108,6 +110,16 @@ class RemoteCommandPoller(context: Context) {
             }
             else -> Unit // unknown command: ignore silently
         }
+    }
+
+    /** Honest answers: a lock that did not happen is never reported as one. */
+    private fun lockReply(result: DeviceScreenLock.Result): String = when (result) {
+        DeviceScreenLock.Result.LOCKED -> "SHIELDRA: screen locked"
+        DeviceScreenLock.Result.ADMIN_OFF ->
+            "SHIELDRA: device admin is off — turn it on in Protection, then send /lock again"
+        DeviceScreenLock.Result.NEEDS_REGRANT ->
+            "SHIELDRA: the lock power is not active yet — switch device admin off and on once in Protection, then send /lock again"
+        DeviceScreenLock.Result.FAILED -> "SHIELDRA: the screen could not be locked"
     }
 
     /** `/track on` streams a location pin every tracking-interval minutes until `/track off`. */
