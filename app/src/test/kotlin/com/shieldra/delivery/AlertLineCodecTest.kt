@@ -2,6 +2,7 @@ package com.shieldra.delivery
 
 import com.shieldra.storage.SecretText
 import java.time.Instant
+import java.util.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -14,11 +15,16 @@ import kotlin.test.assertNull
  * older build wrote, because the alerts sitting in that queue were taken during a theft.
  */
 class AlertLineCodecTest {
+    // The stand-in seal has the one property the real one is claimed for: the coordinates do not
+    // survive in the clear. Base64 is not encryption — on a phone the AES-GCM seal in SecretText does
+    // this — but it makes an accidental plaintext write fail here instead of passing quietly.
     private fun seal(location: AlertLocation): String =
-        SecretText.SEALED_PREFIX + AlertLocationLine.format(location)
+        SecretText.SEALED_PREFIX +
+            Base64.getEncoder().encodeToString(AlertLocationLine.format(location).toByteArray(Charsets.UTF_8))
 
     private fun open(raw: String): String? =
         raw.removePrefix(SecretText.SEALED_PREFIX).ifBlank { null }
+            ?.let { runCatching { String(Base64.getDecoder().decode(it), Charsets.UTF_8) }.getOrNull() }
 
     private fun alert(
         location: AlertLocation? = AlertLocation(36.75, 3.06, 12f, Instant.ofEpochMilli(1_700_000_000_000), "fused"),
