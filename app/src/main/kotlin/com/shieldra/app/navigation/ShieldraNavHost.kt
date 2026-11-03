@@ -913,6 +913,7 @@ fun ShieldraNavHost(
                         },
                         deviceAdmin = dpm?.isAdminActive(adminComponent) == true,
                         batteryExemption = com.shieldra.protection.BackgroundSurvival.isExempt(context),
+                        exactAlarms = com.shieldra.protection.ExactAlarmAccess.isGranted(context),
                     )
                 }
                 ProtectionGuardsScreen(
@@ -946,6 +947,12 @@ fun ShieldraNavHost(
                         // The protection package owns the platform API; the UI only asks it to open
                         // the system prompt so the guards survive battery saver.
                         com.shieldra.protection.BackgroundSurvival.requestExemption(context)
+                        permissionRefresh += 1
+                    },
+                    onGrantExactAlarms = {
+                        // Same split for exact scheduling: the countdown degrades to an inexact
+                        // alarm until the owner flips this system toggle.
+                        com.shieldra.protection.ExactAlarmAccess.request(context)
                         permissionRefresh += 1
                     },
                     onOpenSurvivalGuide = { navController.navigate(ShieldraRoutes.SURVIVAL_GUIDE) },

@@ -428,7 +428,10 @@ DECLARED="$(grep -oE 'android:name="android\.permission\.[A-Z_]+"' app/src/main/
 # Amendment A-32 adds the two install-time network permissions alert delivery needs; A-33/A-34 add
 # the protection guards' camera, location, boot, wake-lock, phone-state, battery and exact-alarm set.
 # A-35 adds the microphone pair for the short audio clip.
-EXPECTED="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_NETWORK_STATE CAMERA FOREGROUND_SERVICE FOREGROUND_SERVICE_CAMERA FOREGROUND_SERVICE_LOCATION FOREGROUND_SERVICE_MICROPHONE FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_BOOT_COMPLETED RECORD_AUDIO REQUEST_IGNORE_BATTERY_OPTIMIZATIONS SCHEDULE_EXACT_ALARM USE_EXACT_ALARM WAKE_LOCK "
+# F-PLAY-1 (2026-11-03): USE_EXACT_ALARM is withheld — Google Play reserves it for alarm-clock and
+# calendar apps — so SCHEDULE_EXACT_ALARM is the only exact-alarm permission declared, and the
+# countdown falls back to an inexact alarm until the owner grants exact scheduling at runtime.
+EXPECTED="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_NETWORK_STATE CAMERA FOREGROUND_SERVICE FOREGROUND_SERVICE_CAMERA FOREGROUND_SERVICE_LOCATION FOREGROUND_SERVICE_MICROPHONE FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_BOOT_COMPLETED RECORD_AUDIO REQUEST_IGNORE_BATTERY_OPTIMIZATIONS SCHEDULE_EXACT_ALARM WAKE_LOCK "
 if [ "$DECLARED" != "$EXPECTED" ]; then
   fail "the manifest declares permissions outside the A-6/A-19/A-32/A-33/A-34/A-35 named set; got [$DECLARED]"
 fi

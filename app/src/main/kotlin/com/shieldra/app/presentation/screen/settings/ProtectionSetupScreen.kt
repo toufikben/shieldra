@@ -54,6 +54,8 @@ data class ProtectionPermissions(
     val deviceAdmin: Boolean = false,
     /** Battery-optimization exemption, so the system does not doze the guards (A-33). */
     val batteryExemption: Boolean = false,
+    /** Exact-alarm access, so the countdown fires on the second instead of "within the hour" (A-33). */
+    val exactAlarms: Boolean = false,
 )
 
 /**
@@ -73,6 +75,7 @@ fun ProtectionSetupScreen(
     onGrantNotifications: () -> Unit,
     onEnableDeviceAdmin: () -> Unit,
     onKeepAwake: () -> Unit,
+    onGrantExactAlarms: () -> Unit,
     /**
      * Opens the vendor battery-manager guide. The exemption above is the only one of those switches an
      * Intent can reach, so the rest have to be flipped by hand (audit development ب).
@@ -160,6 +163,9 @@ fun ProtectionSetupScreen(
         PermissionRow(stringResource(R.string.protection_perm_device_admin), permissions.deviceAdmin, onEnableDeviceAdmin)
         PermissionRow(stringResource(R.string.protection_perm_phone), permissions.phone, onGrantPhone)
         PermissionRow(stringResource(R.string.protection_perm_keep_awake), permissions.batteryExemption, onKeepAwake)
+        // Exact scheduling is a special access the owner grants in system settings; until then the
+        // countdown still fires, just less precisely (audit F-PLAY-1, A-33).
+        PermissionRow(stringResource(R.string.protection_perm_exact_alarms), permissions.exactAlarms, onGrantExactAlarms)
         Spacer(Modifier.height(spacing.s))
         // The guards die on the vendor's battery manager long before any thief touches them, and no
         // Intent opens those menus: the screen states the paths and the owner follows them by hand.

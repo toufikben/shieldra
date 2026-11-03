@@ -33,7 +33,10 @@
         READ_PHONE_STATE — read which SIM is present, to tell a swap from the owner's own SIM.
         REQUEST_IGNORE_BATTERY_OPTIMIZATIONS — ask the owner to exempt the app so a thief's phone
           cannot doze the guards; a theft can happen at any hour.
-        SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM — fire the owner's periodic countdown on time.
+        SCHEDULE_EXACT_ALARM — fire the owner's periodic countdown on time. USE_EXACT_ALARM is
+          deliberately not declared: Google Play reserves it for alarm-clock and calendar apps,
+          and every scheduling call already degrades to an inexact alarm until the owner grants
+          exact scheduling in system settings (F-PLAY-1).
       Nothing is shown to whoever holds the phone; every capture is silent.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -53,7 +56,6 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.front" android:required="false" />
