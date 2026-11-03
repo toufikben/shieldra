@@ -104,6 +104,9 @@ import com.shieldra.app.presentation.screen.settings.NotificationSetupScreen
 import com.shieldra.app.presentation.screen.settings.AboutScreen
 import com.shieldra.app.presentation.screen.settings.HelpScreen
 import com.shieldra.app.presentation.screen.settings.PrivacyScreen
+import com.shieldra.app.presentation.screen.settings.PanicGuideScreen
+import com.shieldra.app.presentation.screen.settings.BatterySurvivalScreen
+import com.shieldra.app.presentation.screen.settings.PlatformComparisonScreen
 import com.shieldra.app.presentation.screen.settings.RetentionScreen
 import com.shieldra.app.presentation.screen.settings.StorageScreen
 import com.shieldra.storage.LocalShieldraStorage
@@ -475,6 +478,7 @@ fun ShieldraNavHost(
             }
             composable(ShieldraRoutes.ONBOARDING_PROTECTION) {
                 ProtectionSetupScreen(
+                    onOpenSurvivalGuide = { navController.navigate(ShieldraRoutes.SURVIVAL_GUIDE) },
                     onContinue = {
                         onOnboardingCompleted()
                         navController.navigate(ShieldraRoutes.DASHBOARD) {
@@ -794,6 +798,12 @@ fun ShieldraNavHost(
                             SettingsRowTarget.Help -> navController.navigate(ShieldraRoutes.HELP_INFO)
                             SettingsRowTarget.Privacy -> navController.navigate(ShieldraRoutes.PRIVACY_INFO)
 
+                            // The stolen-phone steps: a screen of instructions, not a switch.
+                            SettingsRowTarget.PanicGuide -> navController.navigate(ShieldraRoutes.PANIC_GUIDE)
+
+                            // What Android already does against theft, named plainly (audit development د).
+                            SettingsRowTarget.PlatformComparison -> navController.navigate(ShieldraRoutes.PLATFORM_COMPARISON)
+
                             SettingsRowTarget.AppLock -> settingsDialog = SettingsDialog.AppLock
 
                             SettingsRowTarget.NotAvailable -> defer()
@@ -835,6 +845,13 @@ fun ShieldraNavHost(
             composable(ShieldraRoutes.ABOUT_INFO) { AboutScreen(onBack = { navController.popBackStack() }) }
             composable(ShieldraRoutes.HELP_INFO) { HelpScreen(onBack = { navController.popBackStack() }) }
             composable(ShieldraRoutes.PRIVACY_INFO) { PrivacyScreen(onBack = { navController.popBackStack() }) }
+            composable(ShieldraRoutes.PANIC_GUIDE) { PanicGuideScreen(onBack = { navController.popBackStack() }) }
+            composable(ShieldraRoutes.SURVIVAL_GUIDE) {
+                BatterySurvivalScreen(onBack = { navController.popBackStack() })
+            }
+            composable(ShieldraRoutes.PLATFORM_COMPARISON) {
+                PlatformComparisonScreen(onBack = { navController.popBackStack() })
+            }
 
             composable(ShieldraRoutes.ALERT_CHANNELS) {
                 val saved = deliverySettings
@@ -931,6 +948,7 @@ fun ShieldraNavHost(
                         com.shieldra.protection.BackgroundSurvival.requestExemption(context)
                         permissionRefresh += 1
                     },
+                    onOpenSurvivalGuide = { navController.navigate(ShieldraRoutes.SURVIVAL_GUIDE) },
                     onArmToggle = {
                         if (protectionArmed) {
                             requireOwner {

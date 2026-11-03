@@ -23,6 +23,20 @@ object ShieldraRoutes {
     const val ABOUT_INFO = "main/settings/about"
     const val HELP_INFO = "main/settings/help"
     const val PRIVACY_INFO = "main/settings/privacy"
+    /**
+     * The inverted help screen: the steps to take in the minute the owner knows the phone is gone.
+     * Deliberately reachable from Settings without arming anything — the owner may need it on the
+     * day they never set the app up properly, and a guide behind a gate is a guide nobody reads.
+     */
+    const val PANIC_GUIDE = "main/settings/panic-guide"
+    /**
+     * The vendor battery-manager guide (audit development ب). Reached from the protection screen and
+     * from onboarding, never as a Settings row of its own: it is a prerequisite of the guards working,
+     * not a setting, and the two places an owner meets it are the two places they decide to arm.
+     */
+    const val SURVIVAL_GUIDE = "main/settings/battery-survival"
+    /** The comparison with Android's own theft protection (audit development د): what the OS already does. */
+    const val PLATFORM_COMPARISON = "main/settings/platform-comparison"
     /** The Pro subscription screen (A-40): plans and prices come from Google Play. */
     const val PRO = "main/pro"
     /** Read-only protection health check: what is really protecting the phone now. */

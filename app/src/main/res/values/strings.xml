@@ -201,8 +201,8 @@
     <string name="motion_monitoring_stopped">Motion monitoring stopped.</string>
     <string name="motion_monitoring_no_storage">Monitoring was not started: local storage could not be opened. Restart the app and try again.</string>
     <string name="lock_guard">Lock Guard</string>
-    <string name="protection_setup_question">Lock Guard does not run in this build yet.</string>
-    <string name="protection_step_inert">Continuing from this screen changes no setting.</string>
+    <string name="protection_setup_question">When someone fails to unlock your phone, Shieldra counts the attempt, records an event, and alerts your own channels — with the position and a photo when the phone could produce them. You arm the guard in Protection, where its permissions are granted.</string>
+    <string name="protection_step_inert">Continuing from here changes no setting: arming and its permissions are done in Protection.</string>
     <string name="silent_panic">Silent Panic</string>
     <string name="details">DETAILS</string>
     <string name="dismiss">Dismiss</string>
@@ -468,6 +468,61 @@
     <string name="privacy_billing_body">Payment is handled by Google Play. Shieldra only learns whether you own Pro; it never sees your card or account details.</string>
     <string name="privacy_control_title">Your control</string>
     <string name="privacy_control_body">Export evidence as an encrypted file, delete it automatically after 90 days (events) and 30 days (evidence), lock the app with your screen lock, or delete all data now in Settings. Uninstalling Shieldra removes everything it stored.</string>
+    <!-- The stolen-phone steps (audit development ج). Every line must be something the owner can do from
+         another device, and every command named here must be one RemoteCommandPoller really answers. -->
+    <string name="panic_guide_row">Phone stolen: what to do</string>
+    <string name="panic_guide_title">My phone is stolen — what do I do?</string>
+    <string name="panic_guide_intro">Work through this from another device — a laptop or a friend\'s phone. The order keeps the most: lock the handset, take its position, see who holds it, change your numbers, and leave any wipe to last, because a wipe destroys the evidence stored on the phone itself.</string>
+    <string name="panic_step_lock_title">Lock it with Google\'s own Find My Device</string>
+    <string name="panic_step_lock_body">Open android.com/find in a browser and sign in with the Google account on the stolen phone, then lock it there with a message and a contact number for whoever finds it. That lock is Google\'s, not Shieldra\'s: Shieldra holds no administrator power to lock or wipe a device.</string>
+    <string name="panic_step_locate_title">Ask where it is, from your own Telegram chat</string>
+    <string name="panic_step_locate_body">Send /locate and the phone answers with one map pin; /track on keeps sending one at your tracking interval until you send /track off. It answers only while protection is armed, \"Control from Telegram\" is on in Protection settings, your plan is Premium and the phone has a network. Commands are not queued: if the phone was offline, send it again.</string>
+    <string name="panic_step_photo_title">See who is holding it</string>
+    <string name="panic_step_photo_body">Send /photo and the phone takes one front-camera picture and replies with it. Any alert that already fired — panic, failed unlocks, a SIM change, motion — carried a photo and a position of its own when the camera and the GPS could produce one, so read your chat history before you ask for anything new.</string>
+    <string name="panic_step_signal_title">Make it loud, and say it is lost</string>
+    <string name="panic_step_signal_body">/alarm sounds the siren until you send /stopalarm. /lost puts your own message and contact number on the screen for a finder, and /found clears it. /status replies with the battery, the network and whether the guards are armed.</string>
+    <string name="panic_step_imei_title">Block the handset and file a report</string>
+    <string name="panic_step_imei_body">Your carrier can blacklist the IMEI so the phone cannot join any mobile network, and the police report needs the same number. The IMEI is printed on the box and on the SIM tray, and shown by Settings › About phone on the device.</string>
+    <string name="panic_step_passwords_title">Change what the phone can open</string>
+    <string name="panic_step_passwords_body">From another device, change your Google password first, then email, banking and messaging. A phone that is unlocked in someone else\'s hands is a key to the codes that reset those accounts.</string>
+    <string name="panic_step_erase_title">Erase only when the data matters more than the evidence</string>
+    <string name="panic_step_erase_body">Erase from android.com/find. It removes everything on the phone, including the events, photos and recordings Shieldra stored there, and nothing on the handset can be recovered afterwards. Do it once the position and the photos you need are safe in your Telegram chat or your mailbox.</string>
+    <string name="panic_evidence_title">The only copy that is not on the phone</string>
+    <string name="panic_evidence_body">Shieldra has no server and no account of its own, so everything it recorded lives on the stolen handset. The copy outside it is what its alerts already delivered — to the Telegram bot you created and the mailbox you configured. Those messages carry the time, the battery, a map link and a photo when one could be taken, and they survive a wipe because they already left.</string>
+    <string name="panic_limits_title">What Shieldra cannot do for you</string>
+    <string name="panic_limits_body">It cannot lock the screen, wipe the device or read anyone\'s PIN — the only administrator power it holds is being told that an unlock attempt failed. It cannot locate a phone that is switched off or has no network, it does not queue your commands, and it never reports a position it did not measure. A factory reset, an uninstall or clearing the app storage removes what it kept on the handset.</string>
+    <!-- The vendor battery-manager guide (audit development ب). The paths are the literal ColorOS menu
+         names, and the app label inside them is the launcher name this locale shows. -->
+    <string name="survival_guide_button">Battery manager: what to change</string>
+    <string name="survival_guide_title">Keep Shieldra alive on this phone</string>
+    <string name="survival_guide_intro">On this phone\'s software the guards are usually stopped by the battery manager, not by a thief. These switches live in the phone\'s own menus, and none of them has a link that opens it, so each one is written out with its menu names. Copy a line and search for it in Settings if your build words it differently.</string>
+    <string name="survival_this_phone">This phone reports itself as %1$s running Android %2$s.</string>
+    <string name="survival_copy_hint">Long-press the path to select and copy it.</string>
+    <string name="survival_limits">The names above are the ones OPPO and realme use on ColorOS; your build may word them differently. Nothing on this screen is a Shieldra setting, and Shieldra cannot flip any of them for you — the only one an app may ask about is the battery-optimisation exemption, and Protection settings carries that switch.</string>
+    <string name="survival_autolaunch_title">Let Shieldra start itself</string>
+    <string name="survival_autolaunch_body">Without auto-launch the guards never come back after a reboot until the app is opened by hand.</string>
+    <string name="survival_autolaunch_path">Settings › Apps › App management › Shieldra › Allow auto launch</string>
+    <string name="survival_background_title">Let it run in the background</string>
+    <string name="survival_background_body">Background activity is what keeps the camera, the position fix and the alert queue alive while the app is not on screen.</string>
+    <string name="survival_background_path">Settings › Apps › App management › Shieldra › Battery usage › Allow background activity</string>
+    <string name="survival_unused_title">Do not pause it when unused</string>
+    <string name="survival_unused_body">An armed protection app spends its life unused — that is the point of it. This setting puts such an app to sleep after a quiet spell.</string>
+    <string name="survival_unused_path">Settings › Apps › App management › Shieldra › Pause app activity if unused › Off</string>
+    <string name="survival_freeze_title">Keep it out of the quick freeze</string>
+    <string name="survival_freeze_body">The freeze list suspends apps the system believes nobody is using, and a suspended service stamps no check and sends no alert.</string>
+    <string name="survival_freeze_path">Settings › Battery › Advanced settings › App quick freeze › Shieldra › Off</string>
+    <string name="survival_recents_title">Lock its card in Recents</string>
+    <string name="survival_recents_body">A locked card survives \"Clear all\", so swiping the app away does not end the guards.</string>
+    <string name="survival_recents_path">Recents › press and hold the Shieldra card › Lock</string>
+    <string name="survival_powersave_title">Leave power saving off</string>
+    <string name="survival_powersave_body">Power saving and Super power saving stop background work outright. A phone that is being guarded is not the phone to save battery on.</string>
+    <string name="survival_powersave_path">Settings › Battery › Power saving mode › Off</string>
+    <string name="survival_optimise_title">Do not optimise the battery for Shieldra</string>
+    <string name="survival_optimise_body">This is the one switch Shieldra can hand you: the \"Keep running — ignore battery saver\" row in Protection settings opens the system prompt for it.</string>
+    <string name="survival_optimise_path">Settings › Battery › Battery optimisation › Shieldra › Don\'t optimise</string>
+    <string name="survival_cleaner_title">Keep it out of the cleaner</string>
+    <string name="survival_cleaner_body">The one-tap speed-up force-stops every app it considers idle, and a force-stop is not something a service survives or reports.</string>
+    <string name="survival_cleaner_path">Phone Manager › Speed up › exclude Shieldra</string>
     <string name="erase_title">Delete all data?</string>
     <string name="erase_body">This permanently deletes every recorded event, every evidence file, every saved position, your alert channels and your settings on this phone, and destroys the keys that open them. It cannot be undone: Shieldra restarts and looks like a fresh install.</string>
     <string name="erase_confirm">Delete everything</string>
@@ -534,4 +589,26 @@
     <string name="export_done">Encrypted export saved.</string>
     <string name="export_failed">The export could not be completed.</string>
     <string name="export_refused">Export cancelled: identity not confirmed.</string>
+
+    <!-- The honest comparison with Android\'s own theft protection (audit development د). Nothing here is
+         measured on this phone: the names are Google\'s, and makers rename and re-version them. -->
+    <string name="compare_row">Android\'s own theft protection</string>
+    <string name="compare_title">What Android already does</string>
+    <string name="compare_intro">Before you pay for protection, know what the phone already does by itself. Android ships theft features of its own, and they are good ones. This screen names them plainly and then says, in one card, the single thing this app puts on top of them.</string>
+    <string name="compare_theft_lock_title">Theft Detection Lock</string>
+    <string name="compare_theft_lock_body">On newer Android versions the phone watches its own motion sensors for the shape of a snatch — being torn from your hand or pulled off a table — and locks the screen by itself. It needs no network and no SIM change to do it. It locks; it does not say where the phone went.</string>
+    <string name="compare_failed_auth_title">Failed Authentication Lock</string>
+    <string name="compare_failed_auth_body">If a run of wrong PINs or passwords is entered inside a short window, the phone locks itself and stops accepting the screen lock until the owner signs in to their Google account. A thief pressing at the keypad is stopped, and the owner is not told.</string>
+    <string name="compare_identity_title">Identity Check and Remote Lock</string>
+    <string name="compare_identity_body">When the phone is not confident it is you, it refuses sensitive changes: turning off Find My Device, changing or removing the screen lock. From a browser you can lock the phone and sign it out of the account. The intruder is slowed down; nothing is gathered about them.</string>
+    <string name="compare_offline_title">Offline Finding</string>
+    <string name="compare_offline_body">On hardware that supports it, the phone can still be found after it has been switched off, by letting nearby phones hear it over Bluetooth and report what they heard. This is a real answer to the oldest trick in the book: powering the phone down.</string>
+    <string name="compare_attempts_title">The wait between attempts</string>
+    <string name="compare_attempts_body">Android puts a growing wait on the keypad after repeated failures, and a device that has been given the right to erase itself can wipe on a run of failures. That erase is an administrator power: Shieldra does not hold it, so Shieldra never wipes your phone — the erase it offers is the one you choose yourself.</string>
+    <string name="compare_find_title">Find My Device</string>
+    <string name="compare_find_body">The phone\'s own finder shows a position on a map, makes it ring, locks it and erases it. It belongs to the account the phone is signed in to, so it speaks to that account\'s service and not to a channel of your choosing.</string>
+    <string name="compare_shieldra_title">What Shieldra adds on top</string>
+    <string name="compare_shieldra_body">Every feature above is about stopping the phone from being used. One thing is missing from all of them: a record of what happened, made on the phone and sent to you. When an unlock attempt fails, Shieldra writes the attempt down, takes a front-camera photo, and sends you a message with the position it measured and the battery it read — into your own Telegram and your own email, not into a service it runs. And a patrol outside the service tells you when the guards have gone quiet, which is the failure no phone reports by itself.</string>
+    <string name="compare_closing">Android locks. Shieldra testifies.</string>
+    <string name="compare_limits">These are Google\'s names for Google\'s features, and makers rename them and ship them on different versions. Nothing on this screen was checked on your phone: the Health screen is the only view in this app that reports what was actually measured here.</string>
 </resources>

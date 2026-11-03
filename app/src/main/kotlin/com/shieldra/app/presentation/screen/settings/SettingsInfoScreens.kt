@@ -1,6 +1,8 @@
 package com.shieldra.app.presentation.screen.settings
 
 import android.content.Context
+import android.os.Build
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.selection.SelectionContainer
 import com.shieldra.app.R
 import com.shieldra.app.design.components.foundation.GlassCard
 import com.shieldra.app.design.components.foundation.ShieldraButton
@@ -284,6 +287,248 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurface,
                 )
             }
+        }
+    }
+}
+
+/**
+ * The inverted help screen. The owner is not asking how the app works here — they are holding someone
+ * else's phone and saying "mine is gone". Every card is therefore an instruction that can be carried
+ * out from somewhere else, in the order that keeps the most: the handset locked, the position taken,
+ * the person seen, the numbers changed, and the wipe left to last, because a wipe destroys the events
+ * and photos this app stored on that device.
+ *
+ * The screen states its own conditions and its own limits, in the same place as the steps. This is the
+ * moment an over-claim costs an hour that cannot be recovered, so the commands say what they need to
+ * answer at all (armed, Premium, Telegram switched on, the phone online) and the last card says plainly
+ * that SHIELDRA never locks or wipes the handset and never reports a position it did not measure.
+ */
+@Composable
+fun PanicGuideScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    InfoPage(title = stringResource(R.string.panic_guide_title), onBack = onBack, modifier = modifier) {
+        GlassCard {
+            Note(stringResource(R.string.panic_guide_intro))
+        }
+        listOf(
+            R.string.panic_step_lock_title to R.string.panic_step_lock_body,
+            R.string.panic_step_locate_title to R.string.panic_step_locate_body,
+            R.string.panic_step_photo_title to R.string.panic_step_photo_body,
+            R.string.panic_step_signal_title to R.string.panic_step_signal_body,
+            R.string.panic_step_imei_title to R.string.panic_step_imei_body,
+            R.string.panic_step_passwords_title to R.string.panic_step_passwords_body,
+            R.string.panic_step_erase_title to R.string.panic_step_erase_body,
+        ).forEachIndexed { index, (title, body) ->
+            GlassCard {
+                Text(
+                    text = "${index + 1}. ${stringResource(title)}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ShieldraTheme.semantic.protection,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+        listOf(
+            R.string.panic_evidence_title to R.string.panic_evidence_body,
+            R.string.panic_limits_title to R.string.panic_limits_body,
+        ).forEach { (title, body) ->
+            GlassCard {
+                Text(
+                    text = stringResource(title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(6.dp))
+                Note(stringResource(body))
+            }
+        }
+    }
+}
+
+/**
+ * The battery-survival guide (audit development ب). On the owner's own handset the thing that kills
+ * the guards first is not the thief but the vendor's battery manager, and none of those switches has a
+ * public Intent that opens them: `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS` reaches one of the eight,
+ * the rest live only inside ColorOS's own menus. So this screen is written text, with the literal menu
+ * names and a selectable path per step — the owner searches for the words rather than hunting by
+ * memory, and the app never touches the clipboard to hand them over (F-K3 keeps that door shut).
+ *
+ * The measured line at the top says which phone the owner is reading it on, because the guide is advice
+ * about a skin and an advice column that pretends to know your exact build is lying. The closing card
+ * says what the app cannot do: none of this is a Shieldra setting, and no permission lets it be flipped.
+ */
+@Composable
+fun BatterySurvivalScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    InfoPage(title = stringResource(R.string.survival_guide_title), onBack = onBack, modifier = modifier) {
+        GlassCard {
+            Text(
+                text = stringResource(R.string.survival_this_phone, Build.MANUFACTURER, Build.VERSION.RELEASE),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = ShieldraTheme.semantic.protection,
+            )
+            Spacer(Modifier.height(6.dp))
+            Note(stringResource(R.string.survival_guide_intro))
+        }
+        listOf(
+            SurvivalStep(
+                R.string.survival_autolaunch_title,
+                R.string.survival_autolaunch_body,
+                R.string.survival_autolaunch_path,
+            ),
+            SurvivalStep(
+                R.string.survival_background_title,
+                R.string.survival_background_body,
+                R.string.survival_background_path,
+            ),
+            SurvivalStep(
+                R.string.survival_unused_title,
+                R.string.survival_unused_body,
+                R.string.survival_unused_path,
+            ),
+            SurvivalStep(
+                R.string.survival_freeze_title,
+                R.string.survival_freeze_body,
+                R.string.survival_freeze_path,
+            ),
+            SurvivalStep(
+                R.string.survival_recents_title,
+                R.string.survival_recents_body,
+                R.string.survival_recents_path,
+            ),
+            SurvivalStep(
+                R.string.survival_powersave_title,
+                R.string.survival_powersave_body,
+                R.string.survival_powersave_path,
+            ),
+            SurvivalStep(
+                R.string.survival_optimise_title,
+                R.string.survival_optimise_body,
+                R.string.survival_optimise_path,
+            ),
+            SurvivalStep(
+                R.string.survival_cleaner_title,
+                R.string.survival_cleaner_body,
+                R.string.survival_cleaner_path,
+            ),
+        ).forEach { step ->
+            // Read the path once, here: stringResource is a composable call and the button's onClick is
+            // not a composable context, so the copied text has to be captured before the lambda.
+            val path = stringResource(step.pathRes)
+            GlassCard {
+                Text(
+                    text = stringResource(step.titleRes),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ShieldraTheme.semantic.protection,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(step.bodyRes),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(8.dp))
+                // Selectable, not copied by the app: a clipboard write is an egress primitive under
+                // this project's own policy (F-K3), and the path is a constant the owner can select
+                // with the system's long-press UI. Nothing about evidence ever passes through here.
+                SelectionContainer {
+                    Text(
+                        text = path,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.survival_copy_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        GlassCard {
+            Note(stringResource(R.string.survival_limits))
+        }
+    }
+}
+
+/** One menu switch the owner has to flip by hand: what it is, why, and the literal path to it. */
+private data class SurvivalStep(
+    @param:StringRes val titleRes: Int,
+    @param:StringRes val bodyRes: Int,
+    @param:StringRes val pathRes: Int,
+)
+
+/**
+ * The honest comparison with Android's own theft protection (audit development د). Android 15 to 17
+ * ship a large part of what an anti-theft app used to be for, and a paid app that hides that sells
+ * something the owner already owns. So this screen names the platform features first, says what each
+ * one does not do, and then states the single thing SHIELDRA adds on top: a record of who tried, sent
+ * to a third party of the owner's choosing at the moment it happens.
+ *
+ * Nothing here is measured on the phone — the feature names and their behaviour move between makers and
+ * versions, which the closing card says out loud, and the Health screen stays the one place that reads
+ * what this app can actually prove about this device.
+ */
+@Composable
+fun PlatformComparisonScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    InfoPage(title = stringResource(R.string.compare_title), onBack = onBack, modifier = modifier) {
+        GlassCard {
+            Note(stringResource(R.string.compare_intro))
+        }
+        listOf(
+            R.string.compare_theft_lock_title to R.string.compare_theft_lock_body,
+            R.string.compare_failed_auth_title to R.string.compare_failed_auth_body,
+            R.string.compare_identity_title to R.string.compare_identity_body,
+            R.string.compare_offline_title to R.string.compare_offline_body,
+            R.string.compare_attempts_title to R.string.compare_attempts_body,
+            R.string.compare_find_title to R.string.compare_find_body,
+        ).forEach { (title, body) ->
+            GlassCard {
+                Text(
+                    text = stringResource(title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        GlassCard {
+            Text(
+                text = stringResource(R.string.compare_shieldra_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = ShieldraTheme.semantic.protection,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.compare_shieldra_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = stringResource(R.string.compare_closing),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = ShieldraTheme.semantic.protection,
+            )
+        }
+        GlassCard {
+            Note(stringResource(R.string.compare_limits))
         }
     }
 }
