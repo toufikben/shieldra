@@ -761,3 +761,54 @@ because each runner regenerates the debug keystore.
 (`assertTrue(true)`), which masked an SDK-level-only capability check. Both
 were fixed in this batch and documented in
 `docs/reports/batch-4d-key-rotation.md`.
+
+## Audit round 1 — `fix/audit-round-1` (2026-11-03)
+
+**The owner-ordered execution of the static audit (14 fixes + 7 developments) is complete on
+`fix/audit-round-1`; `main` stayed untouched at `d273b24` and nothing
+was merged.** The round ran as one commit chain (`b5681d5 … 32057e3`). The 14 fixes: the
+instrumentation runner plus its CI wiring (`b5681d5`); a capture that could not run is queued,
+retried, and reported — including when `promote()` fails (`64a8925`); the Direct Boot guard return
+(`9b0a5f3`, `e2acf36`); a lock-screen protection notice that stops mapping the defences
+(`f988d12`); an owner gate that fails closed on an unreadable answer (`12456a3`); the
+release-fingerprint pin (`f560f6b`); the gate reads the installed permission set, not the source
+manifest (`3e2a3cd`); g4b collecting every violation instead of the first (`b417833`); Group C
+covering `app/presentation` (`b417833`); the SIM guard rebaselining when protection arms and
+reporting airplane mode (`ccc56bc`); honest Lock Guard wording with no claim it runs
+(`095c5f9`); `eraseAll` now deleting the preferences and not only the evidence (`c173838`), and a
+queued alert's position sealed before it is written, with the test fake fixed to actually hide
+the coordinates (`4abcf98`, `9d8fbb0`); and CI no longer dispatching on branch
+pushes (the deletion half of #14 waits on the owner — see below). The 7 developments: the
+dead-man watchdog that alerts when pulses stop (أ, `82a6f3a`, `ee4283d`); the literal ColorOS
+exclusion paths (ب, `095c5f9`); the "phone stolen now" screen (ج, `095c5f9`); the explicit
+comparison with Android's own tools (د, `095c5f9`); the announced escalation where a failed
+delivery is a security event (ز, `b567581`, `4cc4608`); while (هـ) proactive evidence flow stays
+inside the owner channel, with no third-party service, and (و) `systemExempted` +
+`ROLE_EMERGENCY` were deliberately not adopted — both argued in
+`docs/reports/audit-round-1-play-policy.md`. Play policy F-PLAY-1 also landed: `USE_EXACT_ALARM`
+withdrawn, `SCHEDULE_EXACT_ALARM` kept user-grantable, all three scheduling call sites check
+`canScheduleExactAlarms()` and fall back to an inexact alarm, and a new "Alarms and reminders"
+row opens the platform grant (`dbd5487`, `32057e3`).
+**CI:** run `41637115693` at `32057e3ef637712f485c86c8f675d733a670fca7` — **success**,
+`CI TEST SUMMARY: 566 tests, 566 passed, 0 failures, 0 errors, 0 skipped`, lint clean (the
+`NewApi` error on `AlarmManager#canScheduleExactAlarms` that run `41634639517` caught was fixed at
+`32057e3` with pre-`S` guards), Group C boundary scan + `G4-B LOCAL REVIEW PASS` + `PHASE 3 STATIC
+REVIEW PASS`. Branch pushes no longer dispatch CI — the workflow now runs on `workflow_dispatch`
+(with the new `publish_phone_apks` input that publishes a branch's APK pair plus the phone APK to
+a draft `test-<run-id>` release) and on `push` to `main` only; this branch's assets were published
+as the draft `test-41637115693` (three assets verified). The repository was made public for that
+run and restored to **private** afterwards.
+**Device:** the RMX3910 ran the `32057e3` build (versionCode 387) from that release —
+`OK (74 tests)` across 16 classes, with one class excluded and named
+(`MotionBackgroundMeasurementInstrumentedTest`, whose phases wait for a sleeping screen that USB
+stay-awake never allows). Language resolution was verified on screen (system `ar` → full Arabic
+RTL, `fr` → English fallback, cleared override → English), and the exact-alarm row end to end
+(Grant opens `Settings$AlarmsAndRemindersAppActivity`, the toggle ON, and `ON_RESUME` flips the
+row to granted). The app was force-stopped afterwards and the launcher confirmed in front twice,
+per the shared-device protocol. **NOT RUN, with reasons recorded:** reboot / Direct Boot / Safe
+Mode (rebooting is forbidden by the owner protocol), the no-screen-lock state, `pm clear`, the
+armed Telegram commands, the 12-hour ColorOS soak, and the measurement class above.
+**Left for the owner, untouched:** the branch-cleanup list delivered with this round — 46
+branches carry zero unique commits and are safe to delete, while `feat/ui-redesign` carries two
+unique commits; and `/lock` + `<force-lock/>` were deliberately not written (device admin stays
+minimal, `watch-login` only).
