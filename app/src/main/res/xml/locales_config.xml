@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The languages this build actually ships. Declared so Android 13+ can list Shieldra in the system's
+  per-app language screen, and so the system knows the default is English: a phone whose language is
+  neither Arabic nor English reads this app in English, which is also what its default resources
+  contain. Keep this list in step with the `values-*` directories and with AppLanguage.shownFor.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="ar" />
+</locale-config>

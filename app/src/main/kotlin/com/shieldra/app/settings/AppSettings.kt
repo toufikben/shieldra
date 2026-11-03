@@ -23,11 +23,24 @@ enum class ThemeMode {
     }
 }
 
-/** The app's display language: the system's, or one the owner picked. */
+/**
+ * The app's display language: the system's, or one the owner picked. The build ships two
+ * translations — Arabic and English — and English is also the default resource set, so a system
+ * language the app does not ship (French, Urdu, …) reads English. That is Android's own fallback,
+ * and [shownFor] states the rule in code so a test can hold it instead of a device.
+ */
 enum class AppLanguage(val tag: String?) {
     SYSTEM(null), ENGLISH("en"), ARABIC("ar");
 
     companion object {
+        /**
+         * The language this build actually renders for a system locale tag. Arabic for any `ar`
+         * variant; English for everything else, including a phone whose language has no
+         * translation here — the default resources are English, so the two agree by construction.
+         */
+        fun shownFor(systemTag: String?): AppLanguage =
+            if (systemTag?.substringBefore('-')?.lowercase() == "ar") ARABIC else ENGLISH
+
         fun fromStored(value: String?): AppLanguage = entries.firstOrNull { it.name == value } ?: SYSTEM
     }
 }
@@ -74,12 +87,18 @@ object AppSettings {
     }
 
     /**
-     * The context an activity should use so its resources (and layout direction) follow the owner's
-     * language. With the system language it returns [base] untouched.
+     * The context an activity should use so its resources (and layout direction) follow the language
+     * the owner will actually read: their explicit choice, or — on "match system" — the system
+     * language when this build ships it, English when it does not. The system tag is read from the
+     * base context, never from [Locale.getDefault], because that default is exactly what this method
+     * wrote on the previous launch and would otherwise make the choice stick forever.
      */
     fun localized(base: Context): Context {
-        val tag = language(base).tag ?: return base
-        val locale = Locale.forLanguageTag(tag)
+        val locales = base.resources.configuration.locales
+        val systemTag = if (locales.size() == 0) null else locales[0].toLanguageTag()
+        val chosen = language(base)
+        val shown = if (chosen == AppLanguage.SYSTEM) AppLanguage.shownFor(systemTag) else chosen
+        val locale = Locale.forLanguageTag(shown.tag ?: return base)
         Locale.setDefault(locale)
         val config = Configuration(base.resources.configuration)
         config.setLocale(locale)
