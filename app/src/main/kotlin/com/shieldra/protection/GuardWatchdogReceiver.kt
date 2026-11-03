@@ -31,7 +31,7 @@ class GuardWatchdogReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
         val app = context.applicationContext
-        if (intent?.action != ACTION_CHECK) return
+        if (intent?.action != GuardWatchdog.ACTION_CHECK) return
         runCatching { GuardWatchdog.schedule(app) }
             .onFailure { Log.e(GuardWatchdog.TAG, "the next guard-silence check could not be armed: ${it.message}", it) }
 
