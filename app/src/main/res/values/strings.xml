@@ -192,6 +192,12 @@
     <string name="lost_title">This phone is lost</string>
     <string name="lost_default_message">If found, please return this phone.</string>
     <string name="lost_contact">Contact: %1$s</string>
+    <string name="theft_demand_channel">Locked-phone notice</string>
+    <string name="theft_demand_title">This phone was locked after a confirmed movement</string>
+    <string name="theft_demand_body">If you are the owner, unlock the phone: the alerts stop. If nobody unlocks it, the phone sends its location and its pictures to its owner, and keeps doing so.</string>
+    <string name="theft_demand_owner_message">Owner’s note: %1$s</string>
+    <string name="theft_demand_contact">Owner contact: %1$s</string>
+    <string name="theft_demand_call">Call the owner</string>
     <string name="protection_track_enable">Live tracking after a theft</string>
     <string name="protection_track_desc">After a confirmed intrusion, send a location every few minutes for a while to trace the phone.</string>
     <string name="protection_save">Save</string>

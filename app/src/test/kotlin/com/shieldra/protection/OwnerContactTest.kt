@@ -1,8 +1,8 @@
 package com.shieldra.protection
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * The owner contact is shown to a stranger and used for a call action, so "what did he type" must have

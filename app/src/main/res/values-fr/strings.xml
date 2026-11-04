@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A-45 D3: the locked-phone notice is written for whoever is holding the phone, not for the owner's
+  own UI (which stays Arabic and English). So this file carries only the holder-facing copy. Other
+  strings fall back to values/strings.xml. Apostrophes are avoided on purpose: AAPT2 requires ASCII
+  ones to be escaped, and the copy reads the same without them.
+-->
+<resources>
+    <string name="theft_demand_channel">Avis de téléphone verrouillé</string>
+    <string name="theft_demand_title">Ce téléphone a été verrouillé après un mouvement confirmé</string>
+    <string name="theft_demand_body">Si vous êtes le propriétaire, déverrouillez le téléphone pour arrêter les alertes. Sinon, le téléphone envoie sa position et ses photos à son propriétaire, en continu.</string>
+    <string name="theft_demand_owner_message">Note du propriétaire : %1$s</string>
+    <string name="theft_demand_contact">Contact du propriétaire : %1$s</string>
+    <string name="theft_demand_call">Appeler le propriétaire</string>
+</resources>

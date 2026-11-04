@@ -1,7 +1,7 @@
 package com.shieldra.protection
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 /**
  * A-45 D1: the shape of the snatch ladder. The first evidence burst waits out the owner-unlock

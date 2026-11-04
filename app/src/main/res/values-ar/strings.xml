@@ -192,6 +192,12 @@
     <string name="lost_title">هذا الهاتف مفقود</string>
     <string name="lost_default_message">إن وجدته، فضلاً أعِد هذا الهاتف.</string>
     <string name="lost_contact">للتواصل: %1$s</string>
+    <string name="theft_demand_channel">إشعار قفل الهاتف</string>
+    <string name="theft_demand_title">قُفل هذا الهاتف بعد حركة مؤكدة</string>
+    <string name="theft_demand_body">إن كنت المالك فافتح الهاتف لتتوقف التنبيهات. وإن لم يفتحه أحد، فسيرسل الهاتف موقعه وصوره إلى مالكه ويستمر في ذلك.</string>
+    <string name="theft_demand_owner_message">ملاحظة المالك: %1$s</string>
+    <string name="theft_demand_contact">جهة اتصال المالك: %1$s</string>
+    <string name="theft_demand_call">اتصل بالمالك</string>
     <string name="protection_track_enable">تتبّع مباشر بعد السرقة</string>
     <string name="protection_track_desc">بعد اقتحام مؤكد، يُرسل الموقع كل بضع دقائق لفترة لتتبّع الهاتف.</string>
     <string name="protection_save">حفظ</string>

@@ -1,8 +1,9 @@
 package com.shieldra.protection
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * A-45 D3: whoever holds the stolen phone does not open the owner's settings, so one language is not
@@ -28,7 +29,13 @@ class TheftNoticeTextTest {
 
     @Test
     fun `the contact is written once and last`() {
-        val text = TheftNoticeText.compose("AR", "EN", "FR", ownerMessage = null, contactLine = "Owner contact: +213555123456")
+        val text = TheftNoticeText.compose(
+            "AR",
+            "EN",
+            "FR",
+            ownerMessage = null,
+            contactLine = "Owner contact: +213555123456",
+        )
         assertEquals(1, text.split("Owner contact").size - 1)
         assertTrue(text.endsWith("Owner contact: +213555123456"))
     }
@@ -42,9 +49,20 @@ class TheftNoticeTextTest {
 
     @Test
     fun `the owner sentence sits before the contact`() {
-        val text = TheftNoticeText.compose("AR", "EN", "FR", ownerMessage = "Please return it", contactLine = "Owner contact: x")
+        val text = TheftNoticeText.compose(
+            "AR",
+            "EN",
+            "FR",
+            ownerMessage = "Please return it",
+            contactLine = "Owner contact: x",
+        )
         assertTrue(text.indexOf("Please return it") < text.indexOf("Owner contact: x"))
     }
 
-    private fun assertTrue(condition: Boolean) = org.junit.Assert.assertTrue(condition)
+    @Test
+    fun `the three copies are separated, not run together`() {
+        val text = TheftNoticeText.compose("AR", "EN", "FR", ownerMessage = null, contactLine = null)
+        assertTrue(text.contains("AR\n\nEN"))
+        assertTrue(text.contains("EN\n\nFR"))
+    }
 }
