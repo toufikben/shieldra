@@ -57,7 +57,7 @@ class TheftDemandCopyTest {
     fun `the contact and owner keys take exactly one placeholder in every locale`() {
         for (key in listOf("theft_demand_contact", "theft_demand_owner_message")) {
             for (locale in locales) {
-                assertEquals(1, Regex("%1\\$s").findAll(body(locale, key)).count(), "$locale:$key")
+                assertEquals(1, Regex("%1[$]s").findAll(body(locale, key)).count(), "$locale:$key")
             }
         }
     }

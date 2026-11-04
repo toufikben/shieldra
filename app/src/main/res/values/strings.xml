@@ -30,6 +30,7 @@
     <string name="map_open_protection">Tracking settings</string>
     <string name="safe_zones_title">Safe zones</string>
     <string name="safe_zones_hint">Alert me when the phone leaves these places while armed.</string>
+    <string name="safe_zone_sampler_off">No zone reading yet: the phone cannot tell where it is right now, so the guards behave as if it were outside.</string>
     <string name="safe_zones_enable">Alert on leaving</string>
     <string name="safe_zones_add">Mark this place as safe</string>
     <string name="safe_zones_empty">No safe zones yet</string>

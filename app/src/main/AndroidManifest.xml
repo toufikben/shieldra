@@ -168,5 +168,15 @@
         <receiver
             android:name="com.shieldra.protection.GuardWatchdogReceiver"
             android:exported="false" />
+
+        <!--
+          A-45 D2: the safe-zone tick. Not exported: it only receives the one alarm SHIELDRA itself
+          scheduled. It sits outside the protection service for the same reason the patrol does — the
+          service is what the OEM kills first, and the Motion ladder reads the zone state to decide
+          whether to make a noise, so that state has to keep being refreshed with no service alive.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.GeofenceTickReceiver"
+            android:exported="false" />
     </application>
 </manifest>

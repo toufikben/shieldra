@@ -92,45 +92,24 @@ class ProtectionService : Service() {
         }, HEARTBEAT_MS)
     }
 
-    private val geofenceHandler = Handler(Looper.getMainLooper())
-    // Assume inside a safe zone at arm, so the first crossing OUT is what fires.
-    private var wasInsideSafeZone = true
-
-    /** Periodic one-shot location sampling (A-36): alerts once when the phone leaves every safe zone. */
-    private fun startGeofenceSampler() {
+    /**
+     * Arming takes one safe-zone reading at once and hands the rest to the alarm (A-45 D2), which keeps
+     * sampling even after this instance is gone. Nothing is scheduled when the owner has no zones or has
+     * turned the guard off.
+     */
+    private fun startSafeZoneSampling() {
         val store = ProtectionSettingsStore(applicationContext)
         val settings = store.load()
-        if (!settings.geofenceEnabled || store.safeZones().isEmpty()) return
-        wasInsideSafeZone = true
-        scheduleGeofenceTick()
-    }
-
-    private fun scheduleGeofenceTick() {
-        val minutes = ProtectionSettingsStore(applicationContext).load().geofenceIntervalMinutes.coerceAtLeast(1)
-        geofenceHandler.postDelayed({
-            val store = ProtectionSettingsStore(applicationContext)
-            val settings = store.load()
-            if (!settings.armed || !settings.geofenceEnabled) return@postDelayed
-            val zones = store.safeZones().map { it.zone }
-            if (zones.isNotEmpty()) {
-                scope.launch {
-                    val fix = runCatching { location.current() }.getOrNull()
-                    if (fix != null) {
-                        val accuracy = (fix.accuracyMeters ?: 0f).toDouble()
-                        val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, accuracy, zones, wasInsideSafeZone)
-                        wasInsideSafeZone = GeofenceLogic.nextInsideState(fix.latitude, fix.longitude, accuracy, zones, wasInsideSafeZone)
-                        if (left) {
-                            val base = AlertRuntime.snapshot(applicationContext, AlertKind.TRACKING, null)
-                            AlertRuntime.alert(
-                                applicationContext,
-                                base.copy(occurredAt = Instant.now(), location = fix, evidenceAttempted = false, photoEvidenceId = null),
-                            )
-                        }
-                    }
-                }
-            }
-            scheduleGeofenceTick()
-        }, minutes * 60_000L)
+        if (!settings.geofenceEnabled || store.safeZones().isEmpty()) {
+            GeofenceTicker.cancel(applicationContext)
+            ZoneStateStore(applicationContext).clear()
+            return
+        }
+        scope.launch {
+            runCatching { sampleSafeZoneNow(applicationContext) }
+                .onFailure { Log.w(TAG, "the first safe-zone reading failed: ${it.message}") }
+        }
+        GeofenceTicker.schedule(applicationContext, settings.geofenceIntervalMinutes)
     }
 
     /** On a burst of confirmed intrusions within the window, stop being discreet and sound the siren. */
@@ -332,7 +311,7 @@ class ProtectionService : Service() {
                 }
                 startBatteryGuard()
                 startShutdownGuard()
-                startGeofenceSampler()
+                startSafeZoneSampling()
                 startHeartbeat()
                 simGuard.captureBaselineIfNeeded()
                 checkSim()
@@ -354,7 +333,9 @@ class ProtectionService : Service() {
     override fun onDestroy() {
         if (liveInstance === this) liveInstance = null
         trackingHandler.removeCallbacksAndMessages(null)
-        geofenceHandler.removeCallbacksAndMessages(null)
+        // Deliberately no GeofenceTicker.cancel here (A-45): the safe-zone alarm must outlive this
+        // instance, because on the owner's skin the service is what dies first and the zone state is
+        // what the Motion ladder reads. Disarming is what stops it, in ProtectionRuntime.
         heartbeatHandler.removeCallbacksAndMessages(null)
         remoteCommands.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
@@ -752,6 +733,52 @@ class ProtectionService : Service() {
         fun stop(context: Context) {
             runCatching { context.startService(Intent(context, ProtectionService::class.java).setAction(ACTION_STOP)) }
                 .onFailure { Log.w(TAG, "the protection stop request was refused: ${it.message}") }
+        }
+
+        /**
+         * One safe-zone reading (A-45 D2): where the phone is, whether it just crossed out, and when this
+         * became known. The service takes one at arm and [GeofenceTickReceiver] takes the rest, so the
+         * state the Motion ladder reads never depends on a service instance staying alive.
+         *
+         * Refusals write nothing on purpose. A fix older than two intervals is not evidence about where
+         * the phone is now, and no fix at all is the same case: leaving the stored reading alone lets it
+         * age out, and an aged-out reading fails the ladder closed rather than muting a snatch at the
+         * door. The one-shot "it left a safe zone" alert (A-36) keeps its exact old meaning.
+         */
+        suspend fun sampleSafeZoneNow(context: Context) {
+            val app = context.applicationContext
+            val store = ProtectionSettingsStore(app)
+            val settings = store.load()
+            val zones = store.safeZones().map(SafeZone::zone)
+            if (zones.isEmpty()) return
+            val fix = runCatching { LocationFix(app).current() }.getOrNull()
+            if (fix == null) {
+                Log.i(TAG, "the safe-zone tick got no fix: the stored reading is left to go stale")
+                return
+            }
+            val nowMs = System.currentTimeMillis()
+            val staleAfterMs = GeofenceTicker.staleAfterMs(settings.geofenceIntervalMinutes)
+            val fixAgeMs = nowMs - fix.fixedAt.toEpochMilli()
+            if (fixAgeMs > staleAfterMs) {
+                Log.w(TAG, "the safe-zone fix is ${fixAgeMs / 1000L} s old, too old to trust: nothing was written")
+                return
+            }
+            val previous = ZoneStateStore(app).read()
+            // With no reading yet, assume inside — the same first-fix rule A-36 used, so the alert still
+            // fires on the crossing out and not on the very first fix.
+            val wasInside = previous?.inside ?: true
+            val accuracy = (fix.accuracyMeters ?: 0f).toDouble()
+            val inside = GeofenceLogic.nextInsideState(fix.latitude, fix.longitude, accuracy, zones, wasInside)
+            val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, accuracy, zones, wasInside)
+            ZoneStateStore(app).write(inside = inside, atMs = nowMs)
+            if (!left) return
+            val base = AlertRuntime.snapshot(app, AlertKind.TRACKING, null)
+            runCatching {
+                AlertRuntime.alert(
+                    app,
+                    base.copy(occurredAt = Instant.now(), location = fix, evidenceAttempted = false, photoEvidenceId = null),
+                )
+            }.onFailure { Log.w(TAG, "leaving a safe zone could not be reported: ${it.message}") }
         }
 
         /**

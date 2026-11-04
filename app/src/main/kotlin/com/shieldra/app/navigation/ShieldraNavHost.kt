@@ -676,6 +676,7 @@ fun ShieldraNavHost(
                 val zoneNames = zoneList.map { it.name }
                 val zoneRadii = zoneList.associate { it.name to it.zone.radiusMeters.toInt() }
                 val geofenceOn = remember(geofenceRefresh) { ProtectionRuntime.geofenceEnabled(context) }
+                val zoneReadingFresh = remember(geofenceRefresh, protectionArmed) { ProtectionRuntime.zoneReadingFresh(context) }
                 val safeZoneSaved = stringResource(R.string.safe_zones_added)
                 val safeZoneNoFix = stringResource(R.string.safe_zones_no_fix)
                 MapScreen(
@@ -689,6 +690,7 @@ fun ShieldraNavHost(
                     onOpenProtectionSetup = { navController.navigate(ShieldraRoutes.PROTECTION_SETUP) },
                     onOpenHealthCheck = { navController.navigate(ShieldraRoutes.HEALTH_CHECK) },
                     geofenceEnabled = geofenceOn,
+                    zoneReadingFresh = zoneReadingFresh,
                     zoneNames = zoneNames,
                     zoneRadii = zoneRadii,
                     onToggleGeofence = { enabled ->

@@ -92,6 +92,11 @@ object ProtectionRuntime {
         runCatching {
             // The owner chose silence; a patrol that kept waking to report it would be a defect.
             GuardWatchdog.cancel(app)
+            // A-45 D2: the safe-zone tick exists only to feed the ladder, so it stops with it, and the
+            // last reading is dropped — a phone that was at home while armed must not be assumed at
+            // home for the next arming, which could be months and a different city later.
+            GeofenceTicker.cancel(app)
+            ZoneStateStore(app).clear()
             BootFlags(app).sync(false)
             PendingCaptures(app).clear()
             PendingCaptureReceiver.cancel(app)
@@ -164,12 +169,30 @@ object ProtectionRuntime {
         // Arming from the settings screen has to arm the patrol with it, and turning protection off has
         // to stop the patrol asking about a guard the owner switched off on purpose.
         runCatching { if (armed) GuardWatchdog.schedule(app) else GuardWatchdog.cancel(app) }
+        // A-45 D2: the safe-zone tick is armed beside the guards, from here as well as from the service,
+        // because the owner can turn the zone guard on while protection is already running. schedule()
+        // refuses and clears when the zone guard is off or the phone is disarmed, so calling it on every
+        // Save is safe—and it is the only way a zone switch made from the settings screen starts ticking.
+        runCatching { GeofenceTicker.schedule(app, settings.geofenceIntervalMinutes) }
         if (!armed) {
             runCatching {
                 PendingCaptures(app).clear()
                 PendingCaptureReceiver.cancel(app)
             }
         }
+    }
+
+    /**
+     * Whether the safe-zone sampler has a reading the Motion ladder would still trust (A-45 D2). False is
+     * the fail-closed answer — no reading yet, one older than two intervals, or a clock that jumped
+     * backwards — and false means the guards behave as if the phone were outside every zone, which is
+     * what the Map screen tells the owner when they turn the zone guard on.
+     */
+    fun zoneReadingFresh(context: Context): Boolean {
+        val app = context.applicationContext
+        val minutes = ProtectionSettingsStore(app).load().geofenceIntervalMinutes
+        val sample = ZoneStateStore(app).read() ?: return false
+        return sample.isFresh(nowMs = System.currentTimeMillis(), staleAfterMs = GeofenceTicker.staleAfterMs(minutes))
     }
 
     private const val TAG: String = "ProtectionRuntime"
