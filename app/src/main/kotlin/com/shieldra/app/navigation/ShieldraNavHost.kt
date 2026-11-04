@@ -607,12 +607,18 @@ fun ShieldraNavHost(
                                 // switched monitoring off.
                                 val activity = context.findFragmentActivity()
                                 if (activity == null) {
+                                    // A-43: the dashboard and the settings screen show the same
+                                    // guard, so a live stop is also the stored choice.
+                                    ProtectionRuntime.setMotionEnabled(context, false)
+                                    protectionSettings = protectionSettings.copy(motionEnabled = false)
                                     stopWasRequested = true
                                     MotionRuntime.stopMonitoring(context)
                                 } else {
                                     OwnerCheck.request(activity, ownerCheckTitle, ownerCheckSubtitle) { result ->
                                         when (result) {
                                             OwnerCheckResult.Confirmed, OwnerCheckResult.NoScreenLock -> {
+                                                ProtectionRuntime.setMotionEnabled(context, false)
+                                                protectionSettings = protectionSettings.copy(motionEnabled = false)
                                                 stopWasRequested = true
                                                 MotionRuntime.stopMonitoring(context)
                                             }
@@ -625,7 +631,10 @@ fun ShieldraNavHost(
                             } else {
                                 // The service publishes its own claim once it is really up, so a start
                                 // that this press asked for renders as monitoring only when Android
-                                // and the sensor agree.
+                                // and the sensor agree. A-43: this is the same guard the settings
+                                // screen shows, so the stored choice follows the press.
+                                ProtectionRuntime.setMotionEnabled(context, true)
+                                protectionSettings = protectionSettings.copy(motionEnabled = true)
                                 when (MotionRuntime.startMonitoring(context, storageInstalled)) {
                                     MotionMonitoringStartDecision.MayStartMonitoring -> Unit
                                     // Not asked yet: take the owner to the one screen that asks (A-6)

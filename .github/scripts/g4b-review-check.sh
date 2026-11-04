@@ -514,6 +514,10 @@ grep -q 'old.motionEnabled && !new.motionEnabled' \
   || fail "switching the Motion guard off no longer asks the owner (A-43)"
 grep -q 'updated.motionEnabled && !motionClaim.claimsProtection' "$NAVHOST" \
   || fail "saving the Motion guard on or off no longer syncs the running monitor (A-43)"
+grep -q 'ProtectionRuntime.setMotionEnabled(context, true)' "$NAVHOST" \
+  || fail "the dashboard's Motion start no longer records the guard choice (A-43)"
+grep -q 'ProtectionRuntime.setMotionEnabled(context, false)' "$NAVHOST" \
+  || fail "the dashboard's Motion stop no longer records the guard choice (A-43)"
 for name in 'a silent capture still locks the screen' \
   'a loud siren locks the screen at once' \
   'grace waits for the owner unlock before the siren and the lock'; do

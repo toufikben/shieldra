@@ -99,6 +99,16 @@ object ProtectionRuntime {
         armedState.value = false
     }
 
+    /**
+     * Records the owner's Motion-guard choice without touching the other guards (A-43). The dashboard
+     * and the settings screen show the same guard, so a live start or stop there must also decide
+     * what the next arming and the next reboot do.
+     */
+    fun setMotionEnabled(context: Context, enabled: Boolean) {
+        val store = ProtectionSettingsStore(context.applicationContext)
+        store.save(store.load().copy(motionEnabled = enabled))
+    }
+
     /** The owner's safe zones (A-36). */
     fun zones(context: Context): List<SafeZone> =
         ProtectionSettingsStore(context.applicationContext).safeZones()
