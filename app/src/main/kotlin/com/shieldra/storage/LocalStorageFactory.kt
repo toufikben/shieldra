@@ -248,6 +248,7 @@ class LocalShieldraStorage private constructor(
             "shieldra_app_prefs",         // AppSettingsStore: language and appearance the owner chose
             "shieldra_onboarding",        // OnboardingState: which steps this install has been through
             "shieldra_notification",      // LocalEventNotifier: which events were already announced
+            "shieldra_zone_state",        // ZoneStateStore: the last safe-zone reading the ladder reads
         )
 
         /** Direct Boot's own store, in device-protected storage — read before any unlock. */
