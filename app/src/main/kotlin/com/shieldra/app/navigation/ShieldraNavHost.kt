@@ -392,6 +392,12 @@ fun ShieldraNavHost(
     val protectionArmed by ProtectionRuntime.armed.collectAsState()
     val protectionStore = remember(context) { ProtectionSettingsStore(context) }
     var protectionSettings by remember { mutableStateOf(protectionStore.load()) }
+    // A-44: the live arm state is the only writer of `armed`. The settings screen's snapshot was read
+    // before an arm made from its own top button, so without this a Save could carry `armed=false`
+    // back to storage and the service would stand down while the screen still said "Armed".
+    LaunchedEffect(protectionArmed) {
+        protectionSettings = protectionSettings.copy(armed = protectionArmed)
+    }
     // The plan is written by the billing store when Google Play answers (after a purchase, a restore or
     // an app start). This copy of the settings was read once, so it would keep showing Free after a
     // purchase and send the owner back to the Pro screen; re-read the plan whenever Play's answer changes.
@@ -973,7 +979,11 @@ fun ShieldraNavHost(
                             ProtectionRuntime.arm(context)
                         }
                     },
-                    onSave = { updated ->
+                    onSave = { incoming ->
+                        // A-44: saving guards never decides whether protection runs. The screen's
+                        // draft predates an arm made from its own button, so its `armed` is replaced
+                        // by the live state before anything is stored or a Motion guard is started.
+                        val updated = incoming.copy(armed = protectionArmed)
                         val apply: () -> Unit = {
                             protectionSettings = updated
                             ProtectionRuntime.applySettings(context, updated)

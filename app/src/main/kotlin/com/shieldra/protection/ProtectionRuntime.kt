@@ -145,21 +145,26 @@ object ProtectionRuntime {
         store.setSafeZones(store.safeZones().filterNot { it.name == name })
     }
 
-    /** Applies changed settings, re-arms the countdown to match, and drops waits if protection went off. */
+    /**
+     * Applies changed guard settings and re-arms the countdown to match. The armed flag is read back
+     * from storage instead of taken from [settings]: a screen's snapshot can be older than the arm
+     * made from its own top button, and a Save must never decide whether protection runs (A-44).
+     */
     fun applySettings(context: Context, settings: ProtectionSettings) {
         val app = context.applicationContext
         val store = ProtectionSettingsStore(app)
         store.save(settings)
-        runCatching { BootFlags(app).sync(settings.armed) }
-        if (settings.armed && settings.countdownEnabled) {
+        val armed = store.load().armed
+        runCatching { BootFlags(app).sync(armed) }
+        if (armed && settings.countdownEnabled) {
             CountdownScheduler.start(app)
         } else {
             CountdownScheduler.cancel(app)
         }
         // Arming from the settings screen has to arm the patrol with it, and turning protection off has
         // to stop the patrol asking about a guard the owner switched off on purpose.
-        runCatching { if (settings.armed) GuardWatchdog.schedule(app) else GuardWatchdog.cancel(app) }
-        if (!settings.armed) {
+        runCatching { if (armed) GuardWatchdog.schedule(app) else GuardWatchdog.cancel(app) }
+        if (!armed) {
             runCatching {
                 PendingCaptures(app).clear()
                 PendingCaptureReceiver.cancel(app)

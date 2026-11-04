@@ -90,9 +90,15 @@ class ProtectionSettingsStore(context: Context) {
         }.getOrDefault(defaultTier),
     )
 
+    /**
+     * Persists the owner's guard choices, never the armed flag: arming is [setArmed]'s alone. A
+     * settings screen holds the snapshot it was composed with, and the live arm state can move
+     * while it is open — saving that snapshot used to write `armed=false` over a running
+     * protection (the service then stood down at its next heartbeat while the screen still said
+     * "Armed"). The flag now has one writer, so a Save can change every guard but cannot disarm.
+     */
     fun save(settings: ProtectionSettings) {
         prefs.edit()
-            .putBoolean(KEY_ARMED, settings.armed)
             .putBoolean(KEY_LOCK, settings.lockEnabled)
             .putBoolean(KEY_SIM, settings.simEnabled)
             .putBoolean(KEY_BATTERY, settings.batteryEnabled)

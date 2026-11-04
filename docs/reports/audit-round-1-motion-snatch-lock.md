@@ -94,6 +94,27 @@ lock through `DeviceScreenLock`, the armed gate around it, arming/boot starting 
 stopping it, the settings-save sync, `ProtectionChange`, and the named tests. The single
 `lockNow()` caller pin is unchanged.
 
+## 5b. The defect the phone found (amendment A-44)
+
+Measured on build 391 (upgrade over 389, old `motion_with_arming=false` preserved):
+
+1. Protection was armed from the Protection screen; `ProtectionService` (action ARM) and
+   `MotionMonitoringService` started at 07:41:12.
+2. The screen showed “Armed — guarding in the background”, but `shieldra_protection.xml` held
+   `armed=false`, and `dumpsys activity services` showed only `MotionMonitoringService`.
+3. At 07:42:12 the service logged `protection is no longer armed: this instance is standing down` —
+   one heartbeat after arming. The stored flag, not the screen, decided.
+
+The cause is older than A-43: the screen is composed with a settings snapshot whose `armed` was
+false; pressing Save writes the whole snapshot through `ProtectionSettingsStore.save`, so changing
+any guard (the Motion response included) silently disarmed protection while the UI kept saying
+“Armed”. A-43's save-path Motion sync also used that stale flag, so the monitor kept running.
+
+A-44 fixes it at the source: `save()` no longer writes `KEY_ARMED`; `setArmed` is the flag's only
+writer. `ProtectionRuntime.applySettings` reads the live flag back for its scheduling decisions, and
+the NavHost replaces the draft's `armed` with `protectionArmed` and follows the live flow. `g4b`
+pins all three. Device re-verification after the fix is recorded below.
+
 ## 6. Verification
 
 The three local static gates were run before the push: g4b (`PASS: A-43 …`), Group C boundary scan,
@@ -107,9 +128,14 @@ run; nothing in this section is claimed before it is measured.
   `PHASE 3 STATIC REVIEW PASS`. The branch APK pair and the phone APK were published to the draft
   release `test-41782160333`; the signed release build succeeded but was not published, per the
   owner's instruction to defer the signed version until the app is fully verified.
-- **Device:** **pending** — the phone was occupied when the CI run finished. The round will use the
-  build from `test-41782160333` and record results below. The physical snatch is planned as NOT RUN
-  on the device: locking would leave the shared phone at the lock screen and a real still-then-lift
-  movement cannot be produced safely from here; that path is covered by the JVM plan tests and the
-  g4b pin.
+- **Device on 391:** partial round, stopped by the A-44 defect above. Measured: the upgrade kept
+  the old `motion_with_arming=false` and the Motion guard still rendered **on** with the new
+  description; the administrator still held exactly `watch-login` + `force-lock`; no permission
+  was added (18 requested permissions, unchanged dump). The arming started both services once, and
+  the Save-while-armed test is what exposed A-44. The physical snatch remains **NOT RUN** (locking
+  would leave the shared phone at the lock screen and a real still-then-lift cannot be produced
+  safely from here); that path is covered by the JVM plan tests and the g4b pin.
+- **Device after A-44:** pending the next CI build. The same round will re-check Save while armed,
+  the dashboard claim, disarm stopping both services (owner check), and the instrumentation suite.
+
 

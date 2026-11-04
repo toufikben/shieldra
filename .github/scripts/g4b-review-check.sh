@@ -529,6 +529,25 @@ grep -Fq 'fun `the motion guard is on by default like the lock and SIM guards`' 
   || fail "the default-on Motion guard test was removed or renamed"
 pass "A-43: Motion is on by default, arming and boot start it, and a confirmed lift locks through DeviceScreenLock"
 
+# 5f. A-44 (2026-11-04): found on the phone during A-43 verification. The protection screen's Save
+# wrote its whole snapshot back to storage, including an `armed=false` captured before the owner
+# pressed Arm on the same screen. The service then stood down at its next heartbeat while the screen
+# still said "Armed" and the Motion service kept running. The armed flag now has one writer
+# (setArmed): a Save can change every guard but cannot disarm.
+ARMED_WRITERS=$(grep -c 'putBoolean(KEY_ARMED' "$MOTION_SETTINGS" || true)
+[ "$ARMED_WRITERS" = "1" ] \
+  || fail "the settings save still writes the armed flag, so Save can silently disarm protection (A-44)"
+grep -q 'prefs.edit().putBoolean(KEY_ARMED, armed)' "$MOTION_SETTINGS" \
+  || fail "setArmed is no longer the single writer of the armed flag (A-44)"
+grep -q 'val armed = store.load().armed' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "applySettings no longer reads the live armed flag, so a stale save can change protection state (A-44)"
+grep -Fq 'incoming.copy(armed = protectionArmed)' "$NAVHOST" \
+  || fail "the protection screen's Save no longer carries the live armed state (A-44)"
+grep -Fq 'LaunchedEffect(protectionArmed)' "$NAVHOST" \
+  || fail "the settings snapshot no longer follows the live armed state (A-44)"
+pass "A-44: the armed flag has one writer; a settings Save can no longer disarm a running protection"
+
 # 6. The dashboard action reaches the real coordinator off the main thread.
 grep -q 'PanicIncidentCoordinator(repository' "$NAVHOST" || fail "NavHost does not build the panic coordinator"
 grep -q 'coordinator.activate()' "$NAVHOST" || fail "NavHost does not activate the panic coordinator"
