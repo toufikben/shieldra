@@ -869,3 +869,37 @@ is **not published** — the owner deferred the signed version until the app is 
 **Device:** pending at the time this section was written; results and the honest NOT RUN list are
 appended after the phone round (the shared phone was busy with another inspector's app, then with a
 foreground Telegram session).
+
+### A-44 — the defect the phone found in the arming path
+
+The first device round (build 391, an in-place upgrade from 389 that preserved
+`motion_with_arming=false`) proved the default-on guard and the new copy, but exposed a silent
+disarm: the Protection screen is composed with a settings snapshot whose `armed` is false; pressing
+**Save** after arming wrote the whole snapshot back, so `armed=false` replaced the live flag. The
+service stood down one heartbeat later while the screen still showed “Armed — guarding in the
+background”, and the Motion monitor kept running because the save-path sync trusted the stale flag.
+The defect predates A-43, but it sits on the arming path A-43 expanded and contradicts every claim
+the screens make, so it is fixed as A-44: `ProtectionSettingsStore.save` no longer writes
+`KEY_ARMED` (the flag's only writer is `setArmed`), `ProtectionRuntime.applySettings` reads the live
+flag back for its scheduling, and the NavHost replaces the draft's `armed` with `protectionArmed`
+before applying it. `g4b` pins the single writer, the live read and the hand-off.
+
+**CI (A-44):** run `41788801231` on `a710c40` — **success**, `CI TEST SUMMARY: 578 tests, 578 passed,
+0 failures, 0 errors, 0 skipped`, `Group C boundary scan passed`, `PASS: A-43 …`, `PASS: A-44 …`,
+`G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS`; the debug pair and phone APK were published
+to `test-41788801231`. The signed release again built without being published.
+
+**Device on 392:** the build was installed over 391 with its data intact. Arming from the
+Protection screen started both `ProtectionService` and `MotionMonitoringService` and posted
+“SHIELDRA protection is active”; the dashboard claimed `PROTECTED` / Guards `4/5` and its Motion
+card read “Motion monitoring is active” from the service; the guard was on by default with the new
+copy in EN and AR, and Help carried the four-guards line in both; the administrator still held
+exactly `watch-login` + `force-lock`; the permission list was identical to 391's; and the
+instrumented suite printed `run finished: 78 tests, 0 failed, 0 ignored`. The A-44 regression path
+was measured directly: the Protection screen was opened disarmed, armed from that screen, then
+**Save** pressed — `armed` stayed `true`, both services stayed up, the screen stayed “Armed”, and a
+check after one heartbeat found no stand-down. Disarm, the guard-off switch and the physical
+snatch/lock are **NOT RUN** on the device (the first two ask for the owner's screen lock, which the
+owner's protocol forbids entering; the last would leave the shared phone at the lock screen); they
+are covered by `ProtectionChange` tests, `MotionResponsePlanTest` and the g4b pins. The full
+evidence list is in `docs/reports/audit-round-1-motion-snatch-lock.md`.

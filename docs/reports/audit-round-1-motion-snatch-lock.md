@@ -130,12 +130,54 @@ run; nothing in this section is claimed before it is measured.
   owner's instruction to defer the signed version until the app is fully verified.
 - **Device on 391:** partial round, stopped by the A-44 defect above. Measured: the upgrade kept
   the old `motion_with_arming=false` and the Motion guard still rendered **on** with the new
-  description; the administrator still held exactly `watch-login` + `force-lock`; no permission
-  was added (18 requested permissions, unchanged dump). The arming started both services once, and
-  the Save-while-armed test is what exposed A-44. The physical snatch remains **NOT RUN** (locking
-  would leave the shared phone at the lock screen and a real still-then-lift cannot be produced
-  safely from here); that path is covered by the JVM plan tests and the g4b pin.
-- **Device after A-44:** pending the next CI build. The same round will re-check Save while armed,
-  the dashboard claim, disarm stopping both services (owner check), and the instrumentation suite.
+  description; the administrator still held exactly `watch-login` + `force-lock`; the permission
+  list was unchanged. The arming started both services once, and the Save-while-armed test is what
+  exposed A-44.
+- **CI (A-44):** run `41788801231` on `a710c40` — **success**. `CI TEST SUMMARY: 578 tests, 578
+  passed, 0 failures, 0 errors, 0 skipped`; `Group C boundary scan passed`; `PASS: A-43 …`;
+  `PASS: A-44: the armed flag has one writer; a settings Save can no longer disarm a running
+  protection`; `G4-B LOCAL REVIEW PASS`; `PHASE 3 STATIC REVIEW PASS`. The debug pair and phone APK
+  were published to `test-41788801231`; the signed release built but was not published.
+### Device round on build 392
+
+Build 392 was installed over 391 in place (versionCode 392, `lastUpdateTime` 2026-11-04 08:09:40),
+with the same preferences: `motion_with_arming=false` was still present and `motion_enabled=true`.
+Measured on the phone:
+
+- **Default-on and copy:** the Protection screen showed the Motion guard **on**, with the full
+  description in English and Arabic; Help showed the four guards on by default in both languages.
+- **Arming:** pressing **Arm** on the Protection screen started `ProtectionService` (intent action
+  `com.shieldra.protection.ARM`) and `MotionMonitoringService` together, and the ongoing
+  notification read “SHIELDRA protection is active”. The dashboard claimed `PROTECTED`, Guards
+  `4/5` (Panic not monitoring), and the Motion card read “Motion monitoring is active” — the claim
+  comes from the running service, not from the button that started it. The settings screen and the
+  dashboard agree on the guard's state; the dashboard's stop row says the owner's screen lock is
+  required.
+- **A-44 regression path:** the Protection screen was opened while protection was disarmed, armed
+  from that same screen, and **Save** was pressed. The disarmed starting point was produced without
+  the owner's screen lock by stopping the app and clearing only the stored `armed` flag; UI Disarm
+  was not usable because it demands the owner's screen lock. `armed` stayed `true`, both services stayed
+  alive, the screen still read “Armed — guarding in the background”, and a check after one
+  heartbeat found the same two ServiceRecords and no “standing down” line. The old code wrote the
+  stale `armed=false` snapshot here; the fix holds.
+- **Policy and permissions:** the administrator still holds exactly `watch-login` + `force-lock`
+  (no wipe); the requested-permission list is identical to build 391's.
+- **Instrumentation:** `run finished: 78 tests, 0 failed, 0 ignored`. The runner's line was read
+  live from `logcat` at 09:33:07; the adb `-w` summary was lost when the command was moved to the
+  background, and another process later cleared the log buffer, so the events buffer's
+  `am_kill … due to finished inst` at 09:33:08 is kept beside it as the dispatch record.
+
+**NOT RUN on the device, deliberately:** **Disarm** and switching the Motion guard off (both ask
+for the owner's screen lock, which the owner's protocol forbids entering), the dashboard's stop
+direction (same owner check), and the physical snatch/lock (it would leave the shared phone at the
+lock screen and a real still-then-lift cannot be produced from here). These paths are covered by
+the `ProtectionChange` tests, `MotionResponsePlanTest` and the g4b pins. Two environment facts are
+recorded for honesty: the phone was rebooted at 08:35 by someone else (the app's own restart alert
+in the owner's channel is the timestamp), and another app repeatedly held the foreground, including
+one Telegram session that took it between a UI dump and a tap. The stored response read `SILENT` at
+08:40, `SIREN` at 08:56 and `SILENT` again after the instrumented suite; this round tapped no
+response chip before the `SIREN` reading, so that change came from outside it (the phone was in
+other hands between steps, and the instrumented settings tests write their own fixtures). It does
+not affect the armed-flag assertion, which is read from storage and from the service records.
 
 
