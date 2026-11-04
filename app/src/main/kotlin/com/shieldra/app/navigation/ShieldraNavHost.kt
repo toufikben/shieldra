@@ -957,26 +957,26 @@ fun ShieldraNavHost(
                     onOpenSurvivalGuide = { navController.navigate(ShieldraRoutes.SURVIVAL_GUIDE) },
                     onArmToggle = {
                         if (protectionArmed) {
-                            requireOwner {
-                                ProtectionRuntime.disarm(context)
-                                if (protectionSettings.motionWithArming && motionClaim.claimsProtection) {
-                                    stopWasRequested = true
-                                    MotionRuntime.stopMonitoring(context)
-                                }
-                            }
+                            requireOwner { ProtectionRuntime.disarm(context) }
                         } else {
+                            // A-43: arming starts the Motion guard too, from inside the runtime, so
+                            // every arming path (this screen, the dashboard of a running app) agrees.
                             ProtectionRuntime.arm(context)
-                            // Opt-in: arming starts the Motion guard too. A refusal (no notification
-                            // permission, say) leaves arming itself intact; the Home button says why.
-                            if (protectionSettings.motionWithArming && !motionClaim.claimsProtection) {
-                                MotionRuntime.startMonitoring(context, storageInstalled)
-                            }
                         }
                     },
                     onSave = { updated ->
                         val apply: () -> Unit = {
                             protectionSettings = updated
                             ProtectionRuntime.applySettings(context, updated)
+                            // A-43: a guard switched on while armed starts now, and one switched off
+                            // stops now; the saved flag alone would only take effect on the next arm.
+                            if (updated.armed) {
+                                if (updated.motionEnabled && !motionClaim.claimsProtection) {
+                                    MotionRuntime.startMonitoring(context, storageInstalled)
+                                } else if (!updated.motionEnabled) {
+                                    MotionRuntime.stopMonitoring(context)
+                                }
+                            }
                         }
                         if (ProtectionChange.weakens(protectionSettings, updated)) requireOwner(apply) else apply()
                     },

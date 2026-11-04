@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.core.content.ContextCompat
 import com.shieldra.delivery.AlertKind
 import com.shieldra.delivery.AlertRuntime
@@ -23,8 +24,16 @@ import com.shieldra.domain.SecurityEventType
  *
  * The capture goes through the live protection service, so the photo and fix really attach to the
  * Motion event; if protection is not armed, the guard keeps its own text-only alert.
+ *
+ * A-43 adds the owner's second request: a confirmed lift also locks the screen, with the same
+ * credentialed administrator A-42 introduced. The grace response is the one exception to "at once":
+ * the owner's own unlock during the grace cancels the siren and the lock together, so picking your
+ * phone up does not lock you out. The lock is refused, and only logged, when protection was disarmed
+ * between the confirmation and the response.
  */
 object TableModeResponder {
+    private const val TAG = "TableModeResponder"
+
     private val handler = Handler(Looper.getMainLooper())
     private var pending: Runnable? = null
     private var unlockReceiver: BroadcastReceiver? = null
@@ -35,27 +44,32 @@ object TableModeResponder {
     fun onMotionConfirmed(context: Context, eventId: String) {
         val app = context.applicationContext
         val settings = ProtectionSettingsStore(app).load()
-        when (settings.motionResponse) {
-            ProtectionSettings.MotionResponse.SILENT -> fire(app, eventId, siren = false)
-            ProtectionSettings.MotionResponse.SIREN -> fire(app, eventId, siren = true)
-            ProtectionSettings.MotionResponse.GRACE_THEN_SIREN ->
-                scheduleAfterGrace(app, eventId, settings.motionGraceSeconds)
+        val plan = MotionResponsePlan.of(settings.motionResponse)
+        if (plan.waitForOwnerUnlock) {
+            scheduleAfterGrace(app, eventId, settings.motionGraceSeconds, plan)
+        } else {
+            fire(app, eventId, siren = plan.sirenNow, lock = plan.lockAtOnce)
         }
     }
 
     @Synchronized
-    private fun scheduleAfterGrace(context: Context, eventId: String, graceSeconds: Int) {
+    private fun scheduleAfterGrace(
+        context: Context,
+        eventId: String,
+        graceSeconds: Int,
+        plan: MotionResponsePlan,
+    ) {
         cancel(context)
         registerUnlockCancel(context)
         val runnable = Runnable {
             unregisterUnlockCancel(context)
-            fire(context, eventId, siren = true)
+            fire(context, eventId, siren = plan.sirenAfterGrace, lock = plan.lockAfterGrace)
         }
         pending = runnable
         handler.postDelayed(runnable, graceSeconds.coerceAtLeast(0).toLong() * 1000L)
     }
 
-    private fun fire(context: Context, eventId: String, siren: Boolean) {
+    private fun fire(context: Context, eventId: String, siren: Boolean, lock: Boolean) {
         if (siren) {
             Siren.start(context)
             handler.postDelayed({ Siren.stop(context) }, SIREN_MAX_MS)
@@ -65,6 +79,21 @@ object TableModeResponder {
         // alert go out, so the owner always hears about it.
         if (!ProtectionService.captureForEvent(eventId, SecurityEventType.MOTION_CONFIRMED_EVENT)) {
             AlertRuntime.alert(context, AlertKind.MOTION, eventId)
+        }
+        // After the capture request, never before it: the camera and the fix need the moment the
+        // confirmation bought them. The screen lock then denies the phone to whoever is holding it.
+        if (lock) lockTheScreen(context)
+    }
+
+    /**
+     * Locks only while protection is really armed: a response queued by the grace outlives a disarm,
+     * and the owner's decision to stop watching must also stop the screen from locking itself.
+     */
+    private fun lockTheScreen(context: Context) {
+        if (!ProtectionSettingsStore(context).load().armed) return
+        val result = DeviceScreenLock.now(context)
+        if (result != DeviceScreenLock.Result.LOCKED) {
+            Log.w(TAG, "the confirmed Motion could not lock the screen: $result")
         }
     }
 

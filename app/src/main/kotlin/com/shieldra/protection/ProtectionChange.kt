@@ -19,6 +19,7 @@ object ProtectionChange {
             (old.audioEnabled && !new.audioEnabled) ||
             (old.escalationEnabled && !new.escalationEnabled) ||
             (old.geofenceEnabled && !new.geofenceEnabled) ||
+            (old.motionEnabled && !new.motionEnabled) ||
             new.lockThreshold > old.lockThreshold ||
             new.motionResponse != old.motionResponse && new.motionResponse == ProtectionSettings.MotionResponse.SILENT
 }

@@ -476,6 +476,55 @@ if grep -q 'isAdminActive' "$NAVHOST"; then
 fi
 pass "device administration is exactly watch-login + force-lock, and lockNow has one guarded caller"
 
+# 5e. A-43 (2026-11-04): the owner asked for the Motion guard to be always on like the lock and SIM
+# guards, and for a confirmed lift or snatch to lock the screen. Motion therefore stops being a
+# separate opt-in: it is on by default, arming and boot start it, disarming stops it, switching it
+# off asks the owner (ProtectionChange), and every confirmed lift ends in a screen lock through the
+# same single guarded caller A-42 introduced. The grace response stays the one exception, because
+# the owner's own unlock in that window is the difference between a pickup and a snatch.
+MOTION_SETTINGS=app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt
+grep -Eq 'val motionEnabled: Boolean = true' "$MOTION_SETTINGS" \
+  || fail "the Motion guard is no longer on by default beside the lock and SIM guards (A-43)"
+grep -q 'motionEnabled = prefs.getBoolean(KEY_MOTION_ENABLED, true)' "$MOTION_SETTINGS" \
+  || fail "the Motion guard no longer loads as on by default; the retired opt-in key must not decide it (A-43)"
+if grep -q 'KEY_MOTION_WITH_ARMING' "$MOTION_SETTINGS"; then
+  fail "the retired motion_with_arming opt-in still decides the guard, so an old save keeps Motion off (A-43)"
+fi
+MOTION_PLAN=app/src/main/kotlin/com/shieldra/protection/MotionResponsePlan.kt
+[ -s "$MOTION_PLAN" ] || fail "the pure Motion response plan is missing (A-43)"
+grep -q 'lockAtOnce = true' "$MOTION_PLAN" \
+  || fail "a non-grace Motion response no longer plans the immediate lock (A-43)"
+grep -q 'lockAfterGrace = true' "$MOTION_PLAN" \
+  || fail "the grace Motion response no longer plans the lock after the grace (A-43)"
+RESPONDER=app/src/main/kotlin/com/shieldra/protection/TableModeResponder.kt
+grep -q 'DeviceScreenLock.now(context)' "$RESPONDER" \
+  || fail "a confirmed Motion no longer locks through the single guarded caller (A-43)"
+grep -q 'ProtectionSettingsStore(context).load().armed' "$RESPONDER" \
+  || fail "the Motion lock is not gated on the armed flag, so a late grace could lock a disarmed phone (A-43)"
+grep -q 'if (store.load().motionEnabled) startMotion(app)' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "arming no longer starts the Motion guard (A-43)"
+grep -q 'MotionRuntime.stopMonitoring(app)' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "disarming no longer stops the Motion guard (A-43)"
+grep -q 'settings.motionEnabled' app/src/main/kotlin/com/shieldra/protection/BootReceiver.kt \
+  || fail "a reboot no longer resumes the Motion guard with the other guards (A-43)"
+grep -q 'old.motionEnabled && !new.motionEnabled' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionChange.kt \
+  || fail "switching the Motion guard off no longer asks the owner (A-43)"
+grep -q 'updated.motionEnabled && !motionClaim.claimsProtection' "$NAVHOST" \
+  || fail "saving the Motion guard on or off no longer syncs the running monitor (A-43)"
+for name in 'a silent capture still locks the screen' \
+  'a loud siren locks the screen at once' \
+  'grace waits for the owner unlock before the siren and the lock'; do
+  grep -Fq "fun \`$name\`" app/src/test/kotlin/com/shieldra/protection/MotionResponsePlanTest.kt \
+    || fail "the named Motion lock test was removed or renamed: $name"
+done
+grep -Fq 'fun `the motion guard is on by default like the lock and SIM guards`' \
+  app/src/test/kotlin/com/shieldra/protection/MotionGuardDefaultsTest.kt \
+  || fail "the default-on Motion guard test was removed or renamed"
+pass "A-43: Motion is on by default, arming and boot start it, and a confirmed lift locks through DeviceScreenLock"
+
 # 6. The dashboard action reaches the real coordinator off the main thread.
 grep -q 'PanicIncidentCoordinator(repository' "$NAVHOST" || fail "NavHost does not build the panic coordinator"
 grep -q 'coordinator.activate()' "$NAVHOST" || fail "NavHost does not activate the panic coordinator"
@@ -715,9 +764,13 @@ grep -q 'MotionSensorAdapter(' "$SERVICE" \
 USES="$(grep -RIn 'MotionSensorAdapter(' app/src/main/kotlin --include='*.kt' | grep -v "$ADAPTER" | grep -v "$SERVICE" || true)"
 [ -z "$USES" ] || fail "a second Motion adapter owner appeared in the shipping app; A-19 allows the service alone: $USES"
 # A-33 relaxed A-10: the manifest may declare boot, but it must be wired to the protection
-# BootReceiver and nothing else (the Motion service never auto-starts from boot).
+# BootReceiver and nothing else. A-43 then let that one receiver resume the Motion guard with the
+# other guards, so "boot" never means a path of the Motion service's own.
 grep -q 'com.shieldra.protection.BootReceiver' app/src/main/AndroidManifest.xml \
   || fail "boot is declared without the A-33 protection BootReceiver to handle it"
+grep -q 'MotionRuntime.startMonitoring(appContext, storageInstalled)' \
+  app/src/main/kotlin/com/shieldra/protection/BootReceiver.kt \
+  || fail "a reboot no longer resumes the Motion guard through the protection BootReceiver (A-43)"
 
 for name in fewer_than_two_samples_is_reported_as_nothing_measured_not_as_a_still_device \
   a_sample_that_is_not_a_finite_acceleration_is_dropped_and_the_stream_is_marked_invalid \

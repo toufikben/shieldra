@@ -6,9 +6,10 @@ import android.content.ComponentName
 import android.content.Context
 
 /**
- * Locks the screen when the owner sends `/lock` from their own Telegram chat. This is the only
- * caller of `lockNow()` in the app: WATCH_LOGIN hears a failed unlock, FORCE_LOCK locks on request,
- * and SHIELDRA holds no power to wipe the phone, change its password or read it.
+ * Locks the screen on the two occasions the owner approved: a `/lock` sent from their own Telegram
+ * chat (A-42), and a Motion incident the guard confirmed — a lift or a snatch (A-43). This is the
+ * only caller of `lockNow()` in the app: WATCH_LOGIN hears a failed unlock, FORCE_LOCK locks on
+ * request, and SHIELDRA holds no power to wipe the phone, change its password or read it.
  *
  * A device administrator granted before `force-lock` was added keeps the policy set it was granted
  * with, so the first refused call is reported as [Result.NEEDS_REGRANT] and the reply tells the

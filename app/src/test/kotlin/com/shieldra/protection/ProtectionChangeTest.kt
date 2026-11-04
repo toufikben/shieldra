@@ -12,6 +12,7 @@ class ProtectionChangeTest {
     fun `switching a guard off weakens protection`() {
         assertTrue(ProtectionChange.weakens(on, on.copy(simEnabled = false)))
         assertTrue(ProtectionChange.weakens(on, on.copy(geofenceEnabled = false)))
+        assertTrue(ProtectionChange.weakens(on, on.copy(motionEnabled = false)))
     }
 
     @Test

@@ -1,6 +1,10 @@
 package com.shieldra.protection
 
 import android.content.Context
+import android.util.Log
+import com.shieldra.app.ShieldraApp
+import com.shieldra.runtime.MotionMonitoringStartDecision
+import com.shieldra.runtime.MotionRuntime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +42,11 @@ object ProtectionRuntime {
      * The SIM baseline is taken from the cards actually in the phone at this moment (audit §5.11):
      * arming is the owner saying "watch for anything other than these", so a baseline left over from
      * a card they replaced months ago must not turn an honest re-arm into a permanent alarm.
+     *
+     * A-43: Motion is started here, beside the lock and SIM guards, when the owner left it on — it is
+     * no longer a separate opt-in a second start button has to remember. A refusal (no notification
+     * permission, no storage) is logged and leaves arming intact; the dashboard states the reason,
+     * and an unanswered notification permission takes the same route the dashboard's Start does.
      */
     fun arm(context: Context) {
         val app = context.applicationContext
@@ -50,7 +59,20 @@ object ProtectionRuntime {
         // the service stopped stamping checks (audit development أ).
         runCatching { GuardWatchdog.schedule(app) }
         if (store.load().countdownEnabled) CountdownScheduler.start(app)
+        if (store.load().motionEnabled) startMotion(app)
         armedState.value = true
+    }
+
+    /** Starts the Motion guard when the platform facts allow it; the claim itself stays the service's. */
+    private fun startMotion(app: Context) {
+        val storageInstalled = (app as? ShieldraApp)?.installedStorage != null
+        when (val decision = MotionRuntime.startMonitoring(app, storageInstalled)) {
+            MotionMonitoringStartDecision.MayStartMonitoring -> Unit
+            MotionMonitoringStartDecision.AskForNotificationPermission ->
+                Log.i(TAG, "protection is armed; the Motion guard waits for the notification permission")
+            is MotionMonitoringStartDecision.DoNotStartMonitoring ->
+                Log.w(TAG, "protection is armed but the Motion guard did not start: ${decision.reason}")
+        }
     }
 
     /**
@@ -63,6 +85,10 @@ object ProtectionRuntime {
         ProtectionSettingsStore(app).setArmed(false)
         ProtectionService.stop(app)
         CountdownScheduler.cancel(app)
+        // A-43: the Motion guard stops with the guards it belongs to, and a grace response still
+        // waiting must not siren or lock a phone the owner just chose to stop watching.
+        MotionRuntime.stopMonitoring(app)
+        runCatching { TableModeResponder.cancel(app) }
         runCatching {
             // The owner chose silence; a patrol that kept waking to report it would be a defect.
             GuardWatchdog.cancel(app)
@@ -130,4 +156,6 @@ object ProtectionRuntime {
             }
         }
     }
+
+    private const val TAG: String = "ProtectionRuntime"
 }

@@ -4,8 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.shieldra.app.ShieldraApp
 import com.shieldra.delivery.AlertKind
 import com.shieldra.delivery.AlertRuntime
+import com.shieldra.runtime.MotionRuntime
 
 /**
  * Brings protection back after a reboot (amendment A-33 / A-10 relaxation, audit E-2).
@@ -67,7 +69,15 @@ class BootReceiver : BroadcastReceiver() {
                     runCatching { AlertRuntime.alert(appContext, AlertKind.RESTART, null) }
                         .onFailure { Log.e(TAG, "the restart could not be reported to the owner: ${it.message}", it) }
                 }
-                if (settings.armed) ProtectionService.arm(appContext)
+                if (settings.armed) {
+                    ProtectionService.arm(appContext)
+                    // A-43: Motion is one of the armed guards now, so a reboot resumes it beside the
+                    // SIM, lock and battery ones instead of waiting for the owner to press Start.
+                    if (settings.motionEnabled) {
+                        val storageInstalled = (appContext as? ShieldraApp)?.installedStorage != null
+                        MotionRuntime.startMonitoring(appContext, storageInstalled)
+                    }
+                }
                 // Alarms do not survive a reboot, so the patrol is re-armed with the guards it watches.
                 runCatching { GuardWatchdog.schedule(appContext) }
                 if (settings.countdownEnabled) CountdownScheduler.rescheduleAfterBoot(appContext)
