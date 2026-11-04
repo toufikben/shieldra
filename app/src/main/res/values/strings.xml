@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<!--
+  A-45 D3 added `values-fr`, which carries only the holder-facing notice: the phone says who is
+  allowed to unlock it and what happens if nobody does, in the three languages a stranger is most
+  likely to read. Every other string is English and Arabic, so a new locale folder makes lint report
+  all ~600 untranslated keys as errors and the build stops for a fact the design intends.
+
+  `MissingTranslation` is silenced for this file, not for the project. The gate that actually protects
+  the app is `.github/scripts/locale-parity-check.sh`, which fails CI when a key exists in one locale
+  folder and not another; a missing Arabic translation is caught there, where it can be stated
+  precisely, instead of by a rule that cannot tell "not translated yet" from "not meant to be".
+-->
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingTranslation">
     <string name="app_name">Shieldra</string>
 
     <string name="welcome_title">Shieldra</string>
