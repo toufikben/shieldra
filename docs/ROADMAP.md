@@ -827,8 +827,20 @@ every shipped string that used to say Shieldra cannot lock now states the one ca
 592 keys each). The g4b gate pins the policy pair by exact equality and keeps `lockNow()` in its
 single file.
 
-**CI:** pending at the time this section was written; the run id and test count are added here after
-the push. **Device:** NOT RUN — the owner schedules phone checks; the checklist is prepared outside
-the repo. **Existing administrators** granted before this change keep the old policy set until they
-switch the role off and on once; `/lock` answers with that exact instruction instead of pretending
-it locked.
+**CI:** run `41769482300` on commit `b7fd947` — 574 tests, 574 passed, 0 failures, 0 skipped;
+`PASS: device administration is exactly watch-login + force-lock, and lockNow has one guarded
+caller`; G4-B local review, Group C boundary scan and Phase 3 static review all pass; build
+successful in 9m 2s, signed release builds also succeeded.
+
+**Device (2026-11-04, build from that run, versionCode 389):** the administrator holds exactly
+`watch-login` + `force-lock` (`dumpsys device_policy`), `maximumFailedPasswordsForWipe=0`; the
+system activation screen lists exactly "Monitor screen unlock attempts" and "Lock the screen"; the
+Protection row is green in EN and AR; deactivation shows the app's own warning and the row reverts;
+re-grant after deactivation succeeds and `DeviceScreenLock.isGranted` reads true again; requested
+permissions are unchanged. Instrumentation on the device: `OK (78 tests)` in 1,755 s. **NOT RUN:**
+`/lock` end to end (items 5–9 — needs the owner's bot token and chat, which this round does not
+request or open), uninstall (item 11), and an existing-admin re-grant from an older build (item 4 —
+no Shieldra administrator existed on the phone before this round; the identical off→on re-grant
+path was exercised instead). **Existing administrators** granted before this change keep the old
+policy set until they switch the role off and on once; `/lock` answers with that exact instruction
+instead of pretending it locked.

@@ -1,6 +1,7 @@
 # Remote screen lock — `/lock` and `<force-lock />` (amendment A-42)
 
-Date: 2026-11-03 · Branch: `fix/audit-round-1` · Status: implemented, CI verification pending
+Date: 2026-11-03 · Branch: `fix/audit-round-1` · Status: implemented, CI green on `b7fd947`, device
+checks run on 2026-11-04 (remote `/lock` end-to-end still NOT RUN)
 
 ## 1. The owner decision
 
@@ -82,9 +83,18 @@ would be refused. The phone checklist covers this state explicitly.
 - This is not a replacement for Google's Find My Device, which works even when Shieldra is not
   running. The panic screen keeps recommending it first and now states honestly that Shieldra can
   also lock the screen when its remote commands are reachable.
-- Device verification is **NOT RUN** until the owner schedules it. CI is the only build verifier.
+- Device verification: the administrator holds exactly `watch-login` + `force-lock`
+  (`dumpsys device_policy`), the system activation screen lists exactly "Monitor screen unlock
+  attempts" and "Lock the screen", the Protection row reads granted in EN and AR, deactivation shows
+  the app's warning and reverts the row, and re-granting after deactivation works. The remote
+  `/lock` path (items 5–9 of the phone checklist) is **NOT RUN**: it needs the owner's bot token and
+  chat, which this round does not request or open. Uninstall with the administrator active is also
+  **NOT RUN** (item 11).
 
 ## 7. Verification
 
-The local static gates are run before the push (g4b, Group C, phase 3). CI is dispatched on
-`fix/audit-round-1`; the run id and test count are recorded in `docs/ROADMAP.md`, not here.
+The local static gates are run before the push (g4b, Group C, phase 3). CI run `41769482300` on
+`b7fd947`: 574 tests, 574 passed, 0 failures, 0 skipped; the g4b policy-pair check, Group C
+boundary scan and Phase 3 static review all pass; build successful, signed release builds also
+succeed. Instrumentation on the device (build from that run): `OK (78 tests)` in 1,755 s. Run ids and
+counts are also recorded in `docs/ROADMAP.md`.
