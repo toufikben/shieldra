@@ -1,5 +1,6 @@
 package com.shieldra.protection
 
+import android.app.admin.DeviceAdminInfo
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -15,6 +16,20 @@ import android.content.Context
  */
 object DeviceScreenLock {
     enum class Result { LOCKED, ADMIN_OFF, NEEDS_REGRANT, FAILED }
+
+    /**
+     * True only when the role is active **and** `force-lock` was really granted. An administrator
+     * granted before this policy existed fails this check, so the protection and health screens
+     * offer the one-time re-grant instead of showing a lock that would be refused.
+     */
+    fun isGranted(context: Context): Boolean {
+        val dpm = context.getSystemService(DevicePolicyManager::class.java) ?: return false
+        val admin = ComponentName(context, LockGuardReceiver::class.java)
+        return runCatching {
+            dpm.isAdminActive(admin) &&
+                dpm.hasGrantedPolicy(admin, DeviceAdminInfo.USES_POLICY_FORCE_LOCK)
+        }.getOrDefault(false)
+    }
 
     fun now(context: Context): Result {
         val dpm = context.getSystemService(DevicePolicyManager::class.java) ?: return Result.FAILED

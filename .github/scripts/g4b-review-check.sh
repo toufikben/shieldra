@@ -467,6 +467,13 @@ if [ "$LOCK_CALLERS" != "app/src/main/kotlin/com/shieldra/protection/DeviceScree
 fi
 grep -q '"/lock"' app/src/main/kotlin/com/shieldra/protection/RemoteCommandPoller.kt \
   || fail "the /lock command is not wired into the remote poller"
+# The row must read the granted pair, not only "an administrator is active": an old grant that
+# never saw force-lock would otherwise show a lock that the platform refuses.
+grep -q 'DeviceScreenLock.isGranted(context)' "$NAVHOST" \
+  || fail "the protection/health screens do not read the granted policy pair (A-42)"
+if grep -q 'isAdminActive' "$NAVHOST"; then
+  fail "a screen still treats an active administrator as a granted force-lock policy (A-42)"
+fi
 pass "device administration is exactly watch-login + force-lock, and lockNow has one guarded caller"
 
 # 6. The dashboard action reaches the real coordinator off the main thread.

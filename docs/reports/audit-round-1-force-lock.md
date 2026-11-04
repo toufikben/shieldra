@@ -70,7 +70,9 @@ never locks later on its own.
 A device administrator granted before this policy was added keeps the policy set it was granted
 with. The first `/lock` on such a phone is refused by the platform (`SecurityException`), which is
 reported as `NEEDS_REGRANT` with the exact one-time fix: switch the role off and on in Protection.
-The phone checklist covers this state explicitly.
+The Protection and Health rows also read the granted pair (`DeviceScreenLock.isGranted`), not only
+`isAdminActive`, so an old grant shows as missing until it is renewed instead of showing a lock that
+would be refused. The phone checklist covers this state explicitly.
 
 ## 6. Not claimed
 

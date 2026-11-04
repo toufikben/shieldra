@@ -901,7 +901,6 @@ fun ShieldraNavHost(
             composable(ShieldraRoutes.PROTECTION_SETUP) {
                 val adminComponent = remember(context) { ComponentName(context, LockGuardReceiver::class.java) }
                 val permissions = remember(permissionRefresh, permissionRequests) {
-                    val dpm = context.getSystemService(DevicePolicyManager::class.java)
                     fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
                     ProtectionPermissions(
                         camera = has(Manifest.permission.CAMERA),
@@ -911,7 +910,7 @@ fun ShieldraNavHost(
                             it == com.shieldra.notification.NotificationPermissionState.Granted ||
                                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
                         },
-                        deviceAdmin = dpm?.isAdminActive(adminComponent) == true,
+                        deviceAdmin = com.shieldra.protection.DeviceScreenLock.isGranted(context),
                         batteryExemption = com.shieldra.protection.BackgroundSurvival.isExempt(context),
                         exactAlarms = com.shieldra.protection.ExactAlarmAccess.isGranted(context),
                     )
@@ -1161,8 +1160,6 @@ private fun readHealthChecks(
     channel: Boolean,
     motionMonitoring: Boolean,
 ): HealthChecks {
-    val adminComponent = ComponentName(context, LockGuardReceiver::class.java)
-    val dpm = context.getSystemService(DevicePolicyManager::class.java)
     fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
     return HealthChecks(
         armed = armed,
@@ -1172,7 +1169,7 @@ private fun readHealthChecks(
             it == com.shieldra.notification.NotificationPermissionState.Granted ||
                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
         },
-        deviceAdmin = dpm?.isAdminActive(adminComponent) == true,
+        deviceAdmin = com.shieldra.protection.DeviceScreenLock.isGranted(context),
         batteryExempt = com.shieldra.protection.BackgroundSurvival.isExempt(context),
         channel = channel,
         motionMonitoring = motionMonitoring,
