@@ -844,3 +844,28 @@ no Shieldra administrator existed on the phone before this round; the identical 
 path was exercised instead). **Existing administrators** granted before this change keep the old
 policy set until they switch the role off and on once; `/lock` answers with that exact instruction
 instead of pretending it locked.
+
+## Motion as a guard — amendment A-43 on `fix/audit-round-1` (2026-11-04)
+
+**The owner asked for the Motion guard to be always on like the lock and SIM guards, and for a
+confirmed lift or snatch to lock the phone.** Motion is no longer a separate opt-in: `motionEnabled`
+defaults to true (the retired `motion_with_arming` key is not read, because its old default of false
+was indistinguishable from a deliberate off), arming starts monitoring beside `ProtectionService`,
+disarming stops it and cancels a waiting grace response, boot resume restarts it while armed, and
+the dashboard's start/stop writes the same stored flag the settings screen shows. Switching the
+guard off weakens protection, so it asks for the owner's screen lock. Every confirmed lift locks
+through `DeviceScreenLock.now` — the single guarded `lockNow()` caller A-42 introduced — after the
+capture request, and only while protection is armed; SILENT and SIREN lock at once, GRACE_THEN_SIREN
+lets the owner's own unlock cancel the siren and the lock together. The pure `MotionResponsePlan`
+and its tests state that promise, and `g4b` pins the default, the start/stop wiring, the armed gate,
+the lock caller and the named tests. Full argument: `docs/reports/audit-round-1-motion-snatch-lock.md`.
+
+**CI:** run `41782160333` on `9c30867` — **success**, `CI TEST SUMMARY: 578 tests, 578 passed,
+0 failures, 0 errors, 0 skipped`, `BUILD SUCCESSFUL in 9m 41s`; `Group C boundary scan passed`,
+`PASS: A-43 …`, `G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS`. The debug pair and the phone
+APK were published to the draft release `test-41782160333`; the signed release build succeeded but
+is **not published** — the owner deferred the signed version until the app is fully verified.
+
+**Device:** pending at the time this section was written; results and the honest NOT RUN list are
+appended after the phone round (the shared phone was busy with another inspector's app, then with a
+foreground Telegram session).
