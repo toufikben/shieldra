@@ -35,7 +35,7 @@ class OwnerContactCopyTest {
         )
         for (locale in listOf("values", "values-ar")) {
             val text = File(resources, "$locale/strings.xml").readText()
-            for (key in keys) assertTrue("$locale is missing $key", text.contains("name=\"$key\""))
+            for (key in keys) assertTrue(text.contains("name=\"$key\""), "$locale is missing $key")
         }
     }
 
@@ -43,20 +43,20 @@ class OwnerContactCopyTest {
     fun `the hint names a phone with its country code and an address`() {
         for (locale in listOf("values", "values-ar")) {
             val hint = body(locale, "protection_owner_contact_hint")
-            assertTrue("$locale hint must show the plus form: $hint", hint.contains("+"))
-            assertTrue("$locale hint must name an email: $hint", hint.contains("@"))
+            assertTrue(hint.contains("+"), "$locale hint must show the plus form: $hint")
+            assertTrue(hint.contains("@"), "$locale hint must name an email: $hint")
         }
     }
 
     @Test
     fun `the error line says what will not happen instead of claiming a call`() {
         assertTrue(
-            "the English error must not promise a call button: ${body("values", "protection_owner_contact_error")}",
             body("values", "protection_owner_contact_error").contains("no call button"),
+            "the English error must not promise a call button: ${body("values", "protection_owner_contact_error")}",
         )
         assertTrue(
-            "the Arabic error must say the same thing: ${body("values-ar", "protection_owner_contact_error")}",
             body("values-ar", "protection_owner_contact_error").contains("زر اتصال"),
+            "the Arabic error must say the same thing: ${body("values-ar", "protection_owner_contact_error")}",
         )
     }
 
@@ -64,7 +64,7 @@ class OwnerContactCopyTest {
     fun `the notice explains itself as three languages and one contact line`() {
         val note = body("values", "protection_theft_notice_note")
         for (language in listOf("Arabic", "English", "French")) {
-            assertTrue("the note must name $language: $note", note.contains(language))
+            assertTrue(note.contains(language), "the note must name $language: $note")
         }
     }
 
@@ -75,9 +75,9 @@ class OwnerContactCopyTest {
         // top of values-fr/strings.xml — not silently, by adding one French string.
         val text = File(resources, "values-fr/strings.xml").readText()
         val keys = Regex("name=\"([A-Za-z0-9_]+)\"").findAll(text).map { it.groupValues[1] }.toList()
-        assertTrue("values-fr carries no keys at all", keys.isNotEmpty())
+        assertTrue(keys.isNotEmpty(), "values-fr carries no keys at all")
         for (key in keys) {
-            assertTrue("values-fr holds a key the notice does not need: $key", key.startsWith("theft_demand_"))
+            assertTrue(key.startsWith("theft_demand_"), "values-fr holds a key the notice does not need: $key")
         }
     }
 }
