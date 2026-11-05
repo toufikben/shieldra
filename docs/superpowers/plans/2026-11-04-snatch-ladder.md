@@ -36,7 +36,7 @@
 - Consumes: nothing.
 - Produces: `enum class LadderAction { NONE, EVIDENCE_BURST, SETTLED }`, `data class LadderTick(val action: LadderAction, val delayMs: Long, val burst: Int)`, `object SnatchLadder { const val DEMAND_MS: Long; const val BURST_INTERVAL_MS: Long; const val FAST_BURSTS: Int; const val SLOW_INTERVAL_MS: Long; const val LADDER_WINDOW_MS: Long; fun burstAtMs(burst: Int): Long; fun next(elapsedMs: Long, burstsDone: Int): LadderTick }`. Task 3 and Task 8 call `next()`; Task 8 shows `DEMAND_MS / 1000` in the notice.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `app/src/test/kotlin/com/shieldra/protection/SnatchLadderTest.kt`:
 
@@ -110,12 +110,12 @@ class SnatchLadderTest {
 }
 ```
 
-- [ ] **Step 2: Run it to confirm it fails for the right reason**
+- [x] **Step 2: Run it to confirm it fails for the right reason**
 
 Run: `cd /c/src/tmp/shieldra-work && grep -c "SnatchLadder" app/src/main/kotlin/com/shieldra/protection/*.kt || true`
 Expected: `0` matches — the object does not exist, so CI would fail compilation. (The JVM test itself cannot run locally: no local builds. Task 4's CI checkpoint is its first execution.)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `app/src/main/kotlin/com/shieldra/protection/SnatchLadder.kt`:
 
@@ -179,7 +179,7 @@ object SnatchLadder {
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git add app/src/main/kotlin/com/shieldra/protection/SnatchLadder.kt app/src/test/kotlin/com/shieldra/protection/SnatchLadderTest.kt
@@ -200,7 +200,7 @@ git commit -m "feat: give a confirmed motion an evidence ladder instead of one s
 - Consumes: nothing.
 - Produces: `object TheftNoticeText { fun compose(arabic: String, english: String, french: String, ownerMessage: String?, contactLine: String?): String }`; `enum class ContactKind { PHONE, EMAIL, UNKNOWN }`; `object OwnerContact { fun kind(raw: String): ContactKind; fun normalized(raw: String): String; fun dialUri(raw: String): String? }`. Task 3 renders them into a notification; Task 8 calls `TheftNoticeText.compose`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `app/src/test/kotlin/com/shieldra/protection/TheftNoticeTextTest.kt`:
 
@@ -302,12 +302,12 @@ class OwnerContactTest {
 }
 ```
 
-- [ ] **Step 2: Confirm they cannot compile yet**
+- [x] **Step 2: Confirm they cannot compile yet**
 
 Run: `cd /c/src/tmp/shieldra-work && ls app/src/main/kotlin/com/shieldra/protection/ | grep -E "TheftNoticeText|OwnerContact" || echo MISSING`
 Expected: `MISSING`.
 
-- [ ] **Step 3: Write the implementations**
+- [x] **Step 3: Write the implementations**
 
 Create `app/src/main/kotlin/com/shieldra/protection/TheftNoticeText.kt`:
 
@@ -385,7 +385,7 @@ object OwnerContact {
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git add app/src/main/kotlin/com/shieldra/protection/TheftNoticeText.kt app/src/main/kotlin/com/shieldra/protection/OwnerContact.kt app/src/test/kotlin/com/shieldra/protection/TheftNoticeTextTest.kt app/src/test/kotlin/com/shieldra/protection/OwnerContactTest.kt
@@ -407,7 +407,7 @@ git commit -m "feat: compose the holder-facing theft notice in three languages"
 - Consumes: `TheftNoticeText.compose(...)` and `OwnerContact.dialUri(...)` from Task 2; `SnatchLadder.DEMAND_MS` from Task 1.
 - Produces: `object TheftDemand { const val NOTIFICATION_ID: Int; fun show(context: Context, contact: String, ownerMessage: String); fun hide(context: Context) }`. Task 8 calls both; Task 9's gate greps `TheftDemand.show`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `app/src/test/kotlin/com/shieldra/protection/TheftDemandCopyTest.kt` — this is the JVM guard that the three copies say the same thing and make no promise the app cannot keep:
 
@@ -468,12 +468,12 @@ class TheftDemandCopyTest {
 }
 ```
 
-- [ ] **Step 2: Confirm it fails**
+- [x] **Step 2: Confirm it fails**
 
 Run: `cd /c/src/tmp/shieldra-work && grep -c "theft_demand_title" app/src/main/res/values/strings.xml || echo 0`
 Expected: `0`.
 
-- [ ] **Step 3: Add the English keys**
+- [x] **Step 3: Add the English keys**
 
 Modify `app/src/main/res/values/strings.xml`, inserting directly after the existing `<string name="lost_contact">…</string>` line:
 
@@ -486,7 +486,7 @@ Modify `app/src/main/res/values/strings.xml`, inserting directly after the exist
     <string name="theft_demand_call">Call the owner</string>
 ```
 
-- [ ] **Step 4: Add the Arabic keys**
+- [x] **Step 4: Add the Arabic keys**
 
 Modify `app/src/main/res/values-ar/strings.xml`, at the same place in that file:
 
@@ -499,7 +499,7 @@ Modify `app/src/main/res/values-ar/strings.xml`, at the same place in that file:
     <string name="theft_demand_call">اتصل بالمالك</string>
 ```
 
-- [ ] **Step 5: Create the French file**
+- [x] **Step 5: Create the French file**
 
 Create `app/src/main/res/values-fr/strings.xml` (the notice is the only French copy in this app for now: it is written for whoever holds the phone, not for the owner's own UI, which stays Arabic/English):
 
@@ -515,7 +515,7 @@ Create `app/src/main/res/values-fr/strings.xml` (the notice is the only French c
 </resources>
 ```
 
-- [ ] **Step 6: Write the notice itself**
+- [x] **Step 6: Write the notice itself**
 
 Create `app/src/main/kotlin/com/shieldra/protection/TheftDemand.kt`:
 
@@ -619,7 +619,7 @@ object TheftDemand {
 
 Note for the implementer: if CI reports the channel block fails on API 26 guards, keep the existing pattern used by `LostNotice.kt:21` (the `Build.VERSION.SDK_INT` check) rather than removing the check — do not delete a version guard to make a compile pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git add app/src/main/kotlin/com/shieldra/protection/TheftDemand.kt app/src/main/res/values/strings.xml app/src/main/res/values-ar/strings.xml app/src/main/res/values-fr/strings.xml app/src/test/kotlin/com/shieldra/protection/TheftDemandCopyTest.kt
@@ -637,19 +637,19 @@ git commit -m "feat: tell the holder of a locked phone what happens and in three
 - Consumes: Tasks 1–3.
 - Produces: a green CI run id that Tasks 5–9 quote, and the test count for the roadmap.
 
-- [ ] **Step 1: Push the branch**
+- [x] **Step 1: Push the branch**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git push origin fix/audit-round-1
 ```
 
-- [ ] **Step 2: Dispatch CI**
+- [x] **Step 2: Dispatch CI**
 
 ```bash
 cd /c/src/tmp/shieldra-work && gh workflow run group-a-diagnostics.yml --ref fix/audit-round-1 --repo toufikben/shieldra && sleep 15 && gh run list --repo toufikben/shieldra --branch fix/audit-round-1 --limit 1
 ```
 
-- [ ] **Step 3: Watch it and read the real numbers**
+- [x] **Step 3: Watch it and read the real numbers**
 
 ```bash
 cd /c/src/tmp/shieldra-work && gh run watch <run-id> --repo toufikben/shieldra --exit-status
@@ -657,7 +657,7 @@ gh run view <run-id> --repo toufikben/shieldra --log 2>/dev/null | grep -E "CI T
 ```
 Expected: `CI TEST SUMMARY: <N> tests, <N> passed, 0 failures, 0 errors` with `<N>` = the previous 578 + 19 new JVM tests (8 + 4 + 4 + 3 = 19 → 597), `G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS`. If a number differs, quote what CI printed, not what was planned.
 
-- [ ] **Step 4: If a test fails, fix the cause and re-run — never delete the assertion**
+- [x] **Step 4: If a test fails, fix the cause and re-run — never delete the assertion**
 
 A red ladder test means the timing is wrong or the test states a different intent than D1. Read the assertion, decide which one is wrong against `docs/superpowers/specs/2026-11-04-snatch-ladder-design.md`, fix that, commit `fix:` and dispatch again.
 
@@ -675,7 +675,7 @@ A red ladder test means the timing is wrong or the test states a different inten
 - Consumes: nothing from Android.
 - Produces: `enum class ZoneResponse { FULL, QUIET, MUTED }`; `object ZonePolicy { fun responseFor(zonesExist: Boolean, stateKnown: Boolean, inside: Boolean, charging: Boolean): ZoneResponse }`; `data class ZoneSample(val inside: Boolean, val atMs: Long) { fun isFresh(nowMs: Long, staleAfterMs: Long): Boolean }`; `class ZoneStateStore(context: Context) { fun write(inside: Boolean, atMs: Long); fun read(): ZoneSample?; fun clear() }`. Task 8 and Task 6 use them.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `app/src/test/kotlin/com/shieldra/protection/ZonePolicyTest.kt`:
 
@@ -734,12 +734,12 @@ class ZonePolicyTest {
 }
 ```
 
-- [ ] **Step 2: Confirm it cannot compile**
+- [x] **Step 2: Confirm it cannot compile**
 
 Run: `cd /c/src/tmp/shieldra-work && ls app/src/main/kotlin/com/shieldra/protection/ | grep -E "ZonePolicy|ZoneStateStore" || echo MISSING`
 Expected: `MISSING`.
 
-- [ ] **Step 3: Write the policy**
+- [x] **Step 3: Write the policy**
 
 Create `app/src/main/kotlin/com/shieldra/protection/ZonePolicy.kt`:
 
@@ -779,7 +779,7 @@ object ZonePolicy {
 }
 ```
 
-- [ ] **Step 4: Write the store**
+- [x] **Step 4: Write the store**
 
 Create `app/src/main/kotlin/com/shieldra/protection/ZoneStateStore.kt`:
 
@@ -831,19 +831,19 @@ class ZoneStateStore(context: Context) {
 }
 ```
 
-- [ ] **Step 5: Register the new preferences file with the erase gate**
+- [x] **Step 5: Register the new preferences file with the erase gate**
 
 `eraseAll` must wipe it, or a factory-reset-style erase leaves the last known zone behind. Modify the erase source that `g4b-review-check.sh` reads (the file defining `OWNER_PREFERENCES = listOf(` and `DEVICE_PROTECTED_PREFERENCE = `): add `"shieldra_zone_state"` to the `OWNER_PREFERENCES` list.
 
 Run first to find it: `cd /c/src/tmp/shieldra-work && grep -rln "OWNER_PREFERENCES = listOf(" app/src/main/kotlin`
 Then add the entry inside the list, next to the other `"shieldra_…"` names.
 
-- [ ] **Step 6: Confirm the local gate still passes**
+- [x] **Step 6: Confirm the local gate still passes**
 
 Run: `cd /c/src/tmp/shieldra-work && bash .github/scripts/g4b-review-check.sh 2>&1 | tail -15`
 Expected: `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` and no `FAIL` line about preferences stores. The B-3 block in that script fails loudly if a declared store is missing from `eraseAll`, so this is the check that the registration worked.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git add app/src/main/kotlin/com/shieldra/protection/ZonePolicy.kt app/src/main/kotlin/com/shieldra/protection/ZoneStateStore.kt app/src/test/kotlin/com/shieldra/protection/ZonePolicyTest.kt && git add -p  # then stage the erase-list file edited in Step 5
@@ -864,7 +864,7 @@ git commit -m "feat: make safe zones mute escalation and fail closed when unknow
 - Consumes: `GeofenceLogic.hasLeftSafeZone(...)`, `GeofenceLogic.nextInsideState(...)`, `ProtectionSettingsStore(app).load().safeZones()` and `.geofenceIntervalMinutes`, `ZoneStateStore` from Task 5.
 - Produces: `object GeofenceTicker { const val REQUEST_CODE: Int; const val STALE_FACTOR: Long; fun schedule(context: Context, intervalMinutes: Int); fun cancel(context: Context) }` and the alarm receiver `GeofenceTickReceiver`. Task 8 reads only `ZoneStateStore`.
 
-- [ ] **Step 1: Write the ticker**
+- [x] **Step 1: Write the ticker**
 
 Create `app/src/main/kotlin/com/shieldra/protection/GeofenceTicker.kt`:
 
@@ -943,7 +943,7 @@ class GeofenceTickReceiver : android.content.BroadcastReceiver() {
 }
 ```
 
-- [ ] **Step 2: Register it**
+- [x] **Step 2: Register it**
 
 Modify `app/src/main/AndroidManifest.xml`, adding beside the other `<receiver>` entries inside `<application>`:
 
@@ -953,7 +953,7 @@ Modify `app/src/main/AndroidManifest.xml`, adding beside the other `<receiver>` 
             android:exported="false" />
 ```
 
-- [ ] **Step 3: Replace the in-process sampler**
+- [x] **Step 3: Replace the in-process sampler**
 
 Modify `app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt`. Delete the `geofenceHandler` recursion in the block that currently starts at line 95 and ends at line 134, and replace it with a sampling function the service calls once at start and the receiver calls afterwards. The replacement must: skip when there are no zones; treat a missing fix as "unknown" (write nothing, leave the stored sample to go stale on its own); write the new inside state plus its timestamp to `ZoneStateStore`; keep the existing one-shot "left a safe zone" alert exactly as it is; and schedule the next tick through `GeofenceTicker`:
 
@@ -992,7 +992,7 @@ Wire the start path: in `onStartCommand`, where the old block was scheduled, cal
 Verify the argument names you must match before pasting: `cd /c/src/tmp/shieldra-work && grep -n "fun hasLeftSafeZone\|fun nextInsideState" app/src/main/kotlin/com/shieldra/protection/GeofenceLogic.kt && grep -n "val fixedAt\|accuracyMeters\|class LocationFix\|fun current" app/src/main/kotlin/com/shieldra/protection/LocationFix.kt && grep -n "fun safeZones" app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt`
 If those names differ from the snippet, use the real names from the grep output — do not rename production APIs to fit this plan.
 
-- [ ] **Step 4: Make the silent failure visible**
+- [x] **Step 4: Make the silent failure visible**
 
 The old sampler did nothing forever when there was no location permission. Add one string and show it where the zones are managed.
 
@@ -1001,7 +1001,7 @@ The old sampler did nothing forever when there was no location permission. Add o
 
 Modify `app/src/main/kotlin/com/shieldra/app/presentation/screen/map/MapScreen.kt`: under the existing safe-zone switch row, show that text as a small attention-coloured line when `geofenceEnabled` is on and `ZoneStateStore(context).read()` is null or older than `GeofenceTicker.staleAfterMs(settings.geofenceIntervalMinutes)`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git add app/src/main/kotlin/com/shieldra/protection/GeofenceTicker.kt app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt app/src/main/AndroidManifest.xml app/src/main/kotlin/com/shieldra/app/presentation/screen/map/MapScreen.kt app/src/main/res/values/strings.xml app/src/main/res/values-ar/strings.xml
@@ -1021,14 +1021,14 @@ git commit -m "fix: the safe-zone state now survives the service and goes stale 
 - Consumes: `MotionSensorAdapter` (existing) for raw samples.
 - Produces: `object MotionTiltProbe { const val STANDARD_GRAVITY_MS2: Double; fun magnitude(x: Double, y: Double, z: Double): Double; fun angleDegrees(base: DoubleArray, sample: DoubleArray): Double; fun restingBaseline(samples: List<DoubleArray>): DoubleArray?; fun noiseSigma(samples: List<DoubleArray>): Double }` and a logcat line format `SHIELDRA_LIFT t=<ms> dev=<m/s2> tilt=<deg> mag=<m/s2>`.
 
-- [ ] **Step 1: Push and dispatch CI for Tasks 5–6**
+- [x] **Step 1: Push and dispatch CI for Tasks 5–6**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git push origin fix/audit-round-1 && gh workflow run group-a-diagnostics.yml --ref fix/audit-round-1 --repo toufikben/shieldra && sleep 15 && gh run list --repo toufikben/shieldra --branch fix/audit-round-1 --limit 1
 ```
 Expected at the end: `CI TEST SUMMARY` with 597 + 7 (ZonePolicy) = 604 tests, 0 failures, and both static reviews passing.
 
-- [ ] **Step 2: Write the failing tilt test**
+- [x] **Step 2: Write the failing tilt test**
 
 Create `app/src/test/kotlin/com/shieldra/detection/MotionTiltProbeTest.kt`:
 
@@ -1092,7 +1092,7 @@ class MotionTiltProbeTest {
 }
 ```
 
-- [ ] **Step 3: Write the probe**
+- [x] **Step 3: Write the probe**
 
 Create `app/src/main/kotlin/com/shieldra/detection/MotionTiltProbe.kt`:
 
@@ -1155,7 +1155,7 @@ object MotionTiltProbe {
 }
 ```
 
-- [ ] **Step 4: Write the recorder**
+- [x] **Step 4: Write the recorder**
 
 Create `app/src/androidTest/kotlin/com/shieldra/detection/MotionLiftRecorderInstrumentedTest.kt`. It follows the existing instrumented style in this folder (a listener, a latch, a log line per sample) and is measurement-only: it must assert nothing about the device, or it becomes a test that fails on a quiet desk.
 
@@ -1238,7 +1238,7 @@ class MotionLiftRecorderInstrumentedTest {
 }
 ```
 
-- [ ] **Step 5: Commit and push (CI compiles androidTest too)**
+- [x] **Step 5: Commit and push (CI compiles androidTest too)**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git add app/src/main/kotlin/com/shieldra/detection/MotionTiltProbe.kt app/src/test/kotlin/com/shieldra/detection/MotionTiltProbeTest.kt app/src/androidTest/kotlin/com/shieldra/detection/MotionLiftRecorderInstrumentedTest.kt
@@ -1258,7 +1258,7 @@ git commit -m "feat: measure the gravity tilt a lift produces, ready for real sa
 - Consumes: `SnatchLadder.next/burstAtMs/DEMAND_MS`, `ZonePolicy.responseFor`, `ZoneStateStore.read`, `ZoneSample.isFresh`, `TheftDemand.show/hide`, `ProtectionService.captureForEvent(eventId, SecurityEventType.MOTION_CONFIRMED_EVENT)`, `AlertRuntime.snapshot/alert`, `DeviceScreenLock.now`, `Siren.start/stop`, `ProtectionSettingsStore(app).load()`.
 - Produces: `object TableModeResponder { fun onMotionConfirmed(context: Context, eventId: String); fun cancel(context: Context) }` — same two call sites as today, so nothing else needs to change to compile.
 
-- [ ] **Step 1: Rewrite the responder**
+- [x] **Step 1: Rewrite the responder**
 
 Replace `app/src/main/kotlin/com/shieldra/protection/TableModeResponder.kt` with:
 
@@ -1477,7 +1477,7 @@ object BatteryLevel {
 ```
 (add `import android.content.Intent`, `import android.content.IntentFilter` to that file.)
 
-- [ ] **Step 2: A bound repeat must run the ladder too**
+- [x] **Step 2: A bound repeat must run the ladder too**
 
 Modify `app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt`. The `when (confirmation)` block currently sends `BoundToActive` to a silent branch. Change it so a bound movement also runs the response, and keep exactly one local notification per incident (the new incident already posts one; the repeat must not stack a second):
 
@@ -1495,19 +1495,19 @@ Modify `app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt`. 
 Match the real property path on `BoundToActive` before pasting:
 Run: `cd /c/src/tmp/shieldra-work && grep -n "class BoundToActive\|BoundToActive(" app/src/main/kotlin/com/shieldra/domain/MotionIncidentBinder.kt`
 
-- [ ] **Step 3: Disarm must stop the ladder and the notice**
+- [x] **Step 3: Disarm must stop the ladder and the notice**
 
 Modify `ProtectionRuntime.disarm(...)` so the existing `TableModeResponder.cancel(context)` call (grace clearing) also clears the zone state, and the notice hiding happens inside `cancel` (Task 8 Step 1 already hides it there — do not call `TheftDemand.hide` from two places):
 
 Run: `cd /c/src/tmp/shieldra-work && grep -n "fun disarm" -A 18 app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt`
 Add `GeofenceTicker.cancel(applicationContext)` and `ZoneStateStore(applicationContext).clear()` next to the existing responder cancel.
 
-- [ ] **Step 4: Re-run the static gate locally**
+- [x] **Step 4: Re-run the static gate locally**
 
 Run: `cd /c/src/tmp/shieldra-work && bash .github/scripts/g4b-review-check.sh 2>&1 | grep -E "FAIL|A-43|A-44" | head -10`
 Expected: no `FAIL` line naming A-43 or A-44 pins. If A-43's "single guarded caller" pin fails, the lock call site moved — fix the call site, not the gate.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git add app/src/main/kotlin/com/shieldra/protection/TableModeResponder.kt app/src/main/kotlin/com/shieldra/protection/BatteryLevel.kt app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt
@@ -1527,7 +1527,7 @@ git commit -m "feat: a confirmed motion now locks, demands an unlock and escalat
 - Consumes: `OwnerContact.kind/normalized` from Task 2, `SnatchLadder.DEMAND_MS` from Task 1.
 - Produces: nothing consumed later.
 
-- [ ] **Step 1: Write the failing copy test**
+- [x] **Step 1: Write the failing copy test**
 
 Create `app/src/test/kotlin/com/shieldra/app/presentation/screen/settings/OwnerContactCopyTest.kt`:
 
@@ -1563,7 +1563,7 @@ class OwnerContactCopyTest {
 }
 ```
 
-- [ ] **Step 2: Add the copy**
+- [x] **Step 2: Add the copy**
 
 `values/strings.xml` (next to `protection_owner_contact`):
 ```xml
@@ -1584,7 +1584,7 @@ class OwnerContactCopyTest {
     <string name="protection_theft_notice_note">Quand le garde-mouvement verrouille le téléphone, voici ce que voit son porteur — en arabe, en anglais et en français, avec votre contact une fois.</string>
 ```
 
-- [ ] **Step 3: Wire the field**
+- [x] **Step 3: Wire the field**
 
 Modify `ProtectionSetupScreen.kt`: the contact `ShieldraTextField` gains the hint as its supporting text and a red error line when `OwnerContact.kind(draft.ownerContact)` is `ContactKind.UNKNOWN` and the value is not blank; the saved value is normalized on save. Replace the existing two-field block (lines 331–348) with:
 
@@ -1629,7 +1629,7 @@ Modify `ProtectionSetupScreen.kt`: the contact `ShieldraTextField` gains the hin
 
 and in the save path of the same screen, keep the contact as typed (do not silently rewrite what the owner wrote) — normalizing belongs to the notice, which already calls `OwnerContact.normalized` in Task 3.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git add app/src/main/kotlin/com/shieldra/app/presentation/screen/settings/ProtectionSetupScreen.kt app/src/main/res/values/strings.xml app/src/main/res/values-ar/strings.xml app/src/main/res/values-fr/strings.xml app/src/test/kotlin/com/shieldra/app/presentation/screen/settings/OwnerContactCopyTest.kt
@@ -1650,7 +1650,7 @@ git commit -m "feat: say what the owner contact accepts and what the holder will
 - Consumes: everything above.
 - Produces: the pins that keep A-45 from quietly regressing, and the CI numbers the owner is owed.
 
-- [ ] **Step 1: Add the A-45 pins to g4b**
+- [x] **Step 1: Add the A-45 pins to g4b**
 
 Modify `.github/scripts/g4b-review-check.sh`, inserting after the A-44 block (around line 541), following the same `fail`/`pass` style the A-43 block uses:
 
@@ -1677,7 +1677,7 @@ grep -q 'TableModeResponder.onMotionConfirmed' app/src/main/kotlin/com/shieldra/
 pass "A-45: a confirmed Motion locks, demands an unlock, escalates, and a zone never fails open"
 ```
 
-- [ ] **Step 2: Write the locale parity gate**
+- [x] **Step 2: Write the locale parity gate**
 
 Create `.github/scripts/locale-parity-check.sh`. It checks only the keys that must exist in every locale (a full translation of the whole app is not in scope for A-45), so the list is explicit rather than aspirational:
 
@@ -1711,7 +1711,7 @@ fi
 echo "LOCALE PARITY PASS — ar, en and fr carry every holder-facing key"
 ```
 
-- [ ] **Step 3: Run it in CI**
+- [x] **Step 3: Run it in CI**
 
 Modify `.github/workflows/group-a-diagnostics.yml`, adding after the Phase 3 static review step:
 
@@ -1721,14 +1721,14 @@ Modify `.github/workflows/group-a-diagnostics.yml`, adding after the Phase 3 sta
         run: bash .github/scripts/locale-parity-check.sh
 ```
 
-- [ ] **Step 4: Run both gates locally**
+- [x] **Step 4: Run both gates locally**
 
 ```bash
 cd /c/src/tmp/shieldra-work && bash .github/scripts/locale-parity-check.sh && bash .github/scripts/g4b-review-check.sh 2>&1 | tail -6
 ```
 Expected: `LOCALE PARITY PASS …`, then `G4-B LOCAL REVIEW PASS — runtime/device evidence still required` with the new `A-45:` line printed above it. Also run `bash .github/scripts/merged-manifest-check.sh` if it exists locally, then `chmod +x .github/scripts/locale-parity-check.sh` and stage the mode change.
 
-- [ ] **Step 5: Push and dispatch CI (checkpoint three)**
+- [x] **Step 5: Push and dispatch CI (checkpoint three)**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git add -A .github && git commit -m "test: pin the ladder, the fail-closed zone policy and the holder-facing locales"
@@ -1737,13 +1737,13 @@ gh run watch <run-id> --repo toufikben/shieldra --exit-status
 ```
 Expected: success, `CI TEST SUMMARY: 616 tests, 616 passed, 0 failures, 0 errors` (578 + 8 ladder + 4 notice text + 4 contact + 3 demand copy + 7 zone + 7 tilt + 2 contact-field copy = 613; quote whatever CI actually prints, not this sum), `A-45:` pin passing, `LOCALE PARITY PASS`.
 
-- [ ] **Step 6: Write the round up while CI is green**
+- [x] **Step 6: Write the round up while CI is green**
 
 Modify `docs/reports/audit-round-1-motion-snatch-lock.md`: append a section `### A-45 — the snatch ladder (design approved 2026-11-04)` recording the measured table from the spec (the six constants today, the silent bound repeat, the invisible grace, the zone that mutes nothing), the four owner decisions, the CI run id with its printed numbers, and an explicit NOT RUN list for anything not yet measured on the phone.
 
 Modify `docs/ROADMAP.md`: add the A-45 line under the current stage with the CI run id, and state plainly that the motion thresholds are unchanged until Task 7's recorder has real samples from the owner's handset.
 
-- [ ] **Step 7: Commit docs and push**
+- [x] **Step 7: Commit docs and push**
 
 ```bash
 cd /c/src/tmp/shieldra-work && git add docs/ROADMAP.md docs/reports/audit-round-1-motion-snatch-lock.md docs/superpowers
@@ -1800,3 +1800,53 @@ This task is deliberately left with its steps to write once the samples exist: t
 Spec coverage: D1 → Tasks 1, 3, 8, 10, 11; D2 → Tasks 5, 6, 8, 10, 11; D3 → Tasks 2, 3, 9, 10, 11; D4 → Tasks 7, 11 (item 11), 12; D5 → verified by no task adding a permission, and Task 6 reuses `SCHEDULE_EXACT_ALARM`. The two claims the owner hears about — that a locked phone tells its holder, and that the owner gets more than one picture — are covered by Task 8 and pinned by Task 10 Step 1.
 
 Known risk to report honestly after the first CI run: `TheftDemand` and `GeofenceTicker` are Android-side and have no JVM test, so a compile error there surfaces only in CI; and `TableModeResponder` is covered today only by instrumented tests, so the ladder's real timing is a phone-round item (Task 11), not a green CI run.
+
+---
+
+## Amendments recorded while executing (2026-11-05)
+
+The plan was written before the code it describes was read closely enough. Eight places needed
+changing during execution; each one is recorded here rather than fixed silently, because the next
+reader of this plan would otherwise write the same wrong code.
+
+1. **Task 8, the alert call.** The draft used `AlertRuntime.snapshot(context, …).let {
+   AlertRuntime.alert(context, it) }`. `AlertRuntime` has no such pair for this path; the responder
+   calls `AlertRuntime.alert(context, AlertKind.MOTION, eventId)`, which is what builds and delivers
+   the text-and-location alert.
+2. **Task 8, `BatteryLevel.isCharging` did not exist.** Added in `com.shieldra.protection`. It reads
+   the sticky `ACTION_BATTERY_CHANGED` intent instead of `BatteryManager.isCharging`, which is API 31
+   while `minSdk` is 26.
+3. **Task 8, the `armed` gate was too broad.** The draft returned early when `!settings.armed`, which
+   would have stopped a *disarmed* dashboard-run Motion guard from capturing anything — a behaviour
+   change nobody asked for. The gate is on the escalation only: disarmed still gets the single
+   response A-43 shipped, armed runs the ladder.
+4. **Task 8, the grace lock keeps the owner's own window.** The draft locked after the ladder's 30 s;
+   the GRACE_THEN_SIREN response waits `motionGraceSeconds`, which is the owner's setting. 30 s is
+   the demand window, not a replacement for his choice.
+5. **Task 10, the French parity requirement was wrong as written.** The app's own UI ships Arabic and
+   English only, so "every string in three languages" is not the promise this app makes. The gate
+   checks AR↔EN key-for-key (that *is* a promise, and the audit rounds keep breaking it) plus the six
+   holder-facing notice keys in all three, placeholder parity, three genuinely different notice
+   bodies, and no orphan keys. `values-fr/strings.xml` says the partial policy at the top of the
+   file, and `OwnerContactCopyTest.the french locale stays the notice and nothing else` holds it.
+6. **Task 10, the g4b pins were written too tightly.** `grep -A 8` did not reach
+   `TableModeResponder.onMotionConfirmed` inside the `BoundToActive` branch (now `-A 12`), and the
+   recorder's "no assertions" pattern matched the prose of its own doc comment, which says it asserts
+   nothing (now a call-shaped pattern only: `^[[:space:]]*(assert[A-Za-z]*|fail|throw)[[:space:]]*\(`).
+7. **The spec's `locales_config.xml` line was dropped.** Spec §3 says the file gains
+   `<locale android:name="fr"/>`. Declaring French there puts "French" in Android's per-app language
+   picker while `AppLanguage.shownFor` still renders English — the owner would pick French and get an
+   English app claiming otherwise. The notice needs no entry: `TheftDemand` composes its three copies
+   through an explicit configuration context. Recorded in the authority log (A-45) and in the report
+   (§7.8/6).
+8. **Task 9's test used JUnit's `assertTrue` argument order.** `assertTrue(message, condition)` does
+   not compile against `kotlin.test` (its overloads are `(condition, message)` and `(message,
+   block)`); CI run `41972919127` proved it with eight errors on `OwnerContactCopyTest`. Local builds
+   are forbidden in this project, so a source-level mistake of that kind can only surface in CI —
+   which is why the ordering was then re-checked across `app/src/test/**`.
+
+Also worth carrying forward: adding a partial `values-*` folder makes `lintDebug` demand every
+default-locale key in that locale — run `41906989801` printed `598 errors, 85 warnings` of
+`MissingTranslation` while `CI TEST SUMMARY: 606 tests, 606 passed` was already green. The fix is the
+scoped `tools:ignore="MissingTranslation"` on the default `<resources>` roots, not a repo-wide lint
+disable.

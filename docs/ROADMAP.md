@@ -903,3 +903,70 @@ snatch/lock are **NOT RUN** on the device (the first two ask for the owner's scr
 owner's protocol forbids entering; the last would leave the shared phone at the lock screen); they
 are covered by `ProtectionChange` tests, `MotionResponsePlanTest` and the g4b pins. The full
 evidence list is in `docs/reports/audit-round-1-motion-snatch-lock.md`.
+
+## The snatch ladder — amendment A-45 on `fix/audit-round-1` (2026-11-04)
+
+**The owner reported four things after living with the guard.** The contact he writes for a finder was
+not reachable where he expected it and its hint never said what it accepts; the holder-facing message
+needed to be in every language the app ships because the app cannot know who is reading a stolen
+phone; a confirmed lift snapped a photo at the moment of detection, which is worthless if the phone is
+already in a pocket and running; and a home or work zone worried him in the other direction — either
+the phone keeps sending from his sofa, or the guard goes quiet and never comes back. Full quotes:
+`docs/reports/audit-round-1-motion-snatch-lock.md` §7.1.
+
+**What was measured before anything was designed:** the existing thresholds were read from
+`ApprovedMotionCalibration` rather than guessed, the tilt a phone actually moves through was written as
+a pure `MotionTiltProbe` so the maths could be checked without a handset, and a CI-only recorder
+(`MotionLiftRecorderInstrumentedTest`) prints `SHIELDRA_LIFT t=… dev=… tilt=… mag=…` lines from the
+owner's own phone. **The Motion thresholds are deliberately unchanged** in this amendment: they will
+be set from those recorded samples and from nothing else, which is Task 12.
+
+**D1 — the ladder.** A confirmed snatch now locks the screen and posts a public ongoing demand with a
+live countdown in the same beat, then escalates on a cadence the owner approved: first evidence burst
+30 s after the demand, then five bursts every 60 s, then one every 5 min, and the incident settles at
+30 min. A movement during the demand window joins the open ladder instead of restarting the
+protections from silence. `SnatchLadder` is pure and its ten bursts inside the window are arithmetic,
+not a log line. **D2 — the safe zone mutes escalation, never detection:** `ZonePolicy.responseFor`
+answers `FULL` when there are no zones, when the state is unknown or stale, or when the phone is
+outside; `QUIET` when inside but unplugged; `MUTED` only when inside *and* charging. It fails closed —
+an unreadable zone is a phone in the wild. `GeofenceTicker` re-arms on every heartbeat it is given and
+is cancelled on disarm. **D3 — the notice a stranger reads** is composed from the app's own resources
+in Arabic, English and French at once (`TheftNoticeText` + `TheftDemand`), with the owner's sentence
+and his contact once, normalized; `OwnerContact` accepts a phone with its country code or an email and
+turns anything else into no call action rather than a broken intent. **D5 — no new permission**; the
+manifest still declares 21.
+
+**CI (A-45):** runs on this branch, in order — `41896697430` **failure** (a test-source `Regex("%1\$s")`
+read as a Kotlin template), `41906989801` **failure** at lint (`598 errors, 85 warnings`, all
+`MissingTranslation` from the partial `values-fr`, while `606 tests, 606 passed`), `41912020911`
+**success** (`613 tests, 613 passed`), `41971315120` **success** (`613/613`, `21 permissions`),
+`41972919127` **failure** (`OwnerContactCopyTest` called `assertTrue(message, condition)` — the JUnit 4
+argument order — while this module tests with `kotlin.test`), and `41973854219` on `f411f1e`, run
+number **398** — **success**: `CI TEST SUMMARY: 618 tests, 618 passed, 0 failures, 0 errors, 0
+skipped`, `Group C boundary scan passed`, `PASS: A-45: a confirmed Motion locks, demands an unlock,
+escalates on the approved cadence, and a zone never fails open`, `LOCALE PARITY PASS — Arabic equals
+English key for key, and the holder-facing notice is in all three languages`, `G4-B LOCAL REVIEW PASS —
+runtime/device evidence still required`, `PHASE 3 STATIC REVIEW PASS`, `21 permissions`, `BUILD
+SUCCESSFUL in 6m`. The signed release keeps building and stays unpublished, as the owner deferred it.
+
+**New gates:** `g4b-review-check.sh` section **5g** pins the five approved cadence constants verbatim,
+the responder's use of the ladder and the demand, the armed gate, the fail-closed `!stateKnown ||
+!inside -> ZoneResponse.FULL` literal, `shieldra_zone_state`, the ticker's schedule-on-arm /
+cancel-on-disarm, the three-locale list, and the recorder's ban on device assertions (a recorder that
+asserts stopped measuring). `.github/scripts/locale-parity-check.sh` is a CI step of its own: EN↔AR key
+equality, the six notice keys present in all three locales, no orphan French keys, matching
+placeholders, three distinct bodies. It was proved RED against a real missing key before it was
+trusted.
+
+**A defect the design would have shipped:** the contact fields sat inside the tier-gated Telegram
+block, so an owner without that tier had no way to write the number a stranger dials. A-45 moves them
+out and the screens now say so; recorded as deviation 5 in §7.8. `values-fr` stays holder-facing copy
+only, and `locales_config.xml` deliberately does **not** list French — the system language picker would
+offer a French that renders English.
+
+**Device:** **NOT RUN** at the time this section was written. The demand notice is now measurable
+without touching the keyguard — `TheftDemandInstrumentedTest` posts it on the real handset, reads the
+three languages and the countdown back, and hides it — but the lock itself, the 30-minute burst train,
+the zone states against a real geofence and the `SHIELDRA_LIFT` samples are pending the round in
+`qa/phone-checklist-snatch-ladder-2026-11-04.md`. Full argument and the honest list:
+`docs/reports/audit-round-1-motion-snatch-lock.md` §7.
