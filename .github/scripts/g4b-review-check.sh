@@ -548,6 +548,54 @@ grep -Fq 'LaunchedEffect(protectionArmed)' "$NAVHOST" \
   || fail "the settings snapshot no longer follows the live armed state (A-44)"
 pass "A-44: the armed flag has one writer; a settings Save can no longer disarm a running protection"
 
+# 5g. A-45 (2026-11-04): the owner's ladder. A confirmed Motion is not one shot any more — it locks the
+# phone and tells the holder what happens first, and only spends the camera, the microphone and the fix
+# once nobody has unlocked. The safe zone may mute escalation, but an unknown position must never mute
+# the guard, and the notice the stranger reads has to be there in the languages a stranger can read.
+LADDER="app/src/main/kotlin/com/shieldra/protection/SnatchLadder.kt"
+ZONE_POLICY="app/src/main/kotlin/com/shieldra/protection/ZonePolicy.kt"
+ZONE_STORE="app/src/main/kotlin/com/shieldra/protection/ZoneStateStore.kt"
+TICKER="app/src/main/kotlin/com/shieldra/protection/GeofenceTicker.kt"
+DEMAND="app/src/main/kotlin/com/shieldra/protection/TheftDemand.kt"
+RECORDER="app/src/androidTest/kotlin/com/shieldra/detection/MotionLiftRecorderInstrumentedTest.kt"
+[ -s "$LADDER" ] || fail "the pure snatch ladder is missing (A-45)"
+grep -q 'DEMAND_MS = 30_000L' "$LADDER" || fail "the owner-unlock demand window changed from the approved 30 s (A-45)"
+grep -q 'BURST_INTERVAL_MS: Long = 60_000L' "$LADDER" || fail "the fast burst cadence changed from the approved 60 s (A-45)"
+grep -q 'FAST_BURSTS = 5' "$LADDER" || fail "the number of fast bursts changed from the approved five (A-45)"
+grep -q 'SLOW_INTERVAL_MS: Long = 300_000L' "$LADDER" || fail "the slow cadence changed from the approved 5 min (A-45)"
+grep -q 'LADDER_WINDOW_MS = 1_800_000L' "$LADDER" || fail "the ladder window changed from the approved 30 min (A-45)"
+grep -q 'SnatchLadder.next' "$RESPONDER" || fail "the responder no longer runs the ladder (A-45)"
+grep -q 'TheftDemand.show' "$RESPONDER" || fail "a locked phone no longer tells its holder what is happening (A-45)"
+grep -q 'TheftDemand.hide' "$RESPONDER" || fail "an owner unlock or a disarm leaves the demand on the lock screen (A-45)"
+grep -q 'settings.armed' "$RESPONDER" || fail "the ladder is not gated on the armed flag (A-45)"
+grep -q 'ZoneResponse.MUTED' "$RESPONDER" || fail "the safe zone no longer has its own response path (A-45)"
+grep -A 12 'is MotionConfirmation.BoundToActive ->' \
+  app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt \
+  | grep -q 'TableModeResponder.onMotionConfirmed' \
+  || fail "a movement that joins an open incident is silent again (A-45)"
+[ -s "$ZONE_POLICY" ] || fail "the pure safe-zone policy is missing (A-45)"
+grep -q '!stateKnown || !inside -> ZoneResponse.FULL' "$ZONE_POLICY" \
+  || fail "an unknown or outside safe-zone state no longer fails closed (A-45)"
+[ -s "$ZONE_STORE" ] || fail "the safe-zone reading has nowhere to live (A-45)"
+grep -q 'shieldra_zone_state' "$ZONE_STORE" \
+  || fail "the safe-zone reading moved back into the settings file, where a Save can overwrite it (A-45)"
+grep -q 'fun isFresh(nowMs: Long, staleAfterMs: Long)' "$ZONE_STORE" \
+  || fail "an old safe-zone reading is trusted instead of refused (A-45)"
+[ -s "$TICKER" ] || fail "nothing samples the safe zone any more, so the policy would read a stale answer (A-45)"
+grep -q 'GeofenceTicker.schedule' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  || fail "arming no longer starts the safe-zone sampling (A-45)"
+grep -q 'GeofenceTicker.cancel' app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "disarming no longer stops the safe-zone sampling (A-45)"
+grep -q 'listOf("ar", "en", "fr")' "$DEMAND" \
+  || fail "the lock-screen notice is no longer written in the three holder-facing languages (A-45)"
+[ -s "$RECORDER" ] || fail "the lift recorder that the Motion thresholds are waiting for is missing (A-45)"
+# Only call-shaped assertions count: the file is allowed to *say* it asserts nothing.
+if grep -Eq '^[[:space:]]*(assert[A-Za-z]*|fail|throw)[[:space:]]*\(' "$RECORDER"; then
+  fail "the lift recorder asserts something about the device, so it stopped being a measurement (A-45)"
+fi
+grep -q 'SHIELDRA_LIFT ' "$RECORDER" || fail "the lift recorder no longer prints the samples to analyse (A-45)"
+pass "A-45: a confirmed Motion locks, demands an unlock, escalates on the approved cadence, and a zone never fails open"
+
 # 6. The dashboard action reaches the real coordinator off the main thread.
 grep -q 'PanicIncidentCoordinator(repository' "$NAVHOST" || fail "NavHost does not build the panic coordinator"
 grep -q 'coordinator.activate()' "$NAVHOST" || fail "NavHost does not activate the panic coordinator"

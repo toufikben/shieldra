@@ -67,6 +67,12 @@ jobs:
         shell: bash
         run: bash .github/scripts/phase3-review-check.sh
 
+      # A-45 D3: Arabic must equal English key for key, and the notice a stranger reads must exist in
+      # Arabic, English and French. A missing holder-facing line is a safety gap, not a backlog.
+      - name: Run locale parity check
+        shell: bash
+        run: bash .github/scripts/locale-parity-check.sh
+
       - name: Publish test result counts to job summary
         if: always()
         shell: bash
