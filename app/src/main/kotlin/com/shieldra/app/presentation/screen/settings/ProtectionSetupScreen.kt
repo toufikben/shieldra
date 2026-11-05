@@ -334,18 +334,44 @@ fun ProtectionSetupScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(spacing.s))
-            ShieldraTextField(
-                value = draft.ownerContact,
-                onValueChange = { draft = draft.copy(ownerContact = it) },
-                label = stringResource(R.string.protection_owner_contact),
-            )
-            ShieldraTextField(
-                value = draft.lostMessage,
-                onValueChange = { draft = draft.copy(lostMessage = it) },
-                label = stringResource(R.string.protection_lost_message),
-            )
         }
+
+        // ===== What the holder of a locked phone is shown =====
+        // Deliberately outside the remote-control block above (A-45 D3): the Motion guard posts this
+        // notice on every plan, so the contact it prints and dials cannot live behind a Telegram toggle
+        // that a Free install cannot switch on. Before this moved, a phone without remote commands had no
+        // way to fill in the field the lock screen reads.
+        SectionTitle(stringResource(R.string.protection_notice_title))
+        val contactKind = com.shieldra.protection.OwnerContact.kind(draft.ownerContact)
+        val contactUnusable = draft.ownerContact.isNotBlank() &&
+            contactKind == com.shieldra.protection.ContactKind.UNKNOWN
+        ShieldraTextField(
+            value = draft.ownerContact,
+            onValueChange = { draft = draft.copy(ownerContact = it) },
+            label = stringResource(R.string.protection_owner_contact),
+        )
+        Spacer(Modifier.height(spacing.xs))
+        Text(
+            text = stringResource(
+                if (contactUnusable) R.string.protection_owner_contact_error
+                else R.string.protection_owner_contact_hint,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (contactUnusable) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(spacing.s))
+        ShieldraTextField(
+            value = draft.lostMessage,
+            onValueChange = { draft = draft.copy(lostMessage = it) },
+            label = stringResource(R.string.protection_lost_message),
+        )
+        Spacer(Modifier.height(spacing.xs))
+        Text(
+            text = stringResource(R.string.protection_theft_notice_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         GuardToggle(
             title = stringResource(R.string.protection_track_enable),

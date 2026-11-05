@@ -4,6 +4,13 @@
   own UI (which stays Arabic and English). So this file carries only the holder-facing copy. Other
   strings fall back to values/strings.xml. Apostrophes are avoided on purpose: AAPT2 requires ASCII
   ones to be escaped, and the copy reads the same without them.
+
+  The settings copy that explains the notice (protection_notice_title, protection_owner_contact_hint,
+  protection_owner_contact_error, protection_theft_notice_note) is deliberately NOT translated here: it
+  is owner-facing UI, and the owner's UI is Arabic and English. A phone set to French reads those lines
+  in English, exactly like every other line of this app. The notice itself is the exception because it
+  is read by a stranger, and TheftDemand composes all three languages by hand rather than trusting the
+  device locale.
 -->
 <resources>
     <string name="theft_demand_channel">Avis de téléphone verrouillé</string>

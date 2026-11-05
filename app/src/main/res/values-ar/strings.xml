@@ -187,8 +187,13 @@
     <string name="protection_remote_enable">التحكم من تلغرام</string>
     <string name="protection_remote_desc">أرسل أوامر لبوتك والهاتف مُفعّل. يتطلب إعداد تلغرام في قنوات التنبيه.</string>
     <string name="protection_remote_help">أرسل لبوتك: /locate لموقع، /photo لصورة أمامية، /alarm و /stopalarm للصفّارة، /lock لقفل الشاشة، /status للبطارية والشبكة، /lost و /found لإظهار جهة اتصالك على شاشة القفل.</string>
-    <string name="protection_owner_contact">جهة اتصالك (تظهر مع /lost)</string>
+    <string name="protection_owner_contact">جهة اتصالك (تظهر على شاشة القفل)</string>
     <string name="protection_lost_message">رسالة شاشة الفقدان (اختياري)</string>
+    <!-- A-45 D3: حقلَا الإشعار الذي يراه حامل الهاتف بعد أن يقفله حارس الحركة. -->
+    <string name="protection_notice_title">ما يراه من يحمل الهاتف</string>
+    <string name="protection_owner_contact_hint">رقم هاتف مع مفتاح الدولة (مثل +213 555 12 34 56) أو بريد إلكتروني (مثل owner@example.com)</string>
+    <string name="protection_owner_contact_error">ليس رقم هاتف ولا بريدا إلكترونيا: سيظهر هذا النص في الإشعار لكن بلا زر اتصال.</string>
+    <string name="protection_theft_notice_note">عندما يقفل حارس الحركة الهاتف، هذا ما يقرأه حامله: الإشعار بالعربية والإنجليزية والفرنسية، مع جهة اتصالك مرة واحدة.</string>
     <string name="lost_channel">هاتف مفقود</string>
     <string name="lost_title">هذا الهاتف مفقود</string>
     <string name="lost_default_message">إن وجدته، فضلاً أعِد هذا الهاتف.</string>

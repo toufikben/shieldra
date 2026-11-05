@@ -200,8 +200,17 @@
     <string name="protection_remote_enable">Control from Telegram</string>
     <string name="protection_remote_desc">Send commands to your bot while the phone is armed. Needs Telegram set up in Alert channels.</string>
     <string name="protection_remote_help">Send to your bot: /locate for a map pin, /photo for a front-camera photo, /alarm and /stopalarm for the siren, /lock to lock the screen, /status for battery and network, /lost and /found to show your contact on the lock screen.</string>
-    <string name="protection_owner_contact">Your contact (shown by /lost)</string>
+    <string name="protection_owner_contact">Your contact (shown on the lock screen)</string>
     <string name="protection_lost_message">Lost-screen message (optional)</string>
+    <!--
+      A-45 D3: the Motion guard now locks the phone and tells the stranger who is holding it what
+      happens, so the two fields that feed that notice have to be reachable without Telegram and the
+      hint has to name the two forms the app understands.
+    -->
+    <string name="protection_notice_title">What a stranger is shown</string>
+    <string name="protection_owner_contact_hint">A phone number with its country code (like +213 555 12 34 56) or an email address (like owner@example.com)</string>
+    <string name="protection_owner_contact_error">Neither a phone number nor an email address: the notice will show this text, but there will be no call button.</string>
+    <string name="protection_theft_notice_note">When the Motion guard locks the phone, this is what its holder reads: the notice in Arabic, English and French, with your contact once.</string>
     <string name="lost_channel">Lost phone</string>
     <string name="lost_title">This phone is lost</string>
     <string name="lost_default_message">If found, please return this phone.</string>
