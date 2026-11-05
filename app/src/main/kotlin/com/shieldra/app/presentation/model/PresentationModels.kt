@@ -1,5 +1,7 @@
 package com.shieldra.app.presentation.model
 
+import com.shieldra.protection.CountdownDeadline
+
 enum class ProtectionVisualState {
     Protected,
     Suspicious,
@@ -130,6 +132,13 @@ data class DashboardUiModel(
     val proActive: Boolean = false,
     /** Every stored event, when known; the list above is only the newest few. */
     val totalEvents: Int? = null,
+    /**
+     * The periodic signal's live cycle, or null when none is armed. Read from the stored deadline, so
+     * a card built on it can only ever describe a cycle the scheduler really armed (A-33).
+     */
+    val periodicSignal: CountdownDeadline? = null,
+    /** The owner's chosen cycle length, so a reset can say what it gives back before it happens. */
+    val periodicSignalIntervalMs: Long = 0L,
 )
 
 enum class HistoryTypeFilter { All, Lock, Motion, Sim, Panic, Battery }

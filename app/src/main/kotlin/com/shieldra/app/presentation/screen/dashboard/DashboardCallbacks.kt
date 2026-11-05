@@ -14,4 +14,6 @@ data class DashboardCallbacks(
     val onPanicTapHint: () -> Unit = {},
     /** Opens the Pro screen from the dashboard top bar (A-40). */
     val onOpenPro: () -> Unit = {},
+    /** Restarts the periodic signal's cycle from now (A-33). Weakening, so the caller verifies first. */
+    val onPeriodicSignalReset: () -> Unit = {},
 )

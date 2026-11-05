@@ -147,6 +147,9 @@
     <string name="countdown_warning_title">Periodic signal</string>
     <string name="countdown_warning_text">The next signal is due in %1$s.</string>
     <string name="countdown_snooze">Postpone</string>
+    <!-- The dashboard's periodic-signal card (A-33): the time left on the armed cycle, and what a tap gives back. -->
+    <string name="periodic_signal_card_title">Periodic signal — %1$s left</string>
+    <string name="periodic_signal_card_hint">Tap to restart the cycle: %1$s from now</string>
     <string name="protection_title">Protection</string>
     <string name="protection_state_armed">Armed — guarding in the background</string>
     <string name="protection_state_disarmed">Not armed</string>

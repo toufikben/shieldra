@@ -116,6 +116,10 @@ import com.shieldra.protection.ProtectionRuntime
 import com.shieldra.protection.ProtectionChange
 import com.shieldra.protection.ProtectionSettings
 import com.shieldra.protection.ProtectionSettingsStore
+import com.shieldra.protection.CountdownDeadline
+import com.shieldra.protection.CountdownScheduler
+import com.shieldra.protection.RemainingTime
+import com.shieldra.billing.TierGate
 import com.shieldra.protection.LockGuardReceiver
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
@@ -524,6 +528,37 @@ fun ShieldraNavHost(
                     channel = deliverySettings?.activeChannels()?.isNotEmpty() == true,
                     motionMonitoring = motionClaim.claimsProtection,
                 )
+                // A-33: the periodic signal's live cycle, read from the deadline the scheduler itself
+                // stores. It is re-read while this screen is open because the scheduler re-arms a cycle
+                // when one fires, and a card that only ever showed the deadline read at screen entry
+                // would freeze a running countdown into an expired one. A press re-reads it at once.
+                var periodicSignalRefresh by remember { mutableStateOf(0) }
+                val periodicSignal by produceState(
+                    initialValue = protectionStore.countdownDeadline(),
+                    protectionArmed,
+                    protectionSettings.countdownEnabled,
+                    periodicSignalRefresh,
+                ) {
+                    while (true) {
+                        value = withContext(Dispatchers.IO) { protectionStore.countdownDeadline() }
+                        delay(DEVICE_REFRESH_MS)
+                    }
+                }
+                // The card may only promise what a restart can actually deliver: CountdownScheduler.start
+                // refuses silently for a switched-off signal or a Free plan, so neither shows the card.
+                val periodicSignalCycle = periodicSignal?.takeIf {
+                    protectionSettings.countdownEnabled && TierGate.allowsCountdown(protectionSettings.tier)
+                }
+                val periodicSignalResetMessage = stringResource(
+                    R.string.countdown_warning_text,
+                    RemainingTime.format(
+                        protectionSettings.countdownIntervalMs.coerceAtLeast(CountdownDeadline.MIN_DURATION_MS),
+                        stringResource(R.string.unit_day),
+                        stringResource(R.string.unit_hour),
+                        stringResource(R.string.unit_minute),
+                        stringResource(R.string.unit_less_than_minute),
+                    ),
+                )
                 DashboardScreen(
                     model = lockGuardDashboard(
                         state = guardState,
@@ -540,6 +575,8 @@ fun ShieldraNavHost(
                         protectionScore = scoreFor(healthChecks, protectionSettings),
                         proActive = proState.entitled,
                         totalEvents = recentEvents.size,
+                        periodicSignal = periodicSignalCycle,
+                        periodicSignalIntervalMs = protectionSettings.countdownIntervalMs,
                     ),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->
@@ -605,6 +642,30 @@ fun ShieldraNavHost(
                         },
                         onOpenPro = {
                             navController.navigate(ShieldraRoutes.PRO)
+                        },
+                        onPeriodicSignalReset = {
+                            // A restart moves the next signal later, which is a weakening of the same
+                            // kind as stopping a guard — so this screen's existing rule applies: the
+                            // owner proves it is them first, and a refusal says so instead of failing
+                            // silent. The card itself never starts a cycle; it re-arms the armed one.
+                            val restartCycle = {
+                                CountdownScheduler.restart(context)
+                                periodicSignalRefresh += 1
+                                scope.launch { snackbarHostState.showSnackbar(periodicSignalResetMessage) }
+                            }
+                            val activity = context.findFragmentActivity()
+                            if (activity == null) {
+                                restartCycle()
+                            } else {
+                                OwnerCheck.request(activity, ownerCheckTitle, ownerCheckSubtitle) { result ->
+                                    when (result) {
+                                        OwnerCheckResult.Confirmed, OwnerCheckResult.NoScreenLock -> restartCycle()
+                                        OwnerCheckResult.Refused -> scope.launch {
+                                            snackbarHostState.showSnackbar(ownerCheckRefusedMessage)
+                                        }
+                                    }
+                                }
+                            }
                         },
                         onMotionMonitoringToggle = {
                             if (motionClaim.claimsProtection) {

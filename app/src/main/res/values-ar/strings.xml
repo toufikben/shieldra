@@ -134,6 +134,9 @@
     <string name="countdown_warning_title">إشارة دورية</string>
     <string name="countdown_warning_text">الإشارة التالية ستُرسل بعد %1$s.</string>
     <string name="countdown_snooze">تأجيل</string>
+    <!-- بطاقة الإشارة الدورية في اللوحة (A-33): الوقت المتبقي من الدورة الجارية، وما تعطيه اللمسة. -->
+    <string name="periodic_signal_card_title">إشارة دورية — متبقٍ %1$s</string>
+    <string name="periodic_signal_card_hint">اضغط لإعادة الضبط: دورة %1$s تبدأ من الآن</string>
     <string name="protection_title">الحماية</string>
     <string name="protection_state_armed">مُفعّلة — تحرس في الخلفية</string>
     <string name="protection_state_disarmed">غير مُفعّلة</string>

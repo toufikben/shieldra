@@ -11,6 +11,7 @@ import com.shieldra.app.presentation.model.GuardStatus
 import com.shieldra.app.presentation.model.GuardUiModel
 import com.shieldra.app.presentation.model.NetworkStatus
 import com.shieldra.app.presentation.model.ProtectionVisualState
+import com.shieldra.protection.CountdownDeadline
 import com.shieldra.runtime.MonitoringClaim
 
 /**
@@ -44,6 +45,10 @@ fun lockGuardDashboard(
     protectionScore: Int? = null,
     proActive: Boolean = false,
     totalEvents: Int? = null,
+    // A-33: the periodic signal's own stored cycle. Nothing here derives it from a press or from the
+    // interval setting — only the deadline the scheduler actually armed can make the card appear.
+    periodicSignal: CountdownDeadline? = null,
+    periodicSignalIntervalMs: Long = 0L,
 ): DashboardUiModel {
     val statuses = LockGuardDecision.guardStatuses(state)
     val inactiveSubtitle = stringResource(R.string.guard_subtitle_inactive)
@@ -88,6 +93,8 @@ fun lockGuardDashboard(
         protectionScore = protectionScore,
         proActive = proActive,
         totalEvents = totalEvents,
+        periodicSignal = periodicSignal,
+        periodicSignalIntervalMs = periodicSignalIntervalMs,
     )
 }
 
