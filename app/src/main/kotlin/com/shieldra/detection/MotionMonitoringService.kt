@@ -278,6 +278,18 @@ class MotionMonitoringService : Service(), MotionMonitor {
             }
             is MotionConfirmation.Rejected ->
                 Log.w(TAG, "a confirmed Movement could not be recorded: ${confirmation.reason}")
+            is MotionConfirmation.BoundToActive -> {
+                // A-45 D1: a movement that joined the open incident is not silence. A phone being
+                // carried produces one of these after another, and the old behaviour was that the very
+                // next movement after the confirmation did nothing at all — which is precisely the snatch
+                // the owner described. It goes to the same responder, which either keeps the running
+                // ladder's cadence or starts a new one if the previous response ended. No second local
+                // notification: one incident, one notice on the owner's own shade.
+                TableModeResponder.onMotionConfirmed(
+                    applicationContext,
+                    confirmation.event.id.value.toString(),
+                )
+            }
             else -> Unit
         }
     }
