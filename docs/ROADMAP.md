@@ -1065,6 +1065,11 @@ Arabic equals English key for key`; `Group C boundary scan passed`; `PHASE 3 STA
 `G4-B LOCAL REVIEW PASS — runtime/device evidence still required`. The g4b design-B sections still
 see the retired Lock surface absent.
 
-**CI:** PENDING — the branch is pushed and dispatched after this line is written; the run id and its
-proof lines are recorded here only once `gh run view` confirms `success`. **Device:** NOT RUN; this
+**CI:** run `42179162583` on `b49d802` — **success** (job 127764494926, 07:10:50Z→07:21:49Z):
+`BUILD SUCCESSFUL in 5m 53s`, `CI TEST SUMMARY: 579 tests, 579 passed, 0 failures, 0 errors,
+0 skipped` (569 before this batch plus the ten tests added here),
+`PASS: the installed APK declares exactly the reviewed permission set (21 permissions)`,
+`Group C boundary scan passed`, `G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS`,
+`LOCALE PARITY PASS`. The optimised phone APK and the signed release pair built green as well; the
+three rolling-release publish steps are skipped on a branch by design. **Device:** NOT RUN; this
 batch changes general screens and its phone round is #32 (P-1…P-16), not this one.
