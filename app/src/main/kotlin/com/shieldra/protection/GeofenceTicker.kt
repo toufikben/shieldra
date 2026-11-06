@@ -10,17 +10,17 @@ import android.util.Log
 import kotlinx.coroutines.runBlocking
 
 /**
- * The safe-zone clock, kept outside the service process (A-45 D2).
+ * The safe-zone clock, kept outside the service process.
  *
  * The old sampler was a `Handler` inside [ProtectionService]: it died with the process, drifted in Doze,
  * and its "was inside" flag lived in a field, so every restart silently assumed the phone was at home
- * again. The Motion ladder now reads that state to decide whether to make any noise, and a decision that
- * important must not depend on how long the service has happened to be alive. So the tick is an alarm and
- * the state is on disk, in [ZoneStateStore].
+ * again. The one-shot leave-a-zone alert (A-36) is a crossing, and a crossing needs the last reading to
+ * survive a restart — otherwise every restart would re-announce the same zone. So the tick is an alarm
+ * and the state is on disk, in [ZoneStateStore].
  *
  * Exact alarms are used when the owner allowed them and idle-capable inexact ones when not — the same
  * reading the countdown and the guard patrol use — because a late zone reading is worse protection than
- * no reading, which is why [staleAfterMs] exists and why an unknown zone fails closed in [ZonePolicy].
+ * no reading, which is why [staleAfterMs] exists and why a stale reading is refused rather than trusted.
  */
 object GeofenceTicker {
 
@@ -30,7 +30,7 @@ object GeofenceTicker {
     /** Distinct from the countdown, the pending capture (20020) and the guard patrol (20021). */
     private const val REQUEST_CODE = 4102
 
-    /** A sample older than this many intervals is no longer trusted by the ladder. */
+    /** A sample older than this many intervals is no longer trusted as evidence of where the phone is. */
     const val STALE_FACTOR: Long = 2L
 
     fun nextDelayMs(intervalMinutes: Int): Long = intervalMinutes.coerceAtLeast(1) * 60_000L
