@@ -139,15 +139,19 @@ object ProtectionRuntime {
         val fix = LocationFix(app).current() ?: return false
         val store = ProtectionSettingsStore(app)
         val zones = store.safeZones().toMutableList()
-        val label = name.ifBlank { "Zone ${zones.size + 1}" }
+        val label = name.ifBlank { SafeZoneLabels.nextDefaultName(zones) }
         zones.add(SafeZone(label, GeofenceLogic.Zone(fix.latitude, fix.longitude, radiusMeters)))
         store.setSafeZones(zones)
         return true
     }
 
-    fun removeZone(context: Context, name: String) {
+    /**
+     * Removes exactly the place the owner tapped (G-11). Removal used to match on the name alone, so
+     * two zones that happened to share one were both deleted from a single row.
+     */
+    fun removeZone(context: Context, zone: SafeZone) {
         val store = ProtectionSettingsStore(context.applicationContext)
-        store.setSafeZones(store.safeZones().filterNot { it.name == name })
+        store.setSafeZones(store.safeZones().filterNot { it == zone })
     }
 
     /**

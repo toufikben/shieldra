@@ -21,9 +21,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,9 +91,17 @@ fun ProtectionSetupScreen(
     onOpenPro: () -> Unit = {},
 ) {
     val spacing = ShieldraTheme.spacing
-    var draft by remember(settings) { mutableStateOf(settings) }
-    var customMinutes by remember(settings) { mutableStateOf("") }
-    var customCountdownOpen by remember(settings) { mutableStateOf(false) }
+    // G-8/G-9: saveable, so a language switch (which recreates the activity) keeps the draft, and no
+    // longer keyed on `settings`, so arming from this screen's own top button stops wiping it.
+    var draft by rememberSaveable { mutableStateOf(settings) }
+    var openedWith by rememberSaveable { mutableStateOf(settings) }
+    LaunchedEffect(settings) {
+        val synced = draftAfterSettingsChange(draft, openedWith, settings)
+        draft = synced.draft
+        openedWith = synced.openedWith
+    }
+    var customMinutes by rememberSaveable { mutableStateOf("") }
+    var customCountdownOpen by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier

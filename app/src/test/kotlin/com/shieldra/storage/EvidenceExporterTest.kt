@@ -62,4 +62,30 @@ class EvidenceExporterTest {
         assertEquals(2, result.includedCount) // photo + audio only
         assertEquals(false, audited?.includedLocation)
     }
+
+    @Test
+    fun `evidence that is gone is reported instead of counted as exported`() {
+        // G-10: the count used to be `included.size` — the items redaction allowed — so a pruned
+        // evidence file still counted as exported and the owner was told the archive was saved.
+        val partial = EvidenceExporter(
+            readEvidence = { if (it == "p1") payloads[it] else null },
+            recordAudit = { audited = it },
+        )
+
+        val result = partial.export(items, includeLocation = true, passphrase = pass.copyOf(), nowMs = 30, authenticated = true, explicitAction = true)
+
+        assertEquals(1, result.includedCount, "only the payload that was really read is exported")
+        assertEquals(2, result.unreadableCount, "the audio and location files were gone")
+        assertEquals(1, audited?.includedCount, "the audit records what left, not what was allowed")
+    }
+
+    @Test
+    fun `an export with nothing readable reports zero rather than a sealed empty success`() {
+        val empty = EvidenceExporter(readEvidence = { null })
+
+        val result = empty.export(items, includeLocation = true, passphrase = pass.copyOf(), nowMs = 40, authenticated = true, explicitAction = true)
+
+        assertEquals(0, result.includedCount)
+        assertEquals(3, result.unreadableCount)
+    }
 }

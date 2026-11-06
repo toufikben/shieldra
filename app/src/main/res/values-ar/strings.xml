@@ -38,6 +38,8 @@
     <string name="safe_zones_remove">حذف المنطقة الآمنة</string>
     <string name="safe_zones_added">حُفظت المنطقة الآمنة</string>
     <string name="safe_zones_no_fix">تعذّر الحصول على موقع</string>
+    <string name="safe_zone_radius_m">%1$d م</string>
+    <string name="safe_zone_radius_km">%1$d كم</string>
     <string name="map_open_health">فحص صحة الحماية</string>
     <string name="health_title">صحة الحماية</string>
     <string name="health_subtitle">ما الذي يحمي هذا الجهاز فعلاً الآن.</string>
@@ -580,6 +582,8 @@
     <string name="export_done">حُفظ التصدير المشفّر.</string>
     <string name="export_failed">تعذّر إكمال التصدير.</string>
     <string name="export_refused">أُلغي التصدير: لم تتأكّد الهوية.</string>
+    <string name="export_no_evidence">تعذّرت قراءة أي دليل: ملفات الأدلة مفقودة، فلم تُنشأ حزمة.</string>
+    <string name="export_done_partial">حُفظ %1$d من أصل %2$d؛ تعذّرت قراءة %3$d منها.</string>
 
     <!-- المقارنة الأمينة مع حماية أندرويد الذاتية من السرقة (التطوير د): لا شيء هنا مقاس على هذا الهاتف،
          والأسماء أسماء Google، فالمصنعون يعيدون تسميتها ويوزعونها على نسخ مختلفة. -->

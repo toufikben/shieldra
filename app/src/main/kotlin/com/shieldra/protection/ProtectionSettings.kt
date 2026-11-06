@@ -39,7 +39,7 @@ data class ProtectionSettings(
     val lostMessage: String = "",
     /** The owner's plan; PREMIUM until real billing is wired, so nothing is locked during testing. */
     val tier: com.shieldra.billing.Tier = com.shieldra.billing.Tier.PREMIUM,
-) {
+) : java.io.Serializable {
     /** What table-mode does when the phone is lifted: a silent capture, a loud siren, or a grace first. */
     enum class MotionResponse { SILENT, SIREN, GRACE_THEN_SIREN }
 }

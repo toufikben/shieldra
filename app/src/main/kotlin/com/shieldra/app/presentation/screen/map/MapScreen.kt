@@ -22,7 +22,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.shieldra.app.design.components.foundation.ShieldraChip
 import com.shieldra.protection.SafeZone
@@ -63,15 +63,14 @@ fun MapScreen(
     onOpenHealthCheck: () -> Unit,
     geofenceEnabled: Boolean,
     zoneReadingFresh: Boolean,
-    zoneNames: List<String>,
-    zoneRadii: Map<String, Int>,
+    zones: List<SafeZone>,
     onToggleGeofence: (Boolean) -> Unit,
     onAddZone: (Int) -> Unit,
-    onRemoveZone: (String) -> Unit,
+    onRemoveZone: (SafeZone) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val accent = ShieldraTheme.semantic.protection
-    var newRadius by remember { mutableStateOf(SafeZone.DEFAULT_RADIUS_M.toInt()) }
+    var newRadius by rememberSaveable { mutableStateOf(SafeZone.DEFAULT_RADIUS_M.toInt()) }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -145,7 +144,7 @@ fun MapScreen(
             // A-45 D2: a zone the phone cannot actually locate itself in protects nothing, and the
             // ladder then behaves as if it were outside. The owner is told that, not shown a switch
             // that quietly reads nothing.
-            if (armed && geofenceEnabled && zoneNames.isNotEmpty() && !zoneReadingFresh) {
+            if (armed && geofenceEnabled && zones.isNotEmpty() && !zoneReadingFresh) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = stringResource(R.string.safe_zone_sampler_off),
@@ -154,23 +153,23 @@ fun MapScreen(
                 )
             }
             Spacer(Modifier.height(10.dp))
-            if (zoneNames.isEmpty()) {
+            if (zones.isEmpty()) {
                 Text(
                     text = stringResource(R.string.safe_zones_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                zoneNames.forEach { name ->
+                zones.sortedBy { it.name }.forEach { zone ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.LocationOn, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.size(8.dp))
                         Text(
-                            text = zoneRadii[name]?.let { "$name  ·  ${formatRadius(it)}" } ?: name,
+                            text = "${zone.name}  ·  ${zoneRadiusLabel(zone.zone.radiusMeters.toInt())}",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f),
                         )
-                        IconButton(onClick = { onRemoveZone(name) }) {
+                        IconButton(onClick = { onRemoveZone(zone) }) {
                             Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.safe_zones_remove), modifier = Modifier.size(18.dp))
                         }
                     }
@@ -185,7 +184,7 @@ fun MapScreen(
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SafeZone.RADIUS_CHOICES_M.forEach { choice ->
-                    ShieldraChip(label = formatRadius(choice), selected = choice == newRadius, onClick = { newRadius = choice })
+                    ShieldraChip(label = zoneRadiusLabel(choice), selected = choice == newRadius, onClick = { newRadius = choice })
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -261,4 +260,8 @@ private fun StatusRow(accent: Color, on: Boolean, title: String) {
     }
 }
 
-private fun formatRadius(meters: Int): String = if (meters >= 1000) "${meters / 1000} km" else "$meters m"
+/** G-14: the unit is a translated string, so the Arabic screen does not print Latin "km"/"m". */
+@Composable
+private fun zoneRadiusLabel(meters: Int): String =
+    if (meters >= 1000) stringResource(R.string.safe_zone_radius_km, meters / 1000)
+    else stringResource(R.string.safe_zone_radius_m, meters)

@@ -70,7 +70,11 @@ fun HealthCheckScreen(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    // G-13: an unnamed icon button is announced as "button" by TalkBack.
+                    contentDescription = stringResource(R.string.nav_back),
+                )
             }
             Spacer(Modifier.size(4.dp))
             Text(
