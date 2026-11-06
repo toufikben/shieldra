@@ -17,15 +17,14 @@ class PendingCaptureLogicTest {
     private val now = 1_730_000_000_000L
 
     private fun request(
-        type: SecurityEventType = SecurityEventType.LOCK_CONFIRMED_EVENT,
+        type: SecurityEventType = SecurityEventType.SIM_CONFIRMED_EVENT,
         eventId: String? = null,
-        attempts: Int? = null,
         at: Long = now,
-    ) = PendingCapture(type, eventId, attempts, at)
+    ) = PendingCapture(type, eventId, at)
 
     @Test
     fun a_request_survives_being_written_down_and_read_back() {
-        val stored = PendingCapture(SecurityEventType.SIM_CONFIRMED_EVENT, "3f2a", 7, now)
+        val stored = PendingCapture(SecurityEventType.SIM_CONFIRMED_EVENT, "3f2a", now)
 
         val read = PendingCaptureLogic.decode(PendingCaptureLogic.encode(stored))
 
@@ -34,7 +33,7 @@ class PendingCaptureLogicTest {
 
     @Test
     fun a_request_the_owner_was_already_told_about_keeps_that_fact_through_the_queue() {
-        val fresh = request(attempts = 3)
+        val fresh = request()
         val told = PendingCaptureLogic.told(fresh)
 
         // The notice mark is what keeps a retry from sending the same bad news every thirty seconds.
@@ -44,23 +43,22 @@ class PendingCaptureLogicTest {
     }
 
     @Test
-    fun an_absent_event_and_an_absent_count_read_back_as_nothing_rather_than_as_a_guess() {
+    fun an_absent_event_reads_back_as_nothing_rather_than_as_a_guess() {
         val read = PendingCaptureLogic.decode(
-            PendingCaptureLogic.encode(request(eventId = null, attempts = null)),
+            PendingCaptureLogic.encode(request(eventId = null)),
         )
 
         assertEquals(now, read?.requestedAtEpochMs)
         assertNull(read?.eventId)
-        assertNull(read?.failedAttempts)
     }
 
     @Test
     fun a_line_this_version_cannot_read_is_dropped_instead_of_being_guessed_at() {
         val sep = "\u0001"
         // Too few fields, a guard this build does not know, a moment that is not a number, nothing at all.
-        assertNull(PendingCaptureLogic.decode("LOCK_CONFIRMED_EVENT$sep$sep$now"))
+        assertNull(PendingCaptureLogic.decode("GONE_GUARD$sep$sep$now"))
         assertNull(PendingCaptureLogic.decode("NOT_A_GUARD$sep$sep$sep$now"))
-        assertNull(PendingCaptureLogic.decode("LOCK_CONFIRMED_EVENT$sep$sep$sep" + "later"))
+        assertNull(PendingCaptureLogic.decode("NOT_A_GUARD$sep$sep$sep" + "later"))
         assertNull(PendingCaptureLogic.decode(""))
     }
 
@@ -68,32 +66,32 @@ class PendingCaptureLogicTest {
     fun a_request_left_behind_by_the_previous_build_reads_as_not_yet_reported() {
         // An older build wrote four fields and no notice mark; a queue that survived the update has to
         // be read as it was written, and the honest reading is that nobody had been told about it yet.
-        val legacy = PendingCaptureLogic.encode(request(attempts = 3)).dropLast(1)
+        val legacy = PendingCaptureLogic.encode(request()).dropLast(1)
 
         val read = PendingCaptureLogic.decode(legacy)
 
         assertEquals(false, read?.announced)
-        assertEquals(3, read?.failedAttempts)
+        assertEquals(now, read?.requestedAtEpochMs)
     }
 
     @Test
     fun the_same_guard_waiting_for_the_same_incident_is_not_queued_twice() {
-        val first = request(attempts = 4)
+        val first = request()
 
-        val queue = PendingCaptureLogic.plus(listOf(first), request(attempts = 9))
+        val queue = PendingCaptureLogic.plus(listOf(first), request())
 
-        // The burst of wrong unlocks is one scene: the request already waiting will photograph it.
+        // One guard's burst is one scene: the request already waiting will photograph it.
         assertEquals(listOf(first), queue)
     }
 
     @Test
     fun two_guards_that_both_failed_both_wait() {
-        val lock = request()
-        val sim = request(type = SecurityEventType.SIM_CONFIRMED_EVENT, at = now + 1)
+        val sim = request()
+        val battery = request(type = SecurityEventType.BATTERY_SIGNAL, at = now + 1)
 
-        val queue = PendingCaptureLogic.plus(listOf(lock), sim)
+        val queue = PendingCaptureLogic.plus(listOf(sim), battery)
 
-        assertEquals(listOf(lock, sim), queue)
+        assertEquals(listOf(sim, battery), queue)
     }
 
     @Test
@@ -111,7 +109,7 @@ class PendingCaptureLogicTest {
     fun a_full_queue_makes_room_by_losing_the_oldest_wait() {
         val waiting = (0 until PendingCaptureLogic.MAX_PENDING).map {
             request(
-                type = if (it % 2 == 0) SecurityEventType.LOCK_CONFIRMED_EVENT else SecurityEventType.SIM_CONFIRMED_EVENT,
+                type = if (it % 2 == 0) SecurityEventType.SIM_CONFIRMED_EVENT else SecurityEventType.BATTERY_SIGNAL,
                 eventId = "e$it",
                 at = now + it,
             )
@@ -188,12 +186,12 @@ class PendingCaptureLogicTest {
 
     @Test
     fun waiting_holds_only_fresh_requests_for_the_exact_guard_and_incident() {
-        val lock = request()
-        val waiting = listOf(lock)
+        val sim = request()
+        val waiting = listOf(sim)
 
-        assertTrue(PendingCaptureLogic.holds(waiting, lock.type, null, now))
-        assertFalse(PendingCaptureLogic.holds(waiting, lock.type, "some other event", now))
-        assertFalse(PendingCaptureLogic.holds(waiting, SecurityEventType.SIM_CONFIRMED_EVENT, null, now))
-        assertFalse(PendingCaptureLogic.holds(waiting, lock.type, null, now + PendingCaptureLogic.STALE_AFTER_MS + 1))
+        assertTrue(PendingCaptureLogic.holds(waiting, sim.type, null, now))
+        assertFalse(PendingCaptureLogic.holds(waiting, sim.type, "some other event", now))
+        assertFalse(PendingCaptureLogic.holds(waiting, SecurityEventType.BATTERY_SIGNAL, null, now))
+        assertFalse(PendingCaptureLogic.holds(waiting, sim.type, null, now + PendingCaptureLogic.STALE_AFTER_MS + 1))
     }
 }

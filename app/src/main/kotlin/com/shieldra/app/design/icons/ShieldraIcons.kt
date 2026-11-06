@@ -30,7 +30,6 @@ fun GuardKind.icon(): ImageVector = when (this) {
 }
 
 fun EventType.icon(): ImageVector = when (this) {
-    EventType.FailedUnlock -> Icons.Filled.Lock
     EventType.Motion -> Icons.AutoMirrored.Filled.DirectionsRun
     EventType.SimChange -> Icons.Filled.SimCard
     EventType.Panic -> Icons.Filled.WarningAmber

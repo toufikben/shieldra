@@ -165,7 +165,12 @@ class RoomEventRepository(
             )
         },
         metadata = entity.resumeStage?.let { mapOf(DEFERRED_STAGE_KEY to it) } ?: emptyMap(),
-        type = SecurityEventType.valueOf(entity.eventType),
+        // Tolerant on purpose: a row written by an older build may name a type this build no longer
+        // has (the Lock guard's LOCK_CONFIRMED_EVENT). `valueOf` would throw and the reader's
+        // runCatching would then drop the *whole* history, not just that row. An unknown type is
+        // read as an unnamed confirmed event, which the History screen already shows under "Other".
+        type = SecurityEventType.entries.firstOrNull { it.name == entity.eventType }
+            ?: SecurityEventType.CONFIRMED_SECURITY_EVENT,
         panicActivationCount = entity.panicActivationCount,
         panicLastActivatedAt = entity.panicLastActivatedAtEpochMs?.let(Instant::ofEpochMilli),
     )

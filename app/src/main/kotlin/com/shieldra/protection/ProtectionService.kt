@@ -283,7 +283,6 @@ class ProtectionService : Service() {
             else -> {
                 val kindName = intent?.getStringExtra(EXTRA_KIND)
                 val eventId = intent?.getStringExtra(EXTRA_EVENT_ID)
-                val failedAttempts = intent?.getIntExtra(EXTRA_FAILED_ATTEMPTS, -1)?.takeIf { it >= 0 }
                 val requested = kindName?.let { name ->
                     runCatching { SecurityEventType.valueOf(name) }.getOrElse {
                         Log.e(TAG, "an unknown capture request arrived: $name")
@@ -304,7 +303,7 @@ class ProtectionService : Service() {
                         },
                     )
                     requested?.let {
-                        declareFailure(applicationContext, it, eventId, failedAttempts, "the service could not start in the foreground")
+                        declareFailure(applicationContext, it, eventId, "the service could not start in the foreground")
                     }
                     stopSelf(startId)
                     return START_NOT_STICKY
@@ -322,7 +321,7 @@ class ProtectionService : Service() {
                     }
                 }
                 // Newest first: the request that woke this instance is the one still in front of the lens.
-                requested?.let { runCapture(it, eventId, failedAttempts) }
+                requested?.let { runCapture(it, eventId) }
                 drainQueue()
             }
         }
@@ -350,8 +349,8 @@ class ProtectionService : Service() {
      * Runs one capture, binding it to the incident [eventId] when the caller already created one (the
      * Motion guard) and opening or joining the incident for [type] otherwise.
      */
-    private fun runCapture(type: SecurityEventType, eventId: String?, failedAttempts: Int?) {
-        if (eventId != null) captureForExisting(eventId, type) else capture(type, failedAttempts)
+    private fun runCapture(type: SecurityEventType, eventId: String?) {
+        if (eventId != null) captureForExisting(eventId, type) else capture(type)
     }
 
     /**
@@ -370,10 +369,10 @@ class ProtectionService : Service() {
      * it goes to the queue and the next heartbeat or retry alarm runs it, because a guard that fired
      * and produced nothing is the failure the owner can never see coming.
      */
-    private fun capture(type: SecurityEventType, failedAttempts: Int?) {
+    private fun capture(type: SecurityEventType) {
         if (!busy.compareAndSet(false, true)) {
             Log.i(TAG, "a $type capture waited: the camera was already open")
-            queueForRetry(type, eventId = null, failedAttempts, "the camera was busy")
+            queueForRetry(type, eventId = null, "the camera was busy")
             return
         }
         scope.launch {
@@ -384,16 +383,15 @@ class ProtectionService : Service() {
                     // Still recovering rather than broken (the app opens storage off the main thread),
                     // so this one waits for the next drain instead of being lost.
                     Log.e(TAG, "a $type capture waited: no storage is installed")
-                    queueForRetry(type, eventId = null, failedAttempts, "the storage was not installed yet")
+                    queueForRetry(type, eventId = null, "the storage was not installed yet")
                     return@launch
                 }
                 val repository = storage.eventRepository
-                val grouped = type == SecurityEventType.LOCK_CONFIRMED_EVENT || type == SecurityEventType.SIM_CONFIRMED_EVENT
+                val grouped = type == SecurityEventType.SIM_CONFIRMED_EVENT
                 val binding = ProtectionEvents(repository).openOrBind(type, grouped, severityFor(type))
-                captureStoreDispatch(storage, repository, binding.event.id, alertKindFor(type), failedAttempts)
+                captureStoreDispatch(storage, repository, binding.event.id, alertKindFor(type))
                 // A new intrusion incident starts the live trail (if the owner turned it on).
-                val intrusion = type == SecurityEventType.LOCK_CONFIRMED_EVENT ||
-                    type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
+                val intrusion = type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
                     type == SecurityEventType.SIM_CONFIRMED_EVENT
                 if (binding.isNew && intrusion) {
                     startTrackingIfEnabled(binding.event.id, alertKindFor(type))
@@ -413,7 +411,6 @@ class ProtectionService : Service() {
         repository: EventRepository,
         eventId: EventId,
         kind: AlertKind,
-        failedAttempts: Int?,
     ) {
         val settings = ProtectionSettingsStore(applicationContext).load()
         val tier = settings.tier
@@ -440,7 +437,7 @@ class ProtectionService : Service() {
             "${it.latitude}|${it.longitude}|${it.accuracyMeters ?: ""}|${it.provider}".toByteArray(Charsets.UTF_8)
         }
         storeEvidence(storage, repository, eventId, locationBytes, "LOCATION")
-        dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId, failedAttempts)
+        dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId)
     }
 
     private class CapturedMedia(
@@ -482,7 +479,7 @@ class ProtectionService : Service() {
         }
         if (!busy.compareAndSet(false, true)) {
             Log.i(TAG, "a $type capture waited for its own event: the camera was already open")
-            return queueForRetry(type, eventIdStr, failedAttempts = null, "the camera was busy")
+            return queueForRetry(type, eventIdStr, "the camera was busy")
         }
         scope.launch {
             val wakeLock = acquireWakeLock()
@@ -490,10 +487,10 @@ class ProtectionService : Service() {
                 val storage = (applicationContext as? ShieldraApp)?.installedStorage
                 if (storage == null) {
                     Log.e(TAG, "a $type capture waited for its own event: no storage is installed")
-                    queueForRetry(type, eventIdStr, failedAttempts = null, "the storage was not installed yet")
+                    queueForRetry(type, eventIdStr, "the storage was not installed yet")
                     return@launch
                 }
-                captureStoreDispatch(storage, storage.eventRepository, eventId, kind, failedAttempts = null)
+                captureStoreDispatch(storage, storage.eventRepository, eventId, kind)
             } finally {
                 runCatching { if (wakeLock?.isHeld == true) wakeLock.release() }
                 busy.set(false)
@@ -512,10 +509,9 @@ class ProtectionService : Service() {
     private fun queueForRetry(
         type: SecurityEventType,
         eventId: String?,
-        failedAttempts: Int?,
         reason: String,
     ): Boolean {
-        val queued = requeue(applicationContext, type, eventId, failedAttempts, reason)
+        val queued = requeue(applicationContext, type, eventId, reason)
         if (queued) PendingCaptureReceiver.schedule(applicationContext)
         return queued
     }
@@ -527,7 +523,6 @@ class ProtectionService : Service() {
         evidenceId: String?,
         backEvidenceId: String?,
         audioEvidenceId: String?,
-        failedAttempts: Int?,
     ) {
         val base = AlertRuntime.snapshot(applicationContext, kind, eventId.value.toString())
         AlertRuntime.alert(
@@ -539,7 +534,6 @@ class ProtectionService : Service() {
                 photoBackEvidenceId = backEvidenceId,
                 audioEvidenceId = audioEvidenceId,
                 evidenceAttempted = true,
-                failedAttempts = failedAttempts,
             ),
         )
     }
@@ -673,7 +667,6 @@ class ProtectionService : Service() {
         const val ACTION_STOP = "com.shieldra.protection.STOP"
         const val EXTRA_KIND = "kind"
         const val EXTRA_EVENT_ID = "event_id"
-        const val EXTRA_FAILED_ATTEMPTS = "failed_attempts"
 
         @Volatile
         private var liveInstance: ProtectionService? = null
@@ -702,7 +695,6 @@ class ProtectionService : Service() {
          * could not run both need it, so it lives beside the instance handle rather than inside it.
          */
         fun alertKindFor(type: SecurityEventType): AlertKind = when (type) {
-            SecurityEventType.LOCK_CONFIRMED_EVENT -> AlertKind.LOCK
             SecurityEventType.SIM_CONFIRMED_EVENT -> AlertKind.SIM
             SecurityEventType.BATTERY_SIGNAL -> AlertKind.BATTERY
             SecurityEventType.COUNTDOWN_SIGNAL -> AlertKind.COUNTDOWN
@@ -788,24 +780,22 @@ class ProtectionService : Service() {
          * right away that the guard fired — so "nothing happened" is never mistaken for "nothing was
          * seen".
          */
-        fun requestCapture(context: Context, type: SecurityEventType, failedAttempts: Int? = null) {
+        fun requestCapture(context: Context, type: SecurityEventType) {
             val live = liveInstance
             if (live != null) {
-                live.capture(type, failedAttempts)
+                live.capture(type)
                 return
             }
             val app = context.applicationContext
             val intent = Intent(app, ProtectionService::class.java)
                 .setAction(ACTION_CAPTURE)
                 .putExtra(EXTRA_KIND, type.name)
-                .apply { failedAttempts?.let { putExtra(EXTRA_FAILED_ATTEMPTS, it) } }
             runCatching { ContextCompat.startForegroundService(app, intent) }
                 .onFailure { error ->
                     declareFailure(
                         app,
                         type,
                         eventId = null,
-                        failedAttempts,
                         "a background start of the camera service was refused: ${error.javaClass.simpleName}",
                     )
                 }
@@ -820,15 +810,14 @@ class ProtectionService : Service() {
             context: Context,
             type: SecurityEventType,
             eventId: String?,
-            failedAttempts: Int?,
             reason: String,
         ) {
             Log.e(TAG, "the $type capture could not run ($reason)")
             // The notice goes out now, so the queued request carries that fact with it: a later retry or
             // expiry must not tell the owner the same bad news a second time.
-            val firstTime = requeue(context, type, eventId, failedAttempts, reason, announced = true)
+            val firstTime = requeue(context, type, eventId, reason, announced = true)
             PendingCaptureReceiver.schedule(context)
-            if (firstTime) announceMissingCapture(context, type, eventId, failedAttempts, reason)
+            if (firstTime) announceMissingCapture(context, type, eventId, reason)
         }
 
         /**
@@ -841,7 +830,6 @@ class ProtectionService : Service() {
             context: Context,
             type: SecurityEventType,
             eventId: String?,
-            failedAttempts: Int?,
             reason: String,
         ) {
             val base = runCatching { AlertRuntime.snapshot(context, alertKindFor(type), eventId) }.getOrNull()
@@ -850,7 +838,7 @@ class ProtectionService : Service() {
                 return
             }
             runCatching {
-                AlertRuntime.alert(context, base.copy(evidenceAttempted = false, failedAttempts = failedAttempts))
+                AlertRuntime.alert(context, base.copy(evidenceAttempted = false))
             }.onFailure {
                 Log.e(TAG, "the owner could not be told about the $type capture ($reason): ${it.message}", it)
             }
@@ -861,11 +849,10 @@ class ProtectionService : Service() {
             context: Context,
             type: SecurityEventType,
             eventId: String?,
-            failedAttempts: Int?,
             reason: String,
             announced: Boolean = false,
         ): Boolean =
-            runCatching { PendingCaptures(context).add(type, eventId, failedAttempts, announced) }
+            runCatching { PendingCaptures(context).add(type, eventId, announced) }
                 .onFailure { Log.e(TAG, "the $type capture could not be queued either ($reason): ${it.message}", it) }
                 .getOrDefault(false)
 
@@ -889,7 +876,7 @@ class ProtectionService : Service() {
                 val eventId = request.eventId
                 return if (eventId != null) live.captureForExisting(eventId, request.type)
                 else {
-                    live.capture(request.type, request.failedAttempts)
+                    live.capture(request.type)
                     true
                 }
             }
@@ -898,7 +885,6 @@ class ProtectionService : Service() {
                 .putExtra(EXTRA_KIND, request.type.name)
                 .apply {
                     request.eventId?.let { putExtra(EXTRA_EVENT_ID, it) }
-                    request.failedAttempts?.let { putExtra(EXTRA_FAILED_ATTEMPTS, it) }
                 }
             return runCatching { ContextCompat.startForegroundService(context, intent) }.isSuccess
         }
@@ -939,7 +925,6 @@ class ProtectionService : Service() {
                         app,
                         stale.type,
                         stale.eventId,
-                        stale.failedAttempts,
                         "it waited past the moment it asked for",
                     )
                 }
@@ -954,7 +939,6 @@ class ProtectionService : Service() {
                         app,
                         request.type,
                         request.eventId,
-                        request.failedAttempts,
                         "no capture service could be reached to run it",
                     )
                 }

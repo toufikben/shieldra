@@ -344,9 +344,6 @@ private fun DetailsBlock(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         DetailRow(stringResource(R.string.detail_type), model.title)
-        if (model.attemptNumber != null) {
-            DetailRow(stringResource(R.string.detail_attempt), "${model.attemptNumber}")
-        }
         DetailRow(stringResource(R.string.detail_timestamp), model.timestampLabel)
         if (model.statusLabel != null) {
             DetailRow(stringResource(R.string.detail_status), model.statusLabel)

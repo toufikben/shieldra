@@ -97,7 +97,6 @@ class PersistedEventReader(
 internal fun persistedEventTypeOf(type: SecurityEventType): EventType = when (type) {
     SecurityEventType.MOTION_CONFIRMED_EVENT -> EventType.Motion
     SecurityEventType.PANIC_ACTIVATION -> EventType.Panic
-    SecurityEventType.LOCK_CONFIRMED_EVENT -> EventType.FailedUnlock
     SecurityEventType.SIM_CONFIRMED_EVENT -> EventType.SimChange
     SecurityEventType.BATTERY_SIGNAL -> EventType.Battery
     SecurityEventType.COUNTDOWN_SIGNAL -> EventType.Countdown

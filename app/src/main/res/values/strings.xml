@@ -248,12 +248,10 @@
     <string name="dashboard_no_storage_disclosure">Nothing is stored on this phone yet. No continuous monitoring is running.</string>
     <string name="action_get_started">Get started</string>
     <string name="detail_type">Type</string>
-    <string name="detail_attempt">Attempt</string>
     <string name="detail_timestamp">Timestamp</string>
     <string name="detail_battery">Battery</string>
     <string name="detail_event_id">Event ID</string>
     <string name="filter_all">All</string>
-    <string name="filter_lock">Lock</string>
     <string name="filter_motion">Motion</string>
     <string name="filter_sim">SIM</string>
     <string name="filter_panic">Panic</string>
@@ -308,12 +306,10 @@
     <string name="demo_monitoring">Monitoring</string>
     <string name="demo_monitored">Monitored</string>
     <string name="demo_ready">Ready</string>
-    <string name="demo_failed_unlock">Failed unlock attempt</string>
-    <string name="demo_attempt">Attempt %1$d</string>
     <string name="demo_motion_detected">Motion detected</string>
     <string name="demo_movement_after_stillness">Movement after stillness</string>
-    <string name="demo_time_failed_unlock">Today · 14:32</string>
     <string name="demo_time_motion">Today · 13:15</string>
+    <string name="demo_time_sim_change">Today · 12:40</string>
     <string name="demo_time_detail">Today · 14:32:08</string>
     <string name="demo_receipt_time">14:32</string>
     <string name="demo_network_wifi">Wi-Fi</string>
@@ -363,7 +359,6 @@
     <string name="owner_check_unguarded">Changed without a lock check: this phone has no screen lock, so anyone holding it could have done this.</string>
     <string name="event_title_motion">Movement detected</string>
     <string name="event_title_panic">Silent panic</string>
-    <string name="event_title_lock">Wrong unlock attempts</string>
     <string name="event_title_sim">SIM change</string>
     <string name="event_title_countdown">Periodic signal</string>
     <string name="event_title_battery">Low battery</string>
@@ -374,7 +369,6 @@
     <string name="alert_label_device">Phone</string>
     <string name="alert_label_battery">Battery</string>
     <string name="alert_label_event">Event</string>
-    <string name="alert_title_lock">Wrong unlock attempts</string>
     <string name="alert_title_sim">SIM changed</string>
     <string name="alert_title_battery">Low battery</string>
     <string name="alert_title_shutdown">Phone is shutting down</string>
@@ -390,7 +384,6 @@
     <string name="alert_label_photo">Front camera</string>
     <string name="alert_photo_attached">photo attached</string>
     <string name="alert_photo_unavailable">no photo could be taken</string>
-    <string name="alert_label_attempts">Failed attempts</string>
     <string name="alert_channels_title">Alert channels</string>
     <string name="alert_channels_intro">When Silent Panic is pressed or a movement is recorded, SHIELDRA sends an alert in the background through the channels you switch on here. Nothing is shown on the phone when it is sent.</string>
     <string name="alert_channel_telegram">Telegram</string>

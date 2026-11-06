@@ -13,19 +13,15 @@ class GuardContractsTest {
 
     @Test
     fun approved_rules_expose_only_the_decided_guard_values() {
-        assertEquals(Duration.ofMinutes(2), ApprovedGuardRules.lockConfirmationWindow)
-        assertEquals(Duration.ofMinutes(10), ApprovedGuardRules.lockCounterResetWindow)
-        assertEquals(Duration.ofMinutes(5), ApprovedGuardRules.lockCooldown)
         assertEquals(Duration.ofSeconds(3), ApprovedGuardRules.motionStrongDuration)
         assertEquals(Duration.ofSeconds(10), ApprovedGuardRules.motionRepetitionWindow)
-        assertEquals(2, ApprovedGuardRules.lockAttemptsToConfirm)
         assertEquals(2, ApprovedGuardRules.motionOccurrencesToConfirm)
     }
 
     @Test
     fun typed_observations_match_only_their_guard_kind() {
         val panic = GuardSignal(GuardKind.PANIC, observedAt, GuardObservation.PanicActivated)
-        val wrongShape = GuardSignal(GuardKind.PANIC, observedAt, GuardObservation.FailedPinAttempt)
+        val wrongShape = GuardSignal(GuardKind.PANIC, observedAt, GuardObservation.SimSubscriptionChanged)
 
         assertTrue(panic.isShapeValid())
         assertFalse(wrongShape.isShapeValid())

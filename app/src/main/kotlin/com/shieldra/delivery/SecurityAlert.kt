@@ -7,14 +7,14 @@ import java.util.Locale
 
 /**
  * What an alert is about. [TEST] is the owner checking a channel; it belongs to no recorded event.
- * [LOCK] is a wrong PIN/pattern/password past the owner's threshold, [COUNTDOWN] the owner's own
- * periodic signal (A-33): neither is announced on the phone. [RESTART] is the phone coming back from a
- * reboot that the guards could not watch through (audit E-2): it belongs to no event either, because
- * nothing was seen while the phone was dark — the point is that the owner hears about the gap.
- * [GUARD_SILENT] is the watchdog finding no guard stamp for longer than the tolerance window (audit
- * development أ): also no event, because the whole news is the absence of activity.
+ * [COUNTDOWN] is the owner's own periodic signal (A-33), not announced on the phone. [RESTART] is
+ * the phone coming back from a reboot that the guards could not watch through (audit E-2): it
+ * belongs to no event either, because nothing was seen while the phone was dark — the point is that
+ * the owner hears about the gap. [GUARD_SILENT] is the watchdog finding no guard stamp for longer
+ * than the tolerance window (audit development أ): also no event, because the whole news is the
+ * absence of activity.
  */
-enum class AlertKind { PANIC, MOTION, LOCK, SIM, BATTERY, COUNTDOWN, TRACKING, SHUTDOWN, RESTART, GUARD_SILENT, TEST }
+enum class AlertKind { PANIC, MOTION, SIM, BATTERY, COUNTDOWN, TRACKING, SHUTDOWN, RESTART, GUARD_SILENT, TEST }
 
 /** A position fix the phone really produced: never a guess and never a default. */
 data class AlertLocation(
@@ -48,8 +48,6 @@ data class SecurityAlert(
     val audioEvidenceId: String? = null,
     /** True when a photo and a fix were attempted, so their absence is reported rather than hidden. */
     val evidenceAttempted: Boolean = false,
-    /** Wrong unlock attempts counted so far, for a [AlertKind.LOCK] alert. */
-    val failedAttempts: Int? = null,
     /**
      * How long the guards have been silent, for a [AlertKind.GUARD_SILENT] alert. Measured from the
      * last stamp the service wrote, so it is the exposure window the owner actually had — not a guess
@@ -69,7 +67,6 @@ data class AlertWording(
     val batteryLabel: String,
     val eventLabel: String,
     val locale: Locale,
-    val lockTitle: String = "Wrong unlock attempts",
     val simTitle: String = "SIM changed",
     val batteryTitle: String = "Low battery",
     val countdownTitle: String = "Periodic signal",
@@ -86,7 +83,6 @@ data class AlertWording(
     val photoLabel: String = "Front camera",
     val photoAttached: String = "photo attached",
     val photoUnavailable: String = "no photo could be taken",
-    val attemptsLabel: String = "Failed attempts",
 )
 
 /** Builds the subject and body every channel sends, so Telegram and email say the same thing. */
@@ -105,7 +101,6 @@ object AlertText {
             append("🚨 ").append(subject(alert, wording)).append('\n')
             append("🕒 ").append(wording.timeLabel).append(": ").append(format.format(alert.occurredAt))
                 .append(" (").append(zone.id).append(")\n")
-            alert.failedAttempts?.let { append("🔢 ").append(wording.attemptsLabel).append(": ").append(it).append('\n') }
             alert.silentMinutes?.let {
                 append("⏳ ")
                     .append(String.format(wording.locale, wording.silentForLabel, it))
@@ -142,7 +137,6 @@ object AlertText {
     private fun title(kind: AlertKind, wording: AlertWording): String = when (kind) {
         AlertKind.PANIC -> wording.panicTitle
         AlertKind.MOTION -> wording.motionTitle
-        AlertKind.LOCK -> wording.lockTitle
         AlertKind.SIM -> wording.simTitle
         AlertKind.BATTERY -> wording.batteryTitle
         AlertKind.COUNTDOWN -> wording.countdownTitle

@@ -22,7 +22,7 @@ class PresentationModelTest {
             ProtectionVisualState.entries.toSet(),
         )
         assertEquals(setOf(GuardKind.Motion, GuardKind.Sim, GuardKind.Panic, GuardKind.Battery), GuardKind.entries.toSet())
-        assertEquals(setOf(EventType.FailedUnlock, EventType.Motion, EventType.SimChange, EventType.Panic, EventType.Battery, EventType.Countdown, EventType.Other), EventType.entries.toSet())
+        assertEquals(setOf(EventType.Motion, EventType.SimChange, EventType.Panic, EventType.Battery, EventType.Countdown, EventType.Other), EventType.entries.toSet())
     }
 
     @Test
@@ -35,15 +35,15 @@ class PresentationModelTest {
     @Test
     fun history_filters_apply_type_and_delivery_status() {
         val events = listOf(
-            EventUiModel("lock", EventType.FailedUnlock, "", "", "", DeliveryStatus.Delivered, false, false),
+            EventUiModel("sim", EventType.SimChange, "", "", "", DeliveryStatus.Delivered, false, false),
             EventUiModel("motion", EventType.Motion, "", "", "", DeliveryStatus.Deferred, false, false),
         )
 
         assertEquals(
-            listOf("lock"),
+            listOf("sim"),
             filterHistoryEvents(
                 events,
-                HistoryFilterState(HistoryTypeFilter.Lock, HistoryStatusFilter.Delivered),
+                HistoryFilterState(HistoryTypeFilter.Sim, HistoryStatusFilter.Delivered),
             ).map { it.id },
         )
         assertEquals(
@@ -58,15 +58,13 @@ class PresentationModelTest {
     @Test
     fun history_filters_cover_each_declared_type_and_status() {
         val events = listOf(
-            EventUiModel("lock", EventType.FailedUnlock, "", "", "", DeliveryStatus.Delivered, false, false),
             EventUiModel("motion", EventType.Motion, "", "", "", DeliveryStatus.Deferred, false, false),
-            EventUiModel("sim", EventType.SimChange, "", "", "", DeliveryStatus.Failed, false, false),
-            EventUiModel("panic", EventType.Panic, "", "", "", DeliveryStatus.Ready, false, false),
+            EventUiModel("sim", EventType.SimChange, "", "", "", DeliveryStatus.Delivered, false, false),
+            EventUiModel("panic", EventType.Panic, "", "", "", DeliveryStatus.Failed, false, false),
             EventUiModel("battery", EventType.Battery, "", "", "", DeliveryStatus.NotAttempted, false, false),
         )
 
         val expectedByType = mapOf(
-            HistoryTypeFilter.Lock to "lock",
             HistoryTypeFilter.Motion to "motion",
             HistoryTypeFilter.Sim to "sim",
             HistoryTypeFilter.Panic to "panic",
@@ -80,9 +78,9 @@ class PresentationModelTest {
         }
 
         val expectedByStatus = mapOf(
-            HistoryStatusFilter.Delivered to "lock",
+            HistoryStatusFilter.Delivered to "sim",
             HistoryStatusFilter.Deferred to "motion",
-            HistoryStatusFilter.Failed to "sim",
+            HistoryStatusFilter.Failed to "panic",
         )
         expectedByStatus.forEach { (status, id) ->
             assertEquals(

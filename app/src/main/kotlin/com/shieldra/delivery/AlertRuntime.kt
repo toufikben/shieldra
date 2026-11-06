@@ -115,7 +115,6 @@ object AlertRuntime {
             batteryLabel = resources.getString(R.string.alert_label_battery),
             eventLabel = resources.getString(R.string.alert_label_event),
             locale = resources.configuration.locales[0],
-            lockTitle = resources.getString(R.string.alert_title_lock),
             simTitle = resources.getString(R.string.alert_title_sim),
             batteryTitle = resources.getString(R.string.alert_title_battery),
             countdownTitle = resources.getString(R.string.alert_title_countdown),
@@ -131,7 +130,6 @@ object AlertRuntime {
             photoLabel = resources.getString(R.string.alert_label_photo),
             photoAttached = resources.getString(R.string.alert_photo_attached),
             photoUnavailable = resources.getString(R.string.alert_photo_unavailable),
-            attemptsLabel = resources.getString(R.string.alert_label_attempts),
         )
     }
 

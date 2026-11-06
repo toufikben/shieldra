@@ -53,7 +53,7 @@ private fun deliveryColor(status: DeliveryStatus): Color = when (status) {
 /** The accent a row takes from the guard it belongs to, so the list reads at a glance. */
 @Composable
 private fun typeAccent(type: EventType): Color = when (type) {
-    EventType.FailedUnlock, EventType.Panic -> ShieldraTheme.semantic.securityEvent
+    EventType.Panic -> ShieldraTheme.semantic.securityEvent
     EventType.Motion -> ShieldraTheme.semantic.suspicious
     EventType.SimChange -> MaterialTheme.colorScheme.tertiary
     EventType.Battery -> ShieldraTheme.semantic.attention

@@ -40,7 +40,6 @@ class AlertLineCodecTest {
         photoBackEvidenceId = "photo-back-1",
         audioEvidenceId = "audio-1",
         evidenceAttempted = true,
-        failedAttempts = 3,
         silentMinutes = silentMinutes,
     )
 
@@ -67,6 +66,8 @@ class AlertLineCodecTest {
     @Test
     /** A field added later must not make an already-queued alert unreadable: append, never insert. */
     fun a_line_written_by_an_older_build_still_decodes() {
+        // Field 6 still holds the Lock guard's failure count this build no longer has; the slot is
+        // kept in place so the fields after it keep their positions.
         val legacy = listOf(
             "1700000001000",
             "MOTION",

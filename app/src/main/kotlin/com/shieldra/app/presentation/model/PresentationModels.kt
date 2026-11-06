@@ -72,7 +72,7 @@ data class ChannelReceiptUiModel(
  * it shows under "All" and under no filter chip, because filing an unattributed row under another
  * guard's filter would state a fact the row does not carry.
  */
-enum class EventType { FailedUnlock, Motion, SimChange, Panic, Battery, Countdown, Other }
+enum class EventType { Motion, SimChange, Panic, Battery, Countdown, Other }
 
 data class EventUiModel(
     val id: String,
@@ -91,7 +91,6 @@ data class EventDetailUiModel(
     val id: String,
     val type: EventType,
     val title: String,
-    val attemptNumber: Int? = null,
     val timestampLabel: String,
     /** The persisted state, already localized; null when the source has none to report. */
     val statusLabel: String? = null,
@@ -141,7 +140,7 @@ data class DashboardUiModel(
     val periodicSignalIntervalMs: Long = 0L,
 )
 
-enum class HistoryTypeFilter { All, Lock, Motion, Sim, Panic, Battery }
+enum class HistoryTypeFilter { All, Motion, Sim, Panic, Battery }
 enum class HistoryStatusFilter { All, Delivered, Deferred, Failed }
 
 data class HistoryFilterState(

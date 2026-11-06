@@ -13,7 +13,6 @@ fun filterHistoryEvents(
 ): List<EventUiModel> = events.filter { event ->
     val typeMatches = when (filterState.type) {
         HistoryTypeFilter.All -> true
-        HistoryTypeFilter.Lock -> event.type == EventType.FailedUnlock
         HistoryTypeFilter.Motion -> event.type == EventType.Motion
         HistoryTypeFilter.Sim -> event.type == EventType.SimChange
         HistoryTypeFilter.Panic -> event.type == EventType.Panic

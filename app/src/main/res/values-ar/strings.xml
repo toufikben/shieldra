@@ -231,12 +231,10 @@
     <string name="dashboard_no_storage_disclosure">لا شيء محفوظ على هذا الهاتف بعد. لا توجد مراقبة مستمرة تعمل.</string>
     <string name="action_get_started">ابدأ الآن</string>
     <string name="detail_type">النوع</string>
-    <string name="detail_attempt">المحاولة</string>
     <string name="detail_timestamp">الطابع الزمني</string>
     <string name="detail_battery">البطارية</string>
     <string name="detail_event_id">معرف الحدث</string>
     <string name="filter_all">الكل</string>
-    <string name="filter_lock">القفل</string>
     <string name="filter_motion">الحركة</string>
     <string name="filter_sim">SIM</string>
     <string name="filter_panic">الذعر</string>
@@ -291,12 +289,10 @@
     <string name="demo_monitoring">مراقبة</string>
     <string name="demo_monitored">مراقب</string>
     <string name="demo_ready">جاهز</string>
-    <string name="demo_failed_unlock">محاولة فتح فاشلة</string>
-    <string name="demo_attempt">المحاولة %1$d</string>
     <string name="demo_motion_detected">تم اكتشاف حركة</string>
     <string name="demo_movement_after_stillness">حركة بعد سكون</string>
-    <string name="demo_time_failed_unlock">اليوم · ١٤:٣٢</string>
     <string name="demo_time_motion">اليوم · ١٣:١٥</string>
+    <string name="demo_time_sim_change">اليوم · ١٢:٤٠</string>
     <string name="demo_time_detail">اليوم · ١٤:٣٢:٠٨</string>
     <string name="demo_receipt_time">١٤:٣٢</string>
     <string name="demo_network_wifi">واي فاي</string>
@@ -345,7 +341,6 @@
     <string name="owner_check_unguarded">تم التغيير دون فحص قفل الشاشة: لا قفل شاشة على هذا الهاتف، وكان بإمكان أي شخص يمسكه أن يفعل الشيء نفسه.</string>
     <string name="event_title_motion">تم اكتشاف حركة</string>
     <string name="event_title_panic">ذعر صامت</string>
-    <string name="event_title_lock">محاولات فتح قفل فاشلة</string>
     <string name="event_title_sim">تغيير الشريحة</string>
     <string name="event_title_countdown">إشارة دورية</string>
     <string name="event_title_battery">بطارية منخفضة</string>
@@ -356,7 +351,6 @@
     <string name="alert_label_device">الهاتف</string>
     <string name="alert_label_battery">البطارية</string>
     <string name="alert_label_event">الحدث</string>
-    <string name="alert_title_lock">محاولات فتح قفل فاشلة</string>
     <string name="alert_title_sim">تغيّرت الشريحة</string>
     <string name="alert_title_battery">بطارية منخفضة</string>
     <string name="alert_title_shutdown">الهاتف يُطفأ الآن</string>
@@ -372,7 +366,6 @@
     <string name="alert_label_photo">الكاميرا الأمامية</string>
     <string name="alert_photo_attached">الصورة مرفقة</string>
     <string name="alert_photo_unavailable">تعذّر التقاط صورة</string>
-    <string name="alert_label_attempts">محاولات فاشلة</string>
     <string name="alert_channels_title">قنوات التنبيه</string>
     <string name="alert_channels_intro">عند الضغط على الذعر الصامت أو تسجيل حركة، يرسل SHIELDRA تنبيهًا في الخلفية عبر القنوات التي تفعّلها هنا. لا يظهر أي شيء على الهاتف عند الإرسال.</string>
     <string name="alert_channel_telegram">تيليغرام</string>
