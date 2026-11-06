@@ -1024,7 +1024,9 @@ the privilege cannot return quietly; its history-type check now names the remain
 `Group C boundary scan passed`, `G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS`,
 `LOCALE PARITY PASS`.
 
-**Device:** **NOT RUN** for this change. There is no anti-theft flow left to measure, and the
-owner's protocol forbids touching the shared phone's lock screen. The proof required before this
-branch lands on `main` is the absence of any administrator entry in the built app — the APK/AAB
-from CI plus screenshots from the general-app round (#32) when the phone is free.
+**Device:** **NOT RUN** for this change, by the owner's explicit protocol («لهذا الدفع لا فائدة
+منه لاختبار الهاتف. لا تدفع و لا تقم بفحص الهاتف»). There is no anti-theft flow left to measure.
+The absence of the administrator is proven statically by g4b section 5d on the built branch, and
+the built APK's reviewed permission set (21 permissions) is checked by CI — not by screenshots.
+The branch lands on `main` through PR #5 on the strength of the green run above; the general-app
+round (#32) may note the missing administrator entry opportunistically, but it is not a condition.
