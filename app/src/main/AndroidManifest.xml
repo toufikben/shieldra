@@ -111,21 +111,10 @@
             android:foregroundServiceType="camera|location|microphone" />
 
         <!--
-          A-33/A-42: the Lock guard's device-admin receiver. WATCH_LOGIN + FORCE_LOCK only (see
-          @xml/device_admin): failed unlocks are heard, and /lock locks the screen on request.
-          Exported with BIND_DEVICE_ADMIN as the platform requires for an admin receiver.
+          Design B (2026-11-06): the app holds no device administrator. The A-33 Lock guard and the
+          A-42 remote /lock were removed with their receiver, so Android never lists SHIELDRA under
+          device administrators and the app cannot lock, wipe, or read the screen lock.
         -->
-        <receiver
-            android:name="com.shieldra.protection.LockGuardReceiver"
-            android:exported="true"
-            android:permission="android.permission.BIND_DEVICE_ADMIN">
-            <meta-data
-                android:name="android.app.device_admin"
-                android:resource="@xml/device_admin" />
-            <intent-filter>
-                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
-            </intent-filter>
-        </receiver>
 
         <!--
           A-33 (A-10 relaxed) + audit E-2: resume the guards the owner had on after a reboot. Exported

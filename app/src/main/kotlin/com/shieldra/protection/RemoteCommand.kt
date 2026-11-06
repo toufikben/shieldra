@@ -2,7 +2,7 @@ package com.shieldra.protection
 
 /**
  * Turns a raw Telegram message into the command the poller acts on. Pure, so JVM tests can pin the
- * shapes a real chat produces — `/lock`, `/LOCK`, `/lock@ShieldraBot`, `/track off` — without a
+ * shapes a real chat produces — `/alarm`, `/ALARM`, `/alarm@ShieldraBot`, `/track off` — without a
  * device or a bot. Only the first word is a command; everything after it is one trimmed argument.
  * The poller ignores a verb it does not know, exactly as before.
  */

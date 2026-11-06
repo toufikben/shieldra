@@ -5,31 +5,31 @@ import kotlin.test.assertEquals
 
 /**
  * The raw Telegram shapes the poller must read the same way every time. This is the guard around
- * `/lock`: the command that can blank the screen is recognized from a bare message, a bot-tagged
- * message and any letter case — and an unknown verb is still left for the poller to ignore.
+ * the command reader: a verb is recognized from a bare message, a bot-tagged message and any letter
+ * case — and an unknown verb is still left for the poller to ignore.
  */
 class RemoteCommandTest {
 
     @Test
-    fun a_bare_lock_command_has_no_argument() {
-        assertEquals(RemoteCommand("/lock", ""), RemoteCommand.parse("/lock"))
+    fun a_bare_command_has_no_argument() {
+        assertEquals(RemoteCommand("/alarm", ""), RemoteCommand.parse("/alarm"))
     }
 
     @Test
     fun a_bot_tag_is_stripped_from_the_command() {
-        assertEquals(RemoteCommand("/lock", ""), RemoteCommand.parse("/lock@ShieldraBot"))
+        assertEquals(RemoteCommand("/alarm", ""), RemoteCommand.parse("/alarm@ShieldraBot"))
     }
 
     @Test
     fun the_command_is_case_insensitive() {
-        assertEquals(RemoteCommand("/lock", ""), RemoteCommand.parse("/LOCK"))
+        assertEquals(RemoteCommand("/alarm", ""), RemoteCommand.parse("/ALARM"))
         assertEquals(RemoteCommand("/track", "off"), RemoteCommand.parse("/TRACK OFF"))
     }
 
     @Test
     fun an_argument_is_trimmed_and_lowercased() {
         assertEquals(RemoteCommand("/track", "off"), RemoteCommand.parse("/track   OFF  "))
-        assertEquals(RemoteCommand("/lock", "now"), RemoteCommand.parse("/lock now"))
+        assertEquals(RemoteCommand("/alarm", "now"), RemoteCommand.parse("/alarm now"))
     }
 
     @Test

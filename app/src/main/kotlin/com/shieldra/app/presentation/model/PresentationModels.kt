@@ -10,9 +10,9 @@ enum class ProtectionVisualState {
     Disabled,
 }
 
-enum class GuardKind { Lock, Motion, Sim, Panic, Battery }
+enum class GuardKind { Motion, Sim, Panic, Battery }
 
-enum class GuardStatus { Active, Signal, Disabled, Locked }
+enum class GuardStatus { Active, Signal, Disabled }
 
 data class GuardUiModel(
     val kind: GuardKind,

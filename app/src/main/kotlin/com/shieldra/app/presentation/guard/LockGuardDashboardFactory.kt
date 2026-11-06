@@ -33,7 +33,6 @@ fun lockGuardDashboard(
     // here is fabricated: an unarmed build still goes through the honest LockGuardDecision path, and
     // the not-active case still maps to Disabled.
     protectionArmed: Boolean = false,
-    lockOn: Boolean = false,
     simOn: Boolean = false,
     batteryOn: Boolean = false,
     // A-38: the phone's own readings. Each defaults to "not measured", so a caller that has no reading
@@ -55,7 +54,6 @@ fun lockGuardDashboard(
     val activeSubtitle = stringResource(R.string.guard_subtitle_active)
     val motionSubtitle = stringResource(MotionMonitoringPresentation.subtitleRes(motionClaim))
     val armedGuards: Map<GuardKind, Boolean> = mapOf(
-        GuardKind.Lock to (protectionArmed && lockOn),
         GuardKind.Sim to (protectionArmed && simOn),
         GuardKind.Battery to (protectionArmed && batteryOn),
     )
@@ -100,7 +98,6 @@ fun lockGuardDashboard(
 
 @StringRes
 private fun titleRes(kind: GuardKind): Int = when (kind) {
-    GuardKind.Lock -> R.string.demo_lock_guard
     GuardKind.Motion -> R.string.demo_motion_guard
     GuardKind.Sim -> R.string.demo_sim_guard
     GuardKind.Panic -> R.string.demo_panic

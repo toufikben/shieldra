@@ -51,13 +51,13 @@ fun ProtectionSetupScreen(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = stringResource(R.string.lock_guard),
+            text = stringResource(R.string.protection_intro_title),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Spacer(Modifier.height(spacing.m))
         Text(
-            text = stringResource(R.string.protection_setup_question),
+            text = stringResource(R.string.protection_intro_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

@@ -51,7 +51,6 @@ data class ProtectionPermissions(
     val location: Boolean = false,
     val phone: Boolean = false,
     val notifications: Boolean = false,
-    val deviceAdmin: Boolean = false,
     /** Battery-optimization exemption, so the system does not doze the guards (A-33). */
     val batteryExemption: Boolean = false,
     /** Exact-alarm access, so the countdown fires on the second instead of "within the hour" (A-33). */
@@ -73,7 +72,6 @@ fun ProtectionSetupScreen(
     onGrantLocation: () -> Unit,
     onGrantPhone: () -> Unit,
     onGrantNotifications: () -> Unit,
-    onEnableDeviceAdmin: () -> Unit,
     onKeepAwake: () -> Unit,
     onGrantExactAlarms: () -> Unit,
     /**
@@ -160,7 +158,6 @@ fun ProtectionSetupScreen(
         PermissionRow(stringResource(R.string.protection_perm_camera), permissions.camera, onGrantCamera)
         PermissionRow(stringResource(R.string.protection_perm_location), permissions.location, onGrantLocation)
         PermissionRow(stringResource(R.string.protection_perm_notifications), permissions.notifications, onGrantNotifications)
-        PermissionRow(stringResource(R.string.protection_perm_device_admin), permissions.deviceAdmin, onEnableDeviceAdmin)
         PermissionRow(stringResource(R.string.protection_perm_phone), permissions.phone, onGrantPhone)
         PermissionRow(stringResource(R.string.protection_perm_keep_awake), permissions.batteryExemption, onKeepAwake)
         // Exact scheduling is a special access the owner grants in system settings; until then the
@@ -177,19 +174,6 @@ fun ProtectionSetupScreen(
 
         // ===== Guards =====
         SectionTitle(stringResource(R.string.protection_guards_title))
-        GuardToggle(
-            title = stringResource(R.string.protection_guard_lock),
-            subtitle = stringResource(R.string.protection_guard_lock_desc),
-            checked = draft.lockEnabled,
-        ) { draft = draft.copy(lockEnabled = it) }
-        if (draft.lockEnabled) {
-            StepperRow(
-                label = stringResource(R.string.protection_lock_threshold, draft.lockThreshold),
-                value = draft.lockThreshold.toFloat(),
-                range = 1f..5f,
-                steps = 3,
-            ) { draft = draft.copy(lockThreshold = it.toInt()) }
-        }
         GuardToggle(
             title = stringResource(R.string.protection_guard_sim),
             subtitle = stringResource(R.string.protection_guard_sim_desc),
@@ -336,11 +320,10 @@ fun ProtectionSetupScreen(
             )
         }
 
-        // ===== What the holder of a locked phone is shown =====
-        // Deliberately outside the remote-control block above (A-45 D3): the Motion guard posts this
-        // notice on every plan, so the contact it prints and dials cannot live behind a Telegram toggle
-        // that a Free install cannot switch on. Before this moved, a phone without remote commands had no
-        // way to fill in the field the lock screen reads.
+        // ===== The owner's contact and lost message =====
+        // Design B (2026-11-06): the app shows no lock-screen notice and holds no power to lock the
+        // screen. These two fields stay because the Telegram /lost reply still prints them, so an
+        // owner who finds the phone can be reached from one message.
         SectionTitle(stringResource(R.string.protection_notice_title))
         val contactKind = com.shieldra.protection.OwnerContact.kind(draft.ownerContact)
         val contactUnusable = draft.ownerContact.isNotBlank() &&

@@ -120,9 +120,6 @@ import com.shieldra.protection.CountdownDeadline
 import com.shieldra.protection.CountdownScheduler
 import com.shieldra.protection.RemainingTime
 import com.shieldra.billing.TierGate
-import com.shieldra.protection.LockGuardReceiver
-import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import com.shieldra.domain.PanicActivation
@@ -414,9 +411,6 @@ fun ShieldraNavHost(
     val protectionPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { permissionRefresh += 1 }
-    val deviceAdminLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-    ) { permissionRefresh += 1 }
     // "Stopped" reports an observed state, not a press: it appears once the service has retracted
     // itself, and never while it still claims to be monitoring.
     LaunchedEffect(motionClaim) {
@@ -565,7 +559,6 @@ fun ShieldraNavHost(
                         recentEvents = recentEvents.take(RECENT_EVENT_LIMIT),
                         motionClaim = motionClaim,
                         protectionArmed = protectionArmed,
-                        lockOn = protectionSettings.lockEnabled,
                         simOn = protectionSettings.simEnabled,
                         batteryOn = protectionSettings.batteryEnabled,
                         batteryPercent = device.batteryPercent,
@@ -977,7 +970,6 @@ fun ShieldraNavHost(
 
             // Protection setup (A-33/A-34): arm the guards, grant their permissions, tune them.
             composable(ShieldraRoutes.PROTECTION_SETUP) {
-                val adminComponent = remember(context) { ComponentName(context, LockGuardReceiver::class.java) }
                 val permissions = remember(permissionRefresh, permissionRequests) {
                     fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
                     ProtectionPermissions(
@@ -988,7 +980,6 @@ fun ShieldraNavHost(
                             it == com.shieldra.notification.NotificationPermissionState.Granted ||
                                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
                         },
-                        deviceAdmin = com.shieldra.protection.DeviceScreenLock.isGranted(context),
                         batteryExemption = com.shieldra.protection.BackgroundSurvival.isExempt(context),
                         exactAlarms = com.shieldra.protection.ExactAlarmAccess.isGranted(context),
                     )
@@ -1011,15 +1002,6 @@ fun ShieldraNavHost(
                     },
                     onGrantPhone = { protectionPermissionLauncher.launch(arrayOf(Manifest.permission.READ_PHONE_STATE)) },
                     onGrantNotifications = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
-                    onEnableDeviceAdmin = {
-                        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-                            .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
-                            .putExtra(
-                                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                                context.getString(R.string.device_admin_description),
-                            )
-                        runCatching { deviceAdminLauncher.launch(intent) }
-                    },
                     onKeepAwake = {
                         // The protection package owns the platform API; the UI only asks it to open
                         // the system prompt so the guards survive battery saver.
@@ -1251,7 +1233,6 @@ private fun readHealthChecks(
             it == com.shieldra.notification.NotificationPermissionState.Granted ||
                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
         },
-        deviceAdmin = com.shieldra.protection.DeviceScreenLock.isGranted(context),
         batteryExempt = com.shieldra.protection.BackgroundSurvival.isExempt(context),
         channel = channel,
         motionMonitoring = motionMonitoring,
@@ -1262,14 +1243,12 @@ private fun readHealthChecks(
 private fun scoreFor(checks: HealthChecks, settings: ProtectionSettings): Int = ProtectionScore.score(
     ProtectionScore.Inputs(
         armed = checks.armed,
-        lockEnabled = settings.lockEnabled,
         motionMonitoring = checks.motionMonitoring,
         simEnabled = settings.simEnabled,
         batteryEnabled = settings.batteryEnabled,
         cameraGranted = checks.camera,
         locationGranted = checks.location,
         notificationsReady = checks.notifications,
-        deviceAdminActive = checks.deviceAdmin,
         batteryExempt = checks.batteryExempt,
         anyChannelActive = checks.channel,
     ),

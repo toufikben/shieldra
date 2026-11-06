@@ -37,7 +37,6 @@ data class HealthChecks(
     val camera: Boolean,
     val location: Boolean,
     val notifications: Boolean,
-    val deviceAdmin: Boolean,
     val batteryExempt: Boolean,
     val channel: Boolean,
     val motionMonitoring: Boolean,
@@ -51,8 +50,8 @@ data class HealthChecks(
 
 /**
  * A read-only "what is really protecting this phone" screen. The score and every row come from the
- * live device state (permissions, device admin, battery exemption, a connected channel, the running
- * monitor) — honest projection, never a flattering default.
+ * live device state (permissions, battery exemption, a connected channel, the running monitor) —
+ * honest projection, never a flattering default.
  */
 @Composable
 fun HealthCheckScreen(
@@ -108,7 +107,6 @@ fun HealthCheckScreen(
                 R.string.health_check_camera to checks.camera,
                 R.string.health_check_location to checks.location,
                 R.string.health_check_notifications to checks.notifications,
-                R.string.health_check_device_admin to checks.deviceAdmin,
                 R.string.health_check_battery to checks.batteryExempt,
                 R.string.health_check_channel to checks.channel,
                 R.string.health_check_motion to checks.motionMonitoring,

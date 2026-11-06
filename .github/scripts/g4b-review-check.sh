@@ -449,32 +449,29 @@ grep -q 'recordPermissionRequest()' "$NAVHOST" \
   || fail "answering the system dialog is never recorded, so silence and refusal look alike"
 pass "notifications are local, permission-gated, and never claim delivery"
 
-# 5d. A-42 (2026-11-03): the device administrator holds exactly two policies.
-# WATCH_LOGIN hears a failed unlock; FORCE_LOCK locks the screen on the owner's /lock command.
-# Every other policy — wipe, password rules, camera, keyguard — stays out, so a stolen-phone tool
-# can never erase the phone, change its password or blind its camera.
+# 5d. Design B (2026-11-06): the app holds no device administrator at all.
+# The owner retired the A-33 Lock guard and the A-42 remote /lock with it, because both rested on a
+# refused privilege: Android never grants a home-installed app the failed-unlock signal, and the
+# owner told us the app must not keep device-admin powers. This section asserts the absence, so a
+# later edit cannot quietly bring the privilege back.
 ADMIN_XML=app/src/main/res/xml/device_admin.xml
-[ -s "$ADMIN_XML" ] || fail "the device-admin policy declaration is missing"
-ADMIN_POLICIES="$(grep -oE '<[a-z-]+[[:space:]]*/>' "$ADMIN_XML" \
-  | sed -E 's/<([a-z-]+).*/\1/' | sort | tr '\n' ' ')"
-if [ "$ADMIN_POLICIES" != "force-lock watch-login " ]; then
-  fail "device-admin policies drifted from the approved watch-login + force-lock pair; got [$ADMIN_POLICIES]"
+if [ -e "$ADMIN_XML" ]; then
+  fail "a device-admin policy declaration came back (design B holds no administrator)"
 fi
-# The screen lock is the one dangerous administrator power: keep it in one guarded caller.
-LOCK_CALLERS="$(grep -rl 'lockNow' app/src/main/kotlin || true)"
-if [ "$LOCK_CALLERS" != "app/src/main/kotlin/com/shieldra/protection/DeviceScreenLock.kt" ]; then
-  fail "lockNow() must be reachable only from DeviceScreenLock.kt; found [$LOCK_CALLERS]"
+if grep -q 'BIND_DEVICE_ADMIN\|LockGuardReceiver\|android.app.device_admin' app/src/main/AndroidManifest.xml; then
+  fail "the manifest registers a device administrator again (design B holds no administrator)"
 fi
-grep -q '"/lock"' app/src/main/kotlin/com/shieldra/protection/RemoteCommandPoller.kt \
-  || fail "the /lock command is not wired into the remote poller"
-# The row must read the granted pair, not only "an administrator is active": an old grant that
-# never saw force-lock would otherwise show a lock that the platform refuses.
-grep -q 'DeviceScreenLock.isGranted(context)' "$NAVHOST" \
-  || fail "the protection/health screens do not read the granted policy pair (A-42)"
-if grep -q 'isAdminActive' "$NAVHOST"; then
-  fail "a screen still treats an active administrator as a granted force-lock policy (A-42)"
+ADMIN_IMPORTS="$(grep -rn 'android\.app\.admin' app/src/main --include='*.kt' || true)"
+[ -z "$ADMIN_IMPORTS" ] || fail "production code imports android.app.admin again: $ADMIN_IMPORTS"
+LOCK_CALLERS="$(grep -rn 'lockNow[[:space:]]*(' app/src/main --include='*.kt' || true)"
+[ -z "$LOCK_CALLERS" ] || fail "code can lock the screen again (design B has no lock power): $LOCK_CALLERS"
+if grep -q '"/lock"' app/src/main/kotlin/com/shieldra/protection/RemoteCommandPoller.kt; then
+  fail "the /lock command came back into the remote poller (design B cannot lock)"
 fi
-pass "device administration is exactly watch-login + force-lock, and lockNow has one guarded caller"
+if grep -q 'lock_enabled\|lock_threshold' app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt; then
+  fail "the Lock guard settings keys came back (design B removed the Lock guard)"
+fi
+pass "design B: the app holds no device administrator and no power to lock the screen"
 
 # 5e. Motion guard (A-43, narrowed by design B on 2026-11-06): the owner asked for the Motion guard to
 # be always on like the SIM guard, so it is on by default, arming and boot start it, disarming stops it,
@@ -519,7 +516,7 @@ grep -q 'ProtectionRuntime.setMotionEnabled(context, true)' "$NAVHOST" \
   || fail "the dashboard's Motion start no longer records the guard choice (A-43)"
 grep -q 'ProtectionRuntime.setMotionEnabled(context, false)' "$NAVHOST" \
   || fail "the dashboard's Motion stop no longer records the guard choice (A-43)"
-grep -Fq 'fun `the motion guard is on by default like the lock and SIM guards`' \
+grep -Fq 'fun `the motion guard is on by default like the SIM guard`' \
   app/src/test/kotlin/com/shieldra/protection/MotionGuardDefaultsTest.kt \
   || fail "the default-on Motion guard test was removed or renamed"
 pass "A-43: Motion is on by default, arming and boot start it, and a confirmed lift runs the chosen response and takes evidence"

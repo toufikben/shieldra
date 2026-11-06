@@ -6,7 +6,7 @@ import kotlin.test.assertTrue
 class MotionGuardDefaultsTest {
 
     @Test
-    fun `the motion guard is on by default like the lock and SIM guards`() {
+    fun `the motion guard is on by default like the SIM guard`() {
         assertTrue(ProtectionSettings().motionEnabled)
     }
 }
