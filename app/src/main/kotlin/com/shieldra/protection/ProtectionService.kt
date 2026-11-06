@@ -183,7 +183,7 @@ class ProtectionService : Service() {
         if (verdict == lastSimVerdict) return
         lastSimVerdict = verdict
         if (verdict != SimGuardLogic.Verdict.Normal) {
-            capture(SecurityEventType.SIM_CONFIRMED_EVENT, null)
+            capture(SecurityEventType.SIM_CONFIRMED_EVENT)
             // Composite tamper: a SIM swap with the screen dark and the network cut is the classic
             // way a stolen phone is hidden from recovery — sound the siren at once if the owner
             // opted into escalation, without waiting for a burst to build up.
@@ -254,7 +254,7 @@ class ProtectionService : Service() {
                     status == android.os.BatteryManager.BATTERY_STATUS_FULL
                 ProtectionSettingsStore(applicationContext).markCheck()
                 if (battery.onLevel(percent, charging) is BatteryBreathLogic.Verdict.Breath) {
-                    capture(SecurityEventType.BATTERY_SIGNAL, null)
+                    capture(SecurityEventType.BATTERY_SIGNAL)
                 }
                 // A battery tick is a cheap, frequent moment to also re-read the SIM state.
                 checkSim()
