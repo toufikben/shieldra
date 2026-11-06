@@ -970,3 +970,61 @@ three languages and the countdown back, and hides it — but the lock itself, th
 the zone states against a real geofence and the `SHIELDRA_LIFT` samples are pending the round in
 `qa/phone-checklist-snatch-ladder-2026-11-04.md`. Full argument and the honest list:
 `docs/reports/audit-round-1-motion-snatch-lock.md` §7.
+
+## Design B — the app holds no privileges, and the dead guards leave (`remove-owner-privileges`, 2026-11-06)
+
+**The owner's direction.** The current design is **B**: a passive SIM watchdog — no screen lock, no
+lock-screen demand, no snatch ladder, and the app must never hold device-admin powers (an already
+granted one is released). The A-45 ladder rested on `DeviceAdminReceiver.ACTION_PASSWORD_FAILED`,
+a callback Android delivers only to a provisioned administrator, so the guard was retired instead
+of propped up. The rule applied: **a guard whose only sensor is a refused privilege is deleted; a
+guard whose sensor is an ordinary permission stays, without lock power.** Motion therefore stays
+as detection + evidence + alert.
+
+**Three commits, each verified on its own run:**
+
+- `f980a08` — the A-45 layer: `SnatchLadder`, `TheftDemand`/`TheftNoticeText`, `ZonePolicy`, the
+  A-45 screens and copy, and the CI-only lift recorder (22 files, +142/−1240).
+- `90d4b1f` — every administrator hold and the UI that showed it: `device_admin.xml`,
+  `BIND_DEVICE_ADMIN`/the receiver, `DeviceScreenLock`, `FailedUnlockCounter`, the `/lock` remote
+  command, the Lock settings and score weight, and the health/onboarding rows that offered them
+  (30 files, +99/−457). The score still sums to 100 by moving the freed weight onto the guards
+  that run: Motion 15, SIM 18, battery 12, channel 25, camera 10, location 10, notifications 5,
+  battery exemption 5.
+- `0fd5ae1` — the Lock domain and event surface: `GuardKind`, the engine branch, the pure
+  boundaries and their two test files, `SecurityEventType.LOCK_CONFIRMED_EVENT`, `FailedPinAttempt`,
+  `AlertKind.LOCK` and its copy, `failedAttempts` through the capture path, the history filter,
+  icon, demo rows and strings (30 files, +146/−586).
+- `21b3925` — the two call sites the compiler caught still passing the retired argument the day
+  the run failed; no other change.
+
+**Queues survive the update.** `AlertLineCodec` field 6 and `PendingCaptureLogic` field 3 keep an
+empty slot where the Lock failure count was, because every field after them is positional and an
+alert or capture request queued during a theft by the previous build must still run. A persisted
+row naming the retired `LOCK_CONFIRMED_EVENT` is read as an unnamed confirmed event (History shows
+it under "Other") instead of throwing — before this change the reader's `runCatching` would have
+dropped the whole history, not only that row.
+
+**Disclosure.** `MotionLiftRecorderInstrumentedTest.kt` (the CI-only `SHIELDRA_LIFT` sampler) was
+staged with its deletion and swept into `edc6ce8` without being named in that commit's message.
+It is named here so the removal is traceable to a decision rather than an accident.
+
+**Gates, all run locally on 2026-11-06 and all PASS:** `LOCALE PARITY PASS — Arabic equals English
+key for key`; `Group C boundary scan passed`; `PHASE 3 STATIC REVIEW PASS`; `G4-B LOCAL REVIEW
+PASS — runtime/device evidence still required`. The g4b design-B section asserts the absence of
+the administrator, `lockNow(`, `/lock`, the Lock settings keys and the withdrawn Lock strings, so
+the privilege cannot return quietly; its history-type check now names the remaining guards only.
+
+**CI:** `42167431517` **success** on `f980a08`; `42170370960` **success** on `90d4b1f`;
+`42172685894` **failure** on `0fd5ae1` — `ProtectionService.kt:186/257 Too many arguments for
+'fun capture(type: SecurityEventType)'`, the two call sites fixed in `21b3925`; final run
+`42174624932` on `21b3925` — **success** (7m3s, job 127750134300): `BUILD SUCCESSFUL`,
+`CI TEST SUMMARY: 569 tests, 569 passed, 0 failures, 0 errors, 0 skipped`,
+`PASS: the installed APK declares exactly the reviewed permission set (21 permissions)`,
+`Group C boundary scan passed`, `G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS`,
+`LOCALE PARITY PASS`.
+
+**Device:** **NOT RUN** for this change. There is no anti-theft flow left to measure, and the
+owner's protocol forbids touching the shared phone's lock screen. The proof required before this
+branch lands on `main` is the absence of any administrator entry in the built app — the APK/AAB
+from CI plus screenshots from the general-app round (#32) when the phone is free.
