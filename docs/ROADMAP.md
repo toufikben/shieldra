@@ -1028,5 +1028,48 @@ the privilege cannot return quietly; its history-type check now names the remain
 منه لاختبار الهاتف. لا تدفع و لا تقم بفحص الهاتف»). There is no anti-theft flow left to measure.
 The absence of the administrator is proven statically by g4b section 5d on the built branch, and
 the built APK's reviewed permission set (21 permissions) is checked by CI — not by screenshots.
-The branch lands on `main` through PR #5 on the strength of the green run above; the general-app
-round (#32) may note the missing administrator entry opportunistically, but it is not a condition.
+The branch landed on `main` through **PR #5** (`Merge pull request #5 from
+toufikben/remove-owner-privileges`, merge commit `5e752be`), and the merge run `42176213742` is
+**success** (5m28s, job 127755163567) with the same proof lines: `BUILD SUCCESSFUL`,
+`CI TEST SUMMARY: 569 tests, 569 passed, 0 failures, 0 errors, 0 skipped`,
+`PASS: the installed APK declares exactly the reviewed permission set (21 permissions)`, and the
+four static gates. The general-app round (#32) may note the missing administrator entry
+opportunistically, but it is not a condition.
+
+## General-app gaps — seven defects found by testing the app as an app (`fix/general-app-gaps`, 2026-11-06)
+
+**Why this batch exists.** Design B closed the anti-theft question, and the owner moved the focus:
+«نحن الان نختبر التطبيق بشكل عام و ليس ميزة مكافحة السرقة». Reading the general flows — setup,
+export, map, history, health — against what the screens actually promise produced findings
+G-8…G-14. Each fix keeps its rule in a pure function or a data class so it is tested off-device,
+because CI is the only verifier and the phone round (#32) is a separate, later step.
+
+| Id | The defect | The rule now | The test |
+|---|---|---|---|
+| G-8 | Screen drafts were plain `remember`, so a language switch (which calls `Activity.recreate()`) wiped them; `ProtectionSettings` also was not Bundle-storable | `rememberSaveable` for the setup draft and the map radius; `ProtectionSettings : java.io.Serializable` | `ProtectionSettingsSerializableTest` (full object round-trip) |
+| G-9 | The setup form was keyed on the live settings object, so arming from its own top button discarded every unsaved toggle | `draftAfterSettingsChange`: an untouched form follows the live settings, an edited one keeps the edit | `SetupDraftTest` (3 tests) |
+| G-10 | `includedCount` counted redaction-allowed items, not files written: an export whose files were all gone sealed an empty zip, wrote a wrong audit line, and said "saved" | `writtenCount` and `unreadableCount` measured while zipping; zero readable aborts before the picker with `export_no_evidence`; partial saves name the loss | `EvidenceExporterTest` (+2 tests) |
+| G-11 | `Zone ${size + 1}` repeated a label after a deletion, and removal matched on the name so both rows vanished | `SafeZoneLabels.nextDefaultName` picks the smallest unused number; `removeZone` takes the zone itself | `SafeZoneLabelsTest` (4 tests) |
+| G-12 | The history filter lived in a plain `remember` inside its destination, so opening an event and coming back reset it to "All" | both filter enums are `rememberSaveable` | covered by the navigation's saveable state; no new claim |
+| G-13 | The Health Check back arrow had `contentDescription = null`, so TalkBack announced "button" | the icon uses `nav_back` | static: the string exists in both locales |
+| G-14 | The radius label was built as `"$meters km"`/`"$meters m"`, printing Latin units inside the Arabic UI | `safe_zone_radius_km` / `safe_zone_radius_m` translated strings | locale parity gate |
+
+**Strings.** `export_no_evidence`, `export_done_partial` (three placeholders), `safe_zone_radius_m`,
+`safe_zone_radius_km` in `values/` and `values-ar/`; the Arabic lines are «تعذّرت قراءة أي دليل:
+ملفات الأدلة مفقودة، فلم تُنشأ حزمة.»، «حُفظ %1$d من أصل %2$d؛ تعذّرت قراءة %3$d منها.»، «%1$d م»،
+«%1$d كم». The partial wording names no counted noun, so it stays grammatical for every number
+instead of carrying a plural form that is wrong for 3–10.
+
+**Gates, all run locally on this branch before the commit and all PASS:** `LOCALE PARITY PASS —
+Arabic equals English key for key`; `Group C boundary scan passed`; `PHASE 3 STATIC REVIEW PASS`;
+`G4-B LOCAL REVIEW PASS — runtime/device evidence still required`. The g4b design-B sections still
+see the retired Lock surface absent.
+
+**CI:** run `42179162583` on `b49d802` — **success** (job 127764494926, 07:10:50Z→07:21:49Z):
+`BUILD SUCCESSFUL in 5m 53s`, `CI TEST SUMMARY: 579 tests, 579 passed, 0 failures, 0 errors,
+0 skipped` (569 before this batch plus the ten tests added here),
+`PASS: the installed APK declares exactly the reviewed permission set (21 permissions)`,
+`Group C boundary scan passed`, `G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS`,
+`LOCALE PARITY PASS`. The optimised phone APK and the signed release pair built green as well; the
+three rolling-release publish steps are skipped on a branch by design. **Device:** NOT RUN; this
+batch changes general screens and its phone round is #32 (P-1…P-16), not this one.

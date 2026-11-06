@@ -63,10 +63,14 @@ fun rememberEvidenceExportFlow(
     val scope = rememberCoroutineScope()
     var pending by remember { mutableStateOf<EventDetailUiModel?>(null) }
     var sealedArchive by remember { mutableStateOf<ByteArray?>(null) }
+    // Written-to-unreadable counts of the archive the picker is holding (G-10). Kept beside the
+    // bytes so the final message can say what actually made it into the file.
+    var pendingCounts by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     val doneMessage = stringResource(R.string.export_done)
     val failedMessage = stringResource(R.string.export_failed)
     val refusedMessage = stringResource(R.string.export_refused)
+    val noEvidenceMessage = stringResource(R.string.export_no_evidence)
     val authTitle = stringResource(R.string.export_auth_title)
     val authSubtitle = stringResource(R.string.export_auth_subtitle)
 
@@ -75,11 +79,25 @@ fun rememberEvidenceExportFlow(
     ) { uri ->
         val bytes = sealedArchive
         sealedArchive = null
+        val counts = pendingCounts
+        pendingCounts = null
         if (uri != null && bytes != null) {
             val saved = runCatching {
                 context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } != null
             }.getOrDefault(false)
-            onMessage(if (saved) doneMessage else failedMessage)
+            val unreadable = counts?.second ?: 0
+            onMessage(
+                when {
+                    !saved -> failedMessage
+                    unreadable > 0 -> context.getString(
+                        R.string.export_done_partial,
+                        counts?.first ?: 0,
+                        (counts?.first ?: 0) + unreadable,
+                        unreadable,
+                    )
+                    else -> doneMessage
+                },
+            )
         }
     }
 
@@ -109,11 +127,16 @@ fun rememberEvidenceExportFlow(
                         passphrase.fill('\u0000')
                         val result = outcome.getOrNull()
                         val policy: EvidenceExportPolicy? = result?.policy
-                        if (result != null && policy?.isAllowed == true && result.includedCount > 0) {
-                            sealedArchive = result.encryptedArchive
-                            saveLauncher.launch("shieldra-evidence-${detail.id.take(8)}.shx")
-                        } else {
-                            onMessage(failedMessage)
+                        when {
+                            result == null || policy?.isAllowed != true -> onMessage(failedMessage)
+                            // G-10: every allowed file was gone, so the old flow sealed an empty zip
+                            // and reported "export saved". Say that nothing was readable instead.
+                            result.includedCount == 0 -> onMessage(noEvidenceMessage)
+                            else -> {
+                                sealedArchive = result.encryptedArchive
+                                pendingCounts = result.includedCount to result.unreadableCount
+                                saveLauncher.launch("shieldra-evidence-${detail.id.take(8)}.shx")
+                            }
                         }
                     }
                     Unit

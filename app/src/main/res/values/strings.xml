@@ -51,6 +51,8 @@
     <string name="safe_zones_remove">Remove safe zone</string>
     <string name="safe_zones_added">Safe zone saved</string>
     <string name="safe_zones_no_fix">Could not get a location fix</string>
+    <string name="safe_zone_radius_m">%1$d m</string>
+    <string name="safe_zone_radius_km">%1$d km</string>
     <string name="map_open_health">Protection health</string>
     <string name="health_title">Protection health</string>
     <string name="health_subtitle">What is really protecting this phone right now.</string>
@@ -599,6 +601,8 @@
     <string name="export_done">Encrypted export saved.</string>
     <string name="export_failed">The export could not be completed.</string>
     <string name="export_refused">Export cancelled: identity not confirmed.</string>
+    <string name="export_no_evidence">Nothing could be read: the evidence files are missing, so no archive was made.</string>
+    <string name="export_done_partial">Saved %1$d of %2$d items; %3$d could not be read.</string>
 
     <!-- The honest comparison with Android\'s own theft protection (audit development د). Nothing here is
          measured on this phone: the names are Google\'s, and makers rename and re-version them. -->

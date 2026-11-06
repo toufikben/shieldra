@@ -47,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -132,6 +133,8 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.shieldra.app.presentation.model.HistoryFilterState
+import com.shieldra.app.presentation.model.HistoryStatusFilter
+import com.shieldra.app.presentation.model.HistoryTypeFilter
 import com.shieldra.app.R
 import kotlinx.coroutines.launch
 
@@ -726,9 +729,9 @@ fun ShieldraNavHost(
                 val locationGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 var geofenceRefresh by remember { mutableStateOf(0) }
+                // G-11: the screen gets the places themselves, not name-keyed maps, so two rows can
+                // never share an identity and one delete removes exactly one place.
                 val zoneList = remember(geofenceRefresh) { ProtectionRuntime.zones(context) }
-                val zoneNames = zoneList.map { it.name }
-                val zoneRadii = zoneList.associate { it.name to it.zone.radiusMeters.toInt() }
                 val geofenceOn = remember(geofenceRefresh) { ProtectionRuntime.geofenceEnabled(context) }
                 val zoneReadingFresh = remember(geofenceRefresh, protectionArmed) { ProtectionRuntime.zoneReadingFresh(context) }
                 val safeZoneSaved = stringResource(R.string.safe_zones_added)
@@ -745,8 +748,7 @@ fun ShieldraNavHost(
                     onOpenHealthCheck = { navController.navigate(ShieldraRoutes.HEALTH_CHECK) },
                     geofenceEnabled = geofenceOn,
                     zoneReadingFresh = zoneReadingFresh,
-                    zoneNames = zoneNames,
-                    zoneRadii = zoneRadii,
+                    zones = zoneList,
                     onToggleGeofence = { enabled ->
                         val apply: () -> Unit = {
                             ProtectionRuntime.setGeofenceEnabled(context, enabled)
@@ -763,9 +765,9 @@ fun ShieldraNavHost(
                             snackbarHostState.showSnackbar(if (ok) safeZoneSaved else safeZoneNoFix)
                         }
                     },
-                    onRemoveZone = { name ->
+                    onRemoveZone = { zone ->
                         requireOwner {
-                            ProtectionRuntime.removeZone(context, name)
+                            ProtectionRuntime.removeZone(context, zone)
                             geofenceRefresh++
                         }
                     },
@@ -808,19 +810,21 @@ fun ShieldraNavHost(
                 )
             }
             composable(ShieldraRoutes.HISTORY) {
-                var historyFilterState by remember { mutableStateOf(HistoryFilterState()) }
+                // G-8/G-12: the filter used to live in a plain `remember` inside this destination,
+                // so opening an event and coming back reset it to "All". A saveable value survives
+                // that trip and the language switch that recreates the activity.
+                var historyType by rememberSaveable { mutableStateOf(HistoryTypeFilter.All) }
+                var historyStatus by rememberSaveable { mutableStateOf(HistoryStatusFilter.All) }
                 HistoryScreen(
                     events = recentEvents,
-                    filterState = historyFilterState,
+                    filterState = HistoryFilterState(type = historyType, status = historyStatus),
                     callbacks = HistoryCallbacks(
                         onEventClick = { id ->
                             navController.navigate(ShieldraRoutes.eventDetail(id))
                         },
                         onFilterChange = { change ->
-                            historyFilterState = HistoryFilterState(
-                                type = change.type,
-                                status = change.status,
-                            )
+                            historyType = change.type
+                            historyStatus = change.status
                         },
                     ),
                 )

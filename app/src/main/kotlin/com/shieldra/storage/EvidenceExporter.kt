@@ -30,7 +30,13 @@ class EvidenceExporter(
 
     data class Result(
         val encryptedArchive: ByteArray,
+        /** The items whose bytes were actually written into the archive. */
         val includedCount: Int,
+        /**
+         * The allowed items whose bytes could not be read at export time (G-10). They are not in the
+         * archive and not in the audit count; the caller must name them instead of reporting success.
+         */
+        val unreadableCount: Int,
         val policy: EvidenceExportPolicy,
     )
 
@@ -61,13 +67,20 @@ class EvidenceExporter(
         val allowedKinds = EvidenceExportRedaction.included(availableKinds, includeLocation)
         val included = items.filter { it.redactionItem in allowedKinds }
 
+        var writtenCount = 0
+        var unreadableCount = 0
         val plaintextArchive = ByteArrayOutputStream().use { buffer ->
             ZipOutputStream(buffer).use { zip ->
                 included.forEach { item ->
-                    val bytes = readEvidence(item.evidenceId) ?: return@forEach
+                    val bytes = readEvidence(item.evidenceId)
+                    if (bytes == null) {
+                        unreadableCount++
+                        return@forEach
+                    }
                     zip.putNextEntry(ZipEntry("${item.redactionItem.name.lowercase()}_${item.evidenceId}"))
                     zip.write(bytes)
                     zip.closeEntry()
+                    writtenCount++
                 }
             }
             buffer.toByteArray()
@@ -77,10 +90,15 @@ class EvidenceExporter(
         recordAudit(
             ExportAuditEntry(
                 atEpochMs = nowMs,
-                includedCount = included.size,
+                includedCount = writtenCount,
                 includedLocation = EvidenceExportRedaction.Item.LOCATION in allowedKinds,
             ),
         )
-        return Result(encryptedArchive = sealed, includedCount = included.size, policy = policy)
+        return Result(
+            encryptedArchive = sealed,
+            includedCount = writtenCount,
+            unreadableCount = unreadableCount,
+            policy = policy,
+        )
     }
 }
