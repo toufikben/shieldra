@@ -4,7 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-fail() { echo "FAIL: $1" >&2; exit 1; }
+# Reporting only the first violation cost more than it saved: a run that failed one check hid the
+# state of the other 285, so each fix needed another full CI run just to learn what was next.
+# A failure is now recorded and the scan continues; the exit code is decided at the end.
+failures=0
+fail() { echo "FAIL: $1" >&2; failures=$((failures + 1)); }
 pass() { echo "PASS: $1"; }
 
 [ "$(grep -c 'android:allowBackup="false"' app/src/main/AndroidManifest.xml)" -eq 1 ] || fail "application backup is not disabled"
@@ -424,7 +428,10 @@ DECLARED="$(grep -oE 'android:name="android\.permission\.[A-Z_]+"' app/src/main/
 # Amendment A-32 adds the two install-time network permissions alert delivery needs; A-33/A-34 add
 # the protection guards' camera, location, boot, wake-lock, phone-state, battery and exact-alarm set.
 # A-35 adds the microphone pair for the short audio clip.
-EXPECTED="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_NETWORK_STATE CAMERA FOREGROUND_SERVICE FOREGROUND_SERVICE_CAMERA FOREGROUND_SERVICE_LOCATION FOREGROUND_SERVICE_MICROPHONE FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_BOOT_COMPLETED RECORD_AUDIO REQUEST_IGNORE_BATTERY_OPTIMIZATIONS SCHEDULE_EXACT_ALARM USE_EXACT_ALARM WAKE_LOCK "
+# F-PLAY-1 (2026-11-03): USE_EXACT_ALARM is withheld — Google Play reserves it for alarm-clock and
+# calendar apps — so SCHEDULE_EXACT_ALARM is the only exact-alarm permission declared, and the
+# countdown falls back to an inexact alarm until the owner grants exact scheduling at runtime.
+EXPECTED="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_NETWORK_STATE CAMERA FOREGROUND_SERVICE FOREGROUND_SERVICE_CAMERA FOREGROUND_SERVICE_LOCATION FOREGROUND_SERVICE_MICROPHONE FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_BOOT_COMPLETED RECORD_AUDIO REQUEST_IGNORE_BATTERY_OPTIMIZATIONS SCHEDULE_EXACT_ALARM WAKE_LOCK "
 if [ "$DECLARED" != "$EXPECTED" ]; then
   fail "the manifest declares permissions outside the A-6/A-19/A-32/A-33/A-34/A-35 named set; got [$DECLARED]"
 fi
@@ -441,6 +448,130 @@ grep -q 'hasBeenRequested()' "$NOTIFIER" \
 grep -q 'recordPermissionRequest()' "$NAVHOST" \
   || fail "answering the system dialog is never recorded, so silence and refusal look alike"
 pass "notifications are local, permission-gated, and never claim delivery"
+
+# 5d. Design B (2026-11-06): the app holds no device administrator at all.
+# The owner retired the A-33 Lock guard and the A-42 remote /lock with it, because both rested on a
+# refused privilege: Android never grants a home-installed app the failed-unlock signal, and the
+# owner told us the app must not keep device-admin powers. This section asserts the absence, so a
+# later edit cannot quietly bring the privilege back.
+ADMIN_XML=app/src/main/res/xml/device_admin.xml
+if [ -e "$ADMIN_XML" ]; then
+  fail "a device-admin policy declaration came back (design B holds no administrator)"
+fi
+if grep -q 'BIND_DEVICE_ADMIN\|LockGuardReceiver\|android.app.device_admin' app/src/main/AndroidManifest.xml; then
+  fail "the manifest registers a device administrator again (design B holds no administrator)"
+fi
+ADMIN_IMPORTS="$(grep -rn 'android\.app\.admin' app/src/main --include='*.kt' || true)"
+[ -z "$ADMIN_IMPORTS" ] || fail "production code imports android.app.admin again: $ADMIN_IMPORTS"
+LOCK_CALLERS="$(grep -rn 'lockNow[[:space:]]*(' app/src/main --include='*.kt' || true)"
+[ -z "$LOCK_CALLERS" ] || fail "code can lock the screen again (design B has no lock power): $LOCK_CALLERS"
+if grep -q '"/lock"' app/src/main/kotlin/com/shieldra/protection/RemoteCommandPoller.kt; then
+  fail "the /lock command came back into the remote poller (design B cannot lock)"
+fi
+if grep -q 'lock_enabled\|lock_threshold' app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt; then
+  fail "the Lock guard settings keys came back (design B removed the Lock guard)"
+fi
+pass "design B: the app holds no device administrator and no power to lock the screen"
+
+# 5e. Motion guard (A-43, narrowed by design B on 2026-11-06): the owner asked for the Motion guard to
+# be always on like the SIM guard, so it is on by default, arming and boot start it, disarming stops it,
+# and switching it off asks the owner (ProtectionChange). Design B removed the screen lock that used to
+# end the response — the app holds no lock power — so what is pinned here is the guard and its chosen
+# response, not a lock.
+MOTION_SETTINGS=app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt
+grep -Eq 'val motionEnabled: Boolean = true' "$MOTION_SETTINGS" \
+  || fail "the Motion guard is no longer on by default beside the SIM guard (A-43)"
+grep -q 'motionEnabled = prefs.getBoolean(KEY_MOTION_ENABLED, true)' "$MOTION_SETTINGS" \
+  || fail "the Motion guard no longer loads as on by default; the retired opt-in key must not decide it (A-43)"
+if grep -q 'KEY_MOTION_WITH_ARMING' "$MOTION_SETTINGS"; then
+  fail "the retired motion_with_arming opt-in still decides the guard, so an old save keeps Motion off (A-43)"
+fi
+MOTION_PLAN=app/src/main/kotlin/com/shieldra/protection/MotionResponsePlan.kt
+[ -s "$MOTION_PLAN" ] || fail "the pure Motion response plan is missing (A-43)"
+for field in 'val sirenNow: Boolean' 'val waitForOwnerUnlock: Boolean' 'val sirenAfterGrace: Boolean'; do
+  grep -q "$field" "$MOTION_PLAN" \
+    || fail "the Motion response plan lost $field, so a response can no longer be stated without a device (A-43)"
+done
+RESPONDER=app/src/main/kotlin/com/shieldra/protection/TableModeResponder.kt
+grep -q 'MotionResponsePlan.of(settings.motionResponse)' "$RESPONDER" \
+  || fail "a confirmed Motion no longer runs the owner's chosen response (A-43)"
+grep -q 'ProtectionService.captureForEvent' "$RESPONDER" \
+  || fail "a confirmed Motion no longer takes its evidence through the live service (A-43)"
+grep -q 'Siren.start' "$RESPONDER" \
+  || fail "the loud-siren response no longer sounds (A-43)"
+grep -q 'if (store.load().motionEnabled) startMotion(app)' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "arming no longer starts the Motion guard (A-43)"
+grep -q 'MotionRuntime.stopMonitoring(app)' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "disarming no longer stops the Motion guard (A-43)"
+grep -q 'settings.motionEnabled' app/src/main/kotlin/com/shieldra/protection/BootReceiver.kt \
+  || fail "a reboot no longer resumes the Motion guard with the other guards (A-43)"
+grep -q 'old.motionEnabled && !new.motionEnabled' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionChange.kt \
+  || fail "switching the Motion guard off no longer asks the owner (A-43)"
+grep -q 'updated.motionEnabled && !motionClaim.claimsProtection' "$NAVHOST" \
+  || fail "saving the Motion guard on or off no longer syncs the running monitor (A-43)"
+grep -q 'ProtectionRuntime.setMotionEnabled(context, true)' "$NAVHOST" \
+  || fail "the dashboard's Motion start no longer records the guard choice (A-43)"
+grep -q 'ProtectionRuntime.setMotionEnabled(context, false)' "$NAVHOST" \
+  || fail "the dashboard's Motion stop no longer records the guard choice (A-43)"
+grep -Fq 'fun `the motion guard is on by default like the SIM guard`' \
+  app/src/test/kotlin/com/shieldra/protection/MotionGuardDefaultsTest.kt \
+  || fail "the default-on Motion guard test was removed or renamed"
+pass "A-43: Motion is on by default, arming and boot start it, and a confirmed lift runs the chosen response and takes evidence"
+
+# 5f. A-44 (2026-11-04): found on the phone during A-43 verification. The protection screen's Save
+# wrote its whole snapshot back to storage, including an `armed=false` captured before the owner
+# pressed Arm on the same screen. The service then stood down at its next heartbeat while the screen
+# still said "Armed" and the Motion service kept running. The armed flag now has one writer
+# (setArmed): a Save can change every guard but cannot disarm.
+ARMED_WRITERS=$(grep -c 'putBoolean(KEY_ARMED' "$MOTION_SETTINGS" || true)
+[ "$ARMED_WRITERS" = "1" ] \
+  || fail "the settings save still writes the armed flag, so Save can silently disarm protection (A-44)"
+grep -q 'prefs.edit().putBoolean(KEY_ARMED, armed)' "$MOTION_SETTINGS" \
+  || fail "setArmed is no longer the single writer of the armed flag (A-44)"
+grep -q 'val armed = store.load().armed' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "applySettings no longer reads the live armed flag, so a stale save can change protection state (A-44)"
+grep -Fq 'incoming.copy(armed = protectionArmed)' "$NAVHOST" \
+  || fail "the protection screen's Save no longer carries the live armed state (A-44)"
+grep -Fq 'LaunchedEffect(protectionArmed)' "$NAVHOST" \
+  || fail "the settings snapshot no longer follows the live armed state (A-44)"
+pass "A-44: the armed flag has one writer; a settings Save can no longer disarm a running protection"
+
+# 5g. Design B (owner, 2026-11-06): the app holds no lock power, so the whole A-45 response layer is
+# gone and must stay gone. The old assertions here pinned SnatchLadder, TheftDemand, ZonePolicy and a
+# screen lock inside a confirmed Motion — they were deleted with the design they enforced, because a
+# gate that demands dead code is the defect. What replaces them is the opposite promise: the dead layer
+# never comes back, the trilingual lock-screen notice never comes back, and what survives still runs.
+LADDER="app/src/main/kotlin/com/shieldra/protection/SnatchLadder.kt"
+ZONE_POLICY="app/src/main/kotlin/com/shieldra/protection/ZonePolicy.kt"
+DEMAND="app/src/main/kotlin/com/shieldra/protection/TheftDemand.kt"
+RECORDER="app/src/androidTest/kotlin/com/shieldra/detection/MotionLiftRecorderInstrumentedTest.kt"
+for dead in "$LADDER" "$ZONE_POLICY" "$DEMAND" \
+  app/src/main/kotlin/com/shieldra/protection/TheftNoticeText.kt \
+  "$RECORDER"; do
+  [ -e "$dead" ] && fail "a design-B-deleted file is back: $dead"
+done
+if [ -d app/src/main/res/values-fr ]; then
+  fail "values-fr is back, but the lock-screen notice it carried was deleted with the lock (design B)"
+fi
+if grep -Eq 'lockAtOnce|lockAfterGrace|DeviceScreenLock|SnatchLadder|TheftDemand|ZoneResponse' \
+  app/src/main/kotlin/com/shieldra/protection/MotionResponsePlan.kt "$RESPONDER"; then
+  fail "the Motion response reaches for a lock, a ladder, a demand notice or a zone policy again (design B)"
+fi
+grep -A 12 'is MotionConfirmation.BoundToActive ->' \
+  app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt \
+  | grep -q 'TableModeResponder.onMotionConfirmed' \
+  || fail "a movement that joins an open incident is silent again"
+# Safe zones stay, but only for the one-shot leave-a-zone alert (A-36) the Map screen promises; the
+# sampler that feeds it must not be deleted with the policy that used to read it.
+[ -s app/src/main/kotlin/com/shieldra/protection/GeofenceTicker.kt ] \
+  || fail "the safe-zone sampler that feeds the leave-a-zone alert (A-36) is missing"
+grep -q 'GeofenceLogic.hasLeftSafeZone' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  || fail "leaving a safe zone no longer raises the one-shot alert the Map screen promises (A-36)"
+pass "design B: the A-45 lock, notice, ladder and zone policy stay deleted; Motion still alerts, sirens and takes evidence"
 
 # 6. The dashboard action reaches the real coordinator off the main thread.
 grep -q 'PanicIncidentCoordinator(repository' "$NAVHOST" || fail "NavHost does not build the panic coordinator"
@@ -681,9 +812,13 @@ grep -q 'MotionSensorAdapter(' "$SERVICE" \
 USES="$(grep -RIn 'MotionSensorAdapter(' app/src/main/kotlin --include='*.kt' | grep -v "$ADAPTER" | grep -v "$SERVICE" || true)"
 [ -z "$USES" ] || fail "a second Motion adapter owner appeared in the shipping app; A-19 allows the service alone: $USES"
 # A-33 relaxed A-10: the manifest may declare boot, but it must be wired to the protection
-# BootReceiver and nothing else (the Motion service never auto-starts from boot).
+# BootReceiver and nothing else. A-43 then let that one receiver resume the Motion guard with the
+# other guards, so "boot" never means a path of the Motion service's own.
 grep -q 'com.shieldra.protection.BootReceiver' app/src/main/AndroidManifest.xml \
   || fail "boot is declared without the A-33 protection BootReceiver to handle it"
+grep -q 'MotionRuntime.startMonitoring(appContext, storageInstalled)' \
+  app/src/main/kotlin/com/shieldra/protection/BootReceiver.kt \
+  || fail "a reboot no longer resumes the Motion guard through the protection BootReceiver (A-43)"
 
 for name in fewer_than_two_samples_is_reported_as_nothing_measured_not_as_a_still_device \
   a_sample_that_is_not_a_finite_acceleration_is_dropped_and_the_stream_is_marked_invalid \
@@ -1125,6 +1260,46 @@ for name in the_protection_row_opens_a_real_setup_and_the_row_list_stays_pinned 
 done
 pass "Q-K-9 and F-K13 hold: no Lock Guard setting in the rows or the wording, and a Delivery section only where a receipt exists"
 
+# B-3 (audit §5.13): "delete all data" is a claim about every store the app writes to, and the claim is
+# only as good as the list eraseAll wipes. So the list is compared against the preferences files the
+# sources actually declare: a new store that eraseAll forgets fails here, and an entry left behind after
+# a store was renamed fails here too. Either way the reset would silently delete less than the privacy
+# policy promises, which is a Play-review finding rather than a test failure.
+ERASE=app/src/main/kotlin/com/shieldra/storage/LocalStorageFactory.kt
+declared_stores="$(
+  for source in $(grep -RIl --include='*.kt' 'getSharedPreferences(' app/src/main || true); do
+      for key in $(grep -oE 'getSharedPreferences\([A-Za-z_][A-Za-z0-9_]*' "$source" | sed 's/.*(//' || true); do
+          grep -hoE "const val $key(: String)? = \"shieldra[a-z0-9_]*\"" "$source" \
+              | grep -oE '"shieldra[a-z0-9_]*"' | tr -d '"' || true
+      done
+      grep -oE 'getSharedPreferences\("shieldra[a-z0-9_]*"' "$source" | sed 's/.*("//' | tr -d '"' || true
+  done | sort -u | tr '\n' ' ')"
+erased_stores="$( { awk '/OWNER_PREFERENCES = listOf\(/,/^        \)/' "$ERASE";
+    grep 'DEVICE_PROTECTED_PREFERENCE = ' "$ERASE" || true; } | grep -oE '"shieldra[a-z0-9_]*"' \
+  | tr -d '"' | sort -u | tr '\n' ' ' || true)"
+[ -n "$declared_stores" ] || fail "no preferences store was found to check — the B-3 gate is blind"
+[ -n "$erased_stores" ] || fail "eraseAll no longer carries a readable preferences list — the B-3 gate is blind"
+for store in $declared_stores; do
+    case " $erased_stores " in
+        *" $store "*) ;;
+        *) fail "eraseAll does not wipe the $store preferences file (B-3)" ;;
+    esac
+done
+for store in $erased_stores; do
+    grep -RIq --include='*.kt' "\"$store\"" app/src/main \
+        || fail "eraseAll names $store but no preferences store declares it any more"
+done
+grep -q 'createDeviceProtectedStorageContext' "$ERASE" \
+    || fail "eraseAll does not reach device-protected storage, so the Direct Boot flag survives it"
+grep -q 'DEVICE_PROTECTED_PREFERENCE = "shieldra_boot"' "$ERASE" \
+    || fail "eraseAll does not name the device-protected preferences file"
+pass "B-3 holds: eraseAll accounts for every preferences store, including the device-protected one"
+
 git diff --check
 pass "git diff check"
+
+if (( failures > 0 )); then
+    echo "G4-B LOCAL REVIEW FAILED with $failures finding(s): see every FAIL line above." >&2
+    exit 1
+fi
 echo "G4-B LOCAL REVIEW PASS — runtime/device evidence still required"

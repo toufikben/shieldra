@@ -273,11 +273,23 @@ class MotionMonitoringService : Service(), MotionMonitor {
                 )
                 // A-33 table mode: the owner's chosen response runs — a silent capture, a loud siren,
                 // or a grace window first. When protection is armed it attaches a photo and a fix to
-                // this incident; otherwise it falls back to the silent channel alert (A-32).
+                // this incident; otherwise it falls back to the silent channel alert (A-32). No screen
+                // lock is part of it: design B leaves the app without that power.
                 TableModeResponder.onMotionConfirmed(applicationContext, recordedId)
             }
             is MotionConfirmation.Rejected ->
                 Log.w(TAG, "a confirmed Movement could not be recorded: ${confirmation.reason}")
+            is MotionConfirmation.BoundToActive -> {
+                // A movement that joined the open incident is not silence: a phone being carried
+                // produces one of these after another, and a movement after the confirmation doing
+                // nothing is precisely the snatch the owner described. It goes to the same responder,
+                // which starts the response again. No second local notification: one incident, one
+                // notice on the owner's own shade.
+                TableModeResponder.onMotionConfirmed(
+                    applicationContext,
+                    confirmation.event.id.value.toString(),
+                )
+            }
             else -> Unit
         }
     }

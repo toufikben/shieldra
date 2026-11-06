@@ -62,6 +62,7 @@ fun MapScreen(
     onOpenProtectionSetup: () -> Unit,
     onOpenHealthCheck: () -> Unit,
     geofenceEnabled: Boolean,
+    zoneReadingFresh: Boolean,
     zoneNames: List<String>,
     zoneRadii: Map<String, Int>,
     onToggleGeofence: (Boolean) -> Unit,
@@ -141,6 +142,17 @@ fun MapScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // A-45 D2: a zone the phone cannot actually locate itself in protects nothing, and the
+            // ladder then behaves as if it were outside. The owner is told that, not shown a switch
+            // that quietly reads nothing.
+            if (armed && geofenceEnabled && zoneNames.isNotEmpty() && !zoneReadingFresh) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.safe_zone_sampler_off),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             Spacer(Modifier.height(10.dp))
             if (zoneNames.isEmpty()) {
                 Text(

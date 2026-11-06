@@ -165,9 +165,16 @@ class LocalShieldraStorage private constructor(
             }
 
         /**
-         * The owner's confirmed "delete all data" (§5.7): every event row, every evidence file and both
-         * evidence keys. The caller restarts the process afterwards, because nothing may keep using the
-         * closed database or the destroyed keys.
+         * The owner's confirmed "delete all data" (§5.7, and audit B-3/§5.13): every event row, every
+         * evidence file, both evidence keys, the keys that seal the delivery secrets and queued
+         * positions, and every value the app has stored in its own preferences. The caller restarts the
+         * process afterwards, because nothing may keep using the closed database or the destroyed keys.
+         *
+         * Preferences are cleared through the SharedPreferences API rather than by unlinking a file,
+         * which is the only portable way to reach both the credential-protected store and the
+         * device-protected one Direct Boot writes to. Android keeps the emptied file in place; what is
+         * checked is that no value survives in it, and a store that still reads back anything is
+         * reported as a failure rather than as a completed deletion.
          */
         fun eraseAll(context: Context, open: LocalShieldraStorage?): FactoryResetResult {
             open?.close()
@@ -178,14 +185,81 @@ class LocalShieldraStorage private constructor(
                 metadataDatabase = app.getDatabasePath(DEFAULT_DATABASE_NAME),
                 keyDeletion = encryptor::deleteEvidenceKeyIrreversibly,
             ).execute(
-                aliases = listOf(EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS, EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS_V2),
+                aliases = EVIDENCE_KEY_ALIASES + SECRET_KEY_ALIASES,
                 confirmed = true,
             )
             FileBackedKeyLifecycle.fileIn(app.noBackupFilesDir).delete()
-            return result
+            return accountForPreferences(result, clearStoredPreferences(app))
+        }
+
+        /**
+         * Wipes what the owner never sees as "data" but the privacy policy promises to remove: the safe
+         * zones that are their home and workplace, the SIM identifiers the guards compare against, the
+         * alert channels, the queued captures and alerts. Returns the stores that still read back a
+         * value — an empty list is the only honest basis for claiming the deletion happened.
+         */
+        private fun clearStoredPreferences(app: Context): List<String> {
+            val stillHoldingValues = mutableListOf<String>()
+            for (name in OWNER_PREFERENCES) {
+                if (!wipePreferences(app, name)) stillHoldingValues += name
+            }
+            val deviceProtected = runCatching { app.createDeviceProtectedStorageContext() }.getOrNull()
+            if (deviceProtected != null && !wipePreferences(deviceProtected, DEVICE_PROTECTED_PREFERENCE)) {
+                stillHoldingValues += DEVICE_PROTECTED_PREFERENCE
+            }
+            return stillHoldingValues
+        }
+
+        /** Clears one store and reads it back. A store that cannot be reached is a failure, not a pass. */
+        private fun wipePreferences(context: Context, name: String): Boolean = runCatching {
+            val prefs = context.getSharedPreferences(name, Context.MODE_PRIVATE)
+            prefs.edit().clear().commit()
+            prefs.all.isEmpty()
+        }.getOrDefault(false)
+
+        /** A surviving preference value turns a completed reset into a tombstoned one (A-3). */
+        private fun accountForPreferences(
+            result: FactoryResetResult,
+            stillHoldingValues: List<String>,
+        ): FactoryResetResult {
+            if (stillHoldingValues.isEmpty()) return result
+            val failures = stillHoldingValues.map { "$it still holds stored values after the reset" }
+            return when (result) {
+                is FactoryResetResult.Completed -> FactoryResetResult.Tombstoned(result.deletedAliases, failures)
+                is FactoryResetResult.Tombstoned -> result.copy(failures = result.failures + failures)
+                is FactoryResetResult.Refused -> result
+            }
         }
 
         private const val DEFAULT_DATABASE_NAME = "shieldra.db"
         private const val EVIDENCE_DIRECTORY = "shieldra-evidence"
+
+        /**
+         * Every preferences file the app writes, and the key aliases that seal values inside them.
+         * Each entry is owned by the class named beside it; a reset that misses one of them deletes
+         * less than the policy in `docs/PRIVACY_POLICY.md` promises, so the list is checked against
+         * the sources by `.github/scripts/g4b-review-check.sh` on every run.
+         */
+        private val OWNER_PREFERENCES = listOf(
+            "shieldra_protection",        // ProtectionSettingsStore: armed flag, safe zones, SIM baseline, owner contact
+            "shieldra_delivery",          // DeliverySettingsStore: Telegram chat, mail addresses, sealed secret blobs
+            "shieldra_pending_alerts",    // PreferencesPendingAlertStore: queued alerts and their sealed positions
+            "shieldra_pending_captures",  // PendingCaptures: capture requests still waiting to run
+            "shieldra_app_prefs",         // AppSettingsStore: language and appearance the owner chose
+            "shieldra_onboarding",        // OnboardingState: which steps this install has been through
+            "shieldra_notification",      // LocalEventNotifier: which events were already announced
+            "shieldra_zone_state",        // ZoneStateStore: the last safe-zone reading the ladder reads
+        )
+
+        /** Direct Boot's own store, in device-protected storage — read before any unlock. */
+        private const val DEVICE_PROTECTED_PREFERENCE = "shieldra_boot"
+
+        private val EVIDENCE_KEY_ALIASES = listOf(
+            EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS,
+            EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS_V2,
+        )
+
+        /** `shieldra_delivery_v1` belongs to DeliverySettingsStore; `shieldra_secret_v1` to SecretText. */
+        private val SECRET_KEY_ALIASES = listOf("shieldra_delivery_v1", SecretText.KEY_ALIAS)
     }
 }

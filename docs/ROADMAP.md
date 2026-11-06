@@ -761,3 +761,272 @@ because each runner regenerates the debug keystore.
 (`assertTrue(true)`), which masked an SDK-level-only capability check. Both
 were fixed in this batch and documented in
 `docs/reports/batch-4d-key-rotation.md`.
+
+## Audit round 1 — `fix/audit-round-1` (2026-11-03)
+
+**The owner-ordered execution of the static audit (14 fixes + 7 developments) is complete on
+`fix/audit-round-1`; `main` stayed untouched at `d273b24` and nothing
+was merged.** The round ran as one commit chain (`b5681d5 … 32057e3`). The 14 fixes: the
+instrumentation runner plus its CI wiring (`b5681d5`); a capture that could not run is queued,
+retried, and reported — including when `promote()` fails (`64a8925`); the Direct Boot guard return
+(`9b0a5f3`, `e2acf36`); a lock-screen protection notice that stops mapping the defences
+(`f988d12`); an owner gate that fails closed on an unreadable answer (`12456a3`); the
+release-fingerprint pin (`f560f6b`); the gate reads the installed permission set, not the source
+manifest (`3e2a3cd`); g4b collecting every violation instead of the first (`b417833`); Group C
+covering `app/presentation` (`b417833`); the SIM guard rebaselining when protection arms and
+reporting airplane mode (`ccc56bc`); honest Lock Guard wording with no claim it runs
+(`095c5f9`); `eraseAll` now deleting the preferences and not only the evidence (`c173838`), and a
+queued alert's position sealed before it is written, with the test fake fixed to actually hide
+the coordinates (`4abcf98`, `9d8fbb0`); and CI no longer dispatching on branch
+pushes (the deletion half of #14 waits on the owner — see below). The 7 developments: the
+dead-man watchdog that alerts when pulses stop (أ, `82a6f3a`, `ee4283d`); the literal ColorOS
+exclusion paths (ب, `095c5f9`); the "phone stolen now" screen (ج, `095c5f9`); the explicit
+comparison with Android's own tools (د, `095c5f9`); the announced escalation where a failed
+delivery is a security event (ز, `b567581`, `4cc4608`); while (هـ) proactive evidence flow stays
+inside the owner channel, with no third-party service, and (و) `systemExempted` +
+`ROLE_EMERGENCY` were deliberately not adopted — both argued in
+`docs/reports/audit-round-1-play-policy.md`. Play policy F-PLAY-1 also landed: `USE_EXACT_ALARM`
+withdrawn, `SCHEDULE_EXACT_ALARM` kept user-grantable, all three scheduling call sites check
+`canScheduleExactAlarms()` and fall back to an inexact alarm, and a new "Alarms and reminders"
+row opens the platform grant (`dbd5487`, `32057e3`).
+**CI:** run `41637115693` at `32057e3ef637712f485c86c8f675d733a670fca7` — **success**,
+`CI TEST SUMMARY: 566 tests, 566 passed, 0 failures, 0 errors, 0 skipped`, lint clean (the
+`NewApi` error on `AlarmManager#canScheduleExactAlarms` that run `41634639517` caught was fixed at
+`32057e3` with pre-`S` guards), Group C boundary scan + `G4-B LOCAL REVIEW PASS` + `PHASE 3 STATIC
+REVIEW PASS`. Branch pushes no longer dispatch CI — the workflow now runs on `workflow_dispatch`
+(with the new `publish_phone_apks` input that publishes a branch's APK pair plus the phone APK to
+a draft `test-<run-id>` release) and on `push` to `main` only; this branch's assets were published
+as the draft `test-41637115693` (three assets verified). The repository was made public for that
+run and restored to **private** afterwards.
+**Device:** the RMX3910 ran the `32057e3` build (versionCode 387) from that release —
+`OK (74 tests)` across 16 classes, with one class excluded and named
+(`MotionBackgroundMeasurementInstrumentedTest`, whose phases wait for a sleeping screen that USB
+stay-awake never allows). Language resolution was verified on screen (system `ar` → full Arabic
+RTL, `fr` → English fallback, cleared override → English), and the exact-alarm row end to end
+(Grant opens `Settings$AlarmsAndRemindersAppActivity`, the toggle ON, and `ON_RESUME` flips the
+row to granted). The app was force-stopped afterwards and the launcher confirmed in front twice,
+per the shared-device protocol. **NOT RUN, with reasons recorded:** reboot / Direct Boot / Safe
+Mode (rebooting is forbidden by the owner protocol), the no-screen-lock state, `pm clear`, the
+armed Telegram commands, the 12-hour ColorOS soak, and the measurement class above.
+**Left for the owner, untouched:** the branch-cleanup list delivered with this round — 46
+branches carry zero unique commits and are safe to delete, while `feat/ui-redesign` carries two
+unique commits; and `/lock` + `<force-lock/>` were deliberately not written in that round (device
+admin stayed minimal, `watch-login` only) — the owner reversed that decision on 2026-11-03, see the
+next section.
+
+## Remote screen lock — amendment A-42 on `fix/audit-round-1` (2026-11-03)
+
+**The owner asked for `/lock` + `<force-lock />` immediately, on condition that Google Play does
+not forbid them; it does not.** The full policy argument and the exclusions are in
+`docs/reports/audit-round-1-force-lock.md`. The administrator now holds exactly two policies —
+`watch-login` (hear a failed unlock) and `force-lock` (lock the screen on the owner's command) — and
+`lockNow()` has exactly one caller, `DeviceScreenLock.kt`, guarded by an admin-active check and a
+four-way honest answer (locked / admin off / needs re-grant / failed). The command parser is a pure
+object with JVM tests (`RemoteCommandTest`), the poller still acts only on the owner's chat id, and
+every shipped string that used to say Shieldra cannot lock now states the one case it can (EN + AR,
+592 keys each). The g4b gate pins the policy pair by exact equality and keeps `lockNow()` in its
+single file.
+
+**CI:** run `41769482300` on commit `b7fd947` — 574 tests, 574 passed, 0 failures, 0 skipped;
+`PASS: device administration is exactly watch-login + force-lock, and lockNow has one guarded
+caller`; G4-B local review, Group C boundary scan and Phase 3 static review all pass; build
+successful in 9m 2s, signed release builds also succeeded.
+
+**Device (2026-11-04, build from that run, versionCode 389):** the administrator holds exactly
+`watch-login` + `force-lock` (`dumpsys device_policy`), `maximumFailedPasswordsForWipe=0`; the
+system activation screen lists exactly "Monitor screen unlock attempts" and "Lock the screen"; the
+Protection row is green in EN and AR; deactivation shows the app's own warning and the row reverts;
+re-grant after deactivation succeeds and `DeviceScreenLock.isGranted` reads true again; requested
+permissions are unchanged. Instrumentation on the device: `OK (78 tests)` in 1,755 s. **NOT RUN:**
+`/lock` end to end (items 5–9 — needs the owner's bot token and chat, which this round does not
+request or open), uninstall (item 11), and an existing-admin re-grant from an older build (item 4 —
+no Shieldra administrator existed on the phone before this round; the identical off→on re-grant
+path was exercised instead). **Existing administrators** granted before this change keep the old
+policy set until they switch the role off and on once; `/lock` answers with that exact instruction
+instead of pretending it locked.
+
+## Motion as a guard — amendment A-43 on `fix/audit-round-1` (2026-11-04)
+
+**The owner asked for the Motion guard to be always on like the lock and SIM guards, and for a
+confirmed lift or snatch to lock the phone.** Motion is no longer a separate opt-in: `motionEnabled`
+defaults to true (the retired `motion_with_arming` key is not read, because its old default of false
+was indistinguishable from a deliberate off), arming starts monitoring beside `ProtectionService`,
+disarming stops it and cancels a waiting grace response, boot resume restarts it while armed, and
+the dashboard's start/stop writes the same stored flag the settings screen shows. Switching the
+guard off weakens protection, so it asks for the owner's screen lock. Every confirmed lift locks
+through `DeviceScreenLock.now` — the single guarded `lockNow()` caller A-42 introduced — after the
+capture request, and only while protection is armed; SILENT and SIREN lock at once, GRACE_THEN_SIREN
+lets the owner's own unlock cancel the siren and the lock together. The pure `MotionResponsePlan`
+and its tests state that promise, and `g4b` pins the default, the start/stop wiring, the armed gate,
+the lock caller and the named tests. Full argument: `docs/reports/audit-round-1-motion-snatch-lock.md`.
+
+**CI:** run `41782160333` on `9c30867` — **success**, `CI TEST SUMMARY: 578 tests, 578 passed,
+0 failures, 0 errors, 0 skipped`, `BUILD SUCCESSFUL in 9m 41s`; `Group C boundary scan passed`,
+`PASS: A-43 …`, `G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS`. The debug pair and the phone
+APK were published to the draft release `test-41782160333`; the signed release build succeeded but
+is **not published** — the owner deferred the signed version until the app is fully verified.
+
+**Device:** pending at the time this section was written; results and the honest NOT RUN list are
+appended after the phone round (the shared phone was busy with another inspector's app, then with a
+foreground Telegram session).
+
+### A-44 — the defect the phone found in the arming path
+
+The first device round (build 391, an in-place upgrade from 389 that preserved
+`motion_with_arming=false`) proved the default-on guard and the new copy, but exposed a silent
+disarm: the Protection screen is composed with a settings snapshot whose `armed` is false; pressing
+**Save** after arming wrote the whole snapshot back, so `armed=false` replaced the live flag. The
+service stood down one heartbeat later while the screen still showed “Armed — guarding in the
+background”, and the Motion monitor kept running because the save-path sync trusted the stale flag.
+The defect predates A-43, but it sits on the arming path A-43 expanded and contradicts every claim
+the screens make, so it is fixed as A-44: `ProtectionSettingsStore.save` no longer writes
+`KEY_ARMED` (the flag's only writer is `setArmed`), `ProtectionRuntime.applySettings` reads the live
+flag back for its scheduling, and the NavHost replaces the draft's `armed` with `protectionArmed`
+before applying it. `g4b` pins the single writer, the live read and the hand-off.
+
+**CI (A-44):** run `41788801231` on `a710c40` — **success**, `CI TEST SUMMARY: 578 tests, 578 passed,
+0 failures, 0 errors, 0 skipped`, `Group C boundary scan passed`, `PASS: A-43 …`, `PASS: A-44 …`,
+`G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS`; the debug pair and phone APK were published
+to `test-41788801231`. The signed release again built without being published.
+
+**Device on 392:** the build was installed over 391 with its data intact. Arming from the
+Protection screen started both `ProtectionService` and `MotionMonitoringService` and posted
+“SHIELDRA protection is active”; the dashboard claimed `PROTECTED` / Guards `4/5` and its Motion
+card read “Motion monitoring is active” from the service; the guard was on by default with the new
+copy in EN and AR, and Help carried the four-guards line in both; the administrator still held
+exactly `watch-login` + `force-lock`; the permission list was identical to 391's; and the
+instrumented suite printed `run finished: 78 tests, 0 failed, 0 ignored`. The A-44 regression path
+was measured directly: the Protection screen was opened disarmed, armed from that screen, then
+**Save** pressed — `armed` stayed `true`, both services stayed up, the screen stayed “Armed”, and a
+check after one heartbeat found no stand-down. Disarm, the guard-off switch and the physical
+snatch/lock are **NOT RUN** on the device (the first two ask for the owner's screen lock, which the
+owner's protocol forbids entering; the last would leave the shared phone at the lock screen); they
+are covered by `ProtectionChange` tests, `MotionResponsePlanTest` and the g4b pins. The full
+evidence list is in `docs/reports/audit-round-1-motion-snatch-lock.md`.
+
+## The snatch ladder — amendment A-45 on `fix/audit-round-1` (2026-11-04)
+
+**The owner reported four things after living with the guard.** The contact he writes for a finder was
+not reachable where he expected it and its hint never said what it accepts; the holder-facing message
+needed to be in every language the app ships because the app cannot know who is reading a stolen
+phone; a confirmed lift snapped a photo at the moment of detection, which is worthless if the phone is
+already in a pocket and running; and a home or work zone worried him in the other direction — either
+the phone keeps sending from his sofa, or the guard goes quiet and never comes back. Full quotes:
+`docs/reports/audit-round-1-motion-snatch-lock.md` §7.1.
+
+**What was measured before anything was designed:** the existing thresholds were read from
+`ApprovedMotionCalibration` rather than guessed, the tilt a phone actually moves through was written as
+a pure `MotionTiltProbe` so the maths could be checked without a handset, and a CI-only recorder
+(`MotionLiftRecorderInstrumentedTest`) prints `SHIELDRA_LIFT t=… dev=… tilt=… mag=…` lines from the
+owner's own phone. **The Motion thresholds are deliberately unchanged** in this amendment: they will
+be set from those recorded samples and from nothing else, which is Task 12.
+
+**D1 — the ladder.** A confirmed snatch now locks the screen and posts a public ongoing demand with a
+live countdown in the same beat, then escalates on a cadence the owner approved: first evidence burst
+30 s after the demand, then five bursts every 60 s, then one every 5 min, and the incident settles at
+30 min. A movement during the demand window joins the open ladder instead of restarting the
+protections from silence. `SnatchLadder` is pure and its ten bursts inside the window are arithmetic,
+not a log line. **D2 — the safe zone mutes escalation, never detection:** `ZonePolicy.responseFor`
+answers `FULL` when there are no zones, when the state is unknown or stale, or when the phone is
+outside; `QUIET` when inside but unplugged; `MUTED` only when inside *and* charging. It fails closed —
+an unreadable zone is a phone in the wild. `GeofenceTicker` re-arms on every heartbeat it is given and
+is cancelled on disarm. **D3 — the notice a stranger reads** is composed from the app's own resources
+in Arabic, English and French at once (`TheftNoticeText` + `TheftDemand`), with the owner's sentence
+and his contact once, normalized; `OwnerContact` accepts a phone with its country code or an email and
+turns anything else into no call action rather than a broken intent. **D5 — no new permission**; the
+manifest still declares 21.
+
+**CI (A-45):** runs on this branch, in order — `41896697430` **failure** (a test-source `Regex("%1\$s")`
+read as a Kotlin template), `41906989801` **failure** at lint (`598 errors, 85 warnings`, all
+`MissingTranslation` from the partial `values-fr`, while `606 tests, 606 passed`), `41912020911`
+**success** (`613 tests, 613 passed`), `41971315120` **success** (`613/613`, `21 permissions`),
+`41972919127` **failure** (`OwnerContactCopyTest` called `assertTrue(message, condition)` — the JUnit 4
+argument order — while this module tests with `kotlin.test`), and `41973854219` on `f411f1e`, run
+number **398** — **success**: `CI TEST SUMMARY: 618 tests, 618 passed, 0 failures, 0 errors, 0
+skipped`, `Group C boundary scan passed`, `PASS: A-45: a confirmed Motion locks, demands an unlock,
+escalates on the approved cadence, and a zone never fails open`, `LOCALE PARITY PASS — Arabic equals
+English key for key, and the holder-facing notice is in all three languages`, `G4-B LOCAL REVIEW PASS —
+runtime/device evidence still required`, `PHASE 3 STATIC REVIEW PASS`, `21 permissions`, `BUILD
+SUCCESSFUL in 6m`. The signed release keeps building and stays unpublished, as the owner deferred it.
+
+**New gates:** `g4b-review-check.sh` section **5g** pins the five approved cadence constants verbatim,
+the responder's use of the ladder and the demand, the armed gate, the fail-closed `!stateKnown ||
+!inside -> ZoneResponse.FULL` literal, `shieldra_zone_state`, the ticker's schedule-on-arm /
+cancel-on-disarm, the three-locale list, and the recorder's ban on device assertions (a recorder that
+asserts stopped measuring). `.github/scripts/locale-parity-check.sh` is a CI step of its own: EN↔AR key
+equality, the six notice keys present in all three locales, no orphan French keys, matching
+placeholders, three distinct bodies. It was proved RED against a real missing key before it was
+trusted.
+
+**A defect the design would have shipped:** the contact fields sat inside the tier-gated Telegram
+block, so an owner without that tier had no way to write the number a stranger dials. A-45 moves them
+out and the screens now say so; recorded as deviation 5 in §7.8. `values-fr` stays holder-facing copy
+only, and `locales_config.xml` deliberately does **not** list French — the system language picker would
+offer a French that renders English.
+
+**Device:** **NOT RUN** at the time this section was written. The demand notice is now measurable
+without touching the keyguard — `TheftDemandInstrumentedTest` posts it on the real handset, reads the
+three languages and the countdown back, and hides it — but the lock itself, the 30-minute burst train,
+the zone states against a real geofence and the `SHIELDRA_LIFT` samples are pending the round in
+`qa/phone-checklist-snatch-ladder-2026-11-04.md`. Full argument and the honest list:
+`docs/reports/audit-round-1-motion-snatch-lock.md` §7.
+
+## Design B — the app holds no privileges, and the dead guards leave (`remove-owner-privileges`, 2026-11-06)
+
+**The owner's direction.** The current design is **B**: a passive SIM watchdog — no screen lock, no
+lock-screen demand, no snatch ladder, and the app must never hold device-admin powers (an already
+granted one is released). The A-45 ladder rested on `DeviceAdminReceiver.ACTION_PASSWORD_FAILED`,
+a callback Android delivers only to a provisioned administrator, so the guard was retired instead
+of propped up. The rule applied: **a guard whose only sensor is a refused privilege is deleted; a
+guard whose sensor is an ordinary permission stays, without lock power.** Motion therefore stays
+as detection + evidence + alert.
+
+**Three commits, each verified on its own run:**
+
+- `f980a08` — the A-45 layer: `SnatchLadder`, `TheftDemand`/`TheftNoticeText`, `ZonePolicy`, the
+  A-45 screens and copy, and the CI-only lift recorder (22 files, +142/−1240).
+- `90d4b1f` — every administrator hold and the UI that showed it: `device_admin.xml`,
+  `BIND_DEVICE_ADMIN`/the receiver, `DeviceScreenLock`, `FailedUnlockCounter`, the `/lock` remote
+  command, the Lock settings and score weight, and the health/onboarding rows that offered them
+  (30 files, +99/−457). The score still sums to 100 by moving the freed weight onto the guards
+  that run: Motion 15, SIM 18, battery 12, channel 25, camera 10, location 10, notifications 5,
+  battery exemption 5.
+- `0fd5ae1` — the Lock domain and event surface: `GuardKind`, the engine branch, the pure
+  boundaries and their two test files, `SecurityEventType.LOCK_CONFIRMED_EVENT`, `FailedPinAttempt`,
+  `AlertKind.LOCK` and its copy, `failedAttempts` through the capture path, the history filter,
+  icon, demo rows and strings (30 files, +146/−586).
+- `21b3925` — the two call sites the compiler caught still passing the retired argument the day
+  the run failed; no other change.
+
+**Queues survive the update.** `AlertLineCodec` field 6 and `PendingCaptureLogic` field 3 keep an
+empty slot where the Lock failure count was, because every field after them is positional and an
+alert or capture request queued during a theft by the previous build must still run. A persisted
+row naming the retired `LOCK_CONFIRMED_EVENT` is read as an unnamed confirmed event (History shows
+it under "Other") instead of throwing — before this change the reader's `runCatching` would have
+dropped the whole history, not only that row.
+
+**Disclosure.** `MotionLiftRecorderInstrumentedTest.kt` (the CI-only `SHIELDRA_LIFT` sampler) was
+staged with its deletion and swept into `edc6ce8` without being named in that commit's message.
+It is named here so the removal is traceable to a decision rather than an accident.
+
+**Gates, all run locally on 2026-11-06 and all PASS:** `LOCALE PARITY PASS — Arabic equals English
+key for key`; `Group C boundary scan passed`; `PHASE 3 STATIC REVIEW PASS`; `G4-B LOCAL REVIEW
+PASS — runtime/device evidence still required`. The g4b design-B section asserts the absence of
+the administrator, `lockNow(`, `/lock`, the Lock settings keys and the withdrawn Lock strings, so
+the privilege cannot return quietly; its history-type check now names the remaining guards only.
+
+**CI:** `42167431517` **success** on `f980a08`; `42170370960` **success** on `90d4b1f`;
+`42172685894` **failure** on `0fd5ae1` — `ProtectionService.kt:186/257 Too many arguments for
+'fun capture(type: SecurityEventType)'`, the two call sites fixed in `21b3925`; final run
+`42174624932` on `21b3925` — **success** (7m3s, job 127750134300): `BUILD SUCCESSFUL`,
+`CI TEST SUMMARY: 569 tests, 569 passed, 0 failures, 0 errors, 0 skipped`,
+`PASS: the installed APK declares exactly the reviewed permission set (21 permissions)`,
+`Group C boundary scan passed`, `G4-B LOCAL REVIEW PASS`, `PHASE 3 STATIC REVIEW PASS`,
+`LOCALE PARITY PASS`.
+
+**Device:** **NOT RUN** for this change, by the owner's explicit protocol («لهذا الدفع لا فائدة
+منه لاختبار الهاتف. لا تدفع و لا تقم بفحص الهاتف»). There is no anti-theft flow left to measure.
+The absence of the administrator is proven statically by g4b section 5d on the built branch, and
+the built APK's reviewed permission set (21 permissions) is checked by CI — not by screenshots.
+The branch lands on `main` through PR #5 on the strength of the green run above; the general-app
+round (#32) may note the missing administrator entry opportunistically, but it is not a condition.

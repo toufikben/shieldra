@@ -8,16 +8,24 @@ import android.os.BatteryManager
 import android.os.Build
 import com.shieldra.app.R
 import com.shieldra.app.ShieldraApp
+import com.shieldra.storage.SecretText
 import java.time.Instant
 
-/** [PendingAlertStore] in app-private preferences: a few short lines, never a secret. */
-class PreferencesPendingAlertStore(context: Context) : PendingAlertStore {
+/**
+ * [PendingAlertStore] in app-private preferences: a few short lines, and the one that holds a
+ * position is sealed before it is written (audit §5.13). An alert waits here for as long as the phone
+ * stays offline — which, during a theft, is exactly when its coordinates must not be readable.
+ */
+class PreferencesPendingAlertStore(
+    context: Context,
+    private val locationSecret: SecretText = SecretText(context.applicationContext, FIELD_LOCATION),
+) : PendingAlertStore {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     @Synchronized
     override fun add(alert: SecurityAlert) {
-        val lines = prefs.getStringSet(KEY_PENDING, emptySet()).orEmpty() + encode(alert)
+        val lines = prefs.getStringSet(KEY_PENDING, emptySet()).orEmpty() + AlertLineCodec.encode(alert, ::sealedLocation)
         prefs.edit().putStringSet(KEY_PENDING, lines.sortedBy { it }.takeLast(MAX_PENDING).toSet()).apply()
     }
 
@@ -25,55 +33,22 @@ class PreferencesPendingAlertStore(context: Context) : PendingAlertStore {
     override fun drain(): List<SecurityAlert> {
         val lines = prefs.getStringSet(KEY_PENDING, emptySet()).orEmpty()
         prefs.edit().remove(KEY_PENDING).apply()
-        return lines.mapNotNull(::decode).sortedBy { it.occurredAt }
+        return lines.mapNotNull { AlertLineCodec.decode(it, locationSecret::open) }.sortedBy { it.occurredAt }
     }
 
-    private fun encode(alert: SecurityAlert): String = listOf(
-        alert.occurredAt.toEpochMilli().toString(),
-        alert.kind.name,
-        alert.eventId.orEmpty(),
-        alert.batteryPercent?.toString().orEmpty(),
-        alert.photoEvidenceId.orEmpty(),
-        if (alert.evidenceAttempted) "1" else "0",
-        alert.failedAttempts?.toString().orEmpty(),
-        alert.location?.let { "${it.latitude};${it.longitude};${it.accuracyMeters ?: ""};${it.fixedAt.toEpochMilli()};${it.provider}" }.orEmpty(),
-        alert.photoBackEvidenceId.orEmpty(),
-        alert.audioEvidenceId.orEmpty(),
-        alert.device.replace(SEPARATOR, " "),
-    ).joinToString(SEPARATOR)
-
-    private fun decode(line: String): SecurityAlert? = runCatching {
-        val parts = line.split(SEPARATOR, limit = 11)
-        SecurityAlert(
-            eventId = parts[2].ifBlank { null },
-            kind = AlertKind.valueOf(parts[1]),
-            occurredAt = Instant.ofEpochMilli(parts[0].toLong()),
-            device = parts[10],
-            batteryPercent = parts[3].toIntOrNull(),
-            photoEvidenceId = parts[4].ifBlank { null },
-            evidenceAttempted = parts[5] == "1",
-            failedAttempts = parts[6].toIntOrNull(),
-            location = parts[7].ifBlank { null }?.let { decodeLocation(it) },
-            photoBackEvidenceId = parts[8].ifBlank { null },
-            audioEvidenceId = parts[9].ifBlank { null },
-        )
-    }.getOrNull()
-
-    private fun decodeLocation(raw: String): AlertLocation? = runCatching {
-        val f = raw.split(";")
-        AlertLocation(
-            latitude = f[0].toDouble(),
-            longitude = f[1].toDouble(),
-            accuracyMeters = f[2].toFloatOrNull(),
-            fixedAt = Instant.ofEpochMilli(f[3].toLong()),
-            provider = f[4],
-        )
-    }.getOrNull()
+    /**
+     * Sealed, or an empty field: a position this build cannot seal is dropped rather than written in
+     * the clear. The alert still carries the time, the guard and the battery, so the owner still gets
+     * the news — only the map pin is sacrificed, and the policy that promises encryption is kept.
+     */
+    private fun sealedLocation(location: AlertLocation): String =
+        locationSecret.seal(AlertLocationLine.format(location)) ?: ""
 
     private companion object {
         const val PREFERENCES_NAME = "shieldra_pending_alerts"
         const val KEY_PENDING = "pending"
-        const val SEPARATOR = "|"
+        /** Bound as additional authenticated data, so a sealed position cannot be replayed elsewhere. */
+        const val FIELD_LOCATION = "queued_alert_location"
         /** Oldest are dropped past this: the newest alerts are the ones that matter after a theft. */
         const val MAX_PENDING = 50
     }
@@ -140,12 +115,14 @@ object AlertRuntime {
             batteryLabel = resources.getString(R.string.alert_label_battery),
             eventLabel = resources.getString(R.string.alert_label_event),
             locale = resources.configuration.locales[0],
-            lockTitle = resources.getString(R.string.alert_title_lock),
             simTitle = resources.getString(R.string.alert_title_sim),
             batteryTitle = resources.getString(R.string.alert_title_battery),
             countdownTitle = resources.getString(R.string.alert_title_countdown),
             trackingTitle = resources.getString(R.string.alert_title_tracking),
             shutdownTitle = resources.getString(R.string.alert_title_shutdown),
+            restartTitle = resources.getString(R.string.alert_title_restart),
+            guardSilentTitle = resources.getString(R.string.alert_title_guard_silent),
+            silentForLabel = resources.getString(R.string.alert_label_silent_for),
             locationLabel = resources.getString(R.string.alert_label_location),
             locationUnavailable = resources.getString(R.string.alert_location_unavailable),
             accuracyLabel = resources.getString(R.string.alert_label_accuracy),
@@ -153,7 +130,6 @@ object AlertRuntime {
             photoLabel = resources.getString(R.string.alert_label_photo),
             photoAttached = resources.getString(R.string.alert_photo_attached),
             photoUnavailable = resources.getString(R.string.alert_photo_unavailable),
-            attemptsLabel = resources.getString(R.string.alert_label_attempts),
         )
     }
 

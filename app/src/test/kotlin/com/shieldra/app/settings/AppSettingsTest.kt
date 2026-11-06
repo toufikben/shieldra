@@ -36,4 +36,17 @@ class AppSettingsTest {
         assertEquals("en", AppLanguage.ENGLISH.tag)
         assertEquals("ar", AppLanguage.ARABIC.tag)
     }
+
+    // The language the owner actually reads on a "match system" build. The rule is Android's own:
+    // a shipped translation wins, anything else falls to the default resources — English.
+    @Test
+    fun `the system language is used when shipped and English when it is not`() {
+        assertEquals(AppLanguage.ARABIC, AppLanguage.shownFor("ar"))
+        assertEquals(AppLanguage.ARABIC, AppLanguage.shownFor("ar-EG"))
+        assertEquals(AppLanguage.ARABIC, AppLanguage.shownFor("AR-dz"))
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.shownFor("en-GB"))
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.shownFor("fr-FR"))
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.shownFor("ur"))
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.shownFor(null))
+    }
 }

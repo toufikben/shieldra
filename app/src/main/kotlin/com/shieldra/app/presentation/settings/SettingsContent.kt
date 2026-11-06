@@ -60,6 +60,14 @@ enum class SettingsRowTarget {
     Privacy,
     About,
     Help,
+
+    /**
+     * The "phone is stolen now" steps. A destination, not a capability claim: the screen only tells
+     * the owner what to do elsewhere (android.com/find, their own Telegram chat, the carrier) and
+     * switches nothing on the phone itself.
+     */
+    PanicGuide,
+    PlatformComparison,
     NotAvailable,
 }
 
@@ -134,6 +142,12 @@ object SettingsContent {
             subtitle = SettingsSubtitleKind.AlertChannelsState,
         ),
         SettingsRowSpec(HEALTH_ROW_ID, R.string.health_title, SettingsIcon.Health, SettingsSection.Notifications),
+        SettingsRowSpec(
+            PANIC_GUIDE_ROW_ID,
+            R.string.panic_guide_row,
+            SettingsIcon.Info,
+            SettingsSection.Notifications,
+        ),
         SettingsRowSpec(SAFE_ZONES_ROW_ID, R.string.safe_zones_title, SettingsIcon.Zones, SettingsSection.Notifications),
         // Data & privacy: what is stored, for how long.
         SettingsRowSpec(
@@ -176,9 +190,18 @@ object SettingsContent {
         SettingsRowSpec(ABOUT_ROW_ID, R.string.settings_about_shieldra, SettingsIcon.Info, SettingsSection.About),
         SettingsRowSpec(HELP_ROW_ID, R.string.settings_help, SettingsIcon.Help, SettingsSection.About),
         SettingsRowSpec(PRIVACY_ROW_ID, R.string.settings_privacy, SettingsIcon.Lock, SettingsSection.About),
+        // Audit development (د): the comparison the owner deserves before paying — Android's own theft
+        // features named plainly, and the one thing this app adds on top of them.
+        SettingsRowSpec(
+            OS_FEATURES_ROW_ID,
+            R.string.compare_row,
+            SettingsIcon.Info,
+            SettingsSection.About,
+        ),
     )
 
     const val HEALTH_ROW_ID: String = "health"
+    const val PANIC_GUIDE_ROW_ID: String = "panic_guide"
     const val SAFE_ZONES_ROW_ID: String = "safe_zones"
     const val STORAGE_ROW_ID: String = "storage"
     const val RETENTION_ROW_ID: String = "retention"
@@ -189,6 +212,7 @@ object SettingsContent {
     const val ABOUT_ROW_ID: String = "about"
     const val HELP_ROW_ID: String = "help"
     const val PRIVACY_ROW_ID: String = "privacy"
+    const val OS_FEATURES_ROW_ID: String = "os_features"
 
     fun rowIds(): List<String> = rows.map { it.id }
 
@@ -207,6 +231,8 @@ object SettingsContent {
         ABOUT_ROW_ID -> SettingsRowTarget.About
         HELP_ROW_ID -> SettingsRowTarget.Help
         PRIVACY_ROW_ID -> SettingsRowTarget.Privacy
+        PANIC_GUIDE_ROW_ID -> SettingsRowTarget.PanicGuide
+        OS_FEATURES_ROW_ID -> SettingsRowTarget.PlatformComparison
         else -> SettingsRowTarget.NotAvailable
     }
 

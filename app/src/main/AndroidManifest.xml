@@ -33,7 +33,10 @@
         READ_PHONE_STATE — read which SIM is present, to tell a swap from the owner's own SIM.
         REQUEST_IGNORE_BATTERY_OPTIMIZATIONS — ask the owner to exempt the app so a thief's phone
           cannot doze the guards; a theft can happen at any hour.
-        SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM — fire the owner's periodic countdown on time.
+        SCHEDULE_EXACT_ALARM — fire the owner's periodic countdown on time. USE_EXACT_ALARM is
+          deliberately not declared: Google Play reserves it for alarm-clock and calendar apps,
+          and every scheduling call already degrades to an inexact alarm until the owner grants
+          exact scheduling in system settings (F-PLAY-1).
       Nothing is shown to whoever holds the phone; every capture is silent.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -53,7 +56,6 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.front" android:required="false" />
@@ -66,12 +68,16 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
         android:supportsRtl="true"
         android:theme="@style/Theme.Shieldra">
+        <!-- `locale` and `layoutDirection` are deliberately NOT in configChanges: when the owner
+             switches the phone's language, this activity must be rebuilt so attachBaseContext can
+             pick the new one. The in-process app-lock session survives the recreate. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|locale|layoutDirection">
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -105,27 +111,21 @@
             android:foregroundServiceType="camera|location|microphone" />
 
         <!--
-          A-33: the Lock guard's device-admin receiver. WATCH_LOGIN only (see @xml/device_admin).
-          Exported with BIND_DEVICE_ADMIN as the platform requires for an admin receiver.
+          Design B (2026-11-06): the app holds no device administrator. The A-33 Lock guard and the
+          A-42 remote /lock were removed with their receiver, so Android never lists SHIELDRA under
+          device administrators and the app cannot lock, wipe, or read the screen lock.
         -->
-        <receiver
-            android:name="com.shieldra.protection.LockGuardReceiver"
-            android:exported="true"
-            android:permission="android.permission.BIND_DEVICE_ADMIN">
-            <meta-data
-                android:name="android.app.device_admin"
-                android:resource="@xml/device_admin" />
-            <intent-filter>
-                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
-            </intent-filter>
-        </receiver>
 
         <!--
-          A-33 (A-10 relaxed): resume the guards the owner had on after a reboot. Exported so the
-          system can deliver BOOT_COMPLETED; it starts nothing unless the stored armed flag is set.
+          A-33 (A-10 relaxed) + audit E-2: resume the guards the owner had on after a reboot. Exported
+          so the system can deliver the boot broadcasts; it starts nothing unless the stored armed flag
+          is set. Direct-boot aware because that is the only way LOCKED_BOOT_COMPLETED is delivered at
+          all, and the only thing it reads before the first unlock is the armed flag in device-protected
+          storage — no secret, no evidence, no delivery coordinate crosses that line.
         -->
         <receiver
             android:name="com.shieldra.protection.BootReceiver"
+            android:directBootAware="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -139,6 +139,33 @@
         -->
         <receiver
             android:name="com.shieldra.protection.CountdownReceiver"
+            android:exported="false" />
+
+        <!--
+          A-33 capture path: retries the captures that were queued when a background trigger could not
+          start the service. Not exported: it only receives the one short alarm SHIELDRA itself scheduled.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.PendingCaptureReceiver"
+            android:exported="false" />
+
+        <!--
+          Audit development أ: the guard heartbeat patrol. Not exported: it only receives the one alarm
+          SHIELDRA itself scheduled. It lives outside the protection service on purpose — the failure it
+          measures is that service dying, so it cannot be the one asking whether it is still alive.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.GuardWatchdogReceiver"
+            android:exported="false" />
+
+        <!--
+          A-45 D2: the safe-zone tick. Not exported: it only receives the one alarm SHIELDRA itself
+          scheduled. It sits outside the protection service for the same reason the patrol does — the
+          service is what the OEM kills first, and the Motion ladder reads the zone state to decide
+          whether to make a noise, so that state has to keep being refreshed with no service alive.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.GeofenceTickReceiver"
             android:exported="false" />
     </application>
 </manifest>

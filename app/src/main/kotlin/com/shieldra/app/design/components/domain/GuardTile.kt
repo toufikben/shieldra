@@ -50,7 +50,6 @@ private fun statusColor(status: GuardStatus): Color = when (status) {
     GuardStatus.Active -> ShieldraTheme.semantic.protection
     GuardStatus.Signal -> ShieldraTheme.semantic.suspicious
     GuardStatus.Disabled -> ShieldraTheme.semantic.disabledState
-    GuardStatus.Locked -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
 @Composable
@@ -66,7 +65,6 @@ fun GuardTile(
         GuardStatus.Active -> R.string.guard_status_active
         GuardStatus.Signal -> R.string.guard_status_signal
         GuardStatus.Disabled -> R.string.guard_status_disabled
-        GuardStatus.Locked -> R.string.guard_status_locked
     })
     val premiumSuffix = if (guard.isPremiumLocked) {
         " ${stringResource(R.string.guard_premium_feature)}."

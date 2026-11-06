@@ -104,6 +104,9 @@ import com.shieldra.app.presentation.screen.settings.NotificationSetupScreen
 import com.shieldra.app.presentation.screen.settings.AboutScreen
 import com.shieldra.app.presentation.screen.settings.HelpScreen
 import com.shieldra.app.presentation.screen.settings.PrivacyScreen
+import com.shieldra.app.presentation.screen.settings.PanicGuideScreen
+import com.shieldra.app.presentation.screen.settings.BatterySurvivalScreen
+import com.shieldra.app.presentation.screen.settings.PlatformComparisonScreen
 import com.shieldra.app.presentation.screen.settings.RetentionScreen
 import com.shieldra.app.presentation.screen.settings.StorageScreen
 import com.shieldra.storage.LocalShieldraStorage
@@ -113,9 +116,10 @@ import com.shieldra.protection.ProtectionRuntime
 import com.shieldra.protection.ProtectionChange
 import com.shieldra.protection.ProtectionSettings
 import com.shieldra.protection.ProtectionSettingsStore
-import com.shieldra.protection.LockGuardReceiver
-import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
+import com.shieldra.protection.CountdownDeadline
+import com.shieldra.protection.CountdownScheduler
+import com.shieldra.protection.RemainingTime
+import com.shieldra.billing.TierGate
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import com.shieldra.domain.PanicActivation
@@ -208,16 +212,26 @@ fun ShieldraNavHost(
     val ownerCheckTitle = stringResource(R.string.owner_check_stop_title)
     val ownerCheckSubtitle = stringResource(R.string.owner_check_stop_subtitle)
     val ownerCheckRefusedMessage = stringResource(R.string.owner_check_refused)
+    val ownerUnguardedMessage = stringResource(R.string.owner_check_unguarded)
     // Anything that weakens protection or redirects alerts proves it is the owner first (screen lock).
     val ownerChangeSubtitle = stringResource(R.string.owner_check_change_subtitle)
     val requireOwner: (() -> Unit) -> Unit = { action ->
         val activity = context.findFragmentActivity()
         if (activity == null) {
+            // No prompt can be built without an activity to attach it to. The change still goes
+            // ahead — a guard the owner cannot turn off is not a guard — but it is never silent.
             action()
+            scope.launch { snackbarHostState.showSnackbar(ownerUnguardedMessage) }
         } else {
             OwnerCheck.request(activity, ownerCheckTitle, ownerChangeSubtitle) { result ->
                 when (result) {
-                    OwnerCheckResult.Confirmed, OwnerCheckResult.NoScreenLock -> action()
+                    OwnerCheckResult.Confirmed -> action()
+                    // B-1: the pass-through is allowed, the silence is not. The owner is told at the
+                    // moment of the change, and permanently on the Health screen.
+                    OwnerCheckResult.NoScreenLock -> {
+                        action()
+                        scope.launch { snackbarHostState.showSnackbar(ownerUnguardedMessage) }
+                    }
                     OwnerCheckResult.Refused -> scope.launch { snackbarHostState.showSnackbar(ownerCheckRefusedMessage) }
                 }
             }
@@ -379,6 +393,12 @@ fun ShieldraNavHost(
     val protectionArmed by ProtectionRuntime.armed.collectAsState()
     val protectionStore = remember(context) { ProtectionSettingsStore(context) }
     var protectionSettings by remember { mutableStateOf(protectionStore.load()) }
+    // A-44: the live arm state is the only writer of `armed`. The settings screen's snapshot was read
+    // before an arm made from its own top button, so without this a Save could carry `armed=false`
+    // back to storage and the service would stand down while the screen still said "Armed".
+    LaunchedEffect(protectionArmed) {
+        protectionSettings = protectionSettings.copy(armed = protectionArmed)
+    }
     // The plan is written by the billing store when Google Play answers (after a purchase, a restore or
     // an app start). This copy of the settings was read once, so it would keep showing Free after a
     // purchase and send the owner back to the Pro screen; re-read the plan whenever Play's answer changes.
@@ -390,9 +410,6 @@ fun ShieldraNavHost(
     LaunchedEffect(Unit) { ProtectionRuntime.refresh(context) }
     val protectionPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
-    ) { permissionRefresh += 1 }
-    val deviceAdminLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
     ) { permissionRefresh += 1 }
     // "Stopped" reports an observed state, not a press: it appears once the service has retracted
     // itself, and never while it still claims to be monitoring.
@@ -465,6 +482,7 @@ fun ShieldraNavHost(
             }
             composable(ShieldraRoutes.ONBOARDING_PROTECTION) {
                 ProtectionSetupScreen(
+                    onOpenSurvivalGuide = { navController.navigate(ShieldraRoutes.SURVIVAL_GUIDE) },
                     onContinue = {
                         onOnboardingCompleted()
                         navController.navigate(ShieldraRoutes.DASHBOARD) {
@@ -504,13 +522,43 @@ fun ShieldraNavHost(
                     channel = deliverySettings?.activeChannels()?.isNotEmpty() == true,
                     motionMonitoring = motionClaim.claimsProtection,
                 )
+                // A-33: the periodic signal's live cycle, read from the deadline the scheduler itself
+                // stores. It is re-read while this screen is open because the scheduler re-arms a cycle
+                // when one fires, and a card that only ever showed the deadline read at screen entry
+                // would freeze a running countdown into an expired one. A press re-reads it at once.
+                var periodicSignalRefresh by remember { mutableStateOf(0) }
+                val periodicSignal by produceState(
+                    initialValue = protectionStore.countdownDeadline(),
+                    protectionArmed,
+                    protectionSettings.countdownEnabled,
+                    periodicSignalRefresh,
+                ) {
+                    while (true) {
+                        value = withContext(Dispatchers.IO) { protectionStore.countdownDeadline() }
+                        delay(DEVICE_REFRESH_MS)
+                    }
+                }
+                // The card may only promise what a restart can actually deliver: CountdownScheduler.start
+                // refuses silently for a switched-off signal or a Free plan, so neither shows the card.
+                val periodicSignalCycle = periodicSignal?.takeIf {
+                    protectionSettings.countdownEnabled && TierGate.allowsCountdown(protectionSettings.tier)
+                }
+                val periodicSignalResetMessage = stringResource(
+                    R.string.countdown_warning_text,
+                    RemainingTime.format(
+                        protectionSettings.countdownIntervalMs.coerceAtLeast(CountdownDeadline.MIN_DURATION_MS),
+                        stringResource(R.string.unit_day),
+                        stringResource(R.string.unit_hour),
+                        stringResource(R.string.unit_minute),
+                        stringResource(R.string.unit_less_than_minute),
+                    ),
+                )
                 DashboardScreen(
                     model = lockGuardDashboard(
                         state = guardState,
                         recentEvents = recentEvents.take(RECENT_EVENT_LIMIT),
                         motionClaim = motionClaim,
                         protectionArmed = protectionArmed,
-                        lockOn = protectionSettings.lockEnabled,
                         simOn = protectionSettings.simEnabled,
                         batteryOn = protectionSettings.batteryEnabled,
                         batteryPercent = device.batteryPercent,
@@ -520,6 +568,8 @@ fun ShieldraNavHost(
                         protectionScore = scoreFor(healthChecks, protectionSettings),
                         proActive = proState.entitled,
                         totalEvents = recentEvents.size,
+                        periodicSignal = periodicSignalCycle,
+                        periodicSignalIntervalMs = protectionSettings.countdownIntervalMs,
                     ),
                     callbacks = DashboardCallbacks(
                         onEventClick = { id ->
@@ -586,6 +636,30 @@ fun ShieldraNavHost(
                         onOpenPro = {
                             navController.navigate(ShieldraRoutes.PRO)
                         },
+                        onPeriodicSignalReset = {
+                            // A restart moves the next signal later, which is a weakening of the same
+                            // kind as stopping a guard — so this screen's existing rule applies: the
+                            // owner proves it is them first, and a refusal says so instead of failing
+                            // silent. The card itself never starts a cycle; it re-arms the armed one.
+                            val restartCycle = {
+                                CountdownScheduler.restart(context)
+                                periodicSignalRefresh += 1
+                                scope.launch { snackbarHostState.showSnackbar(periodicSignalResetMessage) }
+                            }
+                            val activity = context.findFragmentActivity()
+                            if (activity == null) {
+                                restartCycle()
+                            } else {
+                                OwnerCheck.request(activity, ownerCheckTitle, ownerCheckSubtitle) { result ->
+                                    when (result) {
+                                        OwnerCheckResult.Confirmed, OwnerCheckResult.NoScreenLock -> restartCycle()
+                                        OwnerCheckResult.Refused -> scope.launch {
+                                            snackbarHostState.showSnackbar(ownerCheckRefusedMessage)
+                                        }
+                                    }
+                                }
+                            }
+                        },
                         onMotionMonitoringToggle = {
                             if (motionClaim.claimsProtection) {
                                 // Stopping weakens protection, so the owner proves it is them first
@@ -593,12 +667,18 @@ fun ShieldraNavHost(
                                 // switched monitoring off.
                                 val activity = context.findFragmentActivity()
                                 if (activity == null) {
+                                    // A-43: the dashboard and the settings screen show the same
+                                    // guard, so a live stop is also the stored choice.
+                                    ProtectionRuntime.setMotionEnabled(context, false)
+                                    protectionSettings = protectionSettings.copy(motionEnabled = false)
                                     stopWasRequested = true
                                     MotionRuntime.stopMonitoring(context)
                                 } else {
                                     OwnerCheck.request(activity, ownerCheckTitle, ownerCheckSubtitle) { result ->
                                         when (result) {
                                             OwnerCheckResult.Confirmed, OwnerCheckResult.NoScreenLock -> {
+                                                ProtectionRuntime.setMotionEnabled(context, false)
+                                                protectionSettings = protectionSettings.copy(motionEnabled = false)
                                                 stopWasRequested = true
                                                 MotionRuntime.stopMonitoring(context)
                                             }
@@ -611,7 +691,10 @@ fun ShieldraNavHost(
                             } else {
                                 // The service publishes its own claim once it is really up, so a start
                                 // that this press asked for renders as monitoring only when Android
-                                // and the sensor agree.
+                                // and the sensor agree. A-43: this is the same guard the settings
+                                // screen shows, so the stored choice follows the press.
+                                ProtectionRuntime.setMotionEnabled(context, true)
+                                protectionSettings = protectionSettings.copy(motionEnabled = true)
                                 when (MotionRuntime.startMonitoring(context, storageInstalled)) {
                                     MotionMonitoringStartDecision.MayStartMonitoring -> Unit
                                     // Not asked yet: take the owner to the one screen that asks (A-6)
@@ -647,6 +730,7 @@ fun ShieldraNavHost(
                 val zoneNames = zoneList.map { it.name }
                 val zoneRadii = zoneList.associate { it.name to it.zone.radiusMeters.toInt() }
                 val geofenceOn = remember(geofenceRefresh) { ProtectionRuntime.geofenceEnabled(context) }
+                val zoneReadingFresh = remember(geofenceRefresh, protectionArmed) { ProtectionRuntime.zoneReadingFresh(context) }
                 val safeZoneSaved = stringResource(R.string.safe_zones_added)
                 val safeZoneNoFix = stringResource(R.string.safe_zones_no_fix)
                 MapScreen(
@@ -660,6 +744,7 @@ fun ShieldraNavHost(
                     onOpenProtectionSetup = { navController.navigate(ShieldraRoutes.PROTECTION_SETUP) },
                     onOpenHealthCheck = { navController.navigate(ShieldraRoutes.HEALTH_CHECK) },
                     geofenceEnabled = geofenceOn,
+                    zoneReadingFresh = zoneReadingFresh,
                     zoneNames = zoneNames,
                     zoneRadii = zoneRadii,
                     onToggleGeofence = { enabled ->
@@ -784,6 +869,12 @@ fun ShieldraNavHost(
                             SettingsRowTarget.Help -> navController.navigate(ShieldraRoutes.HELP_INFO)
                             SettingsRowTarget.Privacy -> navController.navigate(ShieldraRoutes.PRIVACY_INFO)
 
+                            // The stolen-phone steps: a screen of instructions, not a switch.
+                            SettingsRowTarget.PanicGuide -> navController.navigate(ShieldraRoutes.PANIC_GUIDE)
+
+                            // What Android already does against theft, named plainly (audit development د).
+                            SettingsRowTarget.PlatformComparison -> navController.navigate(ShieldraRoutes.PLATFORM_COMPARISON)
+
                             SettingsRowTarget.AppLock -> settingsDialog = SettingsDialog.AppLock
 
                             SettingsRowTarget.NotAvailable -> defer()
@@ -825,6 +916,13 @@ fun ShieldraNavHost(
             composable(ShieldraRoutes.ABOUT_INFO) { AboutScreen(onBack = { navController.popBackStack() }) }
             composable(ShieldraRoutes.HELP_INFO) { HelpScreen(onBack = { navController.popBackStack() }) }
             composable(ShieldraRoutes.PRIVACY_INFO) { PrivacyScreen(onBack = { navController.popBackStack() }) }
+            composable(ShieldraRoutes.PANIC_GUIDE) { PanicGuideScreen(onBack = { navController.popBackStack() }) }
+            composable(ShieldraRoutes.SURVIVAL_GUIDE) {
+                BatterySurvivalScreen(onBack = { navController.popBackStack() })
+            }
+            composable(ShieldraRoutes.PLATFORM_COMPARISON) {
+                PlatformComparisonScreen(onBack = { navController.popBackStack() })
+            }
 
             composable(ShieldraRoutes.ALERT_CHANNELS) {
                 val saved = deliverySettings
@@ -872,9 +970,7 @@ fun ShieldraNavHost(
 
             // Protection setup (A-33/A-34): arm the guards, grant their permissions, tune them.
             composable(ShieldraRoutes.PROTECTION_SETUP) {
-                val adminComponent = remember(context) { ComponentName(context, LockGuardReceiver::class.java) }
                 val permissions = remember(permissionRefresh, permissionRequests) {
-                    val dpm = context.getSystemService(DevicePolicyManager::class.java)
                     fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
                     ProtectionPermissions(
                         camera = has(Manifest.permission.CAMERA),
@@ -884,8 +980,8 @@ fun ShieldraNavHost(
                             it == com.shieldra.notification.NotificationPermissionState.Granted ||
                                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
                         },
-                        deviceAdmin = dpm?.isAdminActive(adminComponent) == true,
                         batteryExemption = com.shieldra.protection.BackgroundSurvival.isExempt(context),
+                        exactAlarms = com.shieldra.protection.ExactAlarmAccess.isGranted(context),
                     )
                 }
                 ProtectionGuardsScreen(
@@ -906,43 +1002,45 @@ fun ShieldraNavHost(
                     },
                     onGrantPhone = { protectionPermissionLauncher.launch(arrayOf(Manifest.permission.READ_PHONE_STATE)) },
                     onGrantNotifications = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
-                    onEnableDeviceAdmin = {
-                        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-                            .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
-                            .putExtra(
-                                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                                context.getString(R.string.device_admin_description),
-                            )
-                        runCatching { deviceAdminLauncher.launch(intent) }
-                    },
                     onKeepAwake = {
                         // The protection package owns the platform API; the UI only asks it to open
                         // the system prompt so the guards survive battery saver.
                         com.shieldra.protection.BackgroundSurvival.requestExemption(context)
                         permissionRefresh += 1
                     },
+                    onGrantExactAlarms = {
+                        // Same split for exact scheduling: the countdown degrades to an inexact
+                        // alarm until the owner flips this system toggle.
+                        com.shieldra.protection.ExactAlarmAccess.request(context)
+                        permissionRefresh += 1
+                    },
+                    onOpenSurvivalGuide = { navController.navigate(ShieldraRoutes.SURVIVAL_GUIDE) },
                     onArmToggle = {
                         if (protectionArmed) {
-                            requireOwner {
-                                ProtectionRuntime.disarm(context)
-                                if (protectionSettings.motionWithArming && motionClaim.claimsProtection) {
-                                    stopWasRequested = true
-                                    MotionRuntime.stopMonitoring(context)
-                                }
-                            }
+                            requireOwner { ProtectionRuntime.disarm(context) }
                         } else {
+                            // A-43: arming starts the Motion guard too, from inside the runtime, so
+                            // every arming path (this screen, the dashboard of a running app) agrees.
                             ProtectionRuntime.arm(context)
-                            // Opt-in: arming starts the Motion guard too. A refusal (no notification
-                            // permission, say) leaves arming itself intact; the Home button says why.
-                            if (protectionSettings.motionWithArming && !motionClaim.claimsProtection) {
-                                MotionRuntime.startMonitoring(context, storageInstalled)
-                            }
                         }
                     },
-                    onSave = { updated ->
+                    onSave = { incoming ->
+                        // A-44: saving guards never decides whether protection runs. The screen's
+                        // draft predates an arm made from its own button, so its `armed` is replaced
+                        // by the live state before anything is stored or a Motion guard is started.
+                        val updated = incoming.copy(armed = protectionArmed)
                         val apply: () -> Unit = {
                             protectionSettings = updated
                             ProtectionRuntime.applySettings(context, updated)
+                            // A-43: a guard switched on while armed starts now, and one switched off
+                            // stops now; the saved flag alone would only take effect on the next arm.
+                            if (updated.armed) {
+                                if (updated.motionEnabled && !motionClaim.claimsProtection) {
+                                    MotionRuntime.startMonitoring(context, storageInstalled)
+                                } else if (!updated.motionEnabled) {
+                                    MotionRuntime.stopMonitoring(context)
+                                }
+                            }
                         }
                         if (ProtectionChange.weakens(protectionSettings, updated)) requireOwner(apply) else apply()
                     },
@@ -1027,7 +1125,6 @@ private fun persistedEventLabels(): PersistedEventLabels {
     val typeTitles = mapOf(
         SecurityEventType.MOTION_CONFIRMED_EVENT to stringResource(R.string.event_title_motion),
         SecurityEventType.PANIC_ACTIVATION to stringResource(R.string.event_title_panic),
-        SecurityEventType.LOCK_CONFIRMED_EVENT to stringResource(R.string.event_title_lock),
         SecurityEventType.SIM_CONFIRMED_EVENT to stringResource(R.string.event_title_sim),
         SecurityEventType.COUNTDOWN_SIGNAL to stringResource(R.string.event_title_countdown),
         SecurityEventType.BATTERY_SIGNAL to stringResource(R.string.event_title_battery),
@@ -1126,8 +1223,6 @@ private fun readHealthChecks(
     channel: Boolean,
     motionMonitoring: Boolean,
 ): HealthChecks {
-    val adminComponent = ComponentName(context, LockGuardReceiver::class.java)
-    val dpm = context.getSystemService(DevicePolicyManager::class.java)
     fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
     return HealthChecks(
         armed = armed,
@@ -1137,24 +1232,22 @@ private fun readHealthChecks(
             it == com.shieldra.notification.NotificationPermissionState.Granted ||
                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
         },
-        deviceAdmin = dpm?.isAdminActive(adminComponent) == true,
         batteryExempt = com.shieldra.protection.BackgroundSurvival.isExempt(context),
         channel = channel,
         motionMonitoring = motionMonitoring,
+        screenLock = OwnerCheck.canAskForTheOwner(context),
     )
 }
 
 private fun scoreFor(checks: HealthChecks, settings: ProtectionSettings): Int = ProtectionScore.score(
     ProtectionScore.Inputs(
         armed = checks.armed,
-        lockEnabled = settings.lockEnabled,
         motionMonitoring = checks.motionMonitoring,
         simEnabled = settings.simEnabled,
         batteryEnabled = settings.batteryEnabled,
         cameraGranted = checks.camera,
         locationGranted = checks.location,
         notificationsReady = checks.notifications,
-        deviceAdminActive = checks.deviceAdmin,
         batteryExempt = checks.batteryExempt,
         anyChannelActive = checks.channel,
     ),

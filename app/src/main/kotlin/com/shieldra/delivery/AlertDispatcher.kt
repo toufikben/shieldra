@@ -63,8 +63,10 @@ class AlertDispatcher(
     }
 
     private fun deliver(alert: SecurityAlert) {
-        val channels = settings().activeChannels()
-        if (channels.isEmpty()) return
+        val source = settings()
+        val channels = source.activeChannels()
+        val unusable = source.unusableChannels()
+        if (channels.isEmpty() && unusable.isEmpty()) return
         val text = wording()
         val carried = extrasFor(alert)
         val subject = AlertText.subject(alert, text)
@@ -75,7 +77,12 @@ class AlertDispatcher(
             if (result is ChannelResult.Retryable) keepForLater = true
             record(alert, channel.channel, result)
         }
-        if (keepForLater) pending.add(alert)
+        // Audit development (ز) / B-4: a channel the owner switched on that cannot be opened is a
+        // delivery failure, and a delivery failure is a security fact — the event records FAILED so
+        // the guard card shows a receipt instead of nothing. The alert is kept, so re-entering the
+        // secret sends it once the channel works again.
+        unusable.forEach { record(alert, it.channel, ChannelResult.Rejected(it.reason)) }
+        if (keepForLater || unusable.isNotEmpty()) pending.add(alert)
     }
 
     private fun extrasFor(alert: SecurityAlert): AlertExtras =

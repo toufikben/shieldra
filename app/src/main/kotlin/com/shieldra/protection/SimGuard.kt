@@ -16,22 +16,43 @@ import androidx.core.content.ContextCompat
 class SimGuard(private val context: Context) {
     private val store = ProtectionSettingsStore(context)
 
-    /** Captures the armed baseline if none is stored yet. Called when protection arms. */
+    /**
+     * Establishes the armed baseline at the moment protection arms: the cards actually in the phone
+     * now (audit §5.11), because arming is the owner saying "watch for anything other than these".
+     *
+     * Without this, a baseline captured months ago with a different card turns every honest re-arm into
+     * a permanent "foreign SIM inserted" alarm — and an alarm that always fires is one nobody believes.
+     * When the permission has not been granted nothing is readable at all, so nothing is written:
+     * keeping the baseline that was taken honestly beats storing an empty one that claims the phone is
+     * card-less. A readable, card-less phone does get an empty baseline, and that is the truthful
+     * answer: a card that shows up afterwards is a foreign one.
+     */
+    fun rebaseline() {
+        if (!hasPhoneState()) return
+        store.setSimBaseline(currentSimIds())
+    }
+
+    /** Captures the armed baseline if none was ever stored. Called when protection starts running. */
     fun captureBaselineIfNeeded() {
-        if (store.simBaseline().isNotEmpty()) return
-        val ids = currentSimIds()
-        if (ids.isNotEmpty()) store.setSimBaseline(ids)
+        if (store.hasSimBaseline()) return
+        if (!hasPhoneState()) return
+        store.setSimBaseline(currentSimIds())
     }
 
     /** Classifies the current state against the baseline, or null if the guard cannot read it. */
     fun check(): SimGuardLogic.Verdict? {
-        if (!hasPhoneState()) return null
-        val baseline = store.simBaseline()
-        if (baseline.isEmpty()) return null
-        return SimGuardLogic(baseline).classify(
+        if (!store.hasSimBaseline()) return null
+        val airplane = airplaneOn()
+        if (!hasPhoneState()) {
+            // Airplane mode costs no permission to read, and cutting the network is the first thing a
+            // thief does. Without the owner's grant the SIM slots stay dark, but that free signal is
+            // still reported rather than the whole guard going silent (audit §5.11).
+            return if (airplane) SimGuardLogic.Verdict.NetworkLost else null
+        }
+        return SimGuardLogic(store.simBaseline()).classify(
             SimSnapshot(
                 simIds = currentSimIds(),
-                airplaneOn = airplaneOn(),
+                airplaneOn = airplane,
                 hasService = hasService(),
             ),
         )

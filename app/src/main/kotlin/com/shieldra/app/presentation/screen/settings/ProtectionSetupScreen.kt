@@ -51,9 +51,10 @@ data class ProtectionPermissions(
     val location: Boolean = false,
     val phone: Boolean = false,
     val notifications: Boolean = false,
-    val deviceAdmin: Boolean = false,
     /** Battery-optimization exemption, so the system does not doze the guards (A-33). */
     val batteryExemption: Boolean = false,
+    /** Exact-alarm access, so the countdown fires on the second instead of "within the hour" (A-33). */
+    val exactAlarms: Boolean = false,
 )
 
 /**
@@ -71,8 +72,13 @@ fun ProtectionSetupScreen(
     onGrantLocation: () -> Unit,
     onGrantPhone: () -> Unit,
     onGrantNotifications: () -> Unit,
-    onEnableDeviceAdmin: () -> Unit,
     onKeepAwake: () -> Unit,
+    onGrantExactAlarms: () -> Unit,
+    /**
+     * Opens the vendor battery-manager guide. The exemption above is the only one of those switches an
+     * Intent can reach, so the rest have to be flipped by hand (audit development ب).
+     */
+    onOpenSurvivalGuide: () -> Unit = {},
     onArmToggle: () -> Unit,
     onSave: (ProtectionSettings) -> Unit,
     onBack: () -> Unit,
@@ -152,25 +158,22 @@ fun ProtectionSetupScreen(
         PermissionRow(stringResource(R.string.protection_perm_camera), permissions.camera, onGrantCamera)
         PermissionRow(stringResource(R.string.protection_perm_location), permissions.location, onGrantLocation)
         PermissionRow(stringResource(R.string.protection_perm_notifications), permissions.notifications, onGrantNotifications)
-        PermissionRow(stringResource(R.string.protection_perm_device_admin), permissions.deviceAdmin, onEnableDeviceAdmin)
         PermissionRow(stringResource(R.string.protection_perm_phone), permissions.phone, onGrantPhone)
         PermissionRow(stringResource(R.string.protection_perm_keep_awake), permissions.batteryExemption, onKeepAwake)
+        // Exact scheduling is a special access the owner grants in system settings; until then the
+        // countdown still fires, just less precisely (audit F-PLAY-1, A-33).
+        PermissionRow(stringResource(R.string.protection_perm_exact_alarms), permissions.exactAlarms, onGrantExactAlarms)
+        Spacer(Modifier.height(spacing.s))
+        // The guards die on the vendor's battery manager long before any thief touches them, and no
+        // Intent opens those menus: the screen states the paths and the owner follows them by hand.
+        ShieldraFullWidthButton(
+            text = stringResource(R.string.survival_guide_button),
+            onClick = onOpenSurvivalGuide,
+            variant = ShieldraButtonVariant.Secondary,
+        )
 
         // ===== Guards =====
         SectionTitle(stringResource(R.string.protection_guards_title))
-        GuardToggle(
-            title = stringResource(R.string.protection_guard_lock),
-            subtitle = stringResource(R.string.protection_guard_lock_desc),
-            checked = draft.lockEnabled,
-        ) { draft = draft.copy(lockEnabled = it) }
-        if (draft.lockEnabled) {
-            StepperRow(
-                label = stringResource(R.string.protection_lock_threshold, draft.lockThreshold),
-                value = draft.lockThreshold.toFloat(),
-                range = 1f..5f,
-                steps = 3,
-            ) { draft = draft.copy(lockThreshold = it.toInt()) }
-        }
         GuardToggle(
             title = stringResource(R.string.protection_guard_sim),
             subtitle = stringResource(R.string.protection_guard_sim_desc),
@@ -193,8 +196,8 @@ fun ProtectionSetupScreen(
         GuardToggle(
             title = stringResource(R.string.protection_motion_with_arming),
             subtitle = stringResource(R.string.protection_motion_with_arming_desc),
-            checked = draft.motionWithArming,
-        ) { draft = draft.copy(motionWithArming = it) }
+            checked = draft.motionEnabled,
+        ) { draft = draft.copy(motionEnabled = it) }
 
         // ===== Evidence (dual camera + audio) =====
         SectionTitle(stringResource(R.string.protection_evidence_title))
@@ -315,18 +318,43 @@ fun ProtectionSetupScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(spacing.s))
-            ShieldraTextField(
-                value = draft.ownerContact,
-                onValueChange = { draft = draft.copy(ownerContact = it) },
-                label = stringResource(R.string.protection_owner_contact),
-            )
-            ShieldraTextField(
-                value = draft.lostMessage,
-                onValueChange = { draft = draft.copy(lostMessage = it) },
-                label = stringResource(R.string.protection_lost_message),
-            )
         }
+
+        // ===== The owner's contact and lost message =====
+        // Design B (2026-11-06): the app shows no lock-screen notice and holds no power to lock the
+        // screen. These two fields stay because the Telegram /lost reply still prints them, so an
+        // owner who finds the phone can be reached from one message.
+        SectionTitle(stringResource(R.string.protection_notice_title))
+        val contactKind = com.shieldra.protection.OwnerContact.kind(draft.ownerContact)
+        val contactUnusable = draft.ownerContact.isNotBlank() &&
+            contactKind == com.shieldra.protection.ContactKind.UNKNOWN
+        ShieldraTextField(
+            value = draft.ownerContact,
+            onValueChange = { draft = draft.copy(ownerContact = it) },
+            label = stringResource(R.string.protection_owner_contact),
+        )
+        Spacer(Modifier.height(spacing.xs))
+        Text(
+            text = stringResource(
+                if (contactUnusable) R.string.protection_owner_contact_error
+                else R.string.protection_owner_contact_hint,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (contactUnusable) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(spacing.s))
+        ShieldraTextField(
+            value = draft.lostMessage,
+            onValueChange = { draft = draft.copy(lostMessage = it) },
+            label = stringResource(R.string.protection_lost_message),
+        )
+        Spacer(Modifier.height(spacing.xs))
+        Text(
+            text = stringResource(R.string.protection_theft_notice_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         GuardToggle(
             title = stringResource(R.string.protection_track_enable),

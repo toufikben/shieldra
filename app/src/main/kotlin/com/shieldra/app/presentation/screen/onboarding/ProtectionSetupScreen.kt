@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.shieldra.app.design.components.foundation.ShieldraButtonVariant
 import com.shieldra.app.design.components.foundation.ShieldraFullWidthButton
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Brush
@@ -28,6 +29,8 @@ import com.shieldra.app.design.theme.ShieldraTheme
 @Composable
 fun ProtectionSetupScreen(
     onContinue: (Int) -> Unit,
+    /** The vendor battery-manager guide, offered before the owner arms anything (audit development ب). */
+    onOpenSurvivalGuide: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val spacing = ShieldraTheme.spacing
@@ -48,13 +51,13 @@ fun ProtectionSetupScreen(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = stringResource(R.string.lock_guard),
+            text = stringResource(R.string.protection_intro_title),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Spacer(Modifier.height(spacing.m))
         Text(
-            text = stringResource(R.string.protection_setup_question),
+            text = stringResource(R.string.protection_intro_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -70,6 +73,14 @@ fun ProtectionSetupScreen(
         ShieldraFullWidthButton(
             text = stringResource(R.string.action_continue),
             onClick = { onContinue(displayed) },
+        )
+        Spacer(Modifier.height(spacing.m))
+        // Offered here rather than after arming, because on the owner's skin the battery manager is the
+        // thing that stops the guards first — and a week from now they will not remember this screen.
+        ShieldraFullWidthButton(
+            text = stringResource(R.string.survival_guide_button),
+            onClick = onOpenSurvivalGuide,
+            variant = ShieldraButtonVariant.Secondary,
         )
     }
 }

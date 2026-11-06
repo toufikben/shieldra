@@ -75,53 +75,41 @@ class ProtectionService : Service() {
         heartbeatHandler.removeCallbacksAndMessages(null)
         heartbeatHandler.postDelayed(object : Runnable {
             override fun run() {
-                if (!ProtectionSettingsStore(applicationContext).load().armed) return
+                if (!ProtectionSettingsStore(applicationContext).load().armed) {
+                    // The owner disarmed, and a stop request can be refused by the platform. Holding a
+                    // foreground service that still owns the camera after that would be the app keeping
+                    // a capability its owner switched off, so the instance tears itself down.
+                    Log.i(TAG, "protection is no longer armed: this instance is standing down")
+                    stopSelf()
+                    return
+                }
                 checkSim()
                 refreshNoticeNow()
+                // The one moment a request that had to wait is guaranteed to be looked at again.
+                drainQueue()
                 heartbeatHandler.postDelayed(this, HEARTBEAT_MS)
             }
         }, HEARTBEAT_MS)
     }
 
-    private val geofenceHandler = Handler(Looper.getMainLooper())
-    // Assume inside a safe zone at arm, so the first crossing OUT is what fires.
-    private var wasInsideSafeZone = true
-
-    /** Periodic one-shot location sampling (A-36): alerts once when the phone leaves every safe zone. */
-    private fun startGeofenceSampler() {
+    /**
+     * Arming takes one safe-zone reading at once and hands the rest to the alarm (A-45 D2), which keeps
+     * sampling even after this instance is gone. Nothing is scheduled when the owner has no zones or has
+     * turned the guard off.
+     */
+    private fun startSafeZoneSampling() {
         val store = ProtectionSettingsStore(applicationContext)
         val settings = store.load()
-        if (!settings.geofenceEnabled || store.safeZones().isEmpty()) return
-        wasInsideSafeZone = true
-        scheduleGeofenceTick()
-    }
-
-    private fun scheduleGeofenceTick() {
-        val minutes = ProtectionSettingsStore(applicationContext).load().geofenceIntervalMinutes.coerceAtLeast(1)
-        geofenceHandler.postDelayed({
-            val store = ProtectionSettingsStore(applicationContext)
-            val settings = store.load()
-            if (!settings.armed || !settings.geofenceEnabled) return@postDelayed
-            val zones = store.safeZones().map { it.zone }
-            if (zones.isNotEmpty()) {
-                scope.launch {
-                    val fix = runCatching { location.current() }.getOrNull()
-                    if (fix != null) {
-                        val accuracy = (fix.accuracyMeters ?: 0f).toDouble()
-                        val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, accuracy, zones, wasInsideSafeZone)
-                        wasInsideSafeZone = GeofenceLogic.nextInsideState(fix.latitude, fix.longitude, accuracy, zones, wasInsideSafeZone)
-                        if (left) {
-                            val base = AlertRuntime.snapshot(applicationContext, AlertKind.TRACKING, null)
-                            AlertRuntime.alert(
-                                applicationContext,
-                                base.copy(occurredAt = Instant.now(), location = fix, evidenceAttempted = false, photoEvidenceId = null),
-                            )
-                        }
-                    }
-                }
-            }
-            scheduleGeofenceTick()
-        }, minutes * 60_000L)
+        if (!settings.geofenceEnabled || store.safeZones().isEmpty()) {
+            GeofenceTicker.cancel(applicationContext)
+            ZoneStateStore(applicationContext).clear()
+            return
+        }
+        scope.launch {
+            runCatching { sampleSafeZoneNow(applicationContext) }
+                .onFailure { Log.w(TAG, "the first safe-zone reading failed: ${it.message}") }
+        }
+        GeofenceTicker.schedule(applicationContext, settings.geofenceIntervalMinutes)
     }
 
     /** On a burst of confirmed intrusions within the window, stop being discreet and sound the siren. */
@@ -195,7 +183,7 @@ class ProtectionService : Service() {
         if (verdict == lastSimVerdict) return
         lastSimVerdict = verdict
         if (verdict != SimGuardLogic.Verdict.Normal) {
-            capture(SecurityEventType.SIM_CONFIRMED_EVENT, null)
+            capture(SecurityEventType.SIM_CONFIRMED_EVENT)
             // Composite tamper: a SIM swap with the screen dark and the network cut is the classic
             // way a stolen phone is hidden from recovery — sound the siren at once if the owner
             // opted into escalation, without waiting for a burst to build up.
@@ -266,7 +254,7 @@ class ProtectionService : Service() {
                     status == android.os.BatteryManager.BATTERY_STATUS_FULL
                 ProtectionSettingsStore(applicationContext).markCheck()
                 if (battery.onLevel(percent, charging) is BatteryBreathLogic.Verdict.Breath) {
-                    capture(SecurityEventType.BATTERY_SIGNAL, null)
+                    capture(SecurityEventType.BATTERY_SIGNAL)
                 }
                 // A battery tick is a cheap, frequent moment to also re-read the SIM state.
                 checkSim()
@@ -293,13 +281,36 @@ class ProtectionService : Service() {
                 return START_NOT_STICKY
             }
             else -> {
+                val kindName = intent?.getStringExtra(EXTRA_KIND)
+                val eventId = intent?.getStringExtra(EXTRA_EVENT_ID)
+                val requested = kindName?.let { name ->
+                    runCatching { SecurityEventType.valueOf(name) }.getOrElse {
+                        Log.e(TAG, "an unknown capture request arrived: $name")
+                        null
+                    }
+                }
                 if (!promote()) {
+                    // A service that cannot become foreground holds no camera, so it has to stop. What
+                    // it may not do is stop quietly: the request that woke it goes back to the queue for
+                    // the retry alarm, and the owner is told in text, now, that the guard fired without
+                    // a photo. That is the difference between a late alert and no alert at all.
+                    Log.e(
+                        TAG,
+                        if (requested == null) {
+                            "protection could not promote itself: the guards are armed but nothing is watching"
+                        } else {
+                            "protection could not promote itself: the $requested capture did not run"
+                        },
+                    )
+                    requested?.let {
+                        declareFailure(applicationContext, it, eventId, "the service could not start in the foreground")
+                    }
                     stopSelf(startId)
                     return START_NOT_STICKY
                 }
                 startBatteryGuard()
                 startShutdownGuard()
-                startGeofenceSampler()
+                startSafeZoneSampling()
                 startHeartbeat()
                 simGuard.captureBaselineIfNeeded()
                 checkSim()
@@ -309,12 +320,9 @@ class ProtectionService : Service() {
                         remoteCommands.start()
                     }
                 }
-                val kindName = intent?.getStringExtra(EXTRA_KIND)
-                if (kindName != null) {
-                    val eventId = intent.getStringExtra(EXTRA_EVENT_ID)
-                    val failedAttempts = intent.getIntExtra(EXTRA_FAILED_ATTEMPTS, -1).takeIf { it >= 0 }
-                    capture(SecurityEventType.valueOf(kindName), failedAttempts)
-                }
+                // Newest first: the request that woke this instance is the one still in front of the lens.
+                requested?.let { runCapture(it, eventId) }
+                drainQueue()
             }
         }
         // Armed monitoring stays up so later background triggers reach a live, camera-capable instance.
@@ -324,7 +332,9 @@ class ProtectionService : Service() {
     override fun onDestroy() {
         if (liveInstance === this) liveInstance = null
         trackingHandler.removeCallbacksAndMessages(null)
-        geofenceHandler.removeCallbacksAndMessages(null)
+        // Deliberately no GeofenceTicker.cancel here (A-45): the safe-zone alarm must outlive this
+        // instance, because on the owner's skin the service is what dies first and the zone state is
+        // what the Motion ladder reads. Disarming is what stops it, in ProtectionRuntime.
         heartbeatHandler.removeCallbacksAndMessages(null)
         remoteCommands.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
@@ -335,23 +345,53 @@ class ProtectionService : Service() {
         super.onDestroy()
     }
 
-    /** Runs one capture off the main thread; a second request while one is in flight is dropped. */
-    private fun capture(type: SecurityEventType, failedAttempts: Int?) {
+    /**
+     * Runs one capture, binding it to the incident [eventId] when the caller already created one (the
+     * Motion guard) and opening or joining the incident for [type] otherwise.
+     */
+    private fun runCapture(type: SecurityEventType, eventId: String?) {
+        if (eventId != null) captureForExisting(eventId, type) else capture(type)
+    }
+
+    /**
+     * Runs the requests that had to wait — for the camera, for the storage, for this instance.
+     *
+     * Skipped while a capture is in flight: this instance would only hand every request back to the
+     * queue because its own camera is open, and the next heartbeat drains it for real.
+     */
+    private fun drainQueue() {
+        if (busy.get()) return
+        drainPendingCaptures(applicationContext)
+    }
+
+    /**
+     * Runs one capture off the main thread. A second request while one is in flight is not dropped:
+     * it goes to the queue and the next heartbeat or retry alarm runs it, because a guard that fired
+     * and produced nothing is the failure the owner can never see coming.
+     */
+    private fun capture(type: SecurityEventType) {
         if (!busy.compareAndSet(false, true)) {
-            Log.d(TAG, "capture already in progress; dropping the duplicate")
+            Log.i(TAG, "a $type capture waited: the camera was already open")
+            queueForRetry(type, eventId = null, "the camera was busy")
             return
         }
         scope.launch {
             val wakeLock = acquireWakeLock()
             try {
                 val storage = (applicationContext as? ShieldraApp)?.installedStorage
-                val repository = storage?.eventRepository ?: return@launch
-                val grouped = type == SecurityEventType.LOCK_CONFIRMED_EVENT || type == SecurityEventType.SIM_CONFIRMED_EVENT
+                if (storage == null) {
+                    // Still recovering rather than broken (the app opens storage off the main thread),
+                    // so this one waits for the next drain instead of being lost.
+                    Log.e(TAG, "a $type capture waited: no storage is installed")
+                    queueForRetry(type, eventId = null, "the storage was not installed yet")
+                    return@launch
+                }
+                val repository = storage.eventRepository
+                val grouped = type == SecurityEventType.SIM_CONFIRMED_EVENT
                 val binding = ProtectionEvents(repository).openOrBind(type, grouped, severityFor(type))
-                captureStoreDispatch(storage, repository, binding.event.id, alertKindFor(type), failedAttempts)
+                captureStoreDispatch(storage, repository, binding.event.id, alertKindFor(type))
                 // A new intrusion incident starts the live trail (if the owner turned it on).
-                val intrusion = type == SecurityEventType.LOCK_CONFIRMED_EVENT ||
-                    type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
+                val intrusion = type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
                     type == SecurityEventType.SIM_CONFIRMED_EVENT
                 if (binding.isNew && intrusion) {
                     startTrackingIfEnabled(binding.event.id, alertKindFor(type))
@@ -371,7 +411,6 @@ class ProtectionService : Service() {
         repository: EventRepository,
         eventId: EventId,
         kind: AlertKind,
-        failedAttempts: Int?,
     ) {
         val settings = ProtectionSettingsStore(applicationContext).load()
         val tier = settings.tier
@@ -398,7 +437,7 @@ class ProtectionService : Service() {
             "${it.latitude}|${it.longitude}|${it.accuracyMeters ?: ""}|${it.provider}".toByteArray(Charsets.UTF_8)
         }
         storeEvidence(storage, repository, eventId, locationBytes, "LOCATION")
-        dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId, failedAttempts)
+        dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId)
     }
 
     private class CapturedMedia(
@@ -426,21 +465,55 @@ class ProtectionService : Service() {
      * Captures a photo and a fix for an event that already exists (the Motion guard created it) and
      * sends the alert for it — no second event. Used only while the service is live (armed), which is
      * what keeps the camera working in the background.
+     *
+     * @return true when the capture started or was safely queued for a retry, false when neither could
+     *   be arranged — only then does the caller fall back to its own text alert, so a request is never
+     *   reported as taken and then vanish.
      */
-    private fun captureForExisting(eventIdStr: String, kind: AlertKind) {
-        val eventId = runCatching { EventId.from(java.util.UUID.fromString(eventIdStr)) }.getOrNull() ?: return
-        if (!busy.compareAndSet(false, true)) return
+    private fun captureForExisting(eventIdStr: String, type: SecurityEventType): Boolean {
+        val kind = alertKindFor(type)
+        val eventId = runCatching { EventId.from(java.util.UUID.fromString(eventIdStr)) }.getOrNull()
+        if (eventId == null) {
+            Log.e(TAG, "a $type capture was asked for something that is not an event id")
+            return false
+        }
+        if (!busy.compareAndSet(false, true)) {
+            Log.i(TAG, "a $type capture waited for its own event: the camera was already open")
+            return queueForRetry(type, eventIdStr, "the camera was busy")
+        }
         scope.launch {
             val wakeLock = acquireWakeLock()
             try {
                 val storage = (applicationContext as? ShieldraApp)?.installedStorage
-                val repository = storage?.eventRepository ?: return@launch
-                captureStoreDispatch(storage, repository, eventId, kind, failedAttempts = null)
+                if (storage == null) {
+                    Log.e(TAG, "a $type capture waited for its own event: no storage is installed")
+                    queueForRetry(type, eventIdStr, "the storage was not installed yet")
+                    return@launch
+                }
+                captureStoreDispatch(storage, storage.eventRepository, eventId, kind)
             } finally {
                 runCatching { if (wakeLock?.isHeld == true) wakeLock.release() }
                 busy.set(false)
             }
         }
+        return true
+    }
+
+    /**
+     * Keeps a capture that could not run while this instance is alive: its own heartbeat comes back for
+     * it within a minute, and the retry alarm covers the case where the instance is stopped before then.
+     * A request that was already waiting adds nothing, so retries cannot stack.
+     *
+     * @return whether the request is now queued.
+     */
+    private fun queueForRetry(
+        type: SecurityEventType,
+        eventId: String?,
+        reason: String,
+    ): Boolean {
+        val queued = requeue(applicationContext, type, eventId, reason)
+        if (queued) PendingCaptureReceiver.schedule(applicationContext)
+        return queued
     }
 
     private fun dispatchAlert(
@@ -450,7 +523,6 @@ class ProtectionService : Service() {
         evidenceId: String?,
         backEvidenceId: String?,
         audioEvidenceId: String?,
-        failedAttempts: Int?,
     ) {
         val base = AlertRuntime.snapshot(applicationContext, kind, eventId.value.toString())
         AlertRuntime.alert(
@@ -462,7 +534,6 @@ class ProtectionService : Service() {
                 photoBackEvidenceId = backEvidenceId,
                 audioEvidenceId = audioEvidenceId,
                 evidenceAttempted = true,
-                failedAttempts = failedAttempts,
             ),
         )
     }
@@ -480,7 +551,10 @@ class ProtectionService : Service() {
             promoted = true
             true
         } catch (error: Exception) {
-            Log.w(TAG, "could not promote protection service: ${error.message}")
+            // Not a warning to file away: a service Android will not put in the foreground holds no
+            // camera and can be stopped at any moment, so the owner has to be able to find this line.
+            // The caller stops the instance and hands the request to the queue instead of dropping it.
+            Log.e(TAG, "could not promote protection service: ${error.message}", error)
             false
         }
     }
@@ -511,16 +585,36 @@ class ProtectionService : Service() {
                     CHANNEL_ID,
                     getString(com.shieldra.app.R.string.notification_channel_protection),
                     NotificationManager.IMPORTANCE_MIN,
-                ).apply { setShowBadge(false) },
+                ).apply {
+                    setShowBadge(false)
+                    // A channel's lock-screen visibility overrides the one set on the notification, so
+                    // the secrecy has to be declared here as well. An already-created channel keeps the
+                    // settings it was created with, which is why the public version above is the
+                    // upgrade-path safety net.
+                    lockscreenVisibility = Notification.VISIBILITY_SECRET
+                },
             )
         }
         val launch = packageManager.getLaunchIntentForPackage(packageName)
         val pending = launch?.let { PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE) }
+        // The notice says which app is holding the camera and, while a countdown runs, when the next
+        // signal leaves the phone. That is a map of the owner's defences, and a thief glancing at a
+        // locked screen should not get it (audit report §4, the recon leak). VISIBILITY_SECRET keeps
+        // the whole notification off the lock screen. The public version is the fallback for a skin
+        // that draws a body anyway: it can only ever say the app's name and that the content is
+        // hidden, never the title, the camera holder or the countdown.
+        val hidden = Notification.Builder(this, CHANNEL_ID)
+            .setSmallIcon(com.shieldra.app.R.drawable.ic_shield_notification)
+            .setContentTitle(getString(com.shieldra.app.R.string.app_name))
+            .setContentText(getString(com.shieldra.app.R.string.notification_hidden_body))
+            .build()
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(com.shieldra.app.R.drawable.ic_shield_notification)
             .setContentTitle(getString(com.shieldra.app.R.string.notification_protection_title))
             .setContentText(getString(com.shieldra.app.R.string.notification_protection_text))
             .setOngoing(true)
+            .setVisibility(Notification.VISIBILITY_SECRET)
+            .setPublicVersion(hidden)
             .apply {
                 countdownDeadlineEpochMs()?.let { due ->
                     // Plain text re-posted every heartbeat: some skins do not draw a notification chronometer.
@@ -561,16 +655,6 @@ class ProtectionService : Service() {
         else -> GuardSeverity.CRITICAL
     }
 
-    private fun alertKindFor(type: SecurityEventType): AlertKind = when (type) {
-        SecurityEventType.LOCK_CONFIRMED_EVENT -> AlertKind.LOCK
-        SecurityEventType.SIM_CONFIRMED_EVENT -> AlertKind.SIM
-        SecurityEventType.BATTERY_SIGNAL -> AlertKind.BATTERY
-        SecurityEventType.COUNTDOWN_SIGNAL -> AlertKind.COUNTDOWN
-        SecurityEventType.MOTION_CONFIRMED_EVENT -> AlertKind.MOTION
-        SecurityEventType.PANIC_ACTIVATION -> AlertKind.PANIC
-        SecurityEventType.CONFIRMED_SECURITY_EVENT -> AlertKind.PANIC
-    }
-
     companion object {
         private const val TAG = "ProtectionService"
         private const val CHANNEL_ID = "shieldra_protection"
@@ -583,7 +667,6 @@ class ProtectionService : Service() {
         const val ACTION_STOP = "com.shieldra.protection.STOP"
         const val EXTRA_KIND = "kind"
         const val EXTRA_EVENT_ID = "event_id"
-        const val EXTRA_FAILED_ATTEMPTS = "failed_attempts"
 
         @Volatile
         private var liveInstance: ProtectionService? = null
@@ -598,41 +681,269 @@ class ProtectionService : Service() {
 
         /**
          * Captures a photo and a fix for an already-created event (the Motion guard's) and sends it,
-         * when the service is live. Returns true if a live instance took it; false means protection is
-         * not armed, so the caller keeps its own text-only path.
+         * when the service is live. Returns true if a live instance took it or queued it for a retry;
+         * false means protection is not armed and nothing could be arranged, so the caller keeps its
+         * own text-only path.
          */
-        fun captureForEvent(eventId: String, kind: AlertKind): Boolean {
+        fun captureForEvent(eventId: String, type: SecurityEventType): Boolean {
             val live = liveInstance ?: return false
-            live.captureForExisting(eventId, kind)
-            return true
-        }
-
-        /** Starts (or keeps) the persistent service. Called from the dashboard and from boot resume. */
-        fun arm(context: Context) {
-            val intent = Intent(context, ProtectionService::class.java).setAction(ACTION_ARM)
-            ContextCompat.startForegroundService(context, intent)
-        }
-
-        fun stop(context: Context) {
-            context.startService(Intent(context, ProtectionService::class.java).setAction(ACTION_STOP))
+            return live.captureForExisting(eventId, type)
         }
 
         /**
-         * Asks for one capture of [type]. A live instance takes it directly; otherwise we try to
-         * start the service with the request, which a background caller may be denied — the event is
-         * still recorded by the instance when one is running.
+         * Which alert a guard's event is announced as. The capture path and the queue of captures that
+         * could not run both need it, so it lives beside the instance handle rather than inside it.
          */
-        fun requestCapture(context: Context, type: SecurityEventType, failedAttempts: Int? = null) {
+        fun alertKindFor(type: SecurityEventType): AlertKind = when (type) {
+            SecurityEventType.SIM_CONFIRMED_EVENT -> AlertKind.SIM
+            SecurityEventType.BATTERY_SIGNAL -> AlertKind.BATTERY
+            SecurityEventType.COUNTDOWN_SIGNAL -> AlertKind.COUNTDOWN
+            SecurityEventType.MOTION_CONFIRMED_EVENT -> AlertKind.MOTION
+            SecurityEventType.PANIC_ACTIVATION -> AlertKind.PANIC
+            SecurityEventType.CONFIRMED_SECURITY_EVENT -> AlertKind.PANIC
+        }
+
+        /**
+         * Starts (or keeps) the persistent service. Called from the dashboard and from boot resume.
+         * A refused start is reported, never swallowed: the owner has armed protection and is entitled
+         * to know that nothing is watching.
+         */
+        fun arm(context: Context) {
+            val intent = Intent(context, ProtectionService::class.java).setAction(ACTION_ARM)
+            runCatching { ContextCompat.startForegroundService(context, intent) }
+                .onFailure {
+                    Log.e(
+                        TAG,
+                        "protection could not be started (${it.javaClass.simpleName}: ${it.message}) " +
+                            "while the owner's armed flag stays on",
+                        it,
+                    )
+                }
+        }
+
+        /** Stops the guards. The owner pressed the button, so a refused stop is only logged. */
+        fun stop(context: Context) {
+            runCatching { context.startService(Intent(context, ProtectionService::class.java).setAction(ACTION_STOP)) }
+                .onFailure { Log.w(TAG, "the protection stop request was refused: ${it.message}") }
+        }
+
+        /**
+         * One safe-zone reading (A-45 D2): where the phone is, whether it just crossed out, and when this
+         * became known. The service takes one at arm and [GeofenceTickReceiver] takes the rest, so the
+         * state the Motion ladder reads never depends on a service instance staying alive.
+         *
+         * Refusals write nothing on purpose. A fix older than two intervals is not evidence about where
+         * the phone is now, and no fix at all is the same case: leaving the stored reading alone lets it
+         * age out, and an aged-out reading fails the ladder closed rather than muting a snatch at the
+         * door. The one-shot "it left a safe zone" alert (A-36) keeps its exact old meaning.
+         */
+        suspend fun sampleSafeZoneNow(context: Context) {
+            val app = context.applicationContext
+            val store = ProtectionSettingsStore(app)
+            val settings = store.load()
+            val zones = store.safeZones().map(SafeZone::zone)
+            if (zones.isEmpty()) return
+            val fix = runCatching { LocationFix(app).current() }.getOrNull()
+            if (fix == null) {
+                Log.i(TAG, "the safe-zone tick got no fix: the stored reading is left to go stale")
+                return
+            }
+            val nowMs = System.currentTimeMillis()
+            val staleAfterMs = GeofenceTicker.staleAfterMs(settings.geofenceIntervalMinutes)
+            val fixAgeMs = nowMs - fix.fixedAt.toEpochMilli()
+            if (fixAgeMs > staleAfterMs) {
+                Log.w(TAG, "the safe-zone fix is ${fixAgeMs / 1000L} s old, too old to trust: nothing was written")
+                return
+            }
+            val previous = ZoneStateStore(app).read()
+            // With no reading yet, assume inside — the same first-fix rule A-36 used, so the alert still
+            // fires on the crossing out and not on the very first fix.
+            val wasInside = previous?.inside ?: true
+            val accuracy = (fix.accuracyMeters ?: 0f).toDouble()
+            val inside = GeofenceLogic.nextInsideState(fix.latitude, fix.longitude, accuracy, zones, wasInside)
+            val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, accuracy, zones, wasInside)
+            ZoneStateStore(app).write(inside = inside, atMs = nowMs)
+            if (!left) return
+            val base = AlertRuntime.snapshot(app, AlertKind.TRACKING, null)
+            runCatching {
+                AlertRuntime.alert(
+                    app,
+                    base.copy(occurredAt = Instant.now(), location = fix, evidenceAttempted = false, photoEvidenceId = null),
+                )
+            }.onFailure { Log.w(TAG, "leaving a safe zone could not be reported: ${it.message}") }
+        }
+
+        /**
+         * Asks for one capture of [type]. A live instance takes it directly; otherwise the service is
+         * started with the request, which a background caller may be denied. A denial is not the end of
+         * the story: the request is queued, a short alarm retries it, and the owner is told in text
+         * right away that the guard fired — so "nothing happened" is never mistaken for "nothing was
+         * seen".
+         */
+        fun requestCapture(context: Context, type: SecurityEventType) {
             val live = liveInstance
             if (live != null) {
-                live.capture(type, failedAttempts)
+                live.capture(type)
                 return
+            }
+            val app = context.applicationContext
+            val intent = Intent(app, ProtectionService::class.java)
+                .setAction(ACTION_CAPTURE)
+                .putExtra(EXTRA_KIND, type.name)
+            runCatching { ContextCompat.startForegroundService(app, intent) }
+                .onFailure { error ->
+                    declareFailure(
+                        app,
+                        type,
+                        eventId = null,
+                        "a background start of the camera service was refused: ${error.javaClass.simpleName}",
+                    )
+                }
+        }
+
+        /**
+         * What happens when a capture could not run: the request is kept for a retry, the retry is
+         * armed, and the owner is told in text — but only the first time this request is seen, so a
+         * guard that keeps failing produces one message rather than a stream of them.
+         */
+        private fun declareFailure(
+            context: Context,
+            type: SecurityEventType,
+            eventId: String?,
+            reason: String,
+        ) {
+            Log.e(TAG, "the $type capture could not run ($reason)")
+            // The notice goes out now, so the queued request carries that fact with it: a later retry or
+            // expiry must not tell the owner the same bad news a second time.
+            val firstTime = requeue(context, type, eventId, reason, announced = true)
+            PendingCaptureReceiver.schedule(context)
+            if (firstTime) announceMissingCapture(context, type, eventId, reason)
+        }
+
+        /**
+         * The owner's news that a guard fired and no photo or fix came. The alert says plainly that
+         * nothing was captured, because a reported absence is honest while an absence nobody sees is the
+         * defect this path exists to remove. Nothing here throws: this is the worst moment of the app's
+         * life, and failing to report a failure must not cost the guards their last move.
+         */
+        private fun announceMissingCapture(
+            context: Context,
+            type: SecurityEventType,
+            eventId: String?,
+            reason: String,
+        ) {
+            val base = runCatching { AlertRuntime.snapshot(context, alertKindFor(type), eventId) }.getOrNull()
+            if (base == null) {
+                Log.e(TAG, "the owner could not be told about the $type capture ($reason): no alert could be built")
+                return
+            }
+            runCatching {
+                AlertRuntime.alert(context, base.copy(evidenceAttempted = false))
+            }.onFailure {
+                Log.e(TAG, "the owner could not be told about the $type capture ($reason): ${it.message}", it)
+            }
+        }
+
+        /** Writes [type] down as a capture still owed, or reports that it could not even do that. */
+        private fun requeue(
+            context: Context,
+            type: SecurityEventType,
+            eventId: String?,
+            reason: String,
+            announced: Boolean = false,
+        ): Boolean =
+            runCatching { PendingCaptures(context).add(type, eventId, announced) }
+                .onFailure { Log.e(TAG, "the $type capture could not be queued either ($reason): ${it.message}", it) }
+                .getOrDefault(false)
+
+        /** Puts a request this drain just took back into the queue, with its own moment and notice. */
+        private fun keepWaiting(context: Context, request: PendingCapture): Boolean =
+            runCatching { PendingCaptures(context).put(request) }
+                .onFailure { Log.e(TAG, "the ${request.type} capture could not be kept for another try: ${it.message}", it) }
+                .getOrDefault(false)
+
+        /**
+         * Hands one queued request to whatever can produce its photo and reports whether anything took it.
+         *
+         * A live, armed instance runs it directly. Without one the request still deserves a try: the
+         * service is asked to start, which a background caller may be refused — and a start that is
+         * accepted carries the request into [onStartCommand], where a failed promotion queues it again.
+         * So a true answer here always ends in a capture or in a queue, never in silence.
+         */
+        private fun honour(context: Context, request: PendingCapture): Boolean {
+            val live = liveInstance
+            if (live != null) {
+                val eventId = request.eventId
+                return if (eventId != null) live.captureForExisting(eventId, request.type)
+                else {
+                    live.capture(request.type)
+                    true
+                }
             }
             val intent = Intent(context, ProtectionService::class.java)
                 .setAction(ACTION_CAPTURE)
-                .putExtra(EXTRA_KIND, type.name)
-                .apply { failedAttempts?.let { putExtra(EXTRA_FAILED_ATTEMPTS, it) } }
-            runCatching { ContextCompat.startForegroundService(context, intent) }
+                .putExtra(EXTRA_KIND, request.type.name)
+                .apply {
+                    request.eventId?.let { putExtra(EXTRA_EVENT_ID, it) }
+                }
+            return runCatching { ContextCompat.startForegroundService(context, intent) }.isSuccess
+        }
+
+        /**
+         * Runs the captures the queue is holding, from anywhere — the retry alarm, a service that just
+         * promoted itself, and every heartbeat. A phone that is no longer armed empties the queue
+         * instead of running it: once the owner switched protection off, nobody is to be photographed.
+         *
+         * A request that could not be honoured goes back with the moment it was made and the news that
+         * was already sent about it, so retries expire on their own and one failed photo is reported
+         * once rather than every thirty seconds.
+         */
+        fun drainPendingCaptures(context: Context) {
+            val app = context.applicationContext
+            val queue = PendingCaptures(app)
+            if (!ProtectionSettingsStore(app).load().armed) {
+                Log.i(TAG, "the captures still queued were dropped: protection is no longer armed")
+                queue.clear()
+                PendingCaptureReceiver.cancel(app)
+                return
+            }
+            val drained = runCatching { queue.take() }.getOrElse {
+                Log.e(TAG, "the capture queue could not be read: ${it.message}", it)
+                return
+            }
+            if (drained.isEmpty) {
+                // Nothing was waiting that could still be honoured: stop driving the retries.
+                PendingCaptureReceiver.cancel(app)
+                return
+            }
+            // A request that waited past its moment gets no photo. It does get the owner told, but only
+            // if no earlier failure had already said it.
+            drained.expired.forEach { stale ->
+                Log.e(TAG, "the ${stale.type} capture waited too long to be worth running")
+                if (PendingCaptureLogic.owesTheOwnerNotice(stale)) {
+                    announceMissingCapture(
+                        app,
+                        stale.type,
+                        stale.eventId,
+                        "it waited past the moment it asked for",
+                    )
+                }
+            }
+            drained.due.forEach { request ->
+                if (honour(app, request)) return@forEach
+                val notice = PendingCaptureLogic.owesTheOwnerNotice(request)
+                val kept = keepWaiting(app, if (notice) PendingCaptureLogic.told(request) else request)
+                if (kept) PendingCaptureReceiver.schedule(app)
+                if (notice) {
+                    announceMissingCapture(
+                        app,
+                        request.type,
+                        request.eventId,
+                        "no capture service could be reached to run it",
+                    )
+                }
+            }
+            if (drained.due.isEmpty()) PendingCaptureReceiver.cancel(app)
         }
     }
 }

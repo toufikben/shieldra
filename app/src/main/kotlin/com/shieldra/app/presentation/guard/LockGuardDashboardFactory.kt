@@ -11,6 +11,7 @@ import com.shieldra.app.presentation.model.GuardStatus
 import com.shieldra.app.presentation.model.GuardUiModel
 import com.shieldra.app.presentation.model.NetworkStatus
 import com.shieldra.app.presentation.model.ProtectionVisualState
+import com.shieldra.protection.CountdownDeadline
 import com.shieldra.runtime.MonitoringClaim
 
 /**
@@ -32,7 +33,6 @@ fun lockGuardDashboard(
     // here is fabricated: an unarmed build still goes through the honest LockGuardDecision path, and
     // the not-active case still maps to Disabled.
     protectionArmed: Boolean = false,
-    lockOn: Boolean = false,
     simOn: Boolean = false,
     batteryOn: Boolean = false,
     // A-38: the phone's own readings. Each defaults to "not measured", so a caller that has no reading
@@ -44,13 +44,16 @@ fun lockGuardDashboard(
     protectionScore: Int? = null,
     proActive: Boolean = false,
     totalEvents: Int? = null,
+    // A-33: the periodic signal's own stored cycle. Nothing here derives it from a press or from the
+    // interval setting — only the deadline the scheduler actually armed can make the card appear.
+    periodicSignal: CountdownDeadline? = null,
+    periodicSignalIntervalMs: Long = 0L,
 ): DashboardUiModel {
     val statuses = LockGuardDecision.guardStatuses(state)
     val inactiveSubtitle = stringResource(R.string.guard_subtitle_inactive)
     val activeSubtitle = stringResource(R.string.guard_subtitle_active)
     val motionSubtitle = stringResource(MotionMonitoringPresentation.subtitleRes(motionClaim))
     val armedGuards: Map<GuardKind, Boolean> = mapOf(
-        GuardKind.Lock to (protectionArmed && lockOn),
         GuardKind.Sim to (protectionArmed && simOn),
         GuardKind.Battery to (protectionArmed && batteryOn),
     )
@@ -88,12 +91,13 @@ fun lockGuardDashboard(
         protectionScore = protectionScore,
         proActive = proActive,
         totalEvents = totalEvents,
+        periodicSignal = periodicSignal,
+        periodicSignalIntervalMs = periodicSignalIntervalMs,
     )
 }
 
 @StringRes
 private fun titleRes(kind: GuardKind): Int = when (kind) {
-    GuardKind.Lock -> R.string.demo_lock_guard
     GuardKind.Motion -> R.string.demo_motion_guard
     GuardKind.Sim -> R.string.demo_sim_guard
     GuardKind.Panic -> R.string.demo_panic

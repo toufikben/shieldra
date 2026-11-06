@@ -37,16 +37,21 @@ data class HealthChecks(
     val camera: Boolean,
     val location: Boolean,
     val notifications: Boolean,
-    val deviceAdmin: Boolean,
     val batteryExempt: Boolean,
     val channel: Boolean,
     val motionMonitoring: Boolean,
+    /**
+     * Whether the phone can prove who is holding it. It is a health row rather than a warning because
+     * it is the precondition of every other guard: without a screen lock, anyone with the phone can
+     * disarm protection and change where the alerts go (audit B-1).
+     */
+    val screenLock: Boolean,
 )
 
 /**
  * A read-only "what is really protecting this phone" screen. The score and every row come from the
- * live device state (permissions, device admin, battery exemption, a connected channel, the running
- * monitor) — honest projection, never a flattering default.
+ * live device state (permissions, battery exemption, a connected channel, the running monitor) —
+ * honest projection, never a flattering default.
  */
 @Composable
 fun HealthCheckScreen(
@@ -102,14 +107,24 @@ fun HealthCheckScreen(
                 R.string.health_check_camera to checks.camera,
                 R.string.health_check_location to checks.location,
                 R.string.health_check_notifications to checks.notifications,
-                R.string.health_check_device_admin to checks.deviceAdmin,
                 R.string.health_check_battery to checks.batteryExempt,
                 R.string.health_check_channel to checks.channel,
                 R.string.health_check_motion to checks.motionMonitoring,
+                R.string.health_check_screen_lock to checks.screenLock,
             )
             rows.forEachIndexed { index, (labelRes, on) ->
                 if (index > 0) Spacer(Modifier.height(12.dp))
                 CheckRow(label = stringResource(labelRes), on = on)
+            }
+            // Stated in words, not only as a grey tick: a row that can read as "off" is missed by the
+            // owner who most needs to know that their guards have no lock in front of them.
+            if (!checks.screenLock) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.health_screen_lock_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
         }
     }

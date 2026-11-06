@@ -25,7 +25,7 @@ EVIDENCE
 • Export as a passphrase-protected encrypted file, confirmed with your screen lock
 
 REMOTE COMMANDS (from your own Telegram chat)
-/locate, /photo, /alarm, /stopalarm, /track on|off, /lost, /found, /status
+/locate, /photo, /alarm, /stopalarm, /lock, /track on|off, /lost, /found, /status
 
 PRIVACY
 • App lock with your screen lock; hidden from the recents screen when on
@@ -37,4 +37,4 @@ Every evidence type and channel: camera photos, audio, instant Telegram alerts, 
 live location trail and table mode. The free plan sends your location by email.
 
 Shieldra must be allowed to run in the background, use the camera, microphone and location, and be a device
-administrator to notice failed unlocks. Each permission is explained in the app before it is requested.
+administrator to notice failed unlocks and lock the screen when you send /lock. Each permission is explained in the app before it is requested.

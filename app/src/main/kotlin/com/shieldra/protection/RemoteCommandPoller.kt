@@ -67,10 +67,10 @@ class RemoteCommandPoller(context: Context) {
 
     private fun execute(client: TelegramCommandClient, chat: String, raw: String) {
         // Strip a trailing @botname and any arguments; "/photo@MyBot" -> "/photo".
-        val command = raw.substringBefore(' ').substringBefore('@').lowercase()
-        when (command) {
+        val command = RemoteCommand.parse(raw)
+        when (command.verb) {
             "/track" -> {
-                if (raw.substringAfter(' ', "").trim().lowercase() == "off") {
+                if (command.argument == "off") {
                     stopTrack()
                     client.replyText(chat, "SHIELDRA: tracking off")
                 } else {

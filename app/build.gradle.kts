@@ -27,6 +27,11 @@ android {
         // rising); a local build falls back to 2.
         versionCode = maxOf(2, System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 2)
         versionName = "0.2.0"
+        // Without this the androidTest sources compile into an APK that no instrumentation can run,
+        // so `connectedDebugAndroidTest` fails before the first test class loads. The 17 security
+        // classes (Keystore evidence, Room migrations, factory-reset key destruction) were being
+        // built and never executed.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {

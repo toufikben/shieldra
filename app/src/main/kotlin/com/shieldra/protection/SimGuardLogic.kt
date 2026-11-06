@@ -41,6 +41,11 @@ class SimGuardLogic(private val baseline: Set<String>) {
             foreign.isNotEmpty() -> Verdict.ForeignInserted
             missing.isNotEmpty() && now.simIds.isEmpty() -> Verdict.Removed
             missing.isNotEmpty() -> Verdict.Removed
+            // A phone armed with no card in it has no subscription to have service on, so "no service"
+            // is its resting state rather than a thief cutting the network (the empty baseline is a
+            // reading §5.11 now stores on purpose). Airplane mode is still reported: it is a deliberate
+            // act, and it is the one signal a card-less phone can give about someone else's plans.
+            baseline.isEmpty() && now.simIds.isEmpty() && !now.airplaneOn -> Verdict.Normal
             now.airplaneOn || !now.hasService -> Verdict.NetworkLost
             else -> Verdict.Normal
         }

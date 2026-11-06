@@ -7,26 +7,22 @@ class ProtectionScoreTest {
 
     private fun inputs(
         armed: Boolean = true,
-        lock: Boolean = false,
         motion: Boolean = false,
         sim: Boolean = false,
         batteryGuard: Boolean = false,
         camera: Boolean = false,
         location: Boolean = false,
         notifications: Boolean = false,
-        deviceAdmin: Boolean = false,
         batteryExempt: Boolean = false,
         channel: Boolean = false,
     ) = ProtectionScore.Inputs(
         armed = armed,
-        lockEnabled = lock,
         motionMonitoring = motion,
         simEnabled = sim,
         batteryEnabled = batteryGuard,
         cameraGranted = camera,
         locationGranted = location,
         notificationsReady = notifications,
-        deviceAdminActive = deviceAdmin,
         batteryExempt = batteryExempt,
         anyChannelActive = channel,
     )
@@ -37,9 +33,9 @@ class ProtectionScoreTest {
             100,
             ProtectionScore.score(
                 inputs(
-                    lock = true, motion = true, sim = true, batteryGuard = true,
+                    motion = true, sim = true, batteryGuard = true,
                     camera = true, location = true, notifications = true,
-                    deviceAdmin = true, batteryExempt = true, channel = true,
+                    batteryExempt = true, channel = true,
                 ),
             ),
         )
@@ -52,9 +48,9 @@ class ProtectionScoreTest {
             ProtectionScore.score(
                 inputs(
                     armed = false,
-                    lock = true, motion = true, sim = true, batteryGuard = true,
+                    motion = true, sim = true, batteryGuard = true,
                     camera = true, location = true, notifications = true,
-                    deviceAdmin = true, batteryExempt = true, channel = true,
+                    batteryExempt = true, channel = true,
                 ),
             ),
         )
@@ -66,15 +62,25 @@ class ProtectionScoreTest {
     }
 
     @Test
-    fun `a lock guard with camera and a live channel sums its weights`() {
+    fun `a motion guard with camera and a live channel sums its weights`() {
         assertEquals(
-            ProtectionScore.W_LOCK + ProtectionScore.W_CAMERA + ProtectionScore.W_CHANNEL,
-            ProtectionScore.score(inputs(lock = true, camera = true, channel = true)),
+            ProtectionScore.W_MOTION + ProtectionScore.W_CAMERA + ProtectionScore.W_CHANNEL,
+            ProtectionScore.score(inputs(motion = true, camera = true, channel = true)),
         )
     }
 
     @Test
     fun `a live channel alone is worth its weight`() {
         assertEquals(ProtectionScore.W_CHANNEL, ProtectionScore.score(inputs(channel = true)))
+    }
+
+    @Test
+    fun `the weights still add up to a full hundred`() {
+        assertEquals(
+            100,
+            ProtectionScore.W_MOTION + ProtectionScore.W_SIM + ProtectionScore.W_BATTERY_GUARD +
+                ProtectionScore.W_CHANNEL + ProtectionScore.W_CAMERA + ProtectionScore.W_LOCATION +
+                ProtectionScore.W_NOTIFICATIONS + ProtectionScore.W_BATTERY_EXEMPT,
+        )
     }
 }

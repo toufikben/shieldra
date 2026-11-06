@@ -1,5 +1,7 @@
 package com.shieldra.app.presentation.model
 
+import com.shieldra.protection.CountdownDeadline
+
 enum class ProtectionVisualState {
     Protected,
     Suspicious,
@@ -8,9 +10,9 @@ enum class ProtectionVisualState {
     Disabled,
 }
 
-enum class GuardKind { Lock, Motion, Sim, Panic, Battery }
+enum class GuardKind { Motion, Sim, Panic, Battery }
 
-enum class GuardStatus { Active, Signal, Disabled, Locked }
+enum class GuardStatus { Active, Signal, Disabled }
 
 data class GuardUiModel(
     val kind: GuardKind,
@@ -70,7 +72,7 @@ data class ChannelReceiptUiModel(
  * it shows under "All" and under no filter chip, because filing an unattributed row under another
  * guard's filter would state a fact the row does not carry.
  */
-enum class EventType { FailedUnlock, Motion, SimChange, Panic, Battery, Countdown, Other }
+enum class EventType { Motion, SimChange, Panic, Battery, Countdown, Other }
 
 data class EventUiModel(
     val id: String,
@@ -89,7 +91,6 @@ data class EventDetailUiModel(
     val id: String,
     val type: EventType,
     val title: String,
-    val attemptNumber: Int? = null,
     val timestampLabel: String,
     /** The persisted state, already localized; null when the source has none to report. */
     val statusLabel: String? = null,
@@ -130,9 +131,16 @@ data class DashboardUiModel(
     val proActive: Boolean = false,
     /** Every stored event, when known; the list above is only the newest few. */
     val totalEvents: Int? = null,
+    /**
+     * The periodic signal's live cycle, or null when none is armed. Read from the stored deadline, so
+     * a card built on it can only ever describe a cycle the scheduler really armed (A-33).
+     */
+    val periodicSignal: CountdownDeadline? = null,
+    /** The owner's chosen cycle length, so a reset can say what it gives back before it happens. */
+    val periodicSignalIntervalMs: Long = 0L,
 )
 
-enum class HistoryTypeFilter { All, Lock, Motion, Sim, Panic, Battery }
+enum class HistoryTypeFilter { All, Motion, Sim, Panic, Battery }
 enum class HistoryStatusFilter { All, Delivered, Deferred, Failed }
 
 data class HistoryFilterState(

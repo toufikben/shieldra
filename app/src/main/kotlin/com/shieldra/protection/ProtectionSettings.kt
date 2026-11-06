@@ -11,10 +11,8 @@ import android.content.SharedPreferences
  */
 data class ProtectionSettings(
     val armed: Boolean = false,
-    val lockEnabled: Boolean = true,
     val simEnabled: Boolean = true,
     val batteryEnabled: Boolean = true,
-    val lockThreshold: Int = FailedUnlockCounter.DEFAULT_THRESHOLD,
     val batteryThreshold: Int = BatteryBreathLogic.DEFAULT_LEVEL,
     val countdownEnabled: Boolean = false,
     val countdownIntervalMs: Long = 60 * 60_000L,
@@ -27,8 +25,11 @@ data class ProtectionSettings(
     val trackingDurationMinutes: Int = 30,
     val dualCameraEnabled: Boolean = false,
     val audioEnabled: Boolean = false,
-    /** Arming also starts Motion monitoring, and disarming stops it (opt-in). */
-    val motionWithArming: Boolean = false,
+    /**
+     * Motion is a guard like the SIM one: on by default and started by arming (A-43). It detects and
+     * alerts only — design B leaves the app without any power to lock the screen.
+     */
+    val motionEnabled: Boolean = true,
     val audioSeconds: Int = 10,
     val escalationEnabled: Boolean = false,
     val escalationThreshold: Int = EscalationPolicy.DEFAULT_THRESHOLD,
@@ -57,10 +58,8 @@ class ProtectionSettingsStore(context: Context) {
 
     fun load(): ProtectionSettings = ProtectionSettings(
         armed = prefs.getBoolean(KEY_ARMED, false),
-        lockEnabled = prefs.getBoolean(KEY_LOCK, true),
         simEnabled = prefs.getBoolean(KEY_SIM, true),
         batteryEnabled = prefs.getBoolean(KEY_BATTERY, true),
-        lockThreshold = prefs.getInt(KEY_LOCK_THRESHOLD, FailedUnlockCounter.DEFAULT_THRESHOLD),
         batteryThreshold = prefs.getInt(KEY_BATTERY_THRESHOLD, BatteryBreathLogic.DEFAULT_LEVEL),
         countdownEnabled = prefs.getBoolean(KEY_COUNTDOWN, false),
         countdownIntervalMs = prefs.getLong(KEY_COUNTDOWN_INTERVAL, 60 * 60_000L),
@@ -77,7 +76,7 @@ class ProtectionSettingsStore(context: Context) {
         trackingDurationMinutes = prefs.getInt(KEY_TRACK_DURATION, 30),
         dualCameraEnabled = prefs.getBoolean(KEY_DUAL_CAM, false),
         audioEnabled = prefs.getBoolean(KEY_AUDIO, false),
-        motionWithArming = prefs.getBoolean(KEY_MOTION_WITH_ARMING, false),
+        motionEnabled = prefs.getBoolean(KEY_MOTION_ENABLED, true),
         audioSeconds = prefs.getInt(KEY_AUDIO_SECONDS, 10),
         escalationEnabled = prefs.getBoolean(KEY_ESCALATION, false),
         escalationThreshold = prefs.getInt(KEY_ESCALATION_THRESHOLD, EscalationPolicy.DEFAULT_THRESHOLD),
@@ -90,13 +89,17 @@ class ProtectionSettingsStore(context: Context) {
         }.getOrDefault(defaultTier),
     )
 
+    /**
+     * Persists the owner's guard choices, never the armed flag: arming is [setArmed]'s alone. A
+     * settings screen holds the snapshot it was composed with, and the live arm state can move
+     * while it is open — saving that snapshot used to write `armed=false` over a running
+     * protection (the service then stood down at its next heartbeat while the screen still said
+     * "Armed"). The flag now has one writer, so a Save can change every guard but cannot disarm.
+     */
     fun save(settings: ProtectionSettings) {
         prefs.edit()
-            .putBoolean(KEY_ARMED, settings.armed)
-            .putBoolean(KEY_LOCK, settings.lockEnabled)
             .putBoolean(KEY_SIM, settings.simEnabled)
             .putBoolean(KEY_BATTERY, settings.batteryEnabled)
-            .putInt(KEY_LOCK_THRESHOLD, settings.lockThreshold.coerceIn(FailedUnlockCounter.MIN_THRESHOLD, FailedUnlockCounter.MAX_THRESHOLD))
             .putInt(KEY_BATTERY_THRESHOLD, settings.batteryThreshold.coerceIn(BatteryBreathLogic.MIN_LEVEL, BatteryBreathLogic.MAX_LEVEL))
             .putBoolean(KEY_COUNTDOWN, settings.countdownEnabled)
             .putLong(KEY_COUNTDOWN_INTERVAL, settings.countdownIntervalMs)
@@ -109,7 +112,7 @@ class ProtectionSettingsStore(context: Context) {
             .putInt(KEY_TRACK_DURATION, settings.trackingDurationMinutes)
             .putBoolean(KEY_DUAL_CAM, settings.dualCameraEnabled)
             .putBoolean(KEY_AUDIO, settings.audioEnabled)
-            .putBoolean(KEY_MOTION_WITH_ARMING, settings.motionWithArming)
+            .putBoolean(KEY_MOTION_ENABLED, settings.motionEnabled)
             .putInt(KEY_AUDIO_SECONDS, settings.audioSeconds)
             .putBoolean(KEY_ESCALATION, settings.escalationEnabled)
             .putInt(KEY_ESCALATION_THRESHOLD, settings.escalationThreshold.coerceIn(EscalationPolicy.MIN_THRESHOLD, EscalationPolicy.MAX_THRESHOLD))
@@ -139,6 +142,17 @@ class ProtectionSettingsStore(context: Context) {
         prefs.edit().putLong(KEY_LAST_CHECK, nowMs).apply()
     }
 
+    /**
+     * When a guard silence was last reported to the owner (audit development أ); 0 means never. Kept
+     * beside the heartbeat it is judged against because the two are one question: this spell of silence
+     * was reported, or it was not.
+     */
+    fun guardSilenceReportedAt(): Long = prefs.getLong(KEY_GUARD_SILENCE_REPORTED, 0L)
+
+    fun setGuardSilenceReportedAt(nowMs: Long) {
+        prefs.edit().putLong(KEY_GUARD_SILENCE_REPORTED, nowMs).apply()
+    }
+
     /** The owner's safe zones (A-36); leaving them all while armed alerts. */
     fun safeZones(): List<SafeZone> =
         prefs.getStringSet(KEY_SAFE_ZONES, emptySet()).orEmpty().mapNotNull(::decodeZone)
@@ -164,8 +178,20 @@ class ProtectionSettingsStore(context: Context) {
     /** The SIM identities present when protection was armed; the SIM guard compares against these. */
     fun simBaseline(): Set<String> = prefs.getStringSet(KEY_SIM_BASELINE, emptySet()).orEmpty()
 
+    /**
+     * Whether an armed baseline was ever stored. The distinction matters because an *empty* baseline is
+     * an answer, not an absence: "no card was in this phone when protection armed" means a SIM that
+     * appears later is a foreign one, which is exactly what a thief adds to get data on a stolen phone.
+     * Installs from before the flag existed already hold a non-empty baseline, so they read as armed.
+     */
+    fun hasSimBaseline(): Boolean =
+        prefs.getBoolean(KEY_SIM_BASELINE_RECORDED, false) || simBaseline().isNotEmpty()
+
     fun setSimBaseline(ids: Set<String>) {
-        prefs.edit().putStringSet(KEY_SIM_BASELINE, ids).apply()
+        prefs.edit()
+            .putStringSet(KEY_SIM_BASELINE, ids)
+            .putBoolean(KEY_SIM_BASELINE_RECORDED, true)
+            .apply()
     }
 
     /** The current countdown deadline, or null if no cycle is scheduled. */
@@ -190,10 +216,8 @@ class ProtectionSettingsStore(context: Context) {
     private companion object {
         const val PREFERENCES_NAME = "shieldra_protection"
         const val KEY_ARMED = "armed"
-        const val KEY_LOCK = "lock_enabled"
         const val KEY_SIM = "sim_enabled"
         const val KEY_BATTERY = "battery_enabled"
-        const val KEY_LOCK_THRESHOLD = "lock_threshold"
         const val KEY_BATTERY_THRESHOLD = "battery_threshold"
         const val KEY_COUNTDOWN = "countdown_enabled"
         const val KEY_COUNTDOWN_INTERVAL = "countdown_interval_ms"
@@ -206,7 +230,7 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_TRACK_DURATION = "tracking_duration_minutes"
         const val KEY_DUAL_CAM = "dual_camera_enabled"
         const val KEY_AUDIO = "audio_enabled"
-        const val KEY_MOTION_WITH_ARMING = "motion_with_arming"
+        const val KEY_MOTION_ENABLED = "motion_enabled"
         const val KEY_AUDIO_SECONDS = "audio_seconds"
         const val KEY_ESCALATION = "escalation_enabled"
         const val KEY_ESCALATION_THRESHOLD = "escalation_threshold"
@@ -214,10 +238,12 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_GEOFENCE_INTERVAL = "geofence_interval_minutes"
         const val KEY_SAFE_ZONES = "safe_zones"
         const val KEY_LAST_CHECK = "last_check_epoch_ms"
+        const val KEY_GUARD_SILENCE_REPORTED = "guard_silence_reported_at"
         const val KEY_OWNER_CONTACT = "owner_contact"
         const val KEY_LOST_MESSAGE = "lost_message"
         const val KEY_TIER = "tier"
         const val KEY_SIM_BASELINE = "sim_baseline"
+        const val KEY_SIM_BASELINE_RECORDED = "sim_baseline_recorded"
         const val KEY_CD_EPOCH = "countdown_epoch_deadline"
         const val KEY_CD_ELAPSED = "countdown_elapsed_deadline"
     }

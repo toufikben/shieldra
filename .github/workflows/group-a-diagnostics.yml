@@ -2,6 +2,11 @@ name: Group A diagnostics
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_phone_apks:
+        description: "Publish this branch's APK pair to its own test release for phone verification"
+        type: boolean
+        default: false
   push:
     branches: [main]
 
@@ -62,6 +67,12 @@ jobs:
         shell: bash
         run: bash .github/scripts/phase3-review-check.sh
 
+      # A-45 D3: Arabic must equal English key for key, and the notice a stranger reads must exist in
+      # Arabic, English and French. A missing holder-facing line is a safety gap, not a backlog.
+      - name: Run locale parity check
+        shell: bash
+        run: bash .github/scripts/locale-parity-check.sh
+
       - name: Publish test result counts to job summary
         if: always()
         shell: bash
@@ -72,23 +83,50 @@ jobs:
         shell: bash
         run: cat evidence/group-a-diagnostics.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Publish the device APK pair to the rolling draft release
-        if: success()
+      - name: Publish the device APK pair to the rolling draft release (main only)
+        # A branch run must not overwrite the rolling artefacts the owner installs and uploads to
+        # Play: this workflow also runs on workflow_dispatch for review branches.
+        if: success() && github.ref == 'refs/heads/main'
         shell: bash
         env:
           # The GitHub CLI does not read the job token implicitly inside a run step.
           GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/publish-device-apks.sh
 
-      - name: Build the optimised phone APK (release code, debug key) and publish it
+      - name: Build the optimised phone APK (release code, debug key)
         if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew assemblePhone --stacktrace
+          cp app/build/outputs/apk/phone/app-phone.apk app-phone.apk
+
+      # A branch run never touches the rolling device-apks release — that is the install the owner
+      # carries and the source of the Play upload. With the manual input, a branch's pair goes to
+      # its own draft release named after the run, so the phone round installs exactly this commit.
+      - name: Publish this branch's APK pair for phone verification (manual input)
+        if: success() && github.ref != 'refs/heads/main' && inputs.publish_phone_apks
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          ./gradlew assemblePhone --stacktrace
-          cp app/build/outputs/apk/phone/app-phone.apk app-phone.apk
+          TAG="test-${GITHUB_RUN_ID}"
+          gh release create "$TAG" --draft --title "Device test ${GITHUB_RUN_ID}" \
+            --notes "APK pair from run ${GITHUB_RUN_ID} at ${GITHUB_SHA}. Phone verification only; not for Play."
+          gh release upload "$TAG" \
+            app/build/outputs/apk/debug/app-debug.apk \
+            app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+            app-phone.apk \
+            --clobber
+
+      - name: Publish the phone APK to the rolling draft release (main only)
+        if: success() && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
           gh release upload device-apks app-phone.apk --clobber
 
       - name: Build the signed release APK and AAB
@@ -114,9 +152,25 @@ jobs:
           ./gradlew assembleRelease bundleRelease --stacktrace
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort | tail -1)
           "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk
+          # A green run must not be able to sign with the wrong key. app/build.gradle.kts falls back
+          # to the committed debug keystore whenever key.properties is missing, so the run can be
+          # green while the AAB that reaches Play is signed by androiddebugkey — which the real
+          # upload key can never update. This asserts the fingerprint instead of printing it.
+          EXPECTED_RELEASE_CERT="f078561ae3fd01403390c13e2085855fb031758c9bf5e662030367f2a141935a"
+          CERT="$("$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | sed -n 's/.*SHA-256 digest: //p' | head -1)"
+          if [ "$CERT" != "$EXPECTED_RELEASE_CERT" ]; then
+            printf 'FAIL: app-release.apk is signed by an unexpected key.\n  expected %s\n  actual   %s\n' "$EXPECTED_RELEASE_CERT" "$CERT" >&2
+            exit 1
+          fi
+          printf 'PASS: release artefact signed by the upload key (%s)\n' "$CERT"
 
-      - name: Publish the signed pair to the rolling release
+      - name: Run merged-manifest permission gate
         if: success()
+        shell: bash
+        run: bash .github/scripts/merged-manifest-check.sh
+
+      - name: Publish the signed pair to the rolling release (main only)
+        if: success() && github.ref == 'refs/heads/main'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

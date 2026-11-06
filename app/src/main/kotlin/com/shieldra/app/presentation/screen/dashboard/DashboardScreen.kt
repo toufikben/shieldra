@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.filled.Sensors
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.filled.WarningAmber
@@ -32,6 +33,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import android.os.SystemClock
+import kotlinx.coroutines.delay
+import com.shieldra.protection.CountdownDeadline
+import com.shieldra.protection.RemainingTime
 import androidx.compose.ui.res.stringResource
 import androidx.annotation.StringRes
 import com.shieldra.app.R
@@ -237,6 +246,21 @@ fun DashboardScreen(
             )
         }
 
+        // The periodic signal's cycle is the one running thing on this screen whose deadline the owner
+        // can move, so it gets its own card beside Panic — and only when a cycle really is armed.
+        item {
+            val cycle = model.periodicSignal
+            if (cycle != null) {
+                Spacer(Modifier.height(spacing.m))
+                PeriodicSignalAction(
+                    deadline = cycle,
+                    intervalMs = model.periodicSignalIntervalMs,
+                    onReset = callbacks.onPeriodicSignalReset,
+                    modifier = Modifier.padding(horizontal = spacing.l),
+                )
+            }
+        }
+
         if (model.showAds) {
             item {
                 Spacer(Modifier.height(spacing.xl))
@@ -404,6 +428,55 @@ private fun PanicQuickAction(onPanic: () -> Unit, onTapHint: () -> Unit, modifie
         modifier = modifier,
         onLongClick = onPanic,
         longClickLabel = stringResource(R.string.panic_hold_action_label),
+    )
+}
+
+/**
+ * The periodic signal's own card (A-33): the time left on the running cycle, and a tap that restarts
+ * it from now. It is the same card shape and height as Panic and the Motion control, so it reads as
+ * one of the dashboard's actions rather than a status panel.
+ *
+ * The countdown is computed on the monotonic clock, from the deadline the scheduler stored, so moving
+ * the system clock cannot make this card show more time than the cycle really has left. Nothing here
+ * can start a cycle: the card only exists because a deadline exists, and a press only re-arms the one
+ * the owner already switched on.
+ */
+@Composable
+private fun PeriodicSignalAction(
+    deadline: CountdownDeadline,
+    intervalMs: Long,
+    onReset: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var nowElapsedMs by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    LaunchedEffect(deadline) {
+        nowElapsedMs = SystemClock.elapsedRealtime()
+        while (true) {
+            delay(1_000L)
+            nowElapsedMs = SystemClock.elapsedRealtime()
+        }
+    }
+    val day = stringResource(R.string.unit_day)
+    val hour = stringResource(R.string.unit_hour)
+    val minute = stringResource(R.string.unit_minute)
+    val lessThanMinute = stringResource(R.string.unit_less_than_minute)
+    PulseActionCard(
+        accent = ShieldraTheme.semantic.protection,
+        icon = Icons.Filled.Timer,
+        title = stringResource(
+            R.string.periodic_signal_card_title,
+            RemainingTime.format(deadline.remainingMs(nowElapsedMs), day, hour, minute, lessThanMinute),
+        ),
+        hint = stringResource(
+            R.string.periodic_signal_card_hint,
+            RemainingTime.format(
+                intervalMs.coerceAtLeast(CountdownDeadline.MIN_DURATION_MS),
+                day, hour, minute, lessThanMinute,
+            ),
+        ),
+        pulsing = true,
+        onClick = onReset,
+        modifier = modifier,
     )
 }
 

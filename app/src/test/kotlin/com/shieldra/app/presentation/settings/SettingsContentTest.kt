@@ -133,6 +133,7 @@ class SettingsContentTest {
                 "protection",
                 "alert_channels",
                 "health",
+                "panic_guide",
                 "safe_zones",
                 "storage",
                 "retention",
@@ -143,8 +144,32 @@ class SettingsContentTest {
                 "about",
                 "help",
                 "privacy",
+                "os_features",
             ),
             SettingsContent.rowIds(),
+        )
+    }
+
+    // Audit development (ج): the stolen-phone steps are a row like any other, so the pinned list above
+    // has to be changed deliberately rather than by accident — and the row must open the guide, never a
+    // dead stub. It is a screen of instructions, not a switch: nothing on this phone changes when it is
+    // read, which is why it can sit in Settings unarmed and still be worth opening.
+    @Test
+    fun the_stolen_phone_row_opens_the_steps_and_claims_no_action() {
+        assertEquals(
+            SettingsRowTarget.PanicGuide,
+            SettingsContent.targetOf(SettingsContent.PANIC_GUIDE_ROW_ID),
+        )
+    }
+
+    // Audit development (د): the comparison with Android's own theft protection is the honest thing to
+    // show an owner before asking them to pay, so it gets a real screen and not the placeholder. The row
+    // sits in About because it answers a question about the product, not about this phone's settings.
+    @Test
+    fun the_platform_comparison_row_opens_a_real_screen() {
+        assertEquals(
+            SettingsRowTarget.PlatformComparison,
+            SettingsContent.targetOf(SettingsContent.OS_FEATURES_ROW_ID),
         )
     }
 }

@@ -78,6 +78,27 @@ class AlertDispatcherTest {
         assertTrue("2026-10-04 10:00:00" in body)
     }
 
+    // Audit development (ز) / B-4: the phone must not go blind in silence. A channel that is on but
+    // whose secret can no longer be opened is recorded on the event as FAILED, and the alert is kept
+    // so it goes out once the owner re-enters the secret.
+    @Test
+    fun a_switched_on_channel_whose_secret_cannot_be_opened_is_recorded_as_failed_and_kept() {
+        val settings = FixedSettings(
+            channels = emptyList(),
+            unusable = listOf(
+                UnusableChannel(DeliveryChannel.TELEGRAM, DeliverySettings.REASON_TOKEN_UNREADABLE),
+            ),
+        )
+
+        dispatcherFor(settings).dispatch(alert())
+
+        val attempt = repository.find(event.id)!!.deliveryInformation.single()
+        assertEquals("TELEGRAM", attempt.channel)
+        assertEquals(DeliveryStatus.FAILED, attempt.status)
+        assertEquals(DeliverySettings.REASON_TOKEN_UNREADABLE, attempt.failureReason)
+        assertEquals(listOf(alert()), pending.items)
+    }
+
     @Test
     fun nothing_is_sent_or_recorded_when_no_channel_is_switched_on() {
         dispatcher(emptyList()).dispatch(alert())
@@ -94,8 +115,10 @@ class AlertDispatcherTest {
         batteryPercent = 54,
     )
 
-    private fun dispatcher(channels: List<AlertChannel>) = AlertDispatcher(
-        settings = { FixedSettings(channels) },
+    private fun dispatcher(channels: List<AlertChannel>) = dispatcherFor(FixedSettings(channels))
+
+    private fun dispatcherFor(source: ChannelSource) = AlertDispatcher(
+        settings = { source },
         repository = { repository },
         wording = {
             AlertWording(
@@ -118,8 +141,12 @@ class AlertDispatcherTest {
     )
 
     /** Settings whose active channels are the fakes under test. */
-    private class FixedSettings(private val channels: List<AlertChannel>) : ChannelSource {
+    private class FixedSettings(
+        private val channels: List<AlertChannel>,
+        private val unusable: List<UnusableChannel> = emptyList(),
+    ) : ChannelSource {
         override fun activeChannels(): List<AlertChannel> = channels
+        override fun unusableChannels(): List<UnusableChannel> = unusable
     }
 
     private class FakeChannel(override val channel: DeliveryChannel, private val result: ChannelResult) : AlertChannel {

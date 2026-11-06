@@ -3,9 +3,14 @@ package com.shieldra.domain
 import java.time.Duration
 import java.time.Instant
 
-/** Approved product-level Guard categories; platform adapters are intentionally absent. */
+/**
+ * Approved product-level Guard categories; platform adapters are intentionally absent.
+ *
+ * Design B (2026-11-06): there is no LOCK category. Its only sensor was the device-admin
+ * `onPasswordFailed` callback, an authority the app may not hold, so the guard was removed with
+ * its boundary rather than kept as a category nothing can ever feed.
+ */
 enum class GuardKind {
-    LOCK,
     MOTION,
     SIM,
     BATTERY,
@@ -26,8 +31,6 @@ enum class SensorQuality {
 }
 
 sealed interface GuardObservation {
-    data object FailedPinAttempt : GuardObservation
-
     data class Motion(
         val duration: Duration,
         val suspiciousOccurrences: Int,
@@ -74,17 +77,12 @@ data class GuardConfirmation(
 
 /** Approved numeric rule values only. Unknown platform and response policies remain outside this object. */
 object ApprovedGuardRules {
-    val lockConfirmationWindow: Duration = Duration.ofMinutes(2)
-    val lockCounterResetWindow: Duration = Duration.ofMinutes(10)
-    val lockCooldown: Duration = Duration.ofMinutes(5)
     val motionStrongDuration: Duration = Duration.ofSeconds(3)
     val motionRepetitionWindow: Duration = Duration.ofSeconds(10)
-    const val lockAttemptsToConfirm: Int = 2
     const val motionOccurrencesToConfirm: Int = 2
 }
 
 fun GuardSignal.isShapeValid(): Boolean = when (kind) {
-    GuardKind.LOCK -> observation is GuardObservation.FailedPinAttempt
     GuardKind.MOTION -> observation is GuardObservation.Motion
     GuardKind.SIM -> observation is GuardObservation.SimSubscriptionChanged
     GuardKind.BATTERY -> observation is GuardObservation.BatteryPowerState
