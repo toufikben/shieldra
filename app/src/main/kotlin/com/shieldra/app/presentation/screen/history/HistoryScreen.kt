@@ -287,6 +287,7 @@ private fun StatusFilterRow(
 @Composable
 private fun HistoryTypeFilter.displayLabel(): String = stringResource(when (this) {
     HistoryTypeFilter.All -> R.string.filter_all
+    HistoryTypeFilter.Lock -> R.string.filter_lock
     HistoryTypeFilter.Motion -> R.string.filter_motion
     HistoryTypeFilter.Sim -> R.string.filter_sim
     HistoryTypeFilter.Panic -> R.string.filter_panic

@@ -11,8 +11,10 @@ import android.content.SharedPreferences
  */
 data class ProtectionSettings(
     val armed: Boolean = false,
+    val lockEnabled: Boolean = true,
     val simEnabled: Boolean = true,
     val batteryEnabled: Boolean = true,
+    val lockThreshold: Int = FailedUnlockCounter.DEFAULT_THRESHOLD,
     val batteryThreshold: Int = BatteryBreathLogic.DEFAULT_LEVEL,
     val countdownEnabled: Boolean = false,
     val countdownIntervalMs: Long = 60 * 60_000L,
@@ -26,8 +28,8 @@ data class ProtectionSettings(
     val dualCameraEnabled: Boolean = false,
     val audioEnabled: Boolean = false,
     /**
-     * Motion is a guard like the SIM one: on by default and started by arming (A-43). It detects and
-     * alerts only — design B leaves the app without any power to lock the screen.
+     * Motion is a guard like the lock and SIM ones: on by default and started by arming (A-43). It
+     * detects and alerts only; the Lock guard is the one that reacts to wrong unlock attempts.
      */
     val motionEnabled: Boolean = true,
     val audioSeconds: Int = 10,
@@ -58,8 +60,10 @@ class ProtectionSettingsStore(context: Context) {
 
     fun load(): ProtectionSettings = ProtectionSettings(
         armed = prefs.getBoolean(KEY_ARMED, false),
+        lockEnabled = prefs.getBoolean(KEY_LOCK, true),
         simEnabled = prefs.getBoolean(KEY_SIM, true),
         batteryEnabled = prefs.getBoolean(KEY_BATTERY, true),
+        lockThreshold = prefs.getInt(KEY_LOCK_THRESHOLD, FailedUnlockCounter.DEFAULT_THRESHOLD),
         batteryThreshold = prefs.getInt(KEY_BATTERY_THRESHOLD, BatteryBreathLogic.DEFAULT_LEVEL),
         countdownEnabled = prefs.getBoolean(KEY_COUNTDOWN, false),
         countdownIntervalMs = prefs.getLong(KEY_COUNTDOWN_INTERVAL, 60 * 60_000L),
@@ -98,8 +102,10 @@ class ProtectionSettingsStore(context: Context) {
      */
     fun save(settings: ProtectionSettings) {
         prefs.edit()
+            .putBoolean(KEY_LOCK, settings.lockEnabled)
             .putBoolean(KEY_SIM, settings.simEnabled)
             .putBoolean(KEY_BATTERY, settings.batteryEnabled)
+            .putInt(KEY_LOCK_THRESHOLD, settings.lockThreshold.coerceIn(FailedUnlockCounter.MIN_THRESHOLD, FailedUnlockCounter.MAX_THRESHOLD))
             .putInt(KEY_BATTERY_THRESHOLD, settings.batteryThreshold.coerceIn(BatteryBreathLogic.MIN_LEVEL, BatteryBreathLogic.MAX_LEVEL))
             .putBoolean(KEY_COUNTDOWN, settings.countdownEnabled)
             .putLong(KEY_COUNTDOWN_INTERVAL, settings.countdownIntervalMs)
@@ -216,8 +222,10 @@ class ProtectionSettingsStore(context: Context) {
     private companion object {
         const val PREFERENCES_NAME = "shieldra_protection"
         const val KEY_ARMED = "armed"
+        const val KEY_LOCK = "lock_enabled"
         const val KEY_SIM = "sim_enabled"
         const val KEY_BATTERY = "battery_enabled"
+        const val KEY_LOCK_THRESHOLD = "lock_threshold"
         const val KEY_BATTERY_THRESHOLD = "battery_threshold"
         const val KEY_COUNTDOWN = "countdown_enabled"
         const val KEY_COUNTDOWN_INTERVAL = "countdown_interval_ms"

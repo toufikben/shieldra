@@ -449,29 +449,41 @@ grep -q 'recordPermissionRequest()' "$NAVHOST" \
   || fail "answering the system dialog is never recorded, so silence and refusal look alike"
 pass "notifications are local, permission-gated, and never claim delivery"
 
-# 5d. Design B (2026-11-06): the app holds no device administrator at all.
-# The owner retired the A-33 Lock guard and the A-42 remote /lock with it, because both rested on a
-# refused privilege: Android never grants a home-installed app the failed-unlock signal, and the
-# owner told us the app must not keep device-admin powers. This section asserts the absence, so a
-# later edit cannot quietly bring the privilege back.
+# 5d. Lock Guard (owner order, 2026-11-07): the failed-unlock signal is back, and it is the ONLY
+# device-admin power the app holds. Android delivers ACTION_PASSWORD_FAILED to an active admin that
+# declares USES_POLICY_WATCH_LOGIN (AOSP DevicePolicyManagerService.reportFailedPasswordAttempt), so
+# the declaration is pinned to exactly that policy. The old A-42 remote /lock and every force-lock,
+# password-reset or wipe power stay forbidden: the owner asked to hear a wrong unlock, not to seize
+# the phone.
 ADMIN_XML=app/src/main/res/xml/device_admin.xml
-if [ -e "$ADMIN_XML" ]; then
-  fail "a device-admin policy declaration came back (design B holds no administrator)"
-fi
-if grep -q 'BIND_DEVICE_ADMIN\|LockGuardReceiver\|android.app.device_admin' app/src/main/AndroidManifest.xml; then
-  fail "the manifest registers a device administrator again (design B holds no administrator)"
-fi
-ADMIN_IMPORTS="$(grep -rn 'android\.app\.admin' app/src/main --include='*.kt' || true)"
-[ -z "$ADMIN_IMPORTS" ] || fail "production code imports android.app.admin again: $ADMIN_IMPORTS"
+[ -s "$ADMIN_XML" ] || fail "the Lock Guard lost its device-admin policy declaration"
+grep -q '<watch-login' "$ADMIN_XML" \
+  || fail "the device-admin declaration no longer asks for watch-login, so Android will not report a wrong unlock"
+for forbidden in '<force-lock' '<wipe-data' '<reset-password' '<password-quality' 'set-password'; do
+  if grep -q "$forbidden" "$ADMIN_XML"; then
+    fail "the device-admin policy grew '$forbidden'; the Lock Guard observes wrong unlocks and nothing else"
+  fi
+done
+MANIFEST=app/src/main/AndroidManifest.xml
+grep -q 'com.shieldra.protection.LockGuardReceiver' "$MANIFEST" \
+  || fail "the manifest no longer registers the receiver that hears a wrong unlock"
+grep -q 'android.permission.BIND_DEVICE_ADMIN' "$MANIFEST" \
+  || fail "the Lock Guard receiver is not protected by BIND_DEVICE_ADMIN"
+grep -q 'android.app.device_admin' "$MANIFEST" \
+  || fail "the Lock Guard receiver names no device-admin policy resource"
 LOCK_CALLERS="$(grep -rn 'lockNow[[:space:]]*(' app/src/main --include='*.kt' || true)"
-[ -z "$LOCK_CALLERS" ] || fail "code can lock the screen again (design B has no lock power): $LOCK_CALLERS"
+[ -z "$LOCK_CALLERS" ] || fail "code can lock the screen; the restored guard only listens: $LOCK_CALLERS"
+ADMIN_POWERS="$(grep -rn 'resetPassword[[:space:]]*(\|wipeData[[:space:]]*(\|setMaximumFailedPasswordsForWipe' app/src/main --include='*.kt' || true)"
+[ -z "$ADMIN_POWERS" ] || fail "code gained a destructive device-admin power: $ADMIN_POWERS"
 if grep -q '"/lock"' app/src/main/kotlin/com/shieldra/protection/RemoteCommandPoller.kt; then
-  fail "the /lock command came back into the remote poller (design B cannot lock)"
+  fail "the retired /lock command came back into the remote poller"
 fi
-if grep -q 'lock_enabled\|lock_threshold' app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt; then
-  fail "the Lock guard settings keys came back (design B removed the Lock guard)"
-fi
-pass "design B: the app holds no device administrator and no power to lock the screen"
+SETTINGS_STORE=app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt
+grep -q 'lock_enabled' "$SETTINGS_STORE" || fail "the Lock Guard has no stored on/off choice"
+grep -q 'lock_threshold' "$SETTINGS_STORE" || fail "the Lock Guard has no stored attempt threshold"
+grep -q 'failedAttempts' app/src/main/kotlin/com/shieldra/delivery/SecurityAlert.kt \
+  || fail "the alert line cannot carry the failed-attempt count the owner asked to see"
+pass "Lock Guard: watch-login only, the attempt count rides the alert, and no lock/reset/wipe power exists"
 
 # 5e. Motion guard (A-43, narrowed by design B on 2026-11-06): the owner asked for the Motion guard to
 # be always on like the SIM guard, so it is on by default, arming and boot start it, disarming stops it,
@@ -1258,7 +1270,7 @@ for name in the_protection_row_opens_a_real_setup_and_the_row_list_stays_pinned 
   fk13_the_persisted_read_path_produces_a_detail_with_no_delivery_card; do
   grep -rq "fun $name" app/src/test || fail "the named Q-K-9/F-K13 test is missing: $name"
 done
-pass "Q-K-9 and F-K13 hold: no Lock Guard setting in the rows or the wording, and a Delivery section only where a receipt exists"
+pass "Q-K-9 and F-K13 hold: the withdrawn setting strings stay out, and a Delivery section only where a receipt exists"
 
 # B-3 (audit §5.13): "delete all data" is a claim about every store the app writes to, and the claim is
 # only as good as the list eraseAll wipes. So the list is compared against the preferences files the

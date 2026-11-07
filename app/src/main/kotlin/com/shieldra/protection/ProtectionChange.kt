@@ -9,6 +9,7 @@ object ProtectionChange {
 
     fun weakens(old: ProtectionSettings, new: ProtectionSettings): Boolean =
         (old.armed && !new.armed) ||
+            (old.lockEnabled && !new.lockEnabled) ||
             (old.simEnabled && !new.simEnabled) ||
             (old.batteryEnabled && !new.batteryEnabled) ||
             (old.countdownEnabled && !new.countdownEnabled) ||
@@ -19,5 +20,6 @@ object ProtectionChange {
             (old.escalationEnabled && !new.escalationEnabled) ||
             (old.geofenceEnabled && !new.geofenceEnabled) ||
             (old.motionEnabled && !new.motionEnabled) ||
+            new.lockThreshold > old.lockThreshold ||
             new.motionResponse != old.motionResponse && new.motionResponse == ProtectionSettings.MotionResponse.SILENT
 }

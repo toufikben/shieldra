@@ -117,6 +117,7 @@ import com.shieldra.protection.ProtectionRuntime
 import com.shieldra.protection.ProtectionChange
 import com.shieldra.protection.ProtectionSettings
 import com.shieldra.protection.ProtectionSettingsStore
+import com.shieldra.protection.LockGuardAdmin
 import com.shieldra.protection.CountdownDeadline
 import com.shieldra.protection.CountdownScheduler
 import com.shieldra.protection.RemainingTime
@@ -414,6 +415,25 @@ fun ShieldraNavHost(
     val protectionPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { permissionRefresh += 1 }
+    // The Lock Guard hears a wrong unlock attempt only while this app holds the device-admin role.
+    // Android answers through its own dialog, so the grant is re-read on return, never assumed.
+    val deviceAdminLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { permissionRefresh += 1 }
+    val deviceAdminComponent = remember(context) { LockGuardAdmin.component(context) }
+    val deviceAdminGranted = remember(permissionRefresh, permissionRequests) {
+        LockGuardAdmin.isGranted(context)
+    }
+    val enableDeviceAdmin = {
+        val intent = Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+            .putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, deviceAdminComponent)
+            .putExtra(
+                android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                context.getString(R.string.device_admin_description),
+            )
+        runCatching { deviceAdminLauncher.launch(intent) }
+        Unit
+    }
     // "Stopped" reports an observed state, not a press: it appears once the service has retracted
     // itself, and never while it still claims to be monitoring.
     LaunchedEffect(motionClaim) {
@@ -524,6 +544,7 @@ fun ShieldraNavHost(
                     armed = protectionArmed,
                     channel = deliverySettings?.activeChannels()?.isNotEmpty() == true,
                     motionMonitoring = motionClaim.claimsProtection,
+                    deviceAdmin = deviceAdminGranted,
                 )
                 // A-33: the periodic signal's live cycle, read from the deadline the scheduler itself
                 // stores. It is re-read while this screen is open because the scheduler re-arms a cycle
@@ -564,6 +585,8 @@ fun ShieldraNavHost(
                         protectionArmed = protectionArmed,
                         simOn = protectionSettings.simEnabled,
                         batteryOn = protectionSettings.batteryEnabled,
+                        lockOn = protectionSettings.lockEnabled,
+                        deviceAdminGranted = deviceAdminGranted,
                         batteryPercent = device.batteryPercent,
                         networkStatus = networkStatus,
                         networkLabel = networkLabel,
@@ -802,6 +825,7 @@ fun ShieldraNavHost(
                     armed = protectionArmed,
                     channel = deliverySettings?.activeChannels()?.isNotEmpty() == true,
                     motionMonitoring = motionClaim.claimsProtection,
+                    deviceAdmin = deviceAdminGranted,
                 )
                 HealthCheckScreen(
                     score = scoreFor(checks, protectionSettings),
@@ -984,6 +1008,7 @@ fun ShieldraNavHost(
                             it == com.shieldra.notification.NotificationPermissionState.Granted ||
                                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
                         },
+                        deviceAdmin = deviceAdminGranted,
                         batteryExemption = com.shieldra.protection.BackgroundSurvival.isExempt(context),
                         exactAlarms = com.shieldra.protection.ExactAlarmAccess.isGranted(context),
                     )
@@ -1006,6 +1031,7 @@ fun ShieldraNavHost(
                     },
                     onGrantPhone = { protectionPermissionLauncher.launch(arrayOf(Manifest.permission.READ_PHONE_STATE)) },
                     onGrantNotifications = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                    onEnableDeviceAdmin = enableDeviceAdmin,
                     onKeepAwake = {
                         // The protection package owns the platform API; the UI only asks it to open
                         // the system prompt so the guards survive battery saver.
@@ -1128,6 +1154,7 @@ private fun persistedEventLabels(): PersistedEventLabels {
     val ageLabel = ageLabelFormatter()
     val typeTitles = mapOf(
         SecurityEventType.MOTION_CONFIRMED_EVENT to stringResource(R.string.event_title_motion),
+        SecurityEventType.LOCK_CONFIRMED_EVENT to stringResource(R.string.event_title_lock),
         SecurityEventType.PANIC_ACTIVATION to stringResource(R.string.event_title_panic),
         SecurityEventType.SIM_CONFIRMED_EVENT to stringResource(R.string.event_title_sim),
         SecurityEventType.COUNTDOWN_SIGNAL to stringResource(R.string.event_title_countdown),
@@ -1226,6 +1253,7 @@ private fun readHealthChecks(
     armed: Boolean,
     channel: Boolean,
     motionMonitoring: Boolean,
+    deviceAdmin: Boolean,
 ): HealthChecks {
     fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
     return HealthChecks(
@@ -1236,6 +1264,7 @@ private fun readHealthChecks(
             it == com.shieldra.notification.NotificationPermissionState.Granted ||
                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
         },
+        deviceAdmin = deviceAdmin,
         batteryExempt = com.shieldra.protection.BackgroundSurvival.isExempt(context),
         channel = channel,
         motionMonitoring = motionMonitoring,
@@ -1246,12 +1275,14 @@ private fun readHealthChecks(
 private fun scoreFor(checks: HealthChecks, settings: ProtectionSettings): Int = ProtectionScore.score(
     ProtectionScore.Inputs(
         armed = checks.armed,
+        lockEnabled = settings.lockEnabled,
         motionMonitoring = checks.motionMonitoring,
         simEnabled = settings.simEnabled,
         batteryEnabled = settings.batteryEnabled,
         cameraGranted = checks.camera,
         locationGranted = checks.location,
         notificationsReady = checks.notifications,
+        deviceAdminActive = checks.deviceAdmin,
         batteryExempt = checks.batteryExempt,
         anyChannelActive = checks.channel,
     ),

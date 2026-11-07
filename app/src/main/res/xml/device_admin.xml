@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A-33 (restored 2026-11-07 by owner order): one policy, one job.
+  WATCH_LOGIN lets the platform tell SHIELDRA that an unlock attempt failed, so the Lock guard can
+  photograph and alert once the owner's threshold is reached. SHIELDRA never reads the password and
+  requests no other administrator power: no force-lock, no password reset, no wipe, no keyguard
+  change. The owner can switch the role off or uninstall the app at any time.
+-->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <watch-login />
+    </uses-policies>
+</device-admin>

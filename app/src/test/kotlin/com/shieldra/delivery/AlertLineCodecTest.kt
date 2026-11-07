@@ -29,6 +29,7 @@ class AlertLineCodecTest {
     private fun alert(
         location: AlertLocation? = AlertLocation(36.75, 3.06, 12f, Instant.ofEpochMilli(1_700_000_000_000), "fused"),
         silentMinutes: Long? = null,
+        failedAttempts: Int? = null,
     ) = SecurityAlert(
         eventId = "event-1",
         kind = AlertKind.MOTION,
@@ -40,6 +41,7 @@ class AlertLineCodecTest {
         photoBackEvidenceId = "photo-back-1",
         audioEvidenceId = "audio-1",
         evidenceAttempted = true,
+        failedAttempts = failedAttempts,
         silentMinutes = silentMinutes,
     )
 
@@ -66,8 +68,9 @@ class AlertLineCodecTest {
     @Test
     /** A field added later must not make an already-queued alert unreadable: append, never insert. */
     fun a_line_written_by_an_older_build_still_decodes() {
-        // Field 6 still holds the Lock guard's failure count this build no longer has; the slot is
-        // kept in place so the fields after it keep their positions.
+        // Field 6 is the Lock guard's failure count an older build queued; the slot stayed in place
+        // while the guard was removed, so the fields after it kept their positions — and this build
+        // reads the count again instead of throwing it away.
         val legacy = listOf(
             "1700000001000",
             "MOTION",
@@ -82,8 +85,32 @@ class AlertLineCodecTest {
             "Realme RMX3910",
         ).joinToString(AlertLineCodec.SEPARATOR)
         val restored = AlertLineCodec.decode(legacy, ::open)
-        assertEquals(alert(), restored)
+        assertEquals(alert().copy(failedAttempts = 3), restored)
         assertNull(restored?.silentMinutes)
+    }
+
+    // A-33 restored (owner order 2026-11-07): the attempt count is the agreed signal's own number, so
+    // it has to survive the offline queue exactly like the photo id and the fix.
+    @Test
+    fun a_wrong_unlock_attempt_count_survives_the_queue() {
+        val stored = AlertLineCodec.encode(
+            alert().copy(kind = AlertKind.LOCK, photoEvidenceId = null, failedAttempts = 4),
+            ::seal,
+        )
+
+        val restored = AlertLineCodec.decode(stored, ::open)
+
+        assertEquals(AlertKind.LOCK, restored?.kind)
+        assertEquals(4, restored?.failedAttempts)
+    }
+
+    // The removal build wrote this slot as empty on purpose. Reading it back must yield null, because
+    // claiming an attempt count that was never written would be a fabricated fact.
+    @Test
+    fun an_empty_attempt_slot_reads_as_no_count() {
+        val stored = AlertLineCodec.encode(alert(), ::seal)
+
+        assertNull(AlertLineCodec.decode(stored, ::open)?.failedAttempts)
     }
 
     @Test

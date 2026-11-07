@@ -78,6 +78,28 @@ class AlertDispatcherTest {
         assertTrue("2026-10-04 10:00:00" in body)
     }
 
+    // A-33 restored: the agreed signal names the guard and the attempt number even when no photo
+    // could be stored, so the owner can tell a thief's repeated guesses from a single mistype.
+    @Test
+    fun a_wrong_unlock_alert_names_the_guard_and_the_attempt_count() {
+        val telegram = FakeChannel(DeliveryChannel.TELEGRAM, ChannelResult.Sent)
+
+        dispatcher(listOf(telegram)).dispatch(alert().copy(kind = AlertKind.LOCK, failedAttempts = 4))
+
+        val body = telegram.lastBody
+        assertTrue("Wrong unlock attempts" in body)
+        assertTrue("Failed attempts: 4" in body)
+    }
+
+    @Test
+    fun an_alert_without_an_attempt_count_prints_no_attempt_line() {
+        val telegram = FakeChannel(DeliveryChannel.TELEGRAM, ChannelResult.Sent)
+
+        dispatcher(listOf(telegram)).dispatch(alert())
+
+        assertTrue("Failed attempts" !in telegram.lastBody)
+    }
+
     // Audit development (ز) / B-4: the phone must not go blind in silence. A channel that is on but
     // whose secret can no longer be opened is recorded on the event as FAILED, and the alert is kept
     // so it goes out once the owner re-enters the secret.

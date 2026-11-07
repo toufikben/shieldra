@@ -33,12 +33,13 @@ class PendingCaptures(context: Context) {
     fun add(
         type: SecurityEventType,
         eventId: String? = null,
+        failedAttempts: Int? = null,
         announced: Boolean = false,
         nowMs: Long = System.currentTimeMillis(),
     ): Boolean {
         val waiting = all()
         if (PendingCaptureLogic.holds(waiting, type, eventId, nowMs)) return false
-        val request = PendingCapture(type, eventId, nowMs, announced)
+        val request = PendingCapture(type, eventId, failedAttempts, nowMs, announced)
         val next = PendingCaptureLogic.plus(waiting, request)
         prefs.edit().putStringSet(KEY_PENDING, next.map(PendingCaptureLogic::encode).toSet()).apply()
         return true

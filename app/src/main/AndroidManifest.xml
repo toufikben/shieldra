@@ -111,10 +111,23 @@
             android:foregroundServiceType="camera|location|microphone" />
 
         <!--
-          Design B (2026-11-06): the app holds no device administrator. The A-33 Lock guard and the
-          A-42 remote /lock were removed with their receiver, so Android never lists SHIELDRA under
-          device administrators and the app cannot lock, wipe, or read the screen lock.
+          A-33 Lock guard (restored 2026-11-07 by owner order): the one device-admin receiver. Its
+          XML declares `<watch-login />` only, so the platform reports wrong unlock attempts and
+          every other administrator power — lock, wipe, password reset, keyguard — stays unavailable.
+          Exported because the system is the sender; BIND_DEVICE_ADMIN is required, so no other app
+          can drive it. The owner grants the role from Settings and can revoke it at any time.
         -->
+        <receiver
+            android:name="com.shieldra.protection.LockGuardReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
 
         <!--
           A-33 (A-10 relaxed) + audit E-2: resume the guards the owner had on after a reboot. Exported

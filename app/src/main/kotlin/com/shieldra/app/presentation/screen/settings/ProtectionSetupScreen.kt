@@ -52,6 +52,11 @@ data class ProtectionPermissions(
     val location: Boolean = false,
     val phone: Boolean = false,
     val notifications: Boolean = false,
+    /**
+     * The device-admin role. It is requested with watch-login only, so it lets Android report a wrong
+     * unlock attempt and nothing else — no screen lock, no password reset, no wipe (Lock Guard).
+     */
+    val deviceAdmin: Boolean = false,
     /** Battery-optimization exemption, so the system does not doze the guards (A-33). */
     val batteryExemption: Boolean = false,
     /** Exact-alarm access, so the countdown fires on the second instead of "within the hour" (A-33). */
@@ -73,6 +78,7 @@ fun ProtectionSetupScreen(
     onGrantLocation: () -> Unit,
     onGrantPhone: () -> Unit,
     onGrantNotifications: () -> Unit,
+    onEnableDeviceAdmin: () -> Unit,
     onKeepAwake: () -> Unit,
     onGrantExactAlarms: () -> Unit,
     /**
@@ -167,6 +173,9 @@ fun ProtectionSetupScreen(
         PermissionRow(stringResource(R.string.protection_perm_camera), permissions.camera, onGrantCamera)
         PermissionRow(stringResource(R.string.protection_perm_location), permissions.location, onGrantLocation)
         PermissionRow(stringResource(R.string.protection_perm_notifications), permissions.notifications, onGrantNotifications)
+        // The Lock Guard cannot hear a wrong unlock attempt until this role is active; the toggle below
+        // still saves, but the row keeps the missing capability visible instead of implied.
+        PermissionRow(stringResource(R.string.protection_perm_device_admin), permissions.deviceAdmin, onEnableDeviceAdmin)
         PermissionRow(stringResource(R.string.protection_perm_phone), permissions.phone, onGrantPhone)
         PermissionRow(stringResource(R.string.protection_perm_keep_awake), permissions.batteryExemption, onKeepAwake)
         // Exact scheduling is a special access the owner grants in system settings; until then the
@@ -183,6 +192,21 @@ fun ProtectionSetupScreen(
 
         // ===== Guards =====
         SectionTitle(stringResource(R.string.protection_guards_title))
+        GuardToggle(
+            title = stringResource(R.string.protection_guard_lock),
+            subtitle = stringResource(R.string.protection_guard_lock_desc),
+            checked = draft.lockEnabled,
+        ) { draft = draft.copy(lockEnabled = it) }
+        if (draft.lockEnabled) {
+            // 1..5 wrong attempts; the counter's own bounds are the slider's bounds, so the setting can
+            // never ask for a count the counter would clamp silently.
+            StepperRow(
+                label = stringResource(R.string.protection_lock_threshold, draft.lockThreshold),
+                value = draft.lockThreshold.toFloat(),
+                range = 1f..5f,
+                steps = 3,
+            ) { draft = draft.copy(lockThreshold = it.toInt()) }
+        }
         GuardToggle(
             title = stringResource(R.string.protection_guard_sim),
             subtitle = stringResource(R.string.protection_guard_sim_desc),

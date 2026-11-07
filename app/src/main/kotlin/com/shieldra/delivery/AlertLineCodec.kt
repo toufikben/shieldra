@@ -30,9 +30,7 @@ object AlertLineCodec {
         alert.batteryPercent?.toString().orEmpty(),
         alert.photoEvidenceId.orEmpty(),
         if (alert.evidenceAttempted) "1" else "0",
-        // Field 6 used to hold the Lock guard's failure count. It is kept as an empty slot because
-        // every field after it is positional: a shift would read a sealed location as a photo id.
-        "",
+        alert.failedAttempts?.toString().orEmpty(),
         alert.location?.let(seal).orEmpty(),
         alert.photoBackEvidenceId.orEmpty(),
         alert.audioEvidenceId.orEmpty(),
@@ -51,6 +49,7 @@ object AlertLineCodec {
             batteryPercent = parts[3].toIntOrNull(),
             photoEvidenceId = parts[4].ifBlank { null },
             evidenceAttempted = parts[5] == "1",
+            failedAttempts = parts[6].toIntOrNull(),
             location = readLocation(parts[7], open),
             photoBackEvidenceId = parts[8].ifBlank { null },
             audioEvidenceId = parts[9].ifBlank { null },

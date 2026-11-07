@@ -95,6 +95,7 @@ class PersistedEventReader(
  * reader's labels carry no type, no wording passed in can retype a row.
  */
 internal fun persistedEventTypeOf(type: SecurityEventType): EventType = when (type) {
+    SecurityEventType.LOCK_CONFIRMED_EVENT -> EventType.FailedUnlock
     SecurityEventType.MOTION_CONFIRMED_EVENT -> EventType.Motion
     SecurityEventType.PANIC_ACTIVATION -> EventType.Panic
     SecurityEventType.SIM_CONFIRMED_EVENT -> EventType.SimChange

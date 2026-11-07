@@ -21,8 +21,17 @@ class PresentationModelTest {
             setOf(ProtectionVisualState.Protected, ProtectionVisualState.Suspicious, ProtectionVisualState.SecurityEvent, ProtectionVisualState.Attention, ProtectionVisualState.Disabled),
             ProtectionVisualState.entries.toSet(),
         )
-        assertEquals(setOf(GuardKind.Motion, GuardKind.Sim, GuardKind.Panic, GuardKind.Battery), GuardKind.entries.toSet())
-        assertEquals(setOf(EventType.Motion, EventType.SimChange, EventType.Panic, EventType.Battery, EventType.Countdown, EventType.Other), EventType.entries.toSet())
+        assertEquals(
+            setOf(GuardKind.Lock, GuardKind.Motion, GuardKind.Sim, GuardKind.Panic, GuardKind.Battery),
+            GuardKind.entries.toSet(),
+        )
+        assertEquals(
+            setOf(
+                EventType.FailedUnlock, EventType.Motion, EventType.SimChange,
+                EventType.Panic, EventType.Battery, EventType.Countdown, EventType.Other,
+            ),
+            EventType.entries.toSet(),
+        )
     }
 
     @Test
@@ -58,6 +67,7 @@ class PresentationModelTest {
     @Test
     fun history_filters_cover_each_declared_type_and_status() {
         val events = listOf(
+            EventUiModel("lock", EventType.FailedUnlock, "", "", "", DeliveryStatus.Ready, false, false),
             EventUiModel("motion", EventType.Motion, "", "", "", DeliveryStatus.Deferred, false, false),
             EventUiModel("sim", EventType.SimChange, "", "", "", DeliveryStatus.Delivered, false, false),
             EventUiModel("panic", EventType.Panic, "", "", "", DeliveryStatus.Failed, false, false),
@@ -65,6 +75,7 @@ class PresentationModelTest {
         )
 
         val expectedByType = mapOf(
+            HistoryTypeFilter.Lock to "lock",
             HistoryTypeFilter.Motion to "motion",
             HistoryTypeFilter.Sim to "sim",
             HistoryTypeFilter.Panic to "panic",
