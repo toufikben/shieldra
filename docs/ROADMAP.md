@@ -1204,7 +1204,12 @@ it…`; the same Lock Guard, G4-B, Phase 3, locale-parity and 21-permission line
 
 **Device:** build 410 installed over 408 with `adb install -r` **without launching**, while the
 launcher was in front and no Shieldra process existed; the installed base APK's sha256 matches the
-CI asset (`dbf4bd98…`), `versionCode=410`, and the app was left closed (no process, launcher still in
-front). The wrong-PIN signal and the Motion-after-Arm flow are **NOT RUN** here — entering the PIN
-and touching the lock screen are forbidden — so the owner confirms them with
-`qa/phone-checklist-motion-and-signal-2026-11-08.md`.
+CI asset (`dbf4bd98…`), `versionCode=410`. With the owner present, the Motion-after-Arm flow was then
+**verified on the phone**: Protection screen → Motion toggle on → **Arm** pressed with no Save →
+"Armed — guarding in the background" and the new row **"Motion monitoring is active."**, backed by
+`dumpsys activity services` showing `MotionMonitoringService` `isForeground=true` with its ongoing
+notice (evidence in `qa-artifacts/phone-motion-410/`). The owner confirmed the disarm owner-check
+with his own credential (none was entered here); the screen returned to "Not armed", both services
+stopped, and the app was force-closed back to the launcher with no process. The wrong-PIN signal is
+still **NOT RUN** here — entering the PIN and touching the lock screen are forbidden — so the owner
+confirms that one with `qa/phone-checklist-motion-and-signal-2026-11-08.md`.
