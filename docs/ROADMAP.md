@@ -1201,3 +1201,10 @@ SUCCESSFUL in 4m 36s`; `CI TEST SUMMARY: 609 tests, 609 passed, 0 failures, 0 er
 `PASS: A-43: Motion is on by default, the arm press carries the switches shown, arming and boot start
 it…`; the same Lock Guard, G4-B, Phase 3, locale-parity and 21-permission lines; draft release
 `test-42504803350` publishes `app-phone.apk` (2,862,644 bytes, sha256 `dbf4bd98…`, versionCode 410).
+
+**Device:** build 410 installed over 408 with `adb install -r` **without launching**, while the
+launcher was in front and no Shieldra process existed; the installed base APK's sha256 matches the
+CI asset (`dbf4bd98…`), `versionCode=410`, and the app was left closed (no process, launcher still in
+front). The wrong-PIN signal and the Motion-after-Arm flow are **NOT RUN** here — entering the PIN
+and touching the lock screen are forbidden — so the owner confirms them with
+`qa/phone-checklist-motion-and-signal-2026-11-08.md`.
