@@ -65,6 +65,9 @@ with `BIND_DEVICE_ADMIN`; no `lockNow(`, `resetPassword(`, `wipeData(`, no `/loc
 ## Limits, stated honestly
 
 - A wrong-PIN attempt is never read, only the fact that one failed.
+- The counter is process memory, by design: an app restart or a reboot begins a new session, so the
+  first wrong PIN afterwards counts from zero. The number in the alert is that session's count,
+  not a lifetime total, and the guard is not a forensic log.
 - `adb shell am force-stop` keeps manifest receivers from being delivered until the app is launched
   again. The guard cannot hear through a force-stop; the watchdog and restart alert cover the gap.
 - A thief who disables device admin triggers one capture and the neutral warning, then the role is

@@ -981,6 +981,12 @@ of propped up. The rule applied: **a guard whose only sensor is a refused privil
 guard whose sensor is an ordinary permission stays, without lock power.** Motion therefore stays
 as detection + evidence + alert.
 
+> **Superseded in part, 2026-11-07.** The premise "`ACTION_PASSWORD_FAILED` is delivered only to a
+> provisioned administrator" was right, but it argued against the wrong thing: the guard's sensor is
+> the administrator, and the owner had already granted it and seen the alert fire. On his order the
+> watch-login guard is restored in `bb0455f` — the administrator returns with **one** power, and the
+> force-lock ladder, the demand notice and the zone lock stay dead. See the section below.
+
 **Three commits, each verified on its own run:**
 
 - `f980a08` — the A-45 layer: `SnatchLadder`, `TheftDemand`/`TheftNoticeText`, `ZonePolicy`, the
@@ -1073,3 +1079,63 @@ see the retired Lock surface absent.
 `LOCALE PARITY PASS`. The optimised phone APK and the signed release pair built green as well; the
 three rolling-release publish steps are skipped on a branch by design. **Device:** NOT RUN; this
 batch changes general screens and its phone round is #32 (P-1…P-16), not this one.
+
+## Lock Guard restored — the administrator with one power (`fix/general-app-gaps`, 2026-11-07)
+
+**The owner's order.** «اعد الحارس فورا وفق معاير ووضائف سليمة … عند سرقة الهاتف السارق بعد
+الابتعاد … سيحاول ادخال كلمة السر التي في غالب ستكون خاطئة وسيتم على اثرها ارسال الاشارة». Design B
+had retired the guard on a true but irrelevant premise: AOSP `DevicePolicyManagerService`
+`reportFailedPasswordAttempt` broadcasts `ACTION_PASSWORD_FAILED` to active admins holding
+`USES_POLICY_WATCH_LOGIN`, so a home-installed app **can** receive it — the sensor is the
+provisioned administrator itself. The owner had granted that administrator before and saw the alert
+fire. The guard therefore returns, and the policy stays exactly as wide as the sensor: watch-login
+only. No force-lock, no password reset, no wipe, no keyguard interaction. The A-45 ladder, the
+lock-screen demand notice and the zone lock remain dead.
+
+**What fires.** The receiver reads the saved settings and returns unless the app is armed **and**
+the Lock toggle is on. The counter keeps 1…5 (default 2) failures in one session — a gap longer than
+ten minutes starts a new session — captures on the threshold attempt and on **every later** failure
+in the same session, and a correct unlock resets it. The attempt count travels with the capture,
+the alert line (codec field 6) and the retry queue, so the notice says how many tries the thief
+made instead of only that one happened. The counter is process memory, by design: an app restart
+or a reboot starts the count again, and the capability file says so rather than pretending to be a
+forensic log.
+
+**What the owner sees.** The Protection setup screen offers the administrator row and the Lock
+toggle with the 1–5 threshold; the dashboard tile reads Active only when the app is armed, the
+toggle is on **and** the administrator is granted, and otherwise names the missing grant; the score
+awards the Lock weight (19) only for toggle + grant; the Health Check has a `deviceAdmin` row that
+refreshes when the system permission sheet returns; History gains a Lock filter and maps
+`LOCK_CONFIRMED_EVENT` to `FailedUnlock`. Copy is in English and Arabic, including the two honest
+warnings: the administrator is watch-login only, and disabling it while armed itself raises a
+capture.
+
+**Backward compatibility.** The removal build kept the attempt slots in both queues empty for
+exactly this return: `AlertLineCodec` field 6 and `PendingCaptureLogic` field 3 decode an empty
+value as null, and a four-field pending-capture line written by the removal build is still read
+(five fields are read only when the notice mark is present). An alert queued during a theft by the
+previous build still runs after the update.
+
+**Tests.** `FailedUnlockCounterTest` (6) covers the threshold, the later attempts, the session gap,
+the reset, the clamping and the below-threshold verdict; the score pair, the LOCK projection in
+`PersistedEventReader`, the queue survival with an empty slot, the LOCK line round-trip and its
+null, the two alert-dispatch cases, the two `ProtectionChange` cases, the restored defaults and the
+presentation enums add eleven more — **17 new tests, 596 total**.
+
+**Gates, all green on CI run `42391526874` (run 408, `bb0455f`, 2026-11-07T16:29:18Z→16:39:31Z,
+conclusion success):** `BUILD SUCCESSFUL in 5m 32s`; `CI TEST SUMMARY: 596 tests, 596 passed,
+0 failures, 0 errors, 0 skipped`; `PASS: Lock Guard: watch-login only, the attempt count rides the
+alert, and no lock/reset/wipe power exists`; `Group C boundary scan passed`; `G4-B LOCAL REVIEW
+PASS — runtime/device evidence still required`; `PHASE 3 STATIC REVIEW PASS`; `LOCALE PARITY PASS —
+Arabic equals English key for key`; `PASS: the installed APK declares exactly the reviewed
+permission set (21 permissions)` — the receiver's `BIND_DEVICE_ADMIN` is a component permission,
+not a new `uses-permission`. The optimised `app-phone.apk` (2,860,564 bytes, sha256 `ea4ad24a…`),
+the debug pair and the signed release built green; the branch was published with the draft release
+`test-42391526874` for a phone-only check.
+
+**Device:** **NOT RUN.** The wrong-PIN end-to-end signal cannot be produced under the standing
+rules — entering the phone PIN and automating failed unlock attempts are both forbidden — so the
+owner must run it: grant Device admin in Protection, arm with the Lock toggle on, then enter a wrong
+PIN twice. The CI evidence proves the receiver is compiled, registered, watch-login-only and
+covered by the counter's tests; it does not prove the alert arrives on his handset. That sentence
+stays until his own attempt replaces it.
