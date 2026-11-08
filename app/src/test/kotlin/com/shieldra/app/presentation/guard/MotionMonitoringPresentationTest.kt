@@ -4,6 +4,7 @@ import com.shieldra.app.presentation.model.GuardStatus
 import com.shieldra.runtime.MonitoringClaim
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 /**
  * The dashboard may render Motion as running only while a service and a live sensor registration
@@ -60,5 +61,55 @@ class MotionMonitoringPresentationTest {
             com.shieldra.app.R.string.guard_subtitle_motion_active,
             MotionMonitoringPresentation.subtitleRes(MonitoringClaim.ActiveGuardMonitoring),
         )
+    }
+
+    @Test
+    fun the_protection_screen_states_an_active_motion_guard() {
+        assertEquals(
+            MotionMonitoringPresentation.SetupStatus.ACTIVE,
+            MotionMonitoringPresentation.setupStatus(MonitoringClaim.ActiveGuardMonitoring, notificationsGranted = true),
+        )
+        assertEquals(
+            com.shieldra.app.R.string.protection_motion_active,
+            MotionMonitoringPresentation.setupTextRes(MotionMonitoringPresentation.SetupStatus.ACTIVE),
+        )
+    }
+
+    @Test
+    fun a_missing_notification_permission_is_stated_before_any_start() {
+        assertEquals(
+            MotionMonitoringPresentation.SetupStatus.NEEDS_NOTIFICATION_PERMISSION,
+            MotionMonitoringPresentation.setupStatus(MonitoringClaim.NoExecution, notificationsGranted = false),
+        )
+        assertEquals(
+            com.shieldra.app.R.string.protection_motion_needs_notifications,
+            MotionMonitoringPresentation.setupTextRes(
+                MotionMonitoringPresentation.SetupStatus.NEEDS_NOTIFICATION_PERMISSION,
+            ),
+        )
+    }
+
+    @Test
+    fun an_allowed_but_not_running_guard_offers_a_plain_start() {
+        assertEquals(
+            MotionMonitoringPresentation.SetupStatus.NOT_STARTED,
+            MotionMonitoringPresentation.setupStatus(MonitoringClaim.ExecutionWithoutDetector, notificationsGranted = true),
+        )
+        assertEquals(
+            com.shieldra.app.R.string.protection_motion_not_started,
+            MotionMonitoringPresentation.setupTextRes(MotionMonitoringPresentation.SetupStatus.NOT_STARTED),
+        )
+    }
+
+    @Test
+    fun no_setup_status_claims_monitoring_without_a_live_registration() {
+        val inactive = MonitoringClaim.entries.filterNot { it.claimsProtection }
+        for (claim in inactive) {
+            assertNotEquals(
+                MotionMonitoringPresentation.SetupStatus.ACTIVE,
+                MotionMonitoringPresentation.setupStatus(claim, notificationsGranted = true),
+                "$claim has no live registration and must not render ACTIVE",
+            )
+        }
     }
 }

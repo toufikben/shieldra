@@ -172,6 +172,10 @@
     <string name="protection_dual_camera_desc">التقاط صورة خلفية للمحيط أيضاً.</string>
     <string name="protection_motion_with_arming">حارس الحركة</string>
     <string name="protection_motion_with_arming_desc">مفعّل افتراضيًا مثل حارس الشريحة: التفعيل يشغّله والإيقاف يوقفه. الرفع أو الخطف المؤكَّد ينفّذ الاستجابة أدناه — تسجّل شيلدرا الحدث وتأخذ دليلها وتنبّهك. لا تستطيع قفل الشاشة.</string>
+    <string name="protection_motion_active">مراقبة الحركة نشطة.</string>
+    <string name="protection_motion_needs_notifications">مراقبة الحركة لا تعمل: اسمح بالإشعارات لإشعارها الدائم، ثم ابدأها.</string>
+    <string name="protection_motion_not_started">مراقبة الحركة لم تبدأ بعد.</string>
+    <string name="protection_motion_start_now">ابدأ الآن</string>
     <string name="protection_audio">مقطع صوتي قصير</string>
     <string name="protection_audio_desc">تسجيل بضع ثوانٍ من الصوت حول الهاتف.</string>
     <string name="protection_audio_seconds">الصوت: %1$d ثانية</string>

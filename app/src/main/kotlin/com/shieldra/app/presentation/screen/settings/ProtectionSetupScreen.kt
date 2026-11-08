@@ -43,8 +43,10 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import com.shieldra.app.design.components.foundation.ShieldraTextField
+import com.shieldra.app.presentation.guard.MotionMonitoringPresentation
 import com.shieldra.protection.CountdownDeadline
 import com.shieldra.protection.ProtectionSettings
+import com.shieldra.runtime.MonitoringClaim
 
 /** The permissions and consents a guard needs, read live from the platform. */
 data class ProtectionPermissions(
@@ -95,6 +97,12 @@ fun ProtectionSetupScreen(
     onTierChange: (com.shieldra.billing.Tier) -> Unit = {},
     /** Opens the Pro screen; a feature the free plan lacks sends the owner there. */
     onOpenPro: () -> Unit = {},
+    /**
+     * What the Motion service itself reports. A guard that is on but not monitoring is stated here,
+     * with the one step that fixes it, instead of living only in the log (owner report 2026-11-08).
+     */
+    motionClaim: MonitoringClaim = MonitoringClaim.NoExecution,
+    onStartMotion: () -> Unit = {},
 ) {
     val spacing = ShieldraTheme.spacing
     // G-8/G-9: saveable, so a language switch (which recreates the activity) keeps the draft, and no
@@ -231,6 +239,16 @@ fun ProtectionSetupScreen(
             subtitle = stringResource(R.string.protection_motion_with_arming_desc),
             checked = draft.motionEnabled,
         ) { draft = draft.copy(motionEnabled = it) }
+        // While armed, an enabled Motion guard must show whether it is actually monitoring. Arming
+        // cannot start it without the notification permission, and that refusal must not be silent.
+        if (draft.motionEnabled && armed) {
+            val motionStatus = MotionMonitoringPresentation.setupStatus(motionClaim, permissions.notifications)
+            MotionStatusRow(
+                status = motionStatus,
+                onGrant = onGrantNotifications,
+                onStart = onStartMotion,
+            )
+        }
 
         // ===== Evidence (dual camera + audio) =====
         SectionTitle(stringResource(R.string.protection_evidence_title))
@@ -490,6 +508,57 @@ private fun GuardToggle(
             ShieldraSwitch(checked = false, onCheckedChange = { onLocked() })
         } else {
             ShieldraSwitch(checked = checked, onCheckedChange = onChange)
+        }
+    }
+}
+
+/**
+ * The live state of the Motion guard while protection is armed. It reports the service's own claim,
+ * never the fact that the toggle is on; when monitoring is down it offers exactly one next step —
+ * allow notifications, or start it now.
+ */
+@Composable
+private fun MotionStatusRow(
+    status: MotionMonitoringPresentation.SetupStatus,
+    onGrant: () -> Unit,
+    onStart: () -> Unit,
+) {
+    val spacing = ShieldraTheme.spacing
+    val active = status == MotionMonitoringPresentation.SetupStatus.ACTIVE
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.xs),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(spacing.m),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (active) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+                contentDescription = null,
+                tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+            )
+            Spacer(Modifier.wrapContentWidth().padding(end = spacing.s))
+            Text(
+                text = stringResource(MotionMonitoringPresentation.setupTextRes(status)),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f),
+            )
+            when (status) {
+                MotionMonitoringPresentation.SetupStatus.ACTIVE -> Unit
+                MotionMonitoringPresentation.SetupStatus.NEEDS_NOTIFICATION_PERMISSION -> ShieldraChip(
+                    label = stringResource(R.string.protection_grant),
+                    selected = false,
+                    onClick = onGrant,
+                )
+                MotionMonitoringPresentation.SetupStatus.NOT_STARTED -> ShieldraChip(
+                    label = stringResource(R.string.protection_motion_start_now),
+                    selected = false,
+                    onClick = onStart,
+                )
+            }
         }
     }
 }

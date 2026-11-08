@@ -9,8 +9,10 @@ import java.time.Instant
 /**
  * The device-admin receiver behind the Lock guard (amendment A-33). It hears wrong unlock attempts
  * through the platform (no password is ever read, only that one failed) and, once the owner's
- * threshold is reached, asks the protection service to capture and alert — then on every further
- * attempt in the session. Trying to remove device-admin rights is itself treated as a tamper and
+ * threshold is reached, asks the protection service to capture — then captures every further
+ * attempt in the session too. The signal itself is rationed by [LockAlertPolicy]: the threshold
+ * attempt announces, later attempts in the same incident gather evidence silently, and a new
+ * incident announces again. Trying to remove device-admin rights is itself treated as a tamper and
  * triggers one capture before the right is given up.
  *
  * Android delivers [onPasswordFailed] only to an active device administrator whose XML declares

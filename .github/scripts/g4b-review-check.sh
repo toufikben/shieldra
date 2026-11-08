@@ -483,7 +483,17 @@ grep -q 'lock_enabled' "$SETTINGS_STORE" || fail "the Lock Guard has no stored o
 grep -q 'lock_threshold' "$SETTINGS_STORE" || fail "the Lock Guard has no stored attempt threshold"
 grep -q 'failedAttempts' app/src/main/kotlin/com/shieldra/delivery/SecurityAlert.kt \
   || fail "the alert line cannot carry the failed-attempt count the owner asked to see"
-pass "Lock Guard: watch-login only, the attempt count rides the alert, and no lock/reset/wipe power exists"
+# Owner report 2026-11-08: the signal arrived after every wrong attempt. The capture still runs on
+# every later attempt, but one message speaks for one unlock session (LockAlertPolicy). Pinned so the
+# stream cannot come back unnoticed.
+LOCK_POLICY=app/src/main/kotlin/com/shieldra/protection/LockAlertPolicy.kt
+[ -s "$LOCK_POLICY" ] || fail "the lock alert rationing rule is missing, so every attempt announces again"
+grep -q 'fun announces(' "$LOCK_POLICY" \
+  || fail "the lock alert rationing rule lost its decision"
+grep -q 'if (LockAlertPolicy.announces(type, incidentIsNew, failedAttempts, settings.lockThreshold))' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  || fail "the capture path no longer rations the lock alert; a burst would send a stream of signals again"
+pass "Lock Guard: watch-login only, one signal per unlock session, and no lock/reset/wipe power exists"
 
 # 5e. Motion guard (A-43, narrowed by design B on 2026-11-06): the owner asked for the Motion guard to
 # be always on like the SIM guard, so it is on by default, arming and boot start it, disarming stops it,
@@ -511,9 +521,15 @@ grep -q 'ProtectionService.captureForEvent' "$RESPONDER" \
   || fail "a confirmed Motion no longer takes its evidence through the live service (A-43)"
 grep -q 'Siren.start' "$RESPONDER" \
   || fail "the loud-siren response no longer sounds (A-43)"
-grep -q 'if (store.load().motionEnabled) startMotion(app)' \
+grep -q 'val motionDecision = startMotionIfEnabled(app)' \
   app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
   || fail "arming no longer starts the Motion guard (A-43)"
+grep -q 'if (!ProtectionSettingsStore(app).load().motionEnabled) return null' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "the Motion save path no longer respects a guard the owner switched off (A-43)"
+grep -q 'return startMotion(app)' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "the Motion save path lost the one start decision arming also uses (A-43)"
 grep -q 'MotionRuntime.stopMonitoring(app)' \
   app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
   || fail "disarming no longer stops the Motion guard (A-43)"
@@ -522,8 +538,17 @@ grep -q 'settings.motionEnabled' app/src/main/kotlin/com/shieldra/protection/Boo
 grep -q 'old.motionEnabled && !new.motionEnabled' \
   app/src/main/kotlin/com/shieldra/protection/ProtectionChange.kt \
   || fail "switching the Motion guard off no longer asks the owner (A-43)"
-grep -q 'updated.motionEnabled && !motionClaim.claimsProtection' "$NAVHOST" \
-  || fail "saving the Motion guard on or off no longer syncs the running monitor (A-43)"
+if grep -q 'else if (!motionClaim.claimsProtection)' "$NAVHOST" &&
+  grep -q 'ProtectionRuntime.startMotionIfEnabled(context)' "$NAVHOST"; then
+  :
+else
+  fail "saving the Motion guard on no longer starts the running monitor (A-43)"
+fi
+if grep -A2 'if (!updated.motionEnabled)' "$NAVHOST" | grep -q 'MotionRuntime.stopMonitoring(context)'; then
+  :
+else
+  fail "saving the Motion guard off no longer stops the running monitor (A-43)"
+fi
 grep -q 'ProtectionRuntime.setMotionEnabled(context, true)' "$NAVHOST" \
   || fail "the dashboard's Motion start no longer records the guard choice (A-43)"
 grep -q 'ProtectionRuntime.setMotionEnabled(context, false)' "$NAVHOST" \

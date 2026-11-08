@@ -185,6 +185,10 @@
     <string name="protection_dual_camera_desc">Also take a back-camera photo of the surroundings.</string>
     <string name="protection_motion_with_arming">Motion guard</string>
     <string name="protection_motion_with_arming_desc">On by default, like the SIM guard: arming starts it and disarming stops it. A confirmed lift or snatch runs the response below — Shieldra records the event, takes its evidence and alerts you. It cannot lock the screen.</string>
+    <string name="protection_motion_active">Motion monitoring is active.</string>
+    <string name="protection_motion_needs_notifications">Motion monitoring is not running: allow notifications for its ongoing notice, then start it.</string>
+    <string name="protection_motion_not_started">Motion monitoring is not running yet.</string>
+    <string name="protection_motion_start_now">Start now</string>
     <string name="protection_audio">Short audio clip</string>
     <string name="protection_audio_desc">Record a few seconds of sound around the phone.</string>
     <string name="protection_audio_seconds">Audio: %1$d seconds</string>

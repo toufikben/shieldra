@@ -21,8 +21,14 @@ the phone home and guesses the PIN must produce the agreed signal.
 
 - the owner's threshold is 1..5 wrong attempts, default **2**;
 - below the threshold nothing is captured (the attempt is only counted);
-- at the threshold and **every later attempt in the same session** the guard captures and alerts,
-  so a thief who keeps guessing is photographed each time and the alert carries the attempt number;
+- at the threshold and **every later attempt in the same session** the guard captures — front photo,
+  location fix and the `LOCK_CONFIRMED_EVENT` row — so a thief who keeps guessing is photographed
+  each time;
+- **one message speaks for one burst** (`LockAlertPolicy`, owner report 2026-11-08): the threshold
+  attempt announces with its attempt number, later attempts in the same incident keep storing
+  evidence but send nothing, a new session's threshold attempt announces again, and a new incident
+  after the 10-minute grouping window announces again. A capture that carries no attempt count (the
+  device-admin removal tamper) always announces;
 - a correct unlock, or a quiet gap longer than **10 minutes**, ends the session and resets the
   count — two morning mistypes are not a night burglary.
 
@@ -31,10 +37,12 @@ Lock toggle is on. `onDisableRequested` captures once before the role is given u
 protection is itself a signal. The signal includes:
 
 - a front-camera photo and a location fix through `ProtectionService` when they can be taken;
-- an alert of kind `LOCK` titled "Wrong unlock attempts" with a "Failed attempts: N" line;
-- a persisted `LOCK_CONFIRMED_EVENT` row that History files under its own **Lock** filter;
-- if the camera cannot run, the attempt count still reaches the owner through the queued text
-  alert — the count is the agreed signal.
+- at the threshold, an alert of kind `LOCK` titled "Wrong unlock attempts" with a
+  "Failed attempts: N" line — the count is the agreed signal;
+- a persisted `LOCK_CONFIRMED_EVENT` row that History files under its own **Lock** filter, for
+  every captured attempt, announced or not;
+- if the camera cannot run, the threshold attempt still reaches the owner through the queued text
+  alert, once per request, never once per retry.
 
 ## The one power it asks for
 

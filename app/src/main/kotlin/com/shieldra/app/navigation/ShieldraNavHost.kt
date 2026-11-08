@@ -1023,6 +1023,24 @@ fun ShieldraNavHost(
                     },
                     permissions = permissions,
                     settings = protectionSettings,
+                    motionClaim = motionClaim,
+                    onStartMotion = {
+                        // The owner asked for this start from the guard's own screen, so the stored
+                        // choice follows the press (A-43), exactly as the dashboard's Start does.
+                        ProtectionRuntime.setMotionEnabled(context, true)
+                        protectionSettings = protectionSettings.copy(motionEnabled = true)
+                        when (MotionRuntime.startMonitoring(context, storageInstalled)) {
+                            MotionMonitoringStartDecision.MayStartMonitoring -> Unit
+                            MotionMonitoringStartDecision.AskForNotificationPermission ->
+                                scope.launch { snackbarHostState.showSnackbar(monitoringNeedsPermissionMessage) }
+                            is MotionMonitoringStartDecision.DoNotStartMonitoring ->
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        if (storageInstalled) monitoringRefusedMessage else monitoringNoStorageMessage,
+                                    )
+                                }
+                        }
+                    },
                     onGrantCamera = { protectionPermissionLauncher.launch(arrayOf(Manifest.permission.CAMERA)) },
                     onGrantLocation = {
                         protectionPermissionLauncher.launch(
@@ -1051,7 +1069,19 @@ fun ShieldraNavHost(
                         } else {
                             // A-43: arming starts the Motion guard too, from inside the runtime, so
                             // every arming path (this screen, the dashboard of a running app) agrees.
-                            ProtectionRuntime.arm(context)
+                            // A refusal is stated here, never left in the log: the owner must not
+                            // believe a guard is watching when the platform kept it down.
+                            when (ProtectionRuntime.arm(context)) {
+                                MotionMonitoringStartDecision.AskForNotificationPermission ->
+                                    scope.launch { snackbarHostState.showSnackbar(monitoringNeedsPermissionMessage) }
+                                is MotionMonitoringStartDecision.DoNotStartMonitoring ->
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            if (storageInstalled) monitoringRefusedMessage else monitoringNoStorageMessage,
+                                        )
+                                    }
+                                else -> Unit
+                            }
                         }
                     },
                     onSave = { incoming ->
@@ -1065,10 +1095,23 @@ fun ShieldraNavHost(
                             // A-43: a guard switched on while armed starts now, and one switched off
                             // stops now; the saved flag alone would only take effect on the next arm.
                             if (updated.armed) {
-                                if (updated.motionEnabled && !motionClaim.claimsProtection) {
-                                    MotionRuntime.startMonitoring(context, storageInstalled)
-                                } else if (!updated.motionEnabled) {
+                                if (!updated.motionEnabled) {
                                     MotionRuntime.stopMonitoring(context)
+                                } else if (!motionClaim.claimsProtection) {
+                                    // Saving an enabled guard while armed starts it now; a refusal is
+                                    // shown, because "on" in the list must not mean "watching" to the
+                                    // owner when the platform declined (owner report 2026-11-08).
+                                    when (ProtectionRuntime.startMotionIfEnabled(context)) {
+                                        MotionMonitoringStartDecision.AskForNotificationPermission ->
+                                            scope.launch { snackbarHostState.showSnackbar(monitoringNeedsPermissionMessage) }
+                                        is MotionMonitoringStartDecision.DoNotStartMonitoring ->
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar(
+                                                    if (storageInstalled) monitoringRefusedMessage else monitoringNoStorageMessage,
+                                                )
+                                            }
+                                        else -> Unit
+                                    }
                                 }
                             }
                         }

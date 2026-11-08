@@ -26,7 +26,10 @@ class FailedUnlockCounter(
         /** Below the threshold: recorded, nothing sent. [count] is how many in this session so far. */
         data class BelowThreshold(val count: Int) : Verdict
 
-        /** At or past the threshold: capture and alert now. [count] is this session's attempt number. */
+        /**
+         * At or past the threshold: capture now. [count] is this session's attempt number;
+         * [LockAlertPolicy] separately decides whether this capture also announces or only records.
+         */
         data class Capture(val count: Int) : Verdict
     }
 

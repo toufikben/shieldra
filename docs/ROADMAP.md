@@ -1139,3 +1139,38 @@ owner must run it: grant Device admin in Protection, arm with the Lock toggle on
 PIN twice. The CI evidence proves the receiver is compiled, registered, watch-login-only and
 covered by the counter's tests; it does not prove the alert arrives on his handset. That sentence
 stays until his own attempt replaces it.
+
+## Owner report — one signal per guess, and Motion stated where it is armed (2026-11-08)
+
+**What the owner reported.** «تم تفعيل وتم تحقق و الاشارة تعمل لكن لاحضت مواصلة ارسال الاشارة
+بشكل متواصل حتى بعد عدم تفعيل خاصية live tracking after therft … ايضا لاحضت ان حارس الحركة لم
+يتفعل من صفحة الحماية بعد التسليح هل كل مرة سنضطر الى تفعيله من زر واجهة home …؟»
+
+**The repeated signal was the Lock guard speaking after every guess, not tracking.** Every wrong
+attempt at or past the threshold reached `ProtectionService` and called `dispatchAlert`; the
+ten-minute grouping only merged the History incident, never the messages. Live tracking was off and
+is unrelated: it runs only when an **intrusion incident is new** and the owner enabled it. The
+countdown is off by default and was not the source either — if it had been, the phone would have
+signalled on a clock, not on wrong unlocks. The fix is `LockAlertPolicy`: the capture still happens
+and its evidence is still stored on every later attempt, but only one message speaks for an unlock
+session — the threshold attempt (or a new incident after the grouping window, or the device-admin
+removal tamper, which carries no count). A correct unlock starts a new session, so the next burst
+speaks again. The owner's channel is no longer a stream of signals for one thief guessing.
+
+**Motion was never started from the Protection page by a button — arming did try.** `arm()` already
+started it when the stored toggle was on, but two refusals were only written to the log: no
+notification permission (A-15 makes the ongoing notice a condition of monitoring) and no installed
+storage. The screen showed the toggle, never the guard's state, so the owner could not tell a
+running guard from a refused one, and the dashboard's Start looked like the only working control.
+The Protection screen now renders the service's own claim beside the Motion toggle while armed:
+**Active**, or the honest missing step with one action — **Grant** notifications, then **Start
+now**; the same refusal surfaces when arming or saving. Starting from the dashboard stays
+equivalent and persists the same flag, so the next arming resumes it. In code: `ProtectionRuntime.arm`
+returns the start decision, `startMotionIfEnabled` is the save path, `MotionMonitoringPresentation`
+gains the setup status projection, and the Motion status copy is in English and Arabic.
+
+**Tests.** `LockAlertPolicyTest` (9) pins the threshold, the silent later attempts, a burst of eight
+guesses producing exactly one signal, a new incident and a fresh session, the tamper, threshold 1,
+the clamp and the non-lock guards; `MotionMonitoringPresentationTest` gains 4 tests for the setup
+status and its copy — **13 new tests**. CI verdict, run id and the phone-only checklist follow the
+push; nothing below is claimed until `gh run view` confirms it.

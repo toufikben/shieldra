@@ -45,10 +45,12 @@ object ProtectionRuntime {
      *
      * A-43: Motion is started here, beside the lock and SIM guards, when the owner left it on — it is
      * no longer a separate opt-in a second start button has to remember. A refusal (no notification
-     * permission, no storage) is logged and leaves arming intact; the dashboard states the reason,
-     * and an unanswered notification permission takes the same route the dashboard's Start does.
+     * permission, no storage) still leaves arming intact, but it is returned to the caller so the
+     * screen can state the reason instead of only writing it to the log.
+     *
+     * @return the Motion start decision when the owner left the guard on, or null when it is off.
      */
-    fun arm(context: Context) {
+    fun arm(context: Context): MotionMonitoringStartDecision? {
         val app = context.applicationContext
         val store = ProtectionSettingsStore(app)
         store.setArmed(true)
@@ -59,20 +61,34 @@ object ProtectionRuntime {
         // the service stopped stamping checks (audit development أ).
         runCatching { GuardWatchdog.schedule(app) }
         if (store.load().countdownEnabled) CountdownScheduler.start(app)
-        if (store.load().motionEnabled) startMotion(app)
+        val motionDecision = startMotionIfEnabled(app)
         armedState.value = true
+        return motionDecision
+    }
+
+    /**
+     * Starts Motion for the stored choice, for a screen that has just saved it. Returns null when the
+     * owner has the guard off; otherwise the decision is the same one arming would have produced, so
+     * the screen can surface a refusal instead of leaving the owner with a guard that looks on.
+     */
+    fun startMotionIfEnabled(context: Context): MotionMonitoringStartDecision? {
+        val app = context.applicationContext
+        if (!ProtectionSettingsStore(app).load().motionEnabled) return null
+        return startMotion(app)
     }
 
     /** Starts the Motion guard when the platform facts allow it; the claim itself stays the service's. */
-    private fun startMotion(app: Context) {
+    private fun startMotion(app: Context): MotionMonitoringStartDecision {
         val storageInstalled = (app as? ShieldraApp)?.installedStorage != null
-        when (val decision = MotionRuntime.startMonitoring(app, storageInstalled)) {
+        val decision = MotionRuntime.startMonitoring(app, storageInstalled)
+        when (decision) {
             MotionMonitoringStartDecision.MayStartMonitoring -> Unit
             MotionMonitoringStartDecision.AskForNotificationPermission ->
                 Log.i(TAG, "protection is armed; the Motion guard waits for the notification permission")
             is MotionMonitoringStartDecision.DoNotStartMonitoring ->
                 Log.w(TAG, "protection is armed but the Motion guard did not start: ${decision.reason}")
         }
+        return decision
     }
 
     /**

@@ -390,7 +390,7 @@ class ProtectionService : Service() {
                 val repository = storage.eventRepository
                 val grouped = type == SecurityEventType.LOCK_CONFIRMED_EVENT || type == SecurityEventType.SIM_CONFIRMED_EVENT
                 val binding = ProtectionEvents(repository).openOrBind(type, grouped, severityFor(type))
-                captureStoreDispatch(storage, repository, binding.event.id, alertKindFor(type), failedAttempts)
+                captureStoreDispatch(storage, repository, binding.event.id, type, failedAttempts, binding.isNew)
                 // A new intrusion incident starts the live trail (if the owner turned it on).
                 val intrusion = type == SecurityEventType.LOCK_CONFIRMED_EVENT ||
                     type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
@@ -407,14 +407,17 @@ class ProtectionService : Service() {
     }
 
     /** Captures the configured media (front photo, optional back photo and audio), stores each as
-     *  evidence on [eventId], and sends the alert with their ids and the fix. */
+     *  evidence on [eventId], and sends the alert with their ids and the fix when
+     *  [LockAlertPolicy] says this capture is the one that speaks for its incident. */
     private suspend fun captureStoreDispatch(
         storage: com.shieldra.storage.LocalShieldraStorage,
         repository: EventRepository,
         eventId: EventId,
-        kind: AlertKind,
+        type: SecurityEventType,
         failedAttempts: Int?,
+        incidentIsNew: Boolean,
     ) {
+        val kind = alertKindFor(type)
         val settings = ProtectionSettingsStore(applicationContext).load()
         val tier = settings.tier
         // The free plan sends a location only; the paid plan adds photos and audio (owner's split).
@@ -440,7 +443,11 @@ class ProtectionService : Service() {
             "${it.latitude}|${it.longitude}|${it.accuracyMeters ?: ""}|${it.provider}".toByteArray(Charsets.UTF_8)
         }
         storeEvidence(storage, repository, eventId, locationBytes, "LOCATION")
-        dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId, failedAttempts)
+        // The capture always happened and its evidence is stored; only the message is rationed, so a
+        // thief who keeps guessing cannot turn the owner's channel into a stream of signals.
+        if (LockAlertPolicy.announces(type, incidentIsNew, failedAttempts, settings.lockThreshold)) {
+            dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId, failedAttempts)
+        }
     }
 
     private class CapturedMedia(
@@ -474,7 +481,6 @@ class ProtectionService : Service() {
      *   reported as taken and then vanish.
      */
     private fun captureForExisting(eventIdStr: String, type: SecurityEventType): Boolean {
-        val kind = alertKindFor(type)
         val eventId = runCatching { EventId.from(java.util.UUID.fromString(eventIdStr)) }.getOrNull()
         if (eventId == null) {
             Log.e(TAG, "a $type capture was asked for something that is not an event id")
@@ -493,7 +499,7 @@ class ProtectionService : Service() {
                     queueForRetry(type, eventIdStr, failedAttempts = null, "the storage was not installed yet")
                     return@launch
                 }
-                captureStoreDispatch(storage, storage.eventRepository, eventId, kind, failedAttempts = null)
+                captureStoreDispatch(storage, storage.eventRepository, eventId, type, failedAttempts = null, incidentIsNew = true)
             } finally {
                 runCatching { if (wakeLock?.isHeld == true) wakeLock.release() }
                 busy.set(false)

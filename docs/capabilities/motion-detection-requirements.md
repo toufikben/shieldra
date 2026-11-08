@@ -180,6 +180,19 @@ open. What remains is listed here; nothing below is a result.
   restrictions."* — not a requirement, and not a claim that the system would kill the service
   without it.
 
+## Starting it — arming is the method (owner report 2026-11-08)
+
+Arming protection starts the Motion guard whenever the owner left its toggle on
+(`ProtectionRuntime.arm` → `startMotionIfEnabled`), so the home-screen Start button is a shortcut,
+not the required step. Two platform facts can still keep it down, and neither is a silent log line
+any more: the notification permission is not granted (A-15 makes the ongoing notice a condition of
+monitoring), or this process has no installed storage. While protection is armed, the Motion row
+on the Protection screen renders the **service's own claim**, not the toggle: it says "active"
+only when a live sensor registration says so, otherwise it states the missing step and offers the
+one action — **Grant** the notification permission, then **Start now**, which also persists the
+choice for the next arming and reboot. Refusals from arming or saving surface as the same message.
+Starting from the dashboard remains equivalent and writes the same stored flag.
+
 ## Explicitly not created by this document
 
 No `SensorManager` call, no listener, no service, no permission and no manifest change **in
