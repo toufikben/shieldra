@@ -1172,5 +1172,17 @@ gains the setup status projection, and the Motion status copy is in English and 
 **Tests.** `LockAlertPolicyTest` (9) pins the threshold, the silent later attempts, a burst of eight
 guesses producing exactly one signal, a new incident and a fresh session, the tamper, threshold 1,
 the clamp and the non-lock guards; `MotionMonitoringPresentationTest` gains 4 tests for the setup
-status and its copy — **13 new tests**. CI verdict, run id and the phone-only checklist follow the
-push; nothing below is claimed until `gh run view` confirms it.
+status and its copy — **13 new tests, 609 total**.
+
+**Gates, all green on CI run `42457301498` (`b32e665`, 2026-11-08T07:04:50Z→07:12:31Z, conclusion
+success):** `BUILD SUCCESSFUL in 4m 11s` for `clean test lint assembleDebug assembleDebugAndroidTest`;
+`CI TEST SUMMARY: 609 tests, 609 passed, 0 failures, 0 errors, 0 skipped`; `PASS: Lock Guard:
+watch-login only, one signal per unlock session, and no lock/reset/wipe power exists`; `PASS: A-43:
+Motion is on by default, arming and boot start it…`; `PASS: A-44…`; `PASS: design B: the A-45 lock,
+notice, ladder and zone policy stay deleted…`; `G4-B LOCAL REVIEW PASS — runtime/device evidence
+still required`; `PHASE 3 STATIC REVIEW PASS`; `LOCALE PARITY PASS — Arabic equals English key for
+key`; `PASS: the installed APK declares exactly the reviewed permission set (21 permissions)`. The
+signed release built green and the draft release `test-42457301498` publishes `app-debug.apk`,
+`app-debug-androidTest.apk` and the optimised `app-phone.apk` (2,862,644 bytes) for the phone-only
+check. The wrong-PIN end-to-end signal remains the owner's to confirm; entering the PIN is forbidden
+here, so the CI evidence proves the rule and the receiver, not the arrival on his handset.
