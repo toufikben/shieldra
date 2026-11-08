@@ -1210,6 +1210,8 @@ CI asset (`dbf4bd98…`), `versionCode=410`. With the owner present, the Motion-
 `dumpsys activity services` showing `MotionMonitoringService` `isForeground=true` with its ongoing
 notice (evidence in `qa-artifacts/phone-motion-410/`). The owner confirmed the disarm owner-check
 with his own credential (none was entered here); the screen returned to "Not armed", both services
-stopped, and the app was force-closed back to the launcher with no process. The wrong-PIN signal is
-still **NOT RUN** here — entering the PIN and touching the lock screen are forbidden — so the owner
-confirms that one with `qa/phone-checklist-motion-and-signal-2026-11-08.md`.
+stopped, and the app was force-closed back to the launcher with no process. The owner then confirmed
+on 2026-11-08 that a wrong-PIN attempt **sent the signal and arrived** («تم الارسال ونجحت المحاولة»),
+so the receiver→alert path is now owner-verified on his handset; the one-signal-per-session rationing
+itself is pinned by `LockAlertPolicyTest` and the CI gate. No PIN was entered here and the lock screen
+was never touched.
