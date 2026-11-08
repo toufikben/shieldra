@@ -88,7 +88,12 @@ fun ProtectionSetupScreen(
      * Intent can reach, so the rest have to be flipped by hand (audit development ب).
      */
     onOpenSurvivalGuide: () -> Unit = {},
-    onArmToggle: () -> Unit,
+    /**
+     * Arm or disarm. The current draft travels with the press: the switches on screen are what the
+     * owner is arming, so the runtime stores them before it starts the guards (owner report
+     * 2026-11-08 — a Motion switch flipped here and an Arm below it is one instruction).
+     */
+    onArmToggle: (ProtectionSettings) -> Unit,
     onSave: (ProtectionSettings) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -140,7 +145,7 @@ fun ProtectionSetupScreen(
         Spacer(Modifier.height(spacing.m))
         ShieldraFullWidthButton(
             text = stringResource(if (armed) R.string.protection_disarm else R.string.protection_arm),
-            onClick = onArmToggle,
+            onClick = { onArmToggle(draft) },
             variant = if (armed) ShieldraButtonVariant.Destructive else ShieldraButtonVariant.Primary,
             modifier = Modifier.fillMaxWidth(),
         )

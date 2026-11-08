@@ -1169,6 +1169,15 @@ equivalent and persists the same flag, so the next arming resumes it. In code: `
 returns the start decision, `startMotionIfEnabled` is the save path, `MotionMonitoringPresentation`
 gains the setup status projection, and the Motion status copy is in English and Arabic.
 
+**A second cause found while re-reading the arm path: the screen's switches were a draft.** The
+Protection screen keeps its toggles in a `rememberSaveable` draft until **Save**, but **Arm** read
+only the stored copy. An owner who flipped Motion on and pressed Arm below it — without pressing
+Save first — armed with the old stored flag, so nothing started and the page looked broken. Arm now
+carries the visible draft (`onArmToggle(draft)` → `ProtectionRuntime.arm(context, visible)`), stores
+it before the guards start, and updates the screen's snapshot; `save` still ignores the armed flag
+(A-44's single writer), so this can never arm or disarm by itself. The g4b gate pins the carried
+draft so the old read-stored-only path cannot come back.
+
 **Tests.** `LockAlertPolicyTest` (9) pins the threshold, the silent later attempts, a burst of eight
 guesses producing exactly one signal, a new incident and a fresh session, the tamper, threshold 1,
 the clamp and the non-lock guards; `MotionMonitoringPresentationTest` gains 4 tests for the setup
@@ -1185,4 +1194,6 @@ key`; `PASS: the installed APK declares exactly the reviewed permission set (21 
 signed release built green and the draft release `test-42457301498` publishes `app-debug.apk`,
 `app-debug-androidTest.apk` and the optimised `app-phone.apk` (2,862,644 bytes) for the phone-only
 check. The wrong-PIN end-to-end signal remains the owner's to confirm; entering the PIN is forbidden
-here, so the CI evidence proves the rule and the receiver, not the arrival on his handset.
+here, so the CI evidence proves the rule and the receiver, not the arrival on his handset. That run
+covers `b32e665` (the signal policy and the Motion status row); the arm-draft follow-up above is
+verified by the next CI run, recorded here once `gh run view` confirms it.

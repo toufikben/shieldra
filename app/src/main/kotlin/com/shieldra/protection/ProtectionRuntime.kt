@@ -48,11 +48,19 @@ object ProtectionRuntime {
      * permission, no storage) still leaves arming intact, but it is returned to the caller so the
      * screen can state the reason instead of only writing it to the log.
      *
+     * [choices] are the switches the owner is looking at when they press Arm. Arming saves them
+     * first, because a toggle the owner flipped on the screen and an Arm pressed below it are one
+     * instruction: without this the stored toggle (often the old one) decided whether Motion started,
+     * which is exactly the "I turned it on and armed, yet nothing started" report of 2026-11-08.
+     * `save` deliberately ignores the armed flag (A-44 keeps it single-writer), so this can never arm
+     * or disarm anything by itself.
+     *
      * @return the Motion start decision when the owner left the guard on, or null when it is off.
      */
-    fun arm(context: Context): MotionMonitoringStartDecision? {
+    fun arm(context: Context, choices: ProtectionSettings? = null): MotionMonitoringStartDecision? {
         val app = context.applicationContext
         val store = ProtectionSettingsStore(app)
+        choices?.let { store.save(it) }
         store.setArmed(true)
         runCatching { BootFlags(app).sync(true) }
         runCatching { SimGuard(app).rebaseline() }

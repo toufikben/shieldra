@@ -184,7 +184,11 @@ open. What remains is listed here; nothing below is a result.
 
 Arming protection starts the Motion guard whenever the owner left its toggle on
 (`ProtectionRuntime.arm` → `startMotionIfEnabled`), so the home-screen Start button is a shortcut,
-not the required step. Two platform facts can still keep it down, and neither is a silent log line
+not the required step. The Arm press carries the switches the owner is looking at: the screen's
+draft is stored before the guards start, so flipping Motion on and pressing Arm below it is one
+instruction — pressing Save first is not a second, undocumented requirement (the same owner report
+caught the draft being ignored, which read as "I turned it on and armed, yet nothing started").
+Two platform facts can still keep it down, and neither is a silent log line
 any more: the notification permission is not granted (A-15 makes the ongoing notice a condition of
 monitoring), or this process has no installed storage. While protection is armed, the Motion row
 on the Protection screen renders the **service's own claim**, not the toggle: it says "active"

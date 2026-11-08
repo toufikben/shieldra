@@ -535,6 +535,18 @@ grep -q 'MotionRuntime.stopMonitoring(app)' \
   || fail "disarming no longer stops the Motion guard (A-43)"
 grep -q 'settings.motionEnabled' app/src/main/kotlin/com/shieldra/protection/BootReceiver.kt \
   || fail "a reboot no longer resumes the Motion guard with the other guards (A-43)"
+# Owner report 2026-11-08: the switches on the Protection screen were a draft, and Arm read only the
+# stored copy. A Motion toggle flipped there and Arm pressed below it is one instruction, so the draft
+# now travels with the arm press and is stored before the guards start.
+PROTECTION_RUNTIME=app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt
+grep -q 'fun arm(context: Context, choices: ProtectionSettings? = null)' "$PROTECTION_RUNTIME" \
+  || fail "arming no longer accepts the choices the owner is looking at (owner report 2026-11-08)"
+grep -q 'choices?.let { store.save(it) }' "$PROTECTION_RUNTIME" \
+  || fail "arming reads only the stored guard choice, so a toggle flipped before Arm is ignored"
+grep -Fq 'ProtectionRuntime.arm(context, visible)' "$NAVHOST" \
+  || fail "the Protection screen no longer passes its switches to the arm call"
+grep -Fq 'onArmToggle(draft)' app/src/main/kotlin/com/shieldra/app/presentation/screen/settings/ProtectionSetupScreen.kt \
+  || fail "the Arm button stopped carrying the screen's draft"
 grep -q 'old.motionEnabled && !new.motionEnabled' \
   app/src/main/kotlin/com/shieldra/protection/ProtectionChange.kt \
   || fail "switching the Motion guard off no longer asks the owner (A-43)"
@@ -556,7 +568,7 @@ grep -q 'ProtectionRuntime.setMotionEnabled(context, false)' "$NAVHOST" \
 grep -Fq 'fun `the motion guard is on by default like the SIM guard`' \
   app/src/test/kotlin/com/shieldra/protection/MotionGuardDefaultsTest.kt \
   || fail "the default-on Motion guard test was removed or renamed"
-pass "A-43: Motion is on by default, arming and boot start it, and a confirmed lift runs the chosen response and takes evidence"
+pass "A-43: Motion is on by default, the arm press carries the switches shown, arming and boot start it, and a confirmed lift runs the chosen response and takes evidence"
 
 # 5f. A-44 (2026-11-04): found on the phone during A-43 verification. The protection screen's Save
 # wrote its whole snapshot back to storage, including an `armed=false` captured before the owner

@@ -1063,7 +1063,7 @@ fun ShieldraNavHost(
                         permissionRefresh += 1
                     },
                     onOpenSurvivalGuide = { navController.navigate(ShieldraRoutes.SURVIVAL_GUIDE) },
-                    onArmToggle = {
+                    onArmToggle = { visible ->
                         if (protectionArmed) {
                             requireOwner { ProtectionRuntime.disarm(context) }
                         } else {
@@ -1071,7 +1071,11 @@ fun ShieldraNavHost(
                             // every arming path (this screen, the dashboard of a running app) agrees.
                             // A refusal is stated here, never left in the log: the owner must not
                             // believe a guard is watching when the platform kept it down.
-                            when (ProtectionRuntime.arm(context)) {
+                            // The screen's draft travels with Arm, so a guard switched on here — the
+                            // Motion toggle above all — is stored before the guards start; pressing
+                            // Save first is not a second, undocumented requirement (owner report
+                            // 2026-11-08).
+                            when (ProtectionRuntime.arm(context, visible)) {
                                 MotionMonitoringStartDecision.AskForNotificationPermission ->
                                     scope.launch { snackbarHostState.showSnackbar(monitoringNeedsPermissionMessage) }
                                 is MotionMonitoringStartDecision.DoNotStartMonitoring ->
@@ -1082,6 +1086,9 @@ fun ShieldraNavHost(
                                     }
                                 else -> Unit
                             }
+                            // The screen's own snapshot follows the saved choices at once; the armed
+                            // flag named here is the live one, not the draft this screen opened with.
+                            protectionSettings = visible.copy(armed = true)
                         }
                     },
                     onSave = { incoming ->
