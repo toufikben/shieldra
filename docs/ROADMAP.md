@@ -1195,5 +1195,9 @@ signed release built green and the draft release `test-42457301498` publishes `a
 `app-debug-androidTest.apk` and the optimised `app-phone.apk` (2,862,644 bytes) for the phone-only
 check. The wrong-PIN end-to-end signal remains the owner's to confirm; entering the PIN is forbidden
 here, so the CI evidence proves the rule and the receiver, not the arrival on his handset. That run
-covers `b32e665` (the signal policy and the Motion status row); the arm-draft follow-up above is
-verified by the next CI run, recorded here once `gh run view` confirms it.
+covers `b32e665` (the signal policy and the Motion status row). The arm-draft follow-up (`c8a161e`)
+is green on CI run `42504803350` (2026-11-08T17:24:23Z→17:32:51Z, conclusion success): `BUILD
+SUCCESSFUL in 4m 36s`; `CI TEST SUMMARY: 609 tests, 609 passed, 0 failures, 0 errors, 0 skipped`;
+`PASS: A-43: Motion is on by default, the arm press carries the switches shown, arming and boot start
+it…`; the same Lock Guard, G4-B, Phase 3, locale-parity and 21-permission lines; draft release
+`test-42504803350` publishes `app-phone.apk` (2,862,644 bytes, sha256 `dbf4bd98…`, versionCode 410).
