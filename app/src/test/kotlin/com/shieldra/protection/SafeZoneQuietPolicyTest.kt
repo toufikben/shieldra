@@ -1,8 +1,8 @@
 package com.shieldra.protection
 
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * The safe-zone quieting is fail-closed: only a fresh "inside" reading, with the guard on and at
@@ -108,6 +108,6 @@ class SafeZoneQuietPolicyTest {
                 }
             }
         }
-        assertTrue("exactly the enabled+zones+fresh+inside corner is quiet", quietCount == 1)
+        assertTrue(quietCount == 1, "exactly the enabled+zones+fresh+inside corner is quiet")
     }
 }
