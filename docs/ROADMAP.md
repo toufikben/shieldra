@@ -1263,3 +1263,44 @@ exactly, `versionCode=412`, and no Shieldra process was started. Runtime verific
 (zones on → siren/countdown/Motion message silent, Motion still recorded, wrong PIN still sends) is
 the owner's to confirm on the phone; the checklist is `qa/phone-checklist-safe-zone-quiet-2026-11-09.md`
 (not committed).
+
+## 2026-11-09 — a heartbeat launcher icon, and a welcome shield that breathes
+
+**Owner request 2026-11-09.** «ايضا اريد ايقونة اكثر جمالا للتطبيق تنبض بالحياة» — a more beautiful icon
+that feels alive. Android draws a launcher icon once and freezes it; no launcher API animates it, so
+the life has to live in the mark and in the first screen the owner meets.
+
+**The mark.** All in the 108 dp adaptive viewport, and everything inside the 66 dp guaranteed-visible
+circle so no launcher mask clips it: a deep-space diagonal gradient (`#161C26 → #0A0E14 → #05070B`)
+with a soft teal aurora, one faint radar ping (30 dp radius, 20 % teal), a teal-rimmed shield holding
+an ECG trace, and a low glow disc under it. Layers: `ic_launcher_background`, `ic_launcher_foreground`,
+`ic_launcher_monochrome` (solid silhouette for Android 13 themed icons — the ECG is a stroke and would
+merge into the shield under a system tint), wired from `mipmap-anydpi-v26/ic_launcher.xml` and
+`ic_launcher_round.xml`. The manifest now points at `@mipmap/ic_launcher` + `@mipmap/ic_launcher_round`
+and the superseded `drawable/ic_launcher.xml` is gone. `phase3-review-check.sh` used to treat any
+`@mipmap` reference as an unsupported icon; it now verifies every adaptive, round and monochrome layer
+and the round reference exist, matching the protocol's launcher section.
+
+**The breath.** `WelcomeScreen`'s shield now runs one `rememberInfiniteTransition`: scale `1f → 1.03f`
+and halo alpha `0.10 → 0.26`, `tween(motion.breathingMs = 3000, easingStandard)` with
+`RepeatMode.Reverse` — the same calm timing `ShieldCore` already breathes with on the dashboard. The
+canvas grew to 180 dp so the halo has room; the shield path is the existing `createShieldPath` at 80 %.
+This is the welcome screen only — it appears before onboarding is completed, never over a returning
+owner's dashboard (A-27/Q-K-7).
+
+**Gates, all green on CI run `42578191104` (`f24f827`, 2026-11-09T07:15:40Z, conclusion success):**
+`CI TEST SUMMARY: 617 tests, 617 passed, 0 failures, 0 errors, 0 skipped`; `PASS: the manifest launcher
+icon has its adaptive, round and monochrome layers`; `PHASE 3 STATIC REVIEW PASS`; `G4-B LOCAL REVIEW
+PASS — runtime/device evidence still required`; `LOCALE PARITY PASS — Arabic equals English key for
+key`; `Group C boundary scan passed.`; `PASS: the installed APK declares exactly the reviewed
+permission set (21 permissions)`. Draft release `test-42578191104` publishes `app-phone.apk` (2,868,956
+bytes, sha256 `e589471dd92f28a77171b45dc4c58ec3804436b48c8a14c6a49df7450f7fc787`, versionCode 413).
+`aapt2` confirms the shipped package resolves its application icon to the compiled adaptive XML whose
+tree holds `background`, `foreground` and `monochrome` at the three expected drawable ids.
+
+**Device:** build 413 installed over 412 with `adb install -r` **without launching**, no Shieldra
+process before or after, another QA app in front; the installed base APK's sha256 matches the CI asset
+exactly, `versionCode=413`. The new icon is visible to the owner in the launcher; an OEM launcher that
+caches icons may need a refresh. The breathing welcome shield cannot be shown on this install without
+clearing app data (destructive, not done) — it is reachable on a first run, and its motion is pinned by
+the build and by the design replica in `qa/icon-preview.html` (not committed).
