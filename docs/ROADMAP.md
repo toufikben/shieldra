@@ -1215,3 +1215,51 @@ on 2026-11-08 that a wrong-PIN attempt **sent the signal and arrived** («تم �
 so the receiver→alert path is now owner-verified on his handset; the one-signal-per-session rationing
 itself is pinned by `LockAlertPolicyTest` and the CI gate. No PIN was entered here and the lock screen
 was never touched.
+
+## 2026-11-09 — Safe-zone quieting restored (noisy layer only)
+
+**Owner decision 2026-11-08.** Inside a place he marked safe, the siren, the countdown signal and the
+Motion message are nuisance, so they stay silent there; a wrong unlock, a SIM change, a battery last
+breath and leaving a zone are evidence, so they always send. Design B's deletion of the A-45 ladder
+stays deleted — this is a four-line fail-closed rule, not a return of the lock/notice machinery.
+
+**Rule.** `SafeZoneQuietPolicy.isQuiet(geofenceEnabled, hasZones, readingFresh, inside)` — exactly one
+of sixteen combinations is quiet; no reading, a stale one, a jumped clock, the guard off or no zones
+left all keep full strength. `ProtectionRuntime.quietInSafeZone` evaluates it against
+`ZoneStateStore`/`GeofenceTicker.staleAfterMs`. Disabling the guard clears the reading and cancels the
+sampler; removing a zone clears the reading and, when the last one goes, cancels the sampler too, so a
+place the owner stopped trusting cannot keep the phone quiet.
+
+**Suppression points (evidence untouched).** `ProtectionService.captureStoreDispatch` gates only
+`MOTION_CONFIRMED_EVENT` (the row, photo and fix are stored before the message decision);
+`maybeEscalate` returns before counting so a home burst cannot siren on the first step outside;
+composite-tamper siren yields while quiet but its SIM alert still sends; `TableModeResponder.fire`
+reads the rule at fire time, after any grace window; `MotionMonitoringService` writes the row then
+skips only the local "recorded" notice; `CountdownReceiver` re-arms every cycle and withholds only the
+capture, signal and snooze notice (including the past-due boot resume).
+
+**Discoverability.** Map screen gains `safe_zones_quiet_hint`, a `safe_zone_quiet_now` accent line
+when armed and quiet, and an extended `help_zones_body`, in English and Arabic only (locale parity).
+The Map switch now schedules `GeofenceTicker`, and both enabling it and marking/removing a zone take an
+immediate reading, so "quiet inside" is true without waiting an interval.
+
+**Tests.** `SafeZoneQuietPolicyTest` (8) pins the single quiet corner, the guard-off, stale, outside,
+no-zones and all-doubt cases, and enumerates all sixteen combinations — **617 total**.
+
+**Gates, all green on CI run `42574938050` (`c82c98b`, 2026-11-09T06:44:46Z→06:56:04Z, conclusion
+success):** `BUILD SUCCESSFUL in 6m 11s`; `CI TEST SUMMARY: 617 tests, 617 passed, 0 failures, 0
+errors, 0 skipped`; `PASS: safe-zone quieting: siren, countdown and Motion messages stay home;
+wrong-PIN, SIM and leaving still send`; `G4-B LOCAL REVIEW PASS — runtime/device evidence still
+required`; `PHASE 3 STATIC REVIEW PASS`; `LOCALE PARITY PASS — Arabic equals English key for key`;
+`Group C boundary scan passed.`; `PASS: the installed APK declares exactly the reviewed permission set
+(21 permissions)`. An earlier dispatch (`42573935477`, `a2f0808`) failed to compile the new test
+because it used `org.junit` where this project uses `kotlin.test`; the fix commit `c82c98b` is the run
+above. Draft release `test-42574938050` publishes `app-phone.apk` (2,864,316 bytes, sha256
+`ee066564dd31fb9df9c4cf48d431e8b5dea190359397dd4131f7a2d87398693f`, versionCode 412).
+
+**Device:** build 412 installed over 410 with `adb install -r` **without launching**, while another app
+was in front and no Shieldra process existed; the installed base APK's sha256 matches the CI asset
+exactly, `versionCode=412`, and no Shieldra process was started. Runtime verification of the quieting
+(zones on → siren/countdown/Motion message silent, Motion still recorded, wrong PIN still sends) is
+the owner's to confirm on the phone; the checklist is `qa/phone-checklist-safe-zone-quiet-2026-11-09.md`
+(not committed).
