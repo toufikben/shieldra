@@ -70,7 +70,16 @@ else
 fi
 
 if grep -qE '@mipmap/ic_launcher' app/src/main/AndroidManifest.xml; then
-  printf 'FAIL: manifest references a launcher resource that does not exist\n'; fail=1
+  if [ -s app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml ] \
+    && [ -s app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml ] \
+    && [ -s app/src/main/res/drawable/ic_launcher_background.xml ] \
+    && [ -s app/src/main/res/drawable/ic_launcher_foreground.xml ] \
+    && [ -s app/src/main/res/drawable/ic_launcher_monochrome.xml ] \
+    && grep -q 'android:roundIcon="@mipmap/ic_launcher_round"' app/src/main/AndroidManifest.xml; then
+    printf 'PASS: the manifest launcher icon has its adaptive, round and monochrome layers\n'
+  else
+    printf 'FAIL: manifest references a launcher resource that does not exist\n'; fail=1
+  fi
 else
   printf 'PASS: manifest has no broken launcher reference\n'
 fi

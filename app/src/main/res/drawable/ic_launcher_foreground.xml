@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Foreground layer of the adaptive launcher icon (owner request 2026-11-09: an icon that feels
+     alive). A teal shield holding a heartbeat line, with one soft radar ping behind it so the mark
+     still reads at 48 dp. All content stays inside the 66x66 dp safe zone; the rim glow is kept
+     whole so no launcher mask cuts the shield. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- One radar ping: the "alive" ring behind the shield. -->
+    <path
+        android:pathData="M54,52 m-30,0 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0"
+        android:fillColor="#00000000"
+        android:strokeColor="#3300D4AA"
+        android:strokeWidth="2" />
+    <!-- Soft glow disc under the shield. -->
+    <path
+        android:pathData="M54,52 m-25,0 a25,25 0 1,0 50,0 a25,25 0 1,0 -50,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="52"
+                android:gradientRadius="25"
+                android:startColor="#5900D4AA"
+                android:endColor="#0000D4AA" />
+        </aapt:attr>
+    </path>
+    <!-- Shield body: dark face, thick teal rim. -->
+    <path
+        android:pathData="M54,23 C63,26 71,29 76,33 L76,50 C76,64 67,76 54,82 C41,76 32,64 32,50 L32,33 C37,29 45,26 54,23 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="32"
+                android:startY="23"
+                android:endX="76"
+                android:endY="82"
+                android:startColor="#FF101A24"
+                android:centerColor="#FF0A1119"
+                android:endColor="#FF060A10" />
+        </aapt:attr>
+    </path>
+    <path
+        android:pathData="M54,23 C63,26 71,29 76,33 L76,50 C76,64 67,76 54,82 C41,76 32,64 32,50 L32,33 C37,29 45,26 54,23 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF00D4AA"
+        android:strokeWidth="4"
+        android:strokeLineJoin="round" />
+    <!-- The heartbeat: the line that makes the mark feel alive. -->
+    <path
+        android:pathData="M39,54 L46,54 L49,45 L53,64 L57,50 L60,54 L69,54"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF00D4AA"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
