@@ -63,6 +63,7 @@ fun MapScreen(
     onOpenHealthCheck: () -> Unit,
     geofenceEnabled: Boolean,
     zoneReadingFresh: Boolean,
+    quietNow: Boolean,
     zones: List<SafeZone>,
     onToggleGeofence: (Boolean) -> Unit,
     onAddZone: (Int) -> Unit,
@@ -141,9 +142,26 @@ fun MapScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (geofenceEnabled && zones.isNotEmpty()) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.safe_zones_quiet_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (armed && quietNow) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.safe_zone_quiet_now),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = accent,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
             // A-45 D2: a zone the phone cannot actually locate itself in protects nothing, and the
-            // ladder then behaves as if it were outside. The owner is told that, not shown a switch
-            // that quietly reads nothing.
+            // noisy guards then keep full strength. The owner is told that, not shown a switch that
+            // quietly reads nothing.
             if (armed && geofenceEnabled && zones.isNotEmpty() && !zoneReadingFresh) {
                 Spacer(Modifier.height(6.dp))
                 Text(

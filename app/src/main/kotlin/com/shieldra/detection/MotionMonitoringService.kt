@@ -262,15 +262,21 @@ class MotionMonitoringService : Service(), MotionMonitor {
     private fun report(confirmation: MotionConfirmation) {
         MotionEventWrites.record(confirmation)
         when (confirmation) {
-            // A new incident is what the owner started monitoring for, so it is announced. A movement
-            // that joined the open incident is not announced again: one incident, one alert.
+            // A new incident is what the owner started monitoring for, so it is announced — unless the
+            // phone is quietly inside a fresh safe zone (2026-11-08). A movement that joined the open
+            // incident is not announced again: one incident, one alert.
             is MotionConfirmation.Recorded -> {
                 val recordedId = confirmation.event.id.value.toString()
-                LocalEventNotifier(applicationContext).postRecordedAlert(
-                    eventId = recordedId,
-                    statusLabel = getString(com.shieldra.app.R.string.status_recorded),
-                    title = getString(com.shieldra.app.R.string.notification_motion_event_title),
-                )
+                // The row was written above; that is the evidence. Inside a fresh safe zone the local
+                // "recorded" notice is the nuisance the owner removed (2026-11-08), so the owner's own
+                // phone stays quiet while the event and its capture still happen.
+                if (!com.shieldra.protection.ProtectionRuntime.quietInSafeZone(applicationContext)) {
+                    LocalEventNotifier(applicationContext).postRecordedAlert(
+                        eventId = recordedId,
+                        statusLabel = getString(com.shieldra.app.R.string.status_recorded),
+                        title = getString(com.shieldra.app.R.string.notification_motion_event_title),
+                    )
+                }
                 // A-33 table mode: the owner's chosen response runs — a silent capture, a loud siren,
                 // or a grace window first. When protection is armed it attaches a photo and a fix to
                 // this incident; otherwise it falls back to the silent channel alert (A-32). No screen

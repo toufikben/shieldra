@@ -757,6 +757,9 @@ fun ShieldraNavHost(
                 val zoneList = remember(geofenceRefresh) { ProtectionRuntime.zones(context) }
                 val geofenceOn = remember(geofenceRefresh) { ProtectionRuntime.geofenceEnabled(context) }
                 val zoneReadingFresh = remember(geofenceRefresh, protectionArmed) { ProtectionRuntime.zoneReadingFresh(context) }
+                val quietNow = remember(geofenceRefresh, protectionArmed) {
+                    protectionArmed && ProtectionRuntime.quietInSafeZone(context)
+                }
                 val safeZoneSaved = stringResource(R.string.safe_zones_added)
                 val safeZoneNoFix = stringResource(R.string.safe_zones_no_fix)
                 MapScreen(
@@ -771,13 +774,24 @@ fun ShieldraNavHost(
                     onOpenHealthCheck = { navController.navigate(ShieldraRoutes.HEALTH_CHECK) },
                     geofenceEnabled = geofenceOn,
                     zoneReadingFresh = zoneReadingFresh,
+                    quietNow = quietNow,
                     zones = zoneList,
                     onToggleGeofence = { enabled ->
                         val apply: () -> Unit = {
                             ProtectionRuntime.setGeofenceEnabled(context, enabled)
                             geofenceRefresh++
                         }
-                        if (enabled) apply() else requireOwner(apply)
+                        if (enabled) {
+                            apply()
+                            // The switch is the same instruction as a Save: take the first reading
+                            // now, so "quiet inside" can be true before the first interval alarm.
+                            scope.launch {
+                                withContext(Dispatchers.IO) { ProtectionRuntime.sampleSafeZoneNow(context) }
+                                geofenceRefresh++
+                            }
+                        } else {
+                            requireOwner(apply)
+                        }
                     },
                     onAddZone = { radius ->
                         scope.launch {
@@ -792,6 +806,12 @@ fun ShieldraNavHost(
                         requireOwner {
                             ProtectionRuntime.removeZone(context, zone)
                             geofenceRefresh++
+                            // A reading judged against the deleted zone is not evidence any more; take
+                            // a fresh one so the quiet state reflects the zones that remain.
+                            scope.launch {
+                                withContext(Dispatchers.IO) { ProtectionRuntime.sampleSafeZoneNow(context) }
+                                geofenceRefresh++
+                            }
                         }
                     },
                 )

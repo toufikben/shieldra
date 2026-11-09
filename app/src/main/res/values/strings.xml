@@ -43,7 +43,9 @@
     <string name="map_open_protection">Tracking settings</string>
     <string name="safe_zones_title">Safe zones</string>
     <string name="safe_zones_hint">Alert me when the phone leaves these places while armed.</string>
+    <string name="safe_zones_quiet_hint">Inside a zone the siren and the countdown stay quiet, and Motion is recorded without a message. Wrong-PIN and SIM alerts always arrive.</string>
     <string name="safe_zone_sampler_off">No zone reading yet: the phone cannot tell where it is right now, so the guards behave as if it were outside.</string>
+    <string name="safe_zone_quiet_now">Quiet now: the phone is inside a safe zone.</string>
     <string name="safe_zones_enable">Alert on leaving</string>
     <string name="safe_zones_add">Mark this place as safe</string>
     <string name="safe_zones_empty">No safe zones yet</string>
@@ -469,7 +471,7 @@
     <string name="help_commands_title">Remote commands</string>
     <string name="help_commands_body">Turn on remote commands in Protection. From your own Telegram chat you can send:\n/locate — current position\n/photo — front-camera photo\n/alarm and /stopalarm\n/track on and /track off — repeating location\n/lost and /found — owner message on the lock screen\n/status — battery and network\n\nRemote commands are part of Shieldra Pro.</string>
     <string name="help_zones_title">Safe zones</string>
-    <string name="help_zones_body">On the Map tab, stand in a safe place such as home or work and tap Mark this place as safe, then turn on Alert on leaving. While armed, Shieldra checks the position every few minutes and alerts you when the phone is outside every safe zone.</string>
+    <string name="help_zones_body">On the Map tab, stand in a safe place such as home or work and tap Mark this place as safe, then turn on Alert on leaving. While armed, Shieldra checks the position every few minutes and alerts you when the phone is outside every safe zone. Inside a zone the siren and the countdown stay quiet and Motion is recorded without a message; wrong-PIN and SIM alerts always arrive.</string>
     <string name="help_export_title">Exporting evidence</string>
     <string name="help_export_body">Open an event and tap Export. Choose a passphrase of 8 or more characters, confirm with your screen lock, and save the encrypted file. Without the passphrase it cannot be opened, so keep it safe.</string>
     <string name="help_battery_title">Keep it running</string>

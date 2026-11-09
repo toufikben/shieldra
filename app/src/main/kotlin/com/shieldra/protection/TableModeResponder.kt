@@ -27,6 +27,10 @@ import com.shieldra.domain.SecurityEventType
  * Motion incident; if protection is not armed, the guard keeps its own text-only alert. A movement that
  * joins an open incident runs this response again rather than going silent.
  *
+ * Inside a fresh safe zone the response keeps only its evidence: the siren stays silent and the message
+ * is not sent, while the capture still runs (owner decision 2026-11-08). A thief who wants a signal must
+ * take the phone out of the zone first, and that crossing is its own alert.
+ *
  * What this deliberately no longer does, because the app holds no such power:
  *  - it never locks the screen: SHIELDRA holds no device administrator (design B);
  *  - it never posts a demand notice for a lock screen, because there is no lock of ours to post it on;
@@ -76,15 +80,21 @@ object TableModeResponder {
     }
 
     private fun fire(context: Context, eventId: String, siren: Boolean) {
-        if (siren) {
+        // A Motion confirmed inside a fresh safe zone is the owner at home or at work, not a snatch:
+        // the siren and the message are nuisance there (owner decision 2026-11-08). The response is
+        // read at fire time, after any grace window, so a phone that has left the zone by then is loud
+        // again; the capture below still runs, because the event and its photo remain evidence.
+        val quiet = ProtectionRuntime.quietInSafeZone(context)
+        if (siren && !quiet) {
             Siren.start(context)
             handler.postDelayed({ Siren.stop(context) }, SIREN_MAX_MS)
         }
         // A live (armed) protection service attaches the photo and fix to the Motion incident, or keeps
         // the request for its next free moment; only when neither is possible does the guard's own text
-        // alert go out, so the owner always hears about it.
+        // alert go out, so the owner always hears about it — unless the phone is quietly at home, where
+        // there is nothing to hear.
         if (!ProtectionService.captureForEvent(eventId, SecurityEventType.MOTION_CONFIRMED_EVENT)) {
-            AlertRuntime.alert(context, AlertKind.MOTION, eventId)
+            if (!quiet) AlertRuntime.alert(context, AlertKind.MOTION, eventId)
         }
     }
 

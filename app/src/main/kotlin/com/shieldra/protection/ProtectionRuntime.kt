@@ -116,9 +116,10 @@ object ProtectionRuntime {
         runCatching {
             // The owner chose silence; a patrol that kept waking to report it would be a defect.
             GuardWatchdog.cancel(app)
-            // A-45 D2: the safe-zone tick exists only to feed the ladder, so it stops with it, and the
-            // last reading is dropped — a phone that was at home while armed must not be assumed at
-            // home for the next arming, which could be months and a different city later.
+            // A-45 D2: the safe-zone tick feeds the quiet decision and the leave-a-zone alert, so it
+            // stops with the guards, and the last reading is dropped — a phone that was at home while
+            // armed must not be assumed at home for the next arming, which could be months and a
+            // different city later.
             GeofenceTicker.cancel(app)
             ZoneStateStore(app).clear()
             BootFlags(app).sync(false)
@@ -145,14 +146,42 @@ object ProtectionRuntime {
     fun geofenceEnabled(context: Context): Boolean =
         ProtectionSettingsStore(context.applicationContext).load().geofenceEnabled
 
+    /**
+     * The Map switch is the same instruction as saving the Protection screen: the alarm that keeps
+     * the reading fresh — and with it the quiet decision and the leave-a-zone alert — must start from
+     * here too, because the service instance is already running and will not call its arm path again.
+     * Switching the guard off cancels the alarm and drops the reading, so a place the owner stopped
+     * trusting cannot keep the phone quiet later.
+     */
     fun setGeofenceEnabled(context: Context, enabled: Boolean) {
-        val store = ProtectionSettingsStore(context.applicationContext)
-        store.save(store.load().copy(geofenceEnabled = enabled))
+        val app = context.applicationContext
+        val store = ProtectionSettingsStore(app)
+        val updated = store.load().copy(geofenceEnabled = enabled)
+        store.save(updated)
+        if (enabled) {
+            runCatching { GeofenceTicker.schedule(app, updated.geofenceIntervalMinutes) }
+        } else {
+            GeofenceTicker.cancel(app)
+            ZoneStateStore(app).clear()
+        }
+    }
+
+    /**
+     * One safe-zone reading, for a switch the owner just flipped on the Map screen. Without it the
+     * first reading would only come at the next alarm, so the quiet layer could stay off — or a stale
+     * "outside" could keep it off — for a whole interval after the owner defined a home.
+     */
+    suspend fun sampleSafeZoneNow(context: Context) {
+        ProtectionService.sampleSafeZoneNow(context.applicationContext)
     }
 
     /**
      * Marks the phone's current position as a safe zone. The fix is taken inside the protection
      * package (group-c/A-34), so the UI never touches location itself. Returns false if no fix.
+     *
+     * The same fix proves the phone is inside the place being created (the zone is centred on it), so
+     * the reading is written at once: a home the owner just marked must be able to stay discreet now,
+     * not only after the first alarm.
      */
     suspend fun addCurrentLocationAsZone(
         context: Context,
@@ -166,6 +195,8 @@ object ProtectionRuntime {
         val label = name.ifBlank { SafeZoneLabels.nextDefaultName(zones) }
         zones.add(SafeZone(label, GeofenceLogic.Zone(fix.latitude, fix.longitude, radiusMeters)))
         store.setSafeZones(zones)
+        ZoneStateStore(app).write(inside = true, atMs = System.currentTimeMillis())
+        runCatching { GeofenceTicker.schedule(app, store.load().geofenceIntervalMinutes) }
         return true
     }
 
@@ -174,8 +205,18 @@ object ProtectionRuntime {
      * two zones that happened to share one were both deleted from a single row.
      */
     fun removeZone(context: Context, zone: SafeZone) {
-        val store = ProtectionSettingsStore(context.applicationContext)
-        store.setSafeZones(store.safeZones().filterNot { it == zone })
+        val app = context.applicationContext
+        val store = ProtectionSettingsStore(app)
+        val remaining = store.safeZones().filterNot { it == zone }
+        store.setSafeZones(remaining)
+        // The reading was judged against the zones that existed when it was taken, and one of them is
+        // gone now. Clearing it means full strength until a fresh reading exists — the safe direction —
+        // instead of a remembered "inside" that may have been the deleted zone.
+        ZoneStateStore(app).clear()
+        if (remaining.isEmpty()) {
+            // There is nothing left to be inside of; nothing should keep sampling either.
+            GeofenceTicker.cancel(app)
+        }
     }
 
     /**
@@ -211,16 +252,39 @@ object ProtectionRuntime {
     }
 
     /**
-     * Whether the safe-zone sampler has a reading the Motion ladder would still trust (A-45 D2). False is
-     * the fail-closed answer — no reading yet, one older than two intervals, or a clock that jumped
-     * backwards — and false means the guards behave as if the phone were outside every zone, which is
-     * what the Map screen tells the owner when they turn the zone guard on.
+     * Whether the safe-zone sampler has a reading the quiet decision would still trust. False is the
+     * fail-closed answer — no reading yet, one older than two intervals, or a clock that jumped
+     * backwards — and false means the noisy layer keeps full strength, which is what the Map screen
+     * tells the owner when they turn the zone guard on.
      */
     fun zoneReadingFresh(context: Context): Boolean {
         val app = context.applicationContext
         val minutes = ProtectionSettingsStore(app).load().geofenceIntervalMinutes
         val sample = ZoneStateStore(app).read() ?: return false
         return sample.isFresh(nowMs = System.currentTimeMillis(), staleAfterMs = GeofenceTicker.staleAfterMs(minutes))
+    }
+
+    /**
+     * Whether the noisy layer (siren, countdown, Motion alert) should stay discreet right now. True
+     * only inside a fresh safe-zone reading, with the zone guard on and a zone still defined; every
+     * doubt means full strength (owner decision 2026-11-08). Evidence alerts — wrong unlock, SIM,
+     * battery, leaving a zone — never ask this question, so they are never silenced by it.
+     */
+    fun quietInSafeZone(context: Context): Boolean {
+        val app = context.applicationContext
+        val store = ProtectionSettingsStore(app)
+        val settings = store.load()
+        val sample = ZoneStateStore(app).read() ?: return false
+        val fresh = sample.isFresh(
+            nowMs = System.currentTimeMillis(),
+            staleAfterMs = GeofenceTicker.staleAfterMs(settings.geofenceIntervalMinutes),
+        )
+        return SafeZoneQuietPolicy.isQuiet(
+            geofenceEnabled = settings.geofenceEnabled,
+            hasZones = store.safeZones().isNotEmpty(),
+            readingFresh = fresh,
+            inside = sample.inside,
+        )
     }
 
     private const val TAG: String = "ProtectionRuntime"

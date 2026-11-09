@@ -490,9 +490,23 @@ LOCK_POLICY=app/src/main/kotlin/com/shieldra/protection/LockAlertPolicy.kt
 [ -s "$LOCK_POLICY" ] || fail "the lock alert rationing rule is missing, so every attempt announces again"
 grep -q 'fun announces(' "$LOCK_POLICY" \
   || fail "the lock alert rationing rule lost its decision"
-grep -q 'if (LockAlertPolicy.announces(type, incidentIsNew, failedAttempts, settings.lockThreshold))' \
+# The owner decision of 2026-11-08 added a safe-zone gate in front of this call, but only for Motion:
+# a wrong unlock is evidence and must never be silenced by a place. The announces call itself stays
+# exactly the rationing rule, and the extra condition must name Motion alone.
+grep -q 'LockAlertPolicy.announces(type, incidentIsNew, failedAttempts, settings.lockThreshold)' \
   app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
   || fail "the capture path no longer rations the lock alert; a burst would send a stream of signals again"
+grep -A1 'val motionInsideSafeZone = type == SecurityEventType.MOTION_CONFIRMED_EVENT &&' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  | grep -q 'ProtectionRuntime.quietInSafeZone(applicationContext)' \
+  || fail "the Motion dispatch no longer consults the safe-zone quiet policy (owner decision 2026-11-08)"
+grep -q 'if (!motionInsideSafeZone &&' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  || fail "the safe-zone gate no longer guards the dispatch"
+if grep -n 'quietInSafeZone' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  | grep -Eq 'LOCK_CONFIRMED|SIM_CONFIRMED'; then
+  fail "a wrong-unlock or SIM alert was put behind the safe-zone gate; evidence must always send"
+fi
 pass "Lock Guard: watch-login only, one signal per unlock session, and no lock/reset/wipe power exists"
 
 # 5e. Motion guard (A-43, narrowed by design B on 2026-11-06): the owner asked for the Motion guard to
@@ -614,13 +628,65 @@ grep -A 12 'is MotionConfirmation.BoundToActive ->' \
   app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt \
   | grep -q 'TableModeResponder.onMotionConfirmed' \
   || fail "a movement that joins an open incident is silent again"
-# Safe zones stay, but only for the one-shot leave-a-zone alert (A-36) the Map screen promises; the
-# sampler that feeds it must not be deleted with the policy that used to read it.
+# Safe zones stay, for the one-shot leave-a-zone alert (A-36) and the owner's quiet-inside rule of
+# 2026-11-08; the sampler that feeds them must not be deleted with the A-45 ladder that also read it.
 [ -s app/src/main/kotlin/com/shieldra/protection/GeofenceTicker.kt ] \
   || fail "the safe-zone sampler that feeds the leave-a-zone alert (A-36) is missing"
 grep -q 'GeofenceLogic.hasLeftSafeZone' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
   || fail "leaving a safe zone no longer raises the one-shot alert the Map screen promises (A-36)"
-pass "design B: the A-45 lock, notice, ladder and zone policy stay deleted; Motion still alerts, sirens and takes evidence"
+pass "design B: the A-45 lock, notice and ladder stay deleted; Motion still alerts, sirens and takes evidence"
+
+# 5h. Safe-zone quieting (owner decision 2026-11-08). The owner asked to restore the quieting that
+# design B removed, but drew the line himself: inside a fresh safe zone the noisy layer — the siren,
+# the countdown signal, the Motion alert — is nuisance, while a wrong unlock or a SIM change is
+# evidence and must always leave the phone. The rule is fail-closed: guard on, a zone defined, a fresh
+# reading that says inside. Anything else keeps full strength.
+QUIET_POLICY=app/src/main/kotlin/com/shieldra/protection/SafeZoneQuietPolicy.kt
+[ -s "$QUIET_POLICY" ] || fail "the safe-zone quiet policy is missing (owner decision 2026-11-08)"
+grep -q 'fun isQuiet(' "$QUIET_POLICY" \
+  || fail "the safe-zone quiet rule lost its single decision"
+grep -q 'geofenceEnabled && hasZones && readingFresh && inside' "$QUIET_POLICY" \
+  || fail "the safe-zone quiet rule is no longer the fail-closed conjunction the owner approved"
+grep -Fq 'fresh inside with the guard on and a zone defined is quiet' \
+  app/src/test/kotlin/com/shieldra/protection/SafeZoneQuietPolicyTest.kt \
+  || fail "the safe-zone quiet test was removed or renamed"
+grep -Fq 'only one of the sixteen combinations is quiet' \
+  app/src/test/kotlin/com/shieldra/protection/SafeZoneQuietPolicyTest.kt \
+  || fail "the fail-closed combination test of the safe-zone quiet rule was removed"
+RUNTIME=app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt
+grep -q 'fun quietInSafeZone(context: Context)' "$RUNTIME" \
+  || fail "the runtime no longer exposes the safe-zone quiet decision"
+grep -q 'hasZones = store.safeZones().isNotEmpty()' "$RUNTIME" \
+  || fail "the quiet decision no longer requires a zone to be inside of"
+RESPONDER=app/src/main/kotlin/com/shieldra/protection/TableModeResponder.kt
+grep -q 'val quiet = ProtectionRuntime.quietInSafeZone(context)' "$RESPONDER" \
+  || fail "the Motion response no longer asks whether the phone is quietly at home"
+grep -q 'if (siren && !quiet)' "$RESPONDER" \
+  || fail "the siren is no longer held back inside a safe zone"
+grep -q 'if (!quiet) AlertRuntime.alert(context, AlertKind.MOTION, eventId)' "$RESPONDER" \
+  || fail "the fallback Motion message is no longer held back inside a safe zone"
+grep -q 'ProtectionService.captureForEvent' "$RESPONDER" \
+  || fail "the Motion evidence capture was dropped with the quieting"
+grep -A2 'if (ProtectionRuntime.quietInSafeZone(applicationContext)) return' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  | grep -q 'intrusionTimes.add(now)' \
+  || fail "an escalation burst is still counted inside a safe zone, so it can siren on the first step outside"
+COUNTDOWN=app/src/main/kotlin/com/shieldra/protection/CountdownReceiver.kt
+COUNTDOWN_CHECKS=$(grep -c 'ProtectionRuntime.quietInSafeZone' "$COUNTDOWN" || true)
+[ "${COUNTDOWN_CHECKS:-0}" -ge 3 ] \
+  || fail "the countdown no longer checks the safe zone at the cycle, the warning and the boot resume"
+grep -A2 'if (!ProtectionRuntime.quietInSafeZone(appContext)) {' "$COUNTDOWN" \
+  | grep -q 'requestCapture(appContext, SecurityEventType.COUNTDOWN_SIGNAL)' \
+  || fail "the countdown capture is no longer held back inside a safe zone"
+grep -A3 'if (!com.shieldra.protection.ProtectionRuntime.quietInSafeZone(applicationContext)) {' \
+  app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt \
+  | grep -q 'postRecordedAlert' \
+  || fail "the local Motion notice is no longer held back inside a safe zone"
+if grep -A6 'val motionInsideSafeZone' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  | grep -Eq 'LOCK_CONFIRMED|SIM_CONFIRMED'; then
+  fail "the zone gate reached a wrong-unlock or SIM alert; only Motion may be quieted"
+fi
+pass "safe-zone quieting: siren, countdown and Motion messages stay home; wrong-PIN, SIM and leaving still send"
 
 # 6. The dashboard action reaches the real coordinator off the main thread.
 grep -q 'PanicIncidentCoordinator(repository' "$NAVHOST" || fail "NavHost does not build the panic coordinator"

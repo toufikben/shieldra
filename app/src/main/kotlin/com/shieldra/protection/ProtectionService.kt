@@ -116,6 +116,10 @@ class ProtectionService : Service() {
     private fun maybeEscalate() {
         val settings = ProtectionSettingsStore(applicationContext).load()
         if (!settings.escalationEnabled) return
+        // Inside a fresh safe zone the owner's own movement is expected, so it neither counts toward a
+        // burst nor sounds the alarm (owner decision 2026-11-08). Outside, or with no trusted reading,
+        // the burst is counted and the siren sounds exactly as before.
+        if (ProtectionRuntime.quietInSafeZone(applicationContext)) return
         val now = System.currentTimeMillis()
         intrusionTimes.add(now)
         intrusionTimes.removeIf { now - it > EscalationPolicy.WINDOW_MS }
@@ -186,14 +190,18 @@ class ProtectionService : Service() {
             capture(SecurityEventType.SIM_CONFIRMED_EVENT, null)
             // Composite tamper: a SIM swap with the screen dark and the network cut is the classic
             // way a stolen phone is hidden from recovery — sound the siren at once if the owner
-            // opted into escalation, without waiting for a burst to build up.
+            // opted into escalation, without waiting for a burst to build up. The SIM alert itself
+            // above is evidence and always leaves; only this siren yields inside a fresh safe zone
+            // (owner decision 2026-11-08), where a loud alarm is the nuisance.
             if (settings.escalationEnabled) {
                 val signals = CompositeTamper.Signals(
                     simAbnormal = true,
                     screenInteractive = screenInteractive(),
                     online = online(),
                 )
-                if (CompositeTamper.isHighRisk(signals)) Siren.start(applicationContext)
+                if (CompositeTamper.isHighRisk(signals) && !ProtectionRuntime.quietInSafeZone(applicationContext)) {
+                    Siren.start(applicationContext)
+                }
             }
         }
     }
@@ -335,7 +343,7 @@ class ProtectionService : Service() {
         trackingHandler.removeCallbacksAndMessages(null)
         // Deliberately no GeofenceTicker.cancel here (A-45): the safe-zone alarm must outlive this
         // instance, because on the owner's skin the service is what dies first and the zone state is
-        // what the Motion ladder reads. Disarming is what stops it, in ProtectionRuntime.
+        // what the quiet decision reads. Disarming is what stops it, in ProtectionRuntime.
         heartbeatHandler.removeCallbacksAndMessages(null)
         remoteCommands.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
@@ -444,8 +452,16 @@ class ProtectionService : Service() {
         }
         storeEvidence(storage, repository, eventId, locationBytes, "LOCATION")
         // The capture always happened and its evidence is stored; only the message is rationed, so a
-        // thief who keeps guessing cannot turn the owner's channel into a stream of signals.
-        if (LockAlertPolicy.announces(type, incidentIsNew, failedAttempts, settings.lockThreshold)) {
+        // thief who keeps guessing cannot turn the owner's channel into a stream of signals. A Motion
+        // inside a fresh safe zone is the owner's own home or office, so its message is the nuisance
+        // the owner removed (2026-11-08): the evidence above stays, the message does not. Every other
+        // kind asks LockAlertPolicy alone — a wrong unlock, a SIM swap and a battery last breath are
+        // evidence, never noise, and this policy must never be in their path.
+        val motionInsideSafeZone = type == SecurityEventType.MOTION_CONFIRMED_EVENT &&
+            ProtectionRuntime.quietInSafeZone(applicationContext)
+        if (!motionInsideSafeZone &&
+            LockAlertPolicy.announces(type, incidentIsNew, failedAttempts, settings.lockThreshold)
+        ) {
             dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId, failedAttempts)
         }
     }
@@ -744,11 +760,11 @@ class ProtectionService : Service() {
         /**
          * One safe-zone reading (A-45 D2): where the phone is, whether it just crossed out, and when this
          * became known. The service takes one at arm and [GeofenceTickReceiver] takes the rest, so the
-         * state the Motion ladder reads never depends on a service instance staying alive.
+         * state the quiet decision reads never depends on a service instance staying alive.
          *
          * Refusals write nothing on purpose. A fix older than two intervals is not evidence about where
          * the phone is now, and no fix at all is the same case: leaving the stored reading alone lets it
-         * age out, and an aged-out reading fails the ladder closed rather than muting a snatch at the
+         * age out, and an aged-out reading fails the quiet rule closed rather than muting a snatch at the
          * door. The one-shot "it left a safe zone" alert (A-36) keeps its exact old meaning.
          */
         suspend fun sampleSafeZoneNow(context: Context) {
