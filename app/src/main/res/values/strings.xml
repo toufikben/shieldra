@@ -214,7 +214,8 @@
     <string name="protection_snatch_confirm">I am the owner — stop the theft alert</string>
     <string name="protection_snatch_stopped">Ownership confirmed: the snatch alert is over and the periodic signal has its interval back.</string>
     <string name="protection_snatch_regrant">The device-admin role was granted before the snatch lock existed, so the screen cannot be closed yet. Switch the role off and on once.</string>
-    <string name="protection_snatch_battery_note">At or below 10% battery, unplugged, the ladder slows to its longest step so the last percent is not spent on a burst.</string>
+    <!-- Display only, never formatted: the literal % is text, not a conversion. -->
+    <string name="protection_snatch_battery_note" formatted="false">At or below 10% battery, unplugged, the ladder slows to its longest step so the last percent is not spent on a burst.</string>
     <string name="protection_countdown_title">Periodic signal</string>
     <string name="protection_countdown_enable">Send a periodic signal</string>
     <string name="protection_countdown_desc">A photo, location and battery, over and over, until you stop it.</string>

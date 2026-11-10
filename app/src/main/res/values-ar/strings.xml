@@ -196,7 +196,8 @@
     <string name="protection_snatch_confirm">أنا المالك — أوقف تنبيه السرقة</string>
     <string name="protection_snatch_stopped">تم إثبات الملكية: انتهى تنبيه الخطف وعادت الإشارة الدورية إلى إيقاعها.</string>
     <string name="protection_snatch_regrant">مُنحت صلاحية مسؤول الجهاز قبل وجود قفل الخطف، لذا لا يمكن إغلاق الشاشة بعد. أوقف الصلاحية ثم أعد تفعيلها مرة واحدة.</string>
-    <string name="protection_snatch_battery_note">عند 10% من البطارية أو أقل، وهي غير موصولة، يتباطأ السلّم إلى أطول خطوة كي لا يُصرف آخر في المئة على دفعة واحدة.</string>
+    <!-- عرض فقط، ليست سلسلة تنسيق: علامة % هنا نص لا مُحدِّد تحويل. -->
+    <string name="protection_snatch_battery_note" formatted="false">عند 10% من البطارية أو أقل، وهي غير موصولة، يتباطأ السلّم إلى أطول خطوة كي لا يُصرف آخر في المئة على دفعة واحدة.</string>
     <string name="protection_countdown_title">إشارة دورية</string>
     <string name="protection_countdown_enable">إرسال إشارة دورية</string>
     <string name="protection_countdown_desc">صورة وموقع وبطارية، مراراً، حتى توقفها.</string>
