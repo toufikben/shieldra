@@ -1304,3 +1304,51 @@ exactly, `versionCode=413`. The new icon is visible to the owner in the launcher
 caches icons may need a refresh. The breathing welcome shield cannot be shown on this install without
 clearing app data (destructive, not done) — it is reachable on a first run, and its motion is pinned by
 the build and by the design replica in `qa/icon-preview.html` (not committed).
+
+## 2026-11-10 — the real snatch lock returns: lock at once, ten minutes of proof, then automatic escalation (A-46)
+
+**Owner request 2026-11-10.** «عند التصعيد يتم مواصلة ارسال الاشارة كل x دقيقة حتى يتم كما قلت الدخول
+الى منطقة الامان … الحالة ثانية لا يدخل لاي منطقة امان يتم مواصلة الارسال ويدخل هنا في عين الاعتبار
+البطارية يعني وصول الى 10 بالمئة كما هو متفق». A confirmed snatch locks the screen at once and captures
+nothing at that moment — a location while the thief runs is noise; the phone rings and vibrates for ten
+minutes while the owner proves ownership by unlocking with their own credential or by pressing the app's
+stop button; without proof the ladder escalates by itself every five or ten minutes, pauses inside a
+safe zone, and treats 10 % battery as the agreed floor. The decision record, including what is
+deliberately absent, is `docs/superpowers/specs/2026-11-10-snatch-lock-a46-design.md`.
+
+**What the build does.** A Motion snatch outside a safe zone starts `SnatchCoordinator.begin`: the one
+`DeviceScreenLock.now` caller issues `lockNow()`, the public demand notification (`shieldra_snatch_v1`,
+trilingual from resources, chronometer, dial action) and the repeating vibration start, and the periodic
+countdown stops. The first ten minutes are proof-only — unlocking with the owner's credential after the
+lock (never within the first fifteen seconds) or the in-app «أنا المالك» button clears the whole
+incident and restarts the countdown at the owner's interval; a wrong PIN only accelerates. Without proof
+the ladder escalates every 5/10 minutes through `ProtectionService.requestCaptureForEvent`, slows to
+ten minutes at ≤10 % unplugged, pauses without forgetting inside a safe zone, and ends at six hours. The
+incident lives in device-protected `shieldra_snatch`; after a reboot with no first unlock,
+`LOCKED_BOOT_COMPLETED` re-posts a public demand and keeps it alive every ten minutes — no capture is
+possible before the credential is available, and the first unlock is itself proof. `device_admin.xml`
+now asks for `force-lock`; the regrant trap (an admin granted before this build does not gain it) is
+surfaced as a red row in the Protection screen. `VIBRATE` brings the reviewed set to 22 permissions.
+`eraseAll` wipes both device-protected stores.
+
+**Tests.** Fourteen new JVM tests pin the pure policy and the notice joining rule — ten in
+`SnatchPolicyTest`, four in `SnatchTextTest` — for **631 total**.
+
+**Gates, all green on CI run `42772181438` (`0ddd6b0`, 2026-11-10T06:59:38Z→07:08:29Z, conclusion
+success):** `CI TEST SUMMARY: 631 tests, 631 passed, 0 failures, 0 errors, 0 skipped`; `G4-B LOCAL
+REVIEW PASS — runtime/device evidence still required`; `PHASE 3 STATIC REVIEW PASS`; `LOCALE PARITY
+PASS — Arabic equals English key for key`; `Group C boundary scan passed.`; `PASS: the installed APK
+declares exactly the reviewed permission set (22 permissions)`. Draft release `test-42772181438`
+publishes `app-phone.apk` (2,897,912 bytes, sha256
+`ab6286b5bfc521fb7571d975251b4d884613f3832dfe668125b93c1e404e1189`, versionCode 415).
+
+**A failed dispatch stays on the record.** The first run `42770528740` (`b834695`) failed in
+`:app:lintDebug`: the new battery note's literal `%` read as a format specifier
+(`StringFormatInvalid`), because the note is display-only and never formatted. Fixed by marking the
+English and Arabic strings `formatted="false"` (`0ddd6b0`); the rerun above is the verified one.
+
+**Device:** build 415 installed over 413 with `adb install -r` **without launching**, another app in
+front, no Shieldra process before or after; the installed base APK's sha256 matches the CI asset
+exactly, `versionCode=415`. The lock, the vibration, the trilingual lock-screen demand, the ten-minute
+escalation and the safe-zone pause are the owner's to confirm on the phone; the checklist is
+`qa/phone-checklist-snatch-lock-a46-2026-11-10.md` (not committed).
