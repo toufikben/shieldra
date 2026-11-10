@@ -96,6 +96,9 @@ class MainActivity : FragmentActivity() {
     override fun onResume() {
         super.onResume()
         applyScreenSecurity()
+        // A-46: an open snatch notices here that its phone is unlocked again — the credential was used,
+        // which is the owner's proof. The check only acts when the incident really locked the screen.
+        runCatching { com.shieldra.protection.SnatchCoordinator.confirmOwnerIfUnlocked(this) }
     }
 
     override fun onPause() {

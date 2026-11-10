@@ -382,6 +382,7 @@ fun ShieldraNavHost(
     val monitoringStoppedMessage = stringResource(R.string.motion_monitoring_stopped)
     val monitoringNeedsPermissionMessage = stringResource(R.string.motion_monitoring_needs_permission)
     val monitoringRefusedMessage = stringResource(R.string.motion_monitoring_refused)
+    val snatchStoppedMessage = stringResource(R.string.protection_snatch_stopped)
     val monitoringNoStorageMessage = stringResource(R.string.motion_monitoring_no_storage)
     var stopWasRequested by remember { mutableStateOf(false) }
     // A-32: the owner's alert channels. Loading opens Keystore-sealed secrets, so it runs off the
@@ -1029,12 +1030,30 @@ fun ShieldraNavHost(
                                 it == com.shieldra.notification.NotificationPermissionState.NotRequired
                         },
                         deviceAdmin = deviceAdminGranted,
+                        // A-46: the role can be active and still lack force-lock, because Android
+                        // keeps the policies it was granted with. The screen states that case instead
+                        // of letting the owner believe a snatch would close the screen.
+                        lockPower = com.shieldra.protection.DeviceScreenLock.isGranted(context),
                         batteryExemption = com.shieldra.protection.BackgroundSurvival.isExempt(context),
                         exactAlarms = com.shieldra.protection.ExactAlarmAccess.isGranted(context),
                     )
                 }
                 ProtectionGuardsScreen(
                     armed = protectionArmed,
+                    // A-46: an open snatch is the first thing this screen says; the flag is re-read
+                    // whenever a permission refresh or an arm change redraws it, and after the owner
+                    // presses the stop button.
+                    snatchActive = remember(permissionRefresh, protectionArmed) {
+                        com.shieldra.protection.SnatchCoordinator.isActive(context)
+                    },
+                    onConfirmOwner = {
+                        com.shieldra.protection.SnatchCoordinator.confirmOwner(
+                            context,
+                            "the owner pressed the stop button",
+                        )
+                        permissionRefresh += 1
+                        scope.launch { snackbarHostState.showSnackbar(snatchStoppedMessage) }
+                    },
                     planSwitchAllowed = !com.shieldra.billing.InstallSource.isGooglePlay(context),
                     onOpenPro = { navController.navigate(ShieldraRoutes.PRO) },
                     onTierChange = { tier ->

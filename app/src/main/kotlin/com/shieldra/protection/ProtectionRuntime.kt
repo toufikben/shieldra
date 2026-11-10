@@ -109,6 +109,10 @@ object ProtectionRuntime {
         ProtectionSettingsStore(app).setArmed(false)
         ProtectionService.stop(app)
         CountdownScheduler.cancel(app)
+        // A-46: an open snatch ends with the protection it belongs to. The demand notice, the alarm,
+        // the vibration and the ladder alarm all stop here, and nothing restarts the countdown after
+        // an explicit disarm.
+        runCatching { SnatchCoordinator.cancel(app) }
         // A-43: the Motion guard stops with the guards it belongs to, and a grace response still
         // waiting must not siren or lock a phone the owner just chose to stop watching.
         MotionRuntime.stopMonitoring(app)
@@ -243,6 +247,10 @@ object ProtectionRuntime {
         // refuses and clears when the zone guard is off or the phone is disarmed, so calling it on every
         // Save is safe—and it is the only way a zone switch made from the settings screen starts ticking.
         runCatching { GeofenceTicker.schedule(app, settings.geofenceIntervalMinutes) }
+        // A-46: switching the snatch guard off is an instruction about the incident already open, not
+        // only about the next one. It ends without restarting the countdown — the owner is on this
+        // screen, so a periodic signal must not start speaking over their own Save.
+        if (!settings.snatchLockEnabled) runCatching { SnatchCoordinator.cancel(app) }
         if (!armed) {
             runCatching {
                 PendingCaptures(app).clear()

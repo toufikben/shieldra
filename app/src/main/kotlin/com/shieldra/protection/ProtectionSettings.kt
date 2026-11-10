@@ -37,6 +37,14 @@ data class ProtectionSettings(
     val escalationThreshold: Int = EscalationPolicy.DEFAULT_THRESHOLD,
     val geofenceEnabled: Boolean = false,
     val geofenceIntervalMinutes: Int = 3,
+    /**
+     * A-46 (owner decision 2026-11-10): a confirmed snatch locks the screen and opens the ownership
+     * window. On by default like the other guards; switching it off leaves Motion with its old
+     * evidence-only response.
+     */
+    val snatchLockEnabled: Boolean = true,
+    /** How often evidence leaves during the escalating ladder: five or ten minutes. */
+    val snatchIntervalMinutes: Int = SnatchPolicy.DEFAULT_INTERVAL_MINUTES,
     val ownerContact: String = "",
     val lostMessage: String = "",
     /** The owner's plan; PREMIUM until real billing is wired, so nothing is locked during testing. */
@@ -86,6 +94,8 @@ class ProtectionSettingsStore(context: Context) {
         escalationThreshold = prefs.getInt(KEY_ESCALATION_THRESHOLD, EscalationPolicy.DEFAULT_THRESHOLD),
         geofenceEnabled = prefs.getBoolean(KEY_GEOFENCE, false),
         geofenceIntervalMinutes = prefs.getInt(KEY_GEOFENCE_INTERVAL, 3),
+        snatchLockEnabled = prefs.getBoolean(KEY_SNATCH_LOCK, true),
+        snatchIntervalMinutes = prefs.getInt(KEY_SNATCH_INTERVAL, SnatchPolicy.DEFAULT_INTERVAL_MINUTES),
         ownerContact = prefs.getString(KEY_OWNER_CONTACT, "").orEmpty(),
         lostMessage = prefs.getString(KEY_LOST_MESSAGE, "").orEmpty(),
         tier = runCatching {
@@ -124,6 +134,14 @@ class ProtectionSettingsStore(context: Context) {
             .putInt(KEY_ESCALATION_THRESHOLD, settings.escalationThreshold.coerceIn(EscalationPolicy.MIN_THRESHOLD, EscalationPolicy.MAX_THRESHOLD))
             .putBoolean(KEY_GEOFENCE, settings.geofenceEnabled)
             .putInt(KEY_GEOFENCE_INTERVAL, settings.geofenceIntervalMinutes.coerceIn(1, 60))
+            .putBoolean(KEY_SNATCH_LOCK, settings.snatchLockEnabled)
+            .putInt(
+                KEY_SNATCH_INTERVAL,
+                settings.snatchIntervalMinutes.coerceIn(
+                    SnatchPolicy.MIN_INTERVAL_MINUTES,
+                    SnatchPolicy.MAX_INTERVAL_MINUTES,
+                ),
+            )
             .putString(KEY_OWNER_CONTACT, settings.ownerContact.trim())
             .putString(KEY_LOST_MESSAGE, settings.lostMessage.trim())
             .apply()
@@ -244,6 +262,8 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_ESCALATION_THRESHOLD = "escalation_threshold"
         const val KEY_GEOFENCE = "geofence_enabled"
         const val KEY_GEOFENCE_INTERVAL = "geofence_interval_minutes"
+        const val KEY_SNATCH_LOCK = "snatch_lock_enabled"
+        const val KEY_SNATCH_INTERVAL = "snatch_interval_minutes"
         const val KEY_SAFE_ZONES = "safe_zones"
         const val KEY_LAST_CHECK = "last_check_epoch_ms"
         const val KEY_GUARD_SILENCE_REPORTED = "guard_silence_reported_at"

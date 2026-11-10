@@ -31,11 +31,11 @@ import com.shieldra.domain.SecurityEventType
  * is not sent, while the capture still runs (owner decision 2026-11-08). A thief who wants a signal must
  * take the phone out of the zone first, and that crossing is its own alert.
  *
- * What this deliberately no longer does, because the app holds no such power:
- *  - it never locks the screen: SHIELDRA holds no device administrator (design B);
- *  - it never posts a demand notice for a lock screen, because there is no lock of ours to post it on;
- *  - it runs no evidence ladder: the A-45 train existed to feed that notice, and a repeating camera and
- *    fix stream without a promise behind it is a cost, not a guard.
+ * A-46 (owner decision 2026-11-10) puts one more arm in front of that: outside a safe zone a confirmed
+ * Motion is treated as a snatch, and [SnatchCoordinator] locks the screen and opens the owner's
+ * ten-minute proof window. When it takes the event, no photo or fix is taken here — evidence starts when
+ * the window ends — so this responder returns instead of capturing. Inside a safe zone, or with the
+ * snatch guard switched off, the evidence-only response below is exactly what it was.
  */
 object TableModeResponder {
     private const val TAG = "TableModeResponder"
@@ -89,6 +89,10 @@ object TableModeResponder {
             Siren.start(context)
             handler.postDelayed({ Siren.stop(context) }, SIREN_MAX_MS)
         }
+        // A-46: outside a fresh safe zone this is a snatch. The coordinator locks the screen and owns
+        // the event from here; the camera waits for the ladder, because a thief running with the phone
+        // is not a subject worth photographing at the second of the theft.
+        if (!quiet && SnatchCoordinator.begin(context, eventId)) return
         // A live (armed) protection service attaches the photo and fix to the Motion incident, or keeps
         // the request for its next free moment; only when neither is possible does the guard's own text
         // alert go out, so the owner always hears about it — unless the phone is quietly at home, where

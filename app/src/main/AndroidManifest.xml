@@ -37,6 +37,8 @@
           deliberately not declared: Google Play reserves it for alarm-clock and calendar apps,
           and every scheduling call already degrades to an inexact alarm until the owner grants
           exact scheduling in system settings (F-PLAY-1).
+        VIBRATE — A-46: the snatch's ten-minute proof window is felt as a repeating vibration, and
+          every escalating send pulses. Install-time, no dialog.   [A-46 amendment, owner 2026-11-10]
       Nothing is shown to whoever holds the phone; every capture is silent.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -56,6 +58,8 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- A-46 (owner decision 2026-11-10): the snatch proof window and its escalation pulses. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.front" android:required="false" />
@@ -112,11 +116,13 @@
             android:foregroundServiceType="camera|location|microphone" />
 
         <!--
-          A-33 Lock guard (restored 2026-11-07 by owner order): the one device-admin receiver. Its
-          XML declares `<watch-login />` only, so the platform reports wrong unlock attempts and
-          every other administrator power — lock, wipe, password reset, keyguard — stays unavailable.
-          Exported because the system is the sender; BIND_DEVICE_ADMIN is required, so no other app
-          can drive it. The owner grants the role from Settings and can revoke it at any time.
+          A-33 Lock guard (restored 2026-11-07 by owner order) + A-46 (owner decision 2026-11-10):
+          the one device-admin receiver. Its XML declares `<watch-login />` and `<force-lock />`, and
+          those two are the whole grant: the platform reports wrong unlock attempts, and a confirmed
+          snatch may close the screen. Wipe, password reset and keyguard change stay unavailable, and
+          DeviceScreenLock is the only caller of lockNow(). Exported because the system is the sender;
+          BIND_DEVICE_ADMIN is required, so no other app can drive it. The owner grants the role from
+          Settings and can revoke it at any time.
         -->
         <receiver
             android:name="com.shieldra.protection.LockGuardReceiver"
@@ -146,6 +152,16 @@
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!--
+          A-46: the snatch ladder's tick. Not exported: it only receives the alarm SHIELDRA itself
+          scheduled. Direct-boot aware, like the boot receiver, so a phone restarted with a snatch
+          open can be reached at its lock screen; the alarm carries no evidence and no owner text.
+        -->
+        <receiver
+            android:name="com.shieldra.protection.SnatchReceiver"
+            android:directBootAware="true"
+            android:exported="false" />
 
         <!--
           A-33: the countdown's alarm and snooze receiver. Not exported: it only receives the exact

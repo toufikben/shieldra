@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  A-33 (restored 2026-11-07 by owner order): one policy, one job.
+  A-33 (restored 2026-11-07 by owner order), extended by A-46 (owner decision 2026-11-10): two
+  policies, each with one job.
   WATCH_LOGIN lets the platform tell SHIELDRA that an unlock attempt failed, so the Lock guard can
-  photograph and alert once the owner's threshold is reached. SHIELDRA never reads the password and
-  requests no other administrator power: no force-lock, no password reset, no wipe, no keyguard
-  change. The owner can switch the role off or uninstall the app at any time.
+  photograph and alert once the owner's threshold is reached. FORCE_LOCK lets a confirmed snatch close
+  the screen at once — the owner asked for a real lock after the theft, before any photo is taken.
+  SHIELDRA never reads the password and requests no other administrator power: no password reset, no
+  wipe, no keyguard change. The owner can switch the role off or uninstall the app at any time, and an
+  administrator granted before this policy existed must be switched off and on once to gain it.
 -->
 <device-admin xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-policies>
         <watch-login />
+        <force-lock />
     </uses-policies>
 </device-admin>

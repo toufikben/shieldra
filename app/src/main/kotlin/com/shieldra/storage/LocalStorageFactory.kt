@@ -204,8 +204,10 @@ class LocalShieldraStorage private constructor(
                 if (!wipePreferences(app, name)) stillHoldingValues += name
             }
             val deviceProtected = runCatching { app.createDeviceProtectedStorageContext() }.getOrNull()
-            if (deviceProtected != null && !wipePreferences(deviceProtected, DEVICE_PROTECTED_PREFERENCE)) {
-                stillHoldingValues += DEVICE_PROTECTED_PREFERENCE
+            if (deviceProtected != null) {
+                for (name in DEVICE_PROTECTED_PREFERENCES) {
+                    if (!wipePreferences(deviceProtected, name)) stillHoldingValues += name
+                }
             }
             return stillHoldingValues
         }
@@ -251,8 +253,15 @@ class LocalShieldraStorage private constructor(
             "shieldra_zone_state",        // ZoneStateStore: the last safe-zone reading the ladder reads
         )
 
-        /** Direct Boot's own store, in device-protected storage — read before any unlock. */
-        private const val DEVICE_PROTECTED_PREFERENCE = "shieldra_boot"
+        /**
+         * Direct Boot's own stores, in device-protected storage — read before any unlock. The boot
+         * flag lets the guards resume without a credential; the snatch incident (A-46) has to outlive
+         * a reboot too, because that is exactly what a thief does with a locked phone.
+         */
+        private val DEVICE_PROTECTED_PREFERENCES = listOf(
+            "shieldra_boot",    // BootFlags: the arm-before-unlock flag
+            "shieldra_snatch",  // SnatchStore: the live snatch incident the ladder must survive
+        )
 
         private val EVIDENCE_KEY_ALIASES = listOf(
             EvidenceKeyPolicy.EVIDENCE_KEY_ALIAS,

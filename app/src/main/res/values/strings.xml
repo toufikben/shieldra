@@ -164,7 +164,7 @@
     <string name="protection_perm_camera">Camera — front photo on an event</string>
     <string name="protection_perm_location">Location — where the phone is</string>
     <string name="protection_perm_notifications">Notifications — the ongoing notice</string>
-    <string name="protection_perm_device_admin">Device admin — notice a wrong unlock attempt</string>
+    <string name="protection_perm_device_admin">Device admin — wrong unlocks and the snatch lock</string>
     <string name="protection_perm_phone">Phone — tell a SIM swap apart</string>
     <string name="protection_perm_keep_awake">Keep running — ignore battery saver</string>
     <string name="protection_perm_exact_alarms">Alarms and reminders — fire the countdown on time</string>
@@ -179,14 +179,14 @@
     <string name="protection_guard_battery_desc">A last location before the phone dies.</string>
     <string name="guard_lock_needs_admin">Grant device admin in Protection to hear wrong unlocks.</string>
     <string name="device_admin_label">SHIELDRA protection</string>
-    <string name="device_admin_description">Lets SHIELDRA notice wrong unlock attempts, so it can alert you if the phone is stolen. It cannot lock the screen, reset your password or wipe the phone.</string>
+    <string name="device_admin_description">Lets SHIELDRA notice wrong unlock attempts and, after a confirmed snatch, close the screen at once. It cannot reset your password, wipe the phone or read what was typed.</string>
     <string name="device_admin_disable_warning">Turning this off stops SHIELDRA from noticing wrong unlock attempts.</string>
     <string name="protection_battery_level">At %1$d%% battery</string>
     <string name="protection_evidence_title">Evidence</string>
     <string name="protection_dual_camera">Both cameras</string>
     <string name="protection_dual_camera_desc">Also take a back-camera photo of the surroundings.</string>
     <string name="protection_motion_with_arming">Motion guard</string>
-    <string name="protection_motion_with_arming_desc">On by default, like the SIM guard: arming starts it and disarming stops it. A confirmed lift or snatch runs the response below — Shieldra records the event, takes its evidence and alerts you. It cannot lock the screen.</string>
+    <string name="protection_motion_with_arming_desc">On by default, like the SIM guard: arming starts it and disarming stops it. A confirmed lift or snatch runs the response below — Shieldra records the event and, outside a safe zone, locks the screen at once and opens the snatch lock, which asks for your proof for ten minutes and then escalates.</string>
     <string name="protection_motion_active">Motion monitoring is active.</string>
     <string name="protection_motion_needs_notifications">Motion monitoring is not running: allow notifications for its ongoing notice, then start it.</string>
     <string name="protection_motion_not_started">Motion monitoring is not running yet.</string>
@@ -195,11 +195,26 @@
     <string name="protection_audio_desc">Record a few seconds of sound around the phone.</string>
     <string name="protection_audio_seconds">Audio: %1$d seconds</string>
     <string name="protection_motion_title">Table mode (motion)</string>
-    <string name="protection_motion_desc">When the phone is set down still and then lifted, this is what happens. Shieldra records the event and alerts you; it cannot lock the screen.</string>
+    <string name="protection_motion_desc">When the phone is set down still and then lifted, this is what happens. Shieldra records the event and alerts you; outside a safe zone it also locks the screen and starts the snatch lock.</string>
     <string name="protection_motion_silent">Silent capture</string>
     <string name="protection_motion_siren">Loud siren</string>
     <string name="protection_motion_grace">Grace then siren</string>
     <string name="protection_motion_grace_seconds">Grace: %1$d s before the siren</string>
+    <!--
+      A-46 (owner decision 2026-11-10): the real lock is back. The opt-in is on by default, like the
+      Motion guard beside it; the two chips are the owner's only cadence choices (SnatchPolicy clamps
+      anything else). The regrant line is shown only when the admin role predates force-lock, because
+      Android does not hand an existing administrator a new policy.
+    -->
+    <string name="protection_snatch_lock">Snatch lock</string>
+    <string name="protection_snatch_lock_desc">On by default: a confirmed lift outside a safe zone locks the screen at once, then asks for your proof for ten minutes with sound, vibration and a notice. No proof means the theft is taken as real and full evidence follows every 5 or 10 minutes, until the phone enters a safe zone. Unlocking with your own credential, or the stop button here, ends it.</string>
+    <string name="protection_snatch_interval">Evidence every</string>
+    <string name="protection_snatch_interval_value">%1$d min</string>
+    <string name="protection_snatch_active">A snatch is open on this phone: the screen is locked and evidence keeps leaving until you prove ownership.</string>
+    <string name="protection_snatch_confirm">I am the owner — stop the theft alert</string>
+    <string name="protection_snatch_stopped">Ownership confirmed: the snatch alert is over and the periodic signal has its interval back.</string>
+    <string name="protection_snatch_regrant">The device-admin role was granted before the snatch lock existed, so the screen cannot be closed yet. Switch the role off and on once.</string>
+    <string name="protection_snatch_battery_note">At or below 10% battery, unplugged, the ladder slows to its longest step so the last percent is not spent on a burst.</string>
     <string name="protection_countdown_title">Periodic signal</string>
     <string name="protection_countdown_enable">Send a periodic signal</string>
     <string name="protection_countdown_desc">A photo, location and battery, over and over, until you stop it.</string>
@@ -230,14 +245,29 @@
     <string name="protection_track_enable">Live tracking after a theft</string>
     <string name="protection_track_desc">After a confirmed intrusion, send a location every few minutes for a while to trace the phone.</string>
     <string name="protection_save">Save</string>
+    <!--
+      A-46: the lock-screen demand. Its big body is built from these same keys in Arabic, English and
+      French (SnatchDemand/SnatchText), so a stranger holding the phone reads all three; the status
+      line follows the phone's own language. The channel id is new (shieldra_snatch_v1) because Android
+      freezes a channel's sound and visibility at creation.
+    -->
+    <string name="snatch_demand_channel">Snatch alert</string>
+    <string name="snatch_demand_channel_desc">The lock-screen demand that asks for proof after a confirmed snatch.</string>
+    <string name="snatch_demand_title">This phone was taken</string>
+    <string name="snatch_demand_body">This phone was taken from its owner. The screen is locked and evidence is being sent. If you found it, keep it switched on and call the owner.</string>
+    <string name="snatch_demand_owner_message">Owner\'s message:</string>
+    <string name="snatch_demand_contact">Owner: %1$s</string>
+    <string name="snatch_demand_call">Call the owner</string>
+    <string name="snatch_demand_waiting">Return the phone to its owner. If you are the owner, unlock it with your own code to stop this alert.</string>
+    <string name="snatch_demand_escalating">No proof yet: evidence is being sent every %1$d minutes.</string>
     <string name="motion_monitoring_start">Start Motion monitoring</string>
     <string name="motion_monitoring_stop">Stop Motion monitoring</string>
     <string name="motion_monitoring_needs_permission">Monitoring has to stay visible to you, so allow notifications first.</string>
     <string name="motion_monitoring_refused">Monitoring was not started: its ongoing notification would not reach you.</string>
     <string name="motion_monitoring_stopped">Motion monitoring stopped.</string>
     <string name="motion_monitoring_no_storage">Monitoring was not started: local storage could not be opened. Restart the app and try again.</string>
-    <string name="protection_intro_title">Protection that reports, not locks</string>
-    <string name="protection_intro_body">While you are armed, Shieldra watches the SIM, the phone\'s motion and wrong unlock attempts. When one fires, it records the event and alerts your own channels — with the position and a photo when the phone can produce them. The device admin it asks for is watch-login only: it notices a wrong unlock, and it can never lock the screen, reset your password or wipe the phone.</string>
+    <string name="protection_intro_title">Protection that reports — and closes the screen</string>
+    <string name="protection_intro_body">While you are armed, Shieldra watches the SIM, the phone\'s motion and wrong unlock attempts. When one fires, it records the event and alerts your own channels — with the position and a photo when the phone can produce them. A confirmed lift outside a safe zone is treated as a snatch: the screen closes at once, and the phone asks for your proof for ten minutes before it escalates. The device admin it asks for holds two powers only: notice a wrong unlock, and close the screen after that snatch. It can never reset your password or wipe the phone.</string>
     <string name="protection_step_inert">Continuing from here changes no setting: arming and its permissions are done in Protection.</string>
     <string name="silent_panic">Silent Panic</string>
     <string name="details">DETAILS</string>
@@ -509,7 +539,7 @@
     <string name="panic_guide_title">My phone is stolen — what do I do?</string>
     <string name="panic_guide_intro">Work through this from another device — a laptop or a friend\'s phone. The order keeps the most: lock the handset, take its position, see who holds it, change your numbers, and leave any wipe to last, because a wipe destroys the evidence stored on the phone itself.</string>
     <string name="panic_step_lock_title">Lock it with Google\'s own Find My Device</string>
-    <string name="panic_step_lock_body">Open android.com/find in a browser and sign in with the Google account on the stolen phone, then lock it there with a message and a contact number for whoever finds it. That works even if Shieldra is not running. Shieldra itself cannot lock the screen, but it cannot wipe the device either.</string>
+    <string name="panic_step_lock_body">Open android.com/find in a browser and sign in with the Google account on the stolen phone, then lock it there with a message and a contact number for whoever finds it. That works even if Shieldra is not running. Shieldra cannot lock the screen on demand; it closes the screen by itself only after a confirmed snatch, and it cannot wipe the device either.</string>
     <string name="panic_step_locate_title">Ask where it is, from your own Telegram chat</string>
     <string name="panic_step_locate_body">Send /locate and the phone answers with one map pin; /track on keeps sending one at your tracking interval until you send /track off. It answers only while protection is armed, \"Control from Telegram\" is on in Protection settings, your plan is Premium and the phone has a network. Commands are not queued: if the phone was offline, send it again.</string>
     <string name="panic_step_photo_title">See who is holding it</string>
@@ -525,7 +555,7 @@
     <string name="panic_evidence_title">The only copy that is not on the phone</string>
     <string name="panic_evidence_body">Shieldra has no server and no account of its own, so everything it recorded lives on the stolen handset. The copy outside it is what its alerts already delivered — to the Telegram bot you created and the mailbox you configured. Those messages carry the time, the battery, a map link and a photo when one could be taken, and they survive a wipe because they already left.</string>
     <string name="panic_limits_title">What Shieldra cannot do for you</string>
-    <string name="panic_limits_body">It cannot wipe the device or read anyone\'s PIN, and it cannot lock the screen. It cannot locate a phone that is switched off or has no network, it does not queue your commands, and it never reports a position it did not measure. A factory reset, an uninstall or clearing the app storage removes what it kept on the handset.</string>
+    <string name="panic_limits_body">It cannot wipe the device or read anyone\'s PIN, and it cannot lock the screen on demand. It cannot locate a phone that is switched off or has no network, it does not queue your commands, and it never reports a position it did not measure. A factory reset, an uninstall or clearing the app storage removes what it kept on the handset.</string>
     <!-- The vendor battery-manager guide (audit development ب). The paths are the literal ColorOS menu
          names, and the app label inside them is the launcher name this locale shows. -->
     <string name="survival_guide_button">Battery manager: what to change</string>

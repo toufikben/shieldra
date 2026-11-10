@@ -10,6 +10,7 @@ object ProtectionChange {
     fun weakens(old: ProtectionSettings, new: ProtectionSettings): Boolean =
         (old.armed && !new.armed) ||
             (old.lockEnabled && !new.lockEnabled) ||
+            (old.snatchLockEnabled && !new.snatchLockEnabled) ||
             (old.simEnabled && !new.simEnabled) ||
             (old.batteryEnabled && !new.batteryEnabled) ||
             (old.countdownEnabled && !new.countdownEnabled) ||

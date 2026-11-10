@@ -720,6 +720,32 @@ class ProtectionService : Service() {
         }
 
         /**
+         * Captures evidence for an event that already exists, starting the service when it is not live
+         * (A-46: the snatch ladder ticks from an alarm, often with no service alive). A live instance
+         * takes the capture directly; otherwise the same request is carried by [ACTION_CAPTURE], whose
+         * failure path queues it and tells the owner. The return value says the request was accepted —
+         * by a live instance or by a start that Android did not refuse — never that a photo exists.
+         */
+        fun requestCaptureForEvent(context: Context, eventId: String, type: SecurityEventType): Boolean {
+            val live = liveInstance
+            if (live != null) return live.captureForExisting(eventId, type)
+            val app = context.applicationContext
+            val intent = Intent(app, ProtectionService::class.java)
+                .setAction(ACTION_CAPTURE)
+                .putExtra(EXTRA_KIND, type.name)
+                .putExtra(EXTRA_EVENT_ID, eventId)
+            return runCatching { ContextCompat.startForegroundService(app, intent) }
+                .onFailure { error ->
+                    Log.e(
+                        TAG,
+                        "the $type capture for event $eventId could not start the service " +
+                            "(${error.javaClass.simpleName}): the caller must send its text alert",
+                    )
+                }
+                .isSuccess
+        }
+
+        /**
          * Which alert a guard's event is announced as. The capture path and the queue of captures that
          * could not run both need it, so it lives beside the instance handle rather than inside it.
          */

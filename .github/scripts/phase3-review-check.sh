@@ -62,11 +62,12 @@ unexpected="$(printf '%s\n' "$declared" \
   | grep -v '^android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS$' \
   | grep -v '^android.permission.SCHEDULE_EXACT_ALARM$' \
   | grep -v '^android.permission.USE_EXACT_ALARM$' \
+  | grep -v '^android.permission.VIBRATE$' \
   | grep -v '^$' || true)"
 if [ -n "$unexpected" ]; then
-  printf 'FAIL: manifest declares permissions outside amendments A-6/A-19/A-32/A-33/A-34:\n%s\n' "$unexpected"; fail=1
+  printf 'FAIL: manifest declares permissions outside amendments A-6/A-19/A-32/A-33/A-34/A-46:\n%s\n' "$unexpected"; fail=1
 else
-  printf 'PASS: manifest declares only the named A-6/A-19/A-32/A-33/A-34 permission set\n'
+  printf 'PASS: manifest declares only the named A-6/A-19/A-32/A-33/A-34/A-46 permission set\n'
 fi
 
 if grep -qE '@mipmap/ic_launcher' app/src/main/AndroidManifest.xml; then

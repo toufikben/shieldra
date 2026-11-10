@@ -8,9 +8,12 @@
 # spot-checked.
 #
 # Design B (2026-11-06) deleted the trilingual lock-screen notice together with the lock it belonged
-# to, so there is no third locale left to check. A phone set to a language the app does not ship reads
-# English through Android's own fallback; there is no hand-composed notice for a stranger any more, and
-# g4b fails the build if values-fr comes back.
+# to. A-46 (owner decision 2026-11-10) restored the lock and the notice, so values-fr is back — but
+# for the demand only. The app still has exactly two user-interface locales; a phone set to a language
+# the app does not ship reads English through Android's own fallback, except for the demand notice,
+# which SnatchDemand composes in Arabic, English and French on purpose. g4b 5i pins that values-fr
+# holds the nine snatch_demand keys and nothing else, so this file keeps comparing values/ with
+# values-ar/ only and a stray French translation still fails the review gate.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 
