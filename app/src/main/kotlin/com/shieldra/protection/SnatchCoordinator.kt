@@ -398,7 +398,10 @@ object SnatchCoordinator {
         // A reboot kills the runtime receiver; re-register it so the first unlock after the restart is
         // proof at the moment it happens rather than at the next check (A-47 D6).
         registerUnlockProof(app)
-        runCatching { SnatchDemand.show(app, incident, ProtectionSettingsStore(app).load()) }
+        // Before the first unlock the private settings cannot be read at all; the demand still has to
+        // appear, so it is posted with the public defaults — three languages, no owner's note yet.
+        val settings = runCatching { ProtectionSettingsStore(app).load() }.getOrNull()
+        runCatching { SnatchDemand.show(app, incident, settings ?: ProtectionSettings()) }
         SnatchReceiver.schedule(app, System.currentTimeMillis() + LOCKED_BOOT_TICK_MS)
         Log.w(TAG, "a snatch survived the reboot: the ladder is re-armed for after the first unlock")
     }
