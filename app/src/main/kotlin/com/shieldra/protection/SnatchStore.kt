@@ -33,6 +33,8 @@ class SnatchStore(context: Context) {
             escalatedAtMs = prefs.getLong(KEY_ESCALATED_AT, 0L),
             ticks = prefs.getInt(KEY_TICKS, 0),
             nextDueAtMs = prefs.getLong(KEY_NEXT_DUE, 0L),
+            secureAtBegin = prefs.getBoolean(KEY_SECURE_AT_BEGIN, false),
+            proofSeenAtMs = prefs.getLong(KEY_PROOF_SEEN_AT, 0L),
         )
     }
 
@@ -45,6 +47,8 @@ class SnatchStore(context: Context) {
             .putLong(KEY_ESCALATED_AT, incident.escalatedAtMs)
             .putInt(KEY_TICKS, incident.ticks)
             .putLong(KEY_NEXT_DUE, incident.nextDueAtMs)
+            .putBoolean(KEY_SECURE_AT_BEGIN, incident.secureAtBegin)
+            .putLong(KEY_PROOF_SEEN_AT, incident.proofSeenAtMs)
             .apply()
     }
 
@@ -61,5 +65,7 @@ class SnatchStore(context: Context) {
         const val KEY_ESCALATED_AT = "escalated_at"
         const val KEY_TICKS = "ticks"
         const val KEY_NEXT_DUE = "next_due_at"
+        const val KEY_SECURE_AT_BEGIN = "secure_at_begin"
+        const val KEY_PROOF_SEEN_AT = "proof_seen_at"
     }
 }

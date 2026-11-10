@@ -38,6 +38,9 @@ class LockGuardReceiver : DeviceAdminReceiver() {
 
     override fun onPasswordSucceeded(context: Context, intent: Intent) {
         LockGuardState.reset()
+        // A-47 D6: the owner's credential at the lock screen is proof even if the runtime unlock
+        // receiver missed its broadcast. When no snatch is open this is a no-op.
+        SnatchCoordinator.confirmOwnerIfUnlocked(context)
     }
 
     override fun onDisableRequested(context: Context, intent: Intent): CharSequence {

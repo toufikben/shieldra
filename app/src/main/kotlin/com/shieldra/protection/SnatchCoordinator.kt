@@ -6,29 +6,34 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.shieldra.delivery.AlertKind
 import com.shieldra.delivery.AlertRuntime
 import com.shieldra.domain.SecurityEventType
 
 /**
  * Runs one snatch from the moment the Motion guard confirms it until its owner proves ownership, the
- * phone reaches a safe zone, or six hours have passed (A-46, owner decision 2026-11-10).
+ * phone reaches a safe zone, or six hours have passed (A-46, owner decision 2026-11-10; A-47 makes the
+ * proof immediate and refuses the challenge when the phone cannot be locked or has no credential).
  *
  * The owner's sequence, applied literally:
  *  1. the screen locks at once ([DeviceScreenLock]) — no photo and no fix at that second, because a
  *     thief running with the phone is not a subject worth photographing;
  *  2. ten minutes of a public demand notice, a repeating vibration and a loud alarm, in which the
  *     owner proves ownership by unlocking the phone or by pressing the stop button in the app;
- *  3. proof clears the whole incident and hands the periodic countdown back its chosen interval;
- *  4. no proof is a theft: the ladder escalates on its own and sends full evidence at the owner's
- *     cadence (five or ten minutes), a wrong PIN only accelerating it;
- *  5. inside a fresh safe zone the ladder pauses instead of sending — the phone came home — and
+ *  3. proof is instant: the runtime `ACTION_USER_PRESENT` receiver catches the unlock while the
+ *     process lives, and the early checks (20 s, 60 s, 3 min, 5 min) catch it across process death;
+ *  4. proof clears the whole incident and hands the periodic countdown back its chosen interval;
+ *  5. no proof is a theft: the ladder escalates on its own and sends full evidence at the owner's
+ *     cadence (five or ten minutes), a wrong PIN only accelerating it at the lock threshold;
+ *  6. inside a fresh safe zone the ladder pauses instead of sending — the phone came home — and
  *     resumes the moment it leaves again;
- *  6. at or below ten percent battery, unplugged, the slowest cadence wins (the 10% agreement).
+ *  7. at or below ten percent battery, unplugged, the slowest cadence wins (the 10% agreement).
  *
  * Everything durable lives in [SnatchStore] (device-protected), so the incident survives the process
  * being killed and the phone being restarted. The tick itself is [SnatchReceiver]'s exact alarm, which
@@ -52,13 +57,18 @@ object SnatchCoordinator {
 
     private val handler = Handler(Looper.getMainLooper())
 
+    /** The runtime unlock-proof receiver (A-47); null whenever no incident is open. */
+    private var unlockProofReceiver: BroadcastReceiver? = null
+
     /**
      * Starts the snatch response for a Motion the guard just confirmed, or joins the incident already
      * open. Returns true when the snatch owns this event from here on — the caller must then not take
      * its own capture, because the first evidence belongs to the ladder, not to the second of the theft.
      *
-     * Inside a fresh safe zone it refuses: that Motion is the owner at home, and throwing a lock screen
-     * and an alarm over their own phone is the nuisance the safe-zone policy exists to remove.
+     * It refuses in three cases, and the caller then runs the ordinary base response: inside a fresh
+     * safe zone (that Motion is the owner at home), when the phone has no secure lock (there is nothing
+     * the owner could unlock to prove ownership — A-47 D8), and when the screen could not actually be
+     * locked (admin off or granted before force-lock). A demand nobody must unlock is not a challenge.
      */
     @Synchronized
     fun begin(context: Context, eventId: String): Boolean {
@@ -72,18 +82,31 @@ object SnatchCoordinator {
             // A second movement joins the open incident. The one thing worth retrying is a lock that
             // could not happen the first time — an administrator granted mid-incident starts working
             // here instead of at the next theft.
-            if (existing.lockedAtMs == 0L && DeviceScreenLock.now(app) == DeviceScreenLock.Outcome.LOCKED) {
-                store.write(existing.copy(lockedAtMs = System.currentTimeMillis()))
+            val healable = !existing.secureAtBegin && keyguardIsSecure(app)
+            if (healable) {
+                store.write(existing.copy(secureAtBegin = true))
+            }
+            val current = if (healable) store.read() else existing
+            if (current.lockedAtMs == 0L && DeviceScreenLock.now(app) == DeviceScreenLock.Outcome.LOCKED) {
+                store.write(current.copy(lockedAtMs = System.currentTimeMillis()))
                 SnatchAlerts.proofWindow(app)
             }
             return true
         }
+        if (!keyguardIsSecure(app)) {
+            Log.w(TAG, "the confirmed Motion is not challenged: the phone has no secure lock to prove ownership with")
+            return false
+        }
+        if (DeviceScreenLock.now(app) != DeviceScreenLock.Outcome.LOCKED) {
+            Log.w(TAG, "the confirmed Motion is not challenged: the screen could not be locked, so no unlock can prove anything")
+            return false
+        }
         val nowMs = System.currentTimeMillis()
-        val locked = DeviceScreenLock.now(app) == DeviceScreenLock.Outcome.LOCKED
-        val incident = SnatchPolicy.begin(eventId, nowMs, locked)
+        val incident = SnatchPolicy.begin(eventId, nowMs, locked = true, secureAtBegin = true)
         store.write(incident)
         SnatchDemand.show(app, incident, settings)
-        if (locked) SnatchAlerts.proofWindow(app)
+        SnatchAlerts.proofWindow(app)
+        registerUnlockProof(app)
         // The periodic signal and the theft alert are two different messages. The countdown is the
         // owner's own heartbeat and has no business narrating a snatch; proof starts it again below.
         runCatching { CountdownScheduler.cancel(app) }
@@ -92,10 +115,11 @@ object SnatchCoordinator {
         runCatching { AlertRuntime.alert(app, AlertKind.MOTION, eventId) }
         soundAlarm(app)
         SnatchReceiver.schedule(app, incident.nextDueAtMs)
+        scheduleNextProofCheck(app, incident)
         Log.w(
             TAG,
-            "a snatch was confirmed: the screen ${if (locked) "was locked" else "could not be locked yet"}; " +
-                "ownership is due within ${SnatchPolicy.PROOF_WINDOW_MS / 60_000L} minutes",
+            "a snatch was confirmed: the screen was locked; ownership is due within " +
+                "${SnatchPolicy.PROOF_WINDOW_MS / 60_000L} minutes, with a check at 20 seconds",
         )
         return true
     }
@@ -112,7 +136,15 @@ object SnatchCoordinator {
         val incident = store.read()
         if (!incident.active) {
             SnatchReceiver.cancel(app)
+            SnatchReceiver.cancelCheck(app)
             SnatchDemand.hide(app)
+            return
+        }
+        if (incident.proofSeenAtMs != 0L) {
+            // The proof was written but the teardown did not finish (A-47 D6): close it here instead of
+            // sending evidence the owner already cancelled.
+            Log.i(TAG, "a recorded proof survived a dead process: the snatch is closed without sending")
+            end(app, restartCountdown = true)
             return
         }
         val nowMs = System.currentTimeMillis()
@@ -180,6 +212,51 @@ object SnatchCoordinator {
     }
 
     /**
+     * An early ownership check (A-47 D6): the 20 s, 60 s, 3 min and 5 min rungs after the lock. It is
+     * deliberately independent of the owner's private settings — it reads the durable incident, the
+     * keyguard and the one lock object only — so a phone whose process was killed can still prove its
+     * owner without waiting for the ten-minute ladder tick. A check never captures and never sends.
+     */
+    @Synchronized
+    fun onCheck(context: Context) {
+        val app = context.applicationContext
+        val store = SnatchStore(app)
+        val incident = store.read()
+        if (!incident.active) {
+            SnatchReceiver.cancelCheck(app)
+            SnatchReceiver.cancel(app)
+            SnatchDemand.hide(app)
+            return
+        }
+        if (incident.proofSeenAtMs != 0L) {
+            Log.i(TAG, "a recorded proof reached the next early check: the snatch is closed without sending")
+            end(app, restartCountdown = true)
+            return
+        }
+        val nowMs = System.currentTimeMillis()
+        if (SnatchPolicy.expired(incident, nowMs)) {
+            Log.i(TAG, "the snatch reached its six-hour ceiling at an early check")
+            end(app, restartCountdown = true)
+            return
+        }
+        var current = incident
+        if (current.lockedAtMs == 0L && DeviceScreenLock.now(app) == DeviceScreenLock.Outcome.LOCKED) {
+            // An incident that began before the lock took effect: give it a lock so an unlock can
+            // prove ownership, and re-anchor the remaining checks to that moment.
+            current = current.copy(lockedAtMs = nowMs)
+            store.write(current)
+            SnatchAlerts.proofWindow(app)
+        }
+        if (SnatchPolicy.canProveByUnlock(current) &&
+            SnatchPolicy.unlockedSince(current, nowMs, keyguardLocked(app))
+        ) {
+            confirmOwner(app, "the phone was unlocked after the lock (early check)")
+            return
+        }
+        scheduleNextProofCheck(app, current)
+    }
+
+    /**
      * The wrong-PIN accelerator: a thief who tries the lock while a snatch is open does not wait for
      * the ladder's next rung. Returns true when the attempt was taken here, so the caller does not
      * stack a second capture on the same second.
@@ -222,7 +299,12 @@ object SnatchCoordinator {
     @Synchronized
     fun confirmOwner(context: Context, reason: String) {
         val app = context.applicationContext
-        if (!SnatchStore(app).read().active) return
+        val store = SnatchStore(app)
+        val incident = store.read()
+        if (!incident.active) return
+        // A-47 D6: the moment is written before the teardown. If the process dies between the two, the
+        // next tick or check sees the proof and closes the incident instead of sending evidence.
+        store.write(SnatchPolicy.proofSeen(incident, System.currentTimeMillis()))
         end(app, restartCountdown = true)
         runCatching { TableModeResponder.cancel(app) }
         Log.i(TAG, "ownership was proven ($reason): the snatch is closed and the countdown is back")
@@ -234,11 +316,63 @@ object SnatchCoordinator {
      * which is exactly the proof the owner described.
      */
     fun confirmOwnerIfUnlocked(context: Context) {
-        val app = context.applicationContext
+        proveIfUnlocked(context.applicationContext, "the app came forward on an unlocked phone")
+    }
+
+    private fun proveIfUnlocked(app: Context, reason: String) {
         val incident = SnatchStore(app).read()
         if (!incident.active) return
-        if (SnatchPolicy.unlockedSince(incident, System.currentTimeMillis(), keyguardLocked(app))) {
-            confirmOwner(app, "the app came forward on an unlocked phone")
+        if (SnatchPolicy.canProveByUnlock(incident) &&
+            SnatchPolicy.unlockedSince(incident, System.currentTimeMillis(), keyguardLocked(app))
+        ) {
+            confirmOwner(app, reason)
+        }
+    }
+
+    /**
+     * The prove-on-unlock receiver of A-47 (D6): while the snatch process lives, dismissing the
+     * keyguard is proof the moment it happens instead of at the next check. It is runtime-registered
+     * and not exported; the system still delivers `ACTION_USER_PRESENT` to it, and [end] removes it.
+     */
+    @Synchronized
+    private fun registerUnlockProof(context: Context) {
+        if (unlockProofReceiver != null) return
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context, intent: Intent) {
+                if (intent.action == Intent.ACTION_USER_PRESENT) {
+                    runCatching { proveIfUnlocked(ctx.applicationContext, "the lock screen was dismissed") }
+                }
+            }
+        }
+        runCatching {
+            ContextCompat.registerReceiver(
+                context,
+                receiver,
+                IntentFilter(Intent.ACTION_USER_PRESENT),
+                ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+            unlockProofReceiver = receiver
+        }.onFailure { error ->
+            // The early checks still cover a kill; losing the receiver only makes proof slower.
+            Log.w(TAG, "the unlock receiver was not registered: ${error.message}")
+        }
+    }
+
+    @Synchronized
+    private fun unregisterUnlockProof(context: Context) {
+        unlockProofReceiver?.let { receiver ->
+            runCatching { context.applicationContext.unregisterReceiver(receiver) }
+        }
+        unlockProofReceiver = null
+    }
+
+    /** Sets the next early check, or clears the check alarm when the window's checks are spent. */
+    private fun scheduleNextProofCheck(context: Context, incident: SnatchPolicy.Incident) {
+        val atMs = SnatchPolicy.nextProofCheckMs(incident, System.currentTimeMillis())
+        if (atMs == null) {
+            SnatchReceiver.cancelCheck(context)
+        } else {
+            SnatchReceiver.scheduleCheck(context, atMs)
         }
     }
 
@@ -261,6 +395,9 @@ object SnatchCoordinator {
         val app = context.applicationContext
         val incident = SnatchStore(app).read()
         if (!incident.active) return
+        // A reboot kills the runtime receiver; re-register it so the first unlock after the restart is
+        // proof at the moment it happens rather than at the next check (A-47 D6).
+        registerUnlockProof(app)
         runCatching { SnatchDemand.show(app, incident, ProtectionSettingsStore(app).load()) }
         SnatchReceiver.schedule(app, System.currentTimeMillis() + LOCKED_BOOT_TICK_MS)
         Log.w(TAG, "a snatch survived the reboot: the ladder is re-armed for after the first unlock")
@@ -316,6 +453,8 @@ object SnatchCoordinator {
         runCatching { SnatchAlerts.stop(app) }
         runCatching { Siren.stop(app) }
         runCatching { SnatchReceiver.cancel(app) }
+        runCatching { SnatchReceiver.cancelCheck(app) }
+        runCatching { unregisterUnlockProof(app) }
         // The settings may be unreadable when this runs on a still-locked phone (the six-hour cap or a
         // disarm before the first unlock); the teardown above must not depend on them. Without them no
         // countdown is restarted, which is right: the countdown's own schedule belongs to an unlocked
@@ -331,24 +470,37 @@ object SnatchCoordinator {
             ?.isKeyguardLocked
             ?: true
     }.getOrDefault(true)
+
+    /** A phone with no credential cannot prove ownership by unlocking, so it is never challenged. */
+    private fun keyguardIsSecure(context: Context): Boolean = runCatching {
+        (context.applicationContext.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager)
+            ?.isDeviceSecure
+            ?: false
+    }.getOrDefault(false)
 }
 
 /**
- * The snatch ladder's clock (A-46). One exact alarm, set for the moment the incident says is due and
- * re-set by every tick. Not exported: it only receives the alarm SHIELDRA itself scheduled. Direct-boot
- * aware so a phone restarted with a snatch open can be reached at its lock screen.
+ * The snatch ladder's clock (A-46) and its early ownership checks (A-47). Two exact alarms, both set
+ * for the moment the incident says is due and re-set by every tick: the ladder tick and the early
+ * check share this receiver but not their request codes, so scheduling one never cancels the other.
+ * Not exported: they only receive alarms SHIELDRA itself scheduled. Direct-boot aware so a phone
+ * restarted with a snatch open can be reached at its lock screen.
  */
 class SnatchReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action != ACTION_TICK) return
+        val action = intent?.action ?: return
+        if (action != ACTION_TICK && action != ACTION_CHECK) return
         val appContext = context.applicationContext
         val pending = goAsync()
         Thread {
             try {
-                SnatchCoordinator.onTick(appContext)
+                when (action) {
+                    ACTION_CHECK -> SnatchCoordinator.onCheck(appContext)
+                    else -> SnatchCoordinator.onTick(appContext)
+                }
             } catch (error: Exception) {
-                Log.e(TAG, "the snatch tick failed: ${error.message}", error)
+                Log.e(TAG, "the snatch clock failed: ${error.message}", error)
             } finally {
                 pending.finish()
             }
@@ -358,13 +510,26 @@ class SnatchReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "SnatchReceiver"
         const val ACTION_TICK = "com.shieldra.protection.SNATCH_TICK"
-        private const val REQUEST = 20_025
+        const val ACTION_CHECK = "com.shieldra.protection.SNATCH_CHECK"
+        private const val REQUEST_TICK = 20_025
+        private const val REQUEST_CHECK = 20_028
 
-        fun schedule(context: Context, atMs: Long) {
+        fun schedule(context: Context, atMs: Long) =
+            schedule(context, atMs, ACTION_TICK, REQUEST_TICK)
+
+        /** The next early ownership check (A-47); separate id so it never displaces the ladder tick. */
+        fun scheduleCheck(context: Context, atMs: Long) =
+            schedule(context, atMs, ACTION_CHECK, REQUEST_CHECK)
+
+        fun cancel(context: Context) = cancel(context, ACTION_TICK, REQUEST_TICK)
+
+        fun cancelCheck(context: Context) = cancel(context, ACTION_CHECK, REQUEST_CHECK)
+
+        private fun schedule(context: Context, atMs: Long, action: String, request: Int) {
             val app = context.applicationContext
             val alarmManager = app.getSystemService(AlarmManager::class.java) ?: return
             val fireAt = atMs.coerceAtLeast(System.currentTimeMillis() + 5_000L)
-            val operation = pending(app)
+            val operation = pending(app, action, request)
             try {
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
                     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, operation)
@@ -376,15 +541,17 @@ class SnatchReceiver : BroadcastReceiver() {
             }
         }
 
-        fun cancel(context: Context) {
-            context.applicationContext.getSystemService(AlarmManager::class.java)?.cancel(pending(context))
+        private fun cancel(context: Context, action: String, request: Int) {
+            context.applicationContext.getSystemService(AlarmManager::class.java)
+                ?.cancel(pending(context, action, request))
         }
 
-        private fun pending(context: Context): PendingIntent = PendingIntent.getBroadcast(
-            context.applicationContext,
-            REQUEST,
-            Intent(context.applicationContext, SnatchReceiver::class.java).setAction(ACTION_TICK),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+        private fun pending(context: Context, action: String, request: Int): PendingIntent =
+            PendingIntent.getBroadcast(
+                context.applicationContext,
+                request,
+                Intent(context.applicationContext, SnatchReceiver::class.java).setAction(action),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
     }
 }
