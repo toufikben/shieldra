@@ -283,8 +283,95 @@ class SnatchSignaturePolicyTest {
         }
     }
 
+    @Test
+    fun `a burst without a sharp reading does not hold the snatch question`() {
+        // The live service asks at the confirmation and may have to wait for the follow-up window to
+        // fill. A walk that never reaches the grab level can never become a snatch, so it must be
+        // answered on the spot instead of delaying the owner's base response.
+        val samples = stream(
+            Segment(3_000, 0.2),
+            Segment(400, 2.4),
+            Segment(2_000, 0.2),
+        )
+
+        assertEquals(3_500L, fixedAt(samples, atMs = 3_500L))
+    }
+
+    @Test
+    fun `a burst whose calm was not measured does not hold the snatch question`() {
+        // The window opens while the phone is already moving. "I did not see it being still" cannot
+        // become "maybe it was still", so no waiting is allowed for this burst.
+        val samples = stream(
+            Segment(3_000, 2.0),
+            Segment(400, 16.0),
+            Segment(2_000, 8.0),
+        )
+
+        assertEquals(500L, fixedAt(samples, atMs = 500L))
+    }
+
+    @Test
+    fun `a grab after a measured calm holds the question until its follow-up window closes`() {
+        // The burst starts at 3000 ms and its follow-up may arrive until 9000 ms. Asked at 3400 ms,
+        // the answer cannot be known yet; the deadline is the burst's own window.
+        val samples = stream(
+            Segment(3_000, 0.2),
+            Segment(400, 16.0),
+            Segment(3_000, 0.2),
+        )
+
+        assertEquals(9_000L, fixedAt(samples, atMs = 3_400L))
+    }
+
+    @Test
+    fun `the latest grab shaped burst sets the deadline`() {
+        // Two grab-shaped bursts, the second at 6400 ms. A later burst can still turn the answer into
+        // a snatch, so the deadline moves with it instead of being spent on the first one.
+        val samples = stream(
+            Segment(3_000, 0.2),
+            Segment(200, 2.0),
+            Segment(200, 16.0),
+            Segment(3_000, 0.2),
+            Segment(200, 2.0),
+            Segment(200, 16.0),
+            Segment(2_000, 0.2),
+        )
+
+        assertEquals(12_400L, fixedAt(samples, atMs = 6_500L))
+    }
+
+    @Test
+    fun `the question is already fixed once its follow-up window is measured`() {
+        // The same lift, asked long after the window closed: nothing is left to wait for, so the
+        // caller's own moment is the answer and the response is not delayed.
+        val samples = stream(
+            Segment(3_000, 0.2),
+            Segment(400, 16.0),
+            Segment(3_000, 0.2),
+        )
+
+        assertEquals(12_000L, fixedAt(samples, atMs = 12_000L))
+    }
+
+    @Test
+    fun `an untrusted stream is answered at once`() {
+        // A stream the policy cannot trust can never become a snatch; holding the response for it
+        // would be a wait with nothing to wait for.
+        val samples = stream(
+            Segment(3_000, 0.2),
+            Segment(400, 16.0),
+            Segment(2_000, 8.0),
+        ).toMutableList()
+        samples[10] = samples[10].copy(y = Double.NaN)
+
+        assertEquals(1_000L, fixedAt(samples, atMs = 1_000L))
+    }
+
     private fun classify(samples: List<MotionSample>) =
         SnatchSignaturePolicy.classify(samples, motion, signature)
+
+    private fun fixedAt(samples: List<MotionSample>, atMs: Long) =
+        SnatchSignaturePolicy.verdictFixedAtMs(samples, motion, signature, atMs)
 
     private data class Segment(val durationMs: Long, val deviation: Double)
 

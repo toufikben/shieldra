@@ -655,17 +655,37 @@ if grep -Eq 'SnatchLadder|TheftDemand|ZoneResponse' \
   app/src/main/kotlin/com/shieldra/protection/MotionResponsePlan.kt "$RESPONDER"; then
   fail "the Motion response reaches for the retired A-45 ladder, demand notice or zone policy again"
 fi
-grep -q 'if (!quiet && SnatchCoordinator.begin(context, eventId)) return' "$RESPONDER" \
-  || fail "a confirmed Motion outside a safe zone no longer opens the snatch lock (A-46)"
-# A-47 D3: only a Motion can reach the challenge. SIM, battery, lock or a scheduled job that called
-# begin would turn an evidence alert into a lock screen the owner never asked for.
+MOTION_SERVICE=app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt
+grep -Fq 'if (snatchSignature && !quiet && SnatchCoordinator.begin(context, eventId)) return' "$RESPONDER" \
+  || fail "movement alone opens the snatch lock again, or the measured signature no longer reaches it (A-46, A-47 D3)"
+# A-47 D3: only a Motion can reach the challenge, and only with the measured signature. SIM, battery,
+# lock or a scheduled job that called begin would turn an evidence alert into a lock screen the owner
+# never asked for.
 BEGIN_CALLERS=$(grep -rl 'SnatchCoordinator.begin(' app/src/main/kotlin | sort | tr '\n' ' ')
 [ "$BEGIN_CALLERS" = "app/src/main/kotlin/com/shieldra/protection/TableModeResponder.kt " ] \
   || fail "a non-Motion guard reaches SnatchCoordinator.begin; only a confirmed Motion may open the challenge (A-47 D3); got [$BEGIN_CALLERS]"
-grep -A 12 'is MotionConfirmation.BoundToActive ->' \
-  app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt \
-  | grep -q 'TableModeResponder.onMotionConfirmed' \
-  || fail "a movement that joins an open incident is silent again"
+grep -q 'fun onMotionConfirmed(context: Context, eventId: String, snatchSignature: Boolean)' "$RESPONDER" \
+  || fail "the Motion response no longer receives the measured snatch signature (A-47 D3)"
+# The signature reads a copy of the stream, because a confirmation consumes the Motion window in the
+# very sample that measured it. Both confirmation shapes (a new incident, and a movement joining the
+# open one) prime the open question, and the pure policy answers it: a snatch at once, or the base
+# response once the follow-up window can no longer change the answer.
+for pin in 'private val signatureWindow = mutableListOf<MotionSample>()' \
+  'private var pendingSignatureEventId: String? = null' \
+  'signatureWindow += sample' \
+  'is MotionConfirmation.Recorded -> confirmation.event.id.value.toString()' \
+  'is MotionConfirmation.BoundToActive -> confirmation.event.id.value.toString()' \
+  'ApprovedSnatchSignatureCalibration.signature' \
+  'SnatchSignaturePolicy.classify(' \
+  'SnatchSignaturePolicy.verdictFixedAtMs(' \
+  'TableModeResponder.onMotionConfirmed(applicationContext, eventId, snatchSignature = snatch)'; do
+  grep -Fq "$pin" "$MOTION_SERVICE" \
+    || fail "the Motion service lost '$pin' (A-47 D3)"
+done
+SIGNATURE_COPY=$(grep -n 'signatureWindow += sample' "$MOTION_SERVICE" | head -1 | cut -d: -f1)
+FIRST_OBSERVE=$(grep -n 'val observation = guardPipeline.observe' "$MOTION_SERVICE" | head -1 | cut -d: -f1)
+[ -n "$SIGNATURE_COPY" ] && [ -n "$FIRST_OBSERVE" ] && [ "$SIGNATURE_COPY" -lt "$FIRST_OBSERVE" ] \
+  || fail "the signature window is copied after the judgement, so a confirmation would clear it first (A-47 D3)"
 # Safe zones stay as the silencer the owner approved (A-47 D2): the sampler feeds the quiet rule,
 # and leaving a zone reports nothing — the old A-36 one-shot leave alert is deleted on purpose.
 [ -s app/src/main/kotlin/com/shieldra/protection/GeofenceTicker.kt ] \
@@ -681,7 +701,7 @@ if sed -n '/suspend fun sampleSafeZoneNow/,/^        }/p' \
   | grep -q 'AlertRuntime.alert'; then
   fail "the safe-zone sampler reports a crossing instead of staying silent (A-47 D2)"
 fi
-pass "A-46: the retired A-45 layer stays deleted; the evidence-only Motion path still alerts, sirens and captures, and an outdoor confirmed Motion opens the snatch lock"
+pass "A-46: the retired A-45 layer stays deleted; the evidence-only Motion path still alerts, sirens and captures, and only a signed outdoor Motion opens the snatch lock"
 
 # 5h. Safe-zone quieting (owner decision 2026-11-08). The owner asked to restore the quieting that
 # design B removed, but drew the line himself: inside a fresh safe zone the noisy layer — the siren,
@@ -761,6 +781,16 @@ grep -Fq 'the ladder slows to ten minutes at the battery floor' "$SNATCH_TEST" \
   || fail "the 10% battery-floor test was removed or renamed"
 grep -Fq 'the cadence is clamped to the two offered values' "$SNATCH_TEST" \
   || fail "the cadence-clamp test was removed or renamed"
+SNATCH_SIGNATURE_TEST=app/src/test/kotlin/com/shieldra/protection/SnatchSignaturePolicyTest.kt
+[ -s "$SNATCH_SIGNATURE_TEST" ] || fail "the snatch signature tests are missing (A-47 D3)"
+for name in 'the shipping signature is pinned to the stage three measurement' \
+  'a grab from rest followed by running is a snatch' \
+  'a grab after a measured calm holds the question until its follow-up window closes' \
+  'the latest grab shaped burst sets the deadline' \
+  'an untrusted stream is answered at once'; do
+  grep -Fq "fun \`$name\`()" "$SNATCH_SIGNATURE_TEST" \
+    || fail "the snatch signature test '$name' was removed or renamed (A-47 D3)"
+done
 SNATCH_STORE=app/src/main/kotlin/com/shieldra/protection/SnatchStore.kt
 grep -q 'createDeviceProtectedStorageContext' "$SNATCH_STORE" \
   || fail "the snatch state no longer survives a locked boot (device-protected storage)"

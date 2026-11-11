@@ -118,18 +118,7 @@ object SnatchSignaturePolicy {
         motionCalibration: MotionCalibration,
         signature: SnatchSignatureCalibration,
     ): Verdict {
-        if (samples.size < 2) return Verdict.Ordinary
-
-        val deviations = DoubleArray(samples.size)
-        for (index in samples.indices) {
-            val sample = samples[index]
-            if (!sample.x.isFinite() || !sample.y.isFinite() || !sample.z.isFinite()) return Verdict.Ordinary
-            if (index > 0) {
-                val gap = sample.elapsedMs - samples[index - 1].elapsedMs
-                if (gap <= 0L || gap > motionCalibration.maxSampleGapMs) return Verdict.Ordinary
-            }
-            deviations[index] = gravityDeltaMs2(sample.x, sample.y, sample.z)
-        }
+        val deviations = deviationsOrNull(samples, motionCalibration) ?: return Verdict.Ordinary
 
         val bursts = movementBursts(samples, deviations, motionCalibration.noiseFloorDeltaMs2, signature.followMaxGapMs)
         for (burst in bursts) {
@@ -143,6 +132,63 @@ object SnatchSignaturePolicy {
             }
         }
         return Verdict.Ordinary
+    }
+
+    /**
+     * The last moment at which [classify] can still change its answer for this window (A-47 D3).
+     *
+     * A live service asks the question when the Motion guard confirms a movement, which is a few
+     * seconds after the burst began — before the follow-up window has been fully measured. Answering
+     * "ordinary" then would only mean "not measured yet", and for the weakest measured snatch shape it
+     * would be wrong: at the confirmation the visible movement is still below the requirement. This
+     * returns the moment the last burst that could still become a snatch has had its whole follow-up
+     * window measured, so the caller can wait exactly that long and no longer.
+     *
+     * The only bursts that hold the answer open are the ones that could still qualify: a burst with a
+     * grab reading whose calm was fully measured. Everything else — a short window, an untrusted
+     * stream, a burst without a sharp reading — is answerable at once, so [atMs] comes back unchanged.
+     */
+    fun verdictFixedAtMs(
+        samples: List<MotionSample>,
+        motionCalibration: MotionCalibration,
+        signature: SnatchSignatureCalibration,
+        atMs: Long,
+    ): Long {
+        val deviations = deviationsOrNull(samples, motionCalibration) ?: return atMs
+        val bursts = movementBursts(samples, deviations, motionCalibration.noiseFloorDeltaMs2, signature.followMaxGapMs)
+        var fixedAtMs = atMs
+        for (burst in bursts) {
+            if (!hasGrabReading(burst, deviations, signature.grabPeakDeltaMs2)) continue
+            if (!hasMeasuredCalm(samples, deviations, burst.first, motionCalibration.noiseFloorDeltaMs2, signature)) {
+                continue
+            }
+            val dueMs = samples[burst.first].elapsedMs + signature.followWindowMs
+            if (dueMs > fixedAtMs) fixedAtMs = dueMs
+        }
+        return fixedAtMs
+    }
+
+    /**
+     * The one reading of the stream both functions share: deviations from rest gravity, or null when
+     * the window cannot be trusted (too short, non-finite, or a clock/gap the Motion layer itself
+     * refuses). Null is fail-closed in both callers.
+     */
+    private fun deviationsOrNull(
+        samples: List<MotionSample>,
+        motionCalibration: MotionCalibration,
+    ): DoubleArray? {
+        if (samples.size < 2) return null
+        val deviations = DoubleArray(samples.size)
+        for (index in samples.indices) {
+            val sample = samples[index]
+            if (!sample.x.isFinite() || !sample.y.isFinite() || !sample.z.isFinite()) return null
+            if (index > 0) {
+                val gap = sample.elapsedMs - samples[index - 1].elapsedMs
+                if (gap <= 0L || gap > motionCalibration.maxSampleGapMs) return null
+            }
+            deviations[index] = gravityDeltaMs2(sample.x, sample.y, sample.z)
+        }
+        return deviations
     }
 
     /**

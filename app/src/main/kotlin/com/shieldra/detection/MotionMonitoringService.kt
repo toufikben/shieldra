@@ -24,6 +24,8 @@ import com.shieldra.domain.GuardSignal
 import com.shieldra.domain.MotionConfirmation
 import com.shieldra.domain.MotionIncidentBinder
 import com.shieldra.notification.LocalEventNotifier
+import com.shieldra.protection.ApprovedSnatchSignatureCalibration
+import com.shieldra.protection.SnatchSignaturePolicy
 import com.shieldra.protection.TableModeResponder
 import com.shieldra.runtime.BackgroundExecutionController
 import com.shieldra.runtime.ExecutionPhase
@@ -55,6 +57,13 @@ import java.time.Instant
  * active". No "24/7", no "guaranteed", and no notice for a state that is not the one the user is
  * being told about — which is why a refused notification permission stops monitoring upstream at
  * [MotionMonitoringStartGate] rather than leaving a silent service running (A-18, Q-G5-b).
+ *
+ * A-47 D3 puts the snatch signature between the confirmation and the owner's response. The service
+ * keeps its own copy of the stream ([signatureWindow]) because the Motion window is consumed the
+ * moment a movement is confirmed, and asks [SnatchSignaturePolicy] about it. Only a window that
+ * carries the measured grab-from-rest-then-locomotion shape may open the challenge; every other
+ * confirmed movement runs the ordinary base response, and the question is held open no longer than
+ * the signature's own follow-up window.
  */
 class MotionMonitoringService : Service(), MotionMonitor {
 
@@ -65,6 +74,22 @@ class MotionMonitoringService : Service(), MotionMonitor {
 
     /** Samples still inside the repetition window, oldest first. Touched on the delivery thread only. */
     private val samples = mutableListOf<MotionSample>()
+
+    /**
+     * The same stream as [samples], kept for the snatch signature (A-47 D3). A confirmation empties
+     * the Motion window in the very sample it was measured on, which is exactly when the signature has
+     * to read it; this copy survives that clear and is emptied only when the stream itself breaks.
+     */
+    private val signatureWindow = mutableListOf<MotionSample>()
+
+    /**
+     * The confirmed incident whose snatch question is still open (A-47 D3). The measured signature
+     * completes its follow-up window up to six seconds after the burst's first reading, so the answer
+     * can arrive on a later sample; until then the owner's response is withheld, and a repeat
+     * confirmation joins the open question instead of opening a second one.
+     */
+    private var pendingSignatureEventId: String? = null
+
     private val wallClock = Clock { Instant.now(JavaClock.systemUTC()) }
 
     /**
@@ -79,6 +104,12 @@ class MotionMonitoringService : Service(), MotionMonitor {
     private val deliveryCheck = object : Runnable {
         override fun run() {
             MotionRuntime.refresh()
+            // An open snatch question cannot wait for samples that are not arriving (A-47 D3): once
+            // the stream is stale it is answered from what was measured before it stopped, so the
+            // owner's response is never withheld forever.
+            if (SystemClock.elapsedRealtime() - lastDeliveryRealtimeMs > deliveryStaleAfterMs) {
+                synchronized(samples) { settleSignatureNow() }
+            }
             deliveryWatch.postDelayed(this, deliveryCheckIntervalMs)
         }
     }
@@ -227,28 +258,99 @@ class MotionMonitoringService : Service(), MotionMonitor {
             if (previous != null && sample.elapsedMs - previous.elapsedMs > ApprovedMotionCalibration.maxSampleGapMs) {
                 samples.clear()
             }
+            // The signature window is continuous even across a confirmation's clear, so it is the one
+            // that notices a real delivery break. Answer the open question with what was measured
+            // before the break, then start a new history: a silence cannot be bridged (A-47 D3).
+            val signaturePrevious = signatureWindow.lastOrNull()
+            if (signaturePrevious != null &&
+                sample.elapsedMs - signaturePrevious.elapsedMs > ApprovedMotionCalibration.maxSampleGapMs
+            ) {
+                settleSignatureNow()
+                signatureWindow.clear()
+            }
             samples += sample
+            signatureWindow += sample
             val horizon = sample.elapsedMs - ApprovedGuardRules.motionRepetitionWindow.toMillis()
             samples.removeAll { it.elapsedMs < horizon }
+            signatureWindow.removeAll { it.elapsedMs < horizon }
             val observation = guardPipeline.observe(samples.toList())
             // Only a movement the window actually found reaches the binder, so a resting device does
             // no storage work; the binder still owns the confirmation rule and the deduplication.
-            if (observation.suspiciousOccurrences == 0) return
-            val confirmation = motionBinder.confirm(
-                GuardSignal(
-                    kind = GuardKind.MOTION,
-                    observedAt = wallClock.now(),
-                    observation = observation,
-                ),
-            )
-            // A confirmed movement is consumed. Left in the window it would be re-confirmed on every
-            // following sample for up to ten seconds — hundreds of storage round trips a second on
-            // this thread for one movement the binder had already recorded.
-            if (confirmation is MotionConfirmation.Recorded || confirmation is MotionConfirmation.BoundToActive) {
-                samples.clear()
+            if (observation.suspiciousOccurrences > 0) {
+                val confirmation = motionBinder.confirm(
+                    GuardSignal(
+                        kind = GuardKind.MOTION,
+                        observedAt = wallClock.now(),
+                        observation = observation,
+                    ),
+                )
+                val confirmedEventId = when (confirmation) {
+                    is MotionConfirmation.Recorded -> confirmation.event.id.value.toString()
+                    is MotionConfirmation.BoundToActive -> confirmation.event.id.value.toString()
+                    else -> null
+                }
+                if (confirmedEventId != null) {
+                    // A confirmed movement is consumed. Left in the window it would be re-confirmed on
+                    // every following sample for up to ten seconds — hundreds of storage round trips a
+                    // second on this thread for one movement the binder had already recorded. The
+                    // signature copy above keeps the window the confirmation just consumed.
+                    samples.clear()
+                    if (pendingSignatureEventId == null) pendingSignatureEventId = confirmedEventId
+                }
+                report(confirmation)
             }
-            report(confirmation)
+            settleSignatureIfFixed(sample.elapsedMs)
         }
+    }
+
+    /**
+     * Answers the open snatch question as soon as the answer can no longer change (A-47 D3). A snatch
+     * is declared the moment the measured window qualifies; otherwise the owner's response waits only
+     * until the last burst that could still become a snatch has had its whole follow-up window
+     * measured — never longer.
+     */
+    private fun settleSignatureIfFixed(nowMs: Long) {
+        val eventId = pendingSignatureEventId ?: return
+        val verdict = SnatchSignaturePolicy.classify(
+            signatureWindow,
+            ApprovedMotionCalibration.motionCalibration,
+            ApprovedSnatchSignatureCalibration.signature,
+        )
+        if (verdict is SnatchSignaturePolicy.Verdict.Snatch) {
+            pendingSignatureEventId = null
+            respondSignature(eventId, snatch = true)
+            return
+        }
+        val fixedAtMs = SnatchSignaturePolicy.verdictFixedAtMs(
+            signatureWindow,
+            ApprovedMotionCalibration.motionCalibration,
+            ApprovedSnatchSignatureCalibration.signature,
+            nowMs,
+        )
+        if (nowMs >= fixedAtMs) {
+            pendingSignatureEventId = null
+            respondSignature(eventId, snatch = false)
+        }
+    }
+
+    /**
+     * The stream broke or stopped: the question is answered from what was measured before it did,
+     * which is fail-closed — a window that never completed the measured shape is ordinary.
+     */
+    private fun settleSignatureNow() {
+        val eventId = pendingSignatureEventId ?: return
+        pendingSignatureEventId = null
+        val verdict = SnatchSignaturePolicy.classify(
+            signatureWindow,
+            ApprovedMotionCalibration.motionCalibration,
+            ApprovedSnatchSignatureCalibration.signature,
+        )
+        respondSignature(eventId, snatch = verdict is SnatchSignaturePolicy.Verdict.Snatch)
+    }
+
+    /** The one bridge from the measured signature to the owner's response (A-47 D3). */
+    private fun respondSignature(eventId: String, snatch: Boolean) {
+        TableModeResponder.onMotionConfirmed(applicationContext, eventId, snatchSignature = snatch)
     }
 
     /**
@@ -258,6 +360,10 @@ class MotionMonitoringService : Service(), MotionMonitor {
      * no refresh. A confirmation that could not be stored is not a monitoring failure: the notice
      * stays truthful about monitoring while the recording problem is reported as what it is, which
      * is the only honest option left in this slice — the claim the user sees never comes from here.
+     *
+     * The owner's response is not started here: it waits for the snatch signature's answer in
+     * [settleSignatureIfFixed], because that answer decides whether the response is the challenge or
+     * the ordinary base behaviour (A-47 D3).
      */
     private fun report(confirmation: MotionConfirmation) {
         MotionEventWrites.record(confirmation)
@@ -277,32 +383,21 @@ class MotionMonitoringService : Service(), MotionMonitor {
                         title = getString(com.shieldra.app.R.string.notification_motion_event_title),
                     )
                 }
-                // A-33 table mode: the owner's chosen response runs — a silent capture, a loud siren,
-                // or a grace window first. When protection is armed it attaches a photo and a fix to
-                // this incident; otherwise it falls back to the silent channel alert (A-32). No screen
-                // lock is part of it: design B leaves the app without that power.
-                TableModeResponder.onMotionConfirmed(applicationContext, recordedId)
             }
             is MotionConfirmation.Rejected ->
                 Log.w(TAG, "a confirmed Movement could not be recorded: ${confirmation.reason}")
-            is MotionConfirmation.BoundToActive -> {
-                // A movement that joined the open incident is not silence: a phone being carried
-                // produces one of these after another, and a movement after the confirmation doing
-                // nothing is precisely the snatch the owner described. It goes to the same responder,
-                // which starts the response again. No second local notification: one incident, one
-                // notice on the owner's own shade.
-                TableModeResponder.onMotionConfirmed(
-                    applicationContext,
-                    confirmation.event.id.value.toString(),
-                )
-            }
             else -> Unit
         }
     }
 
     private fun bringDown() {
         execution?.stop()
-        synchronized(samples) { samples.clear() }
+        synchronized(samples) {
+            samples.clear()
+            signatureWindow.clear()
+            // A response is not started after the owner stopped what produces it.
+            pendingSignatureEventId = null
+        }
     }
 
     private companion object {
