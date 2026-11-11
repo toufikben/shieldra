@@ -23,15 +23,20 @@ import java.time.Instant
 class LockGuardReceiver : DeviceAdminReceiver() {
 
     override fun onPasswordFailed(context: Context, intent: Intent) {
-        // A-46 (owner decision 2026-11-10): while a snatch is open, a wrong unlock must not wait for
-        // the ladder's next rung — it accelerates it. The attempt is consumed here as the escalation's
-        // own capture, so the same second is not photographed twice.
-        if (SnatchCoordinator.escalateNow(context)) return
         val settings = ProtectionSettingsStore(context).load()
         if (!settings.armed || !settings.lockEnabled) return
+        // A-47 D7: count first. Only the attempt that reaches the owner's threshold may accelerate an
+        // open snatch; earlier attempts do nothing extra, and later ones stay on the ordinary evidence
+        // path so a thief cannot turn the ladder into a stream of one alert per PIN.
         when (val verdict = LockGuardState.counter(settings.lockThreshold).onFailure(Instant.now())) {
-            is FailedUnlockCounter.Verdict.Capture ->
+            is FailedUnlockCounter.Verdict.Capture -> {
+                if (verdict.count == settings.lockThreshold &&
+                    SnatchCoordinator.escalateNow(context, verdict.count, settings.lockThreshold)
+                ) {
+                    return
+                }
                 ProtectionService.requestCapture(context, SecurityEventType.LOCK_CONFIRMED_EVENT, verdict.count)
+            }
             is FailedUnlockCounter.Verdict.BelowThreshold -> Unit
         }
     }

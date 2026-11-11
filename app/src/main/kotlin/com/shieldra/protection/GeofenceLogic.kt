@@ -6,11 +6,12 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * The geometry for "safe zones" (amendment A-36): places the owner marks as normal — home, work —
- * where movement should not alarm. The phone alerts when it leaves every safe zone while armed, so a
- * thief carrying it away is caught the moment it crosses out. Evaluated against the per-event and
- * periodic one-shot fixes the protection service already takes — never a continuous GPS stream.
- * Kept pure so the distance maths and the inside/outside decision are unit-tested without a device.
+ * The geometry for "safe zones" (amendment A-36, narrowed by A-47 D2): places the owner marks as
+ * normal — home, work — where the noisy layer is held quiet. The zone is a silencer, not a trigger:
+ * leaving it starts nothing, and every guard outside simply returns to its own base behavior.
+ * Evaluated against the per-event and periodic one-shot fixes the protection service already takes —
+ * never a continuous GPS stream. Kept pure so the distance maths and the inside/outside decision are
+ * unit-tested without a device.
  */
 /** A safe zone the owner marked, with a name for the UI and the geometry for the check. */
 data class SafeZone(
@@ -53,26 +54,15 @@ object GeofenceLogic {
         zones.any { isInside(lat, lon, it) }
 
     /**
-     * True only on the crossing OUT: the owner was inside a safe zone and this fix is outside them
-     * all. [wasInside] is the previous fix's verdict; the caller keeps it between fixes. Never fires
-     * when no zones are defined.
-     */
-    fun hasLeftSafeZone(lat: Double, lon: Double, zones: List<Zone>, wasInside: Boolean): Boolean =
-        zones.isNotEmpty() && wasInside && !isInsideAny(lat, lon, zones)
-
-    /**
      * Outside every zone even after giving the fix its own error: a fused fix of ±300 m that sits 200 m
      * from the edge may really be inside, so it proves nothing. Only a fix whose whole uncertainty
-     * circle clears every zone counts as having left.
+     * circle clears every zone counts as having left. Used to move the quiet state, never to raise a
+     * signal of its own (A-47 D2).
      */
     fun isConfidentlyOutside(lat: Double, lon: Double, accuracyMeters: Double, zones: List<Zone>): Boolean =
         zones.isNotEmpty() && zones.all {
             distanceMeters(lat, lon, it.latitude, it.longitude) - accuracyMeters.coerceAtLeast(0.0) > it.radiusMeters
         }
-
-    /** Leaving is decided only by a confident fix; an ambiguous one changes nothing. */
-    fun hasLeftSafeZone(lat: Double, lon: Double, accuracyMeters: Double, zones: List<Zone>, wasInside: Boolean): Boolean =
-        wasInside && isConfidentlyOutside(lat, lon, accuracyMeters, zones)
 
     /** The state to carry to the next fix: decisively inside, decisively outside, or unchanged if unsure. */
     fun nextInsideState(lat: Double, lon: Double, accuracyMeters: Double, zones: List<Zone>, previous: Boolean): Boolean = when {

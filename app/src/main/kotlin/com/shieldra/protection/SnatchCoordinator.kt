@@ -262,11 +262,13 @@ object SnatchCoordinator {
      * stack a second capture on the same second.
      */
     @Synchronized
-    fun escalateNow(context: Context): Boolean {
+    fun escalateNow(context: Context, failedAttempts: Int, lockThreshold: Int): Boolean {
         val app = context.applicationContext
         val store = SnatchStore(app)
         val incident = store.read()
         if (!incident.active) return false
+        // A-47 D7: the receiver counts first; only the owner's own threshold moves this ladder.
+        if (!SnatchPolicy.acceleratesOnFailedUnlock(incident, failedAttempts, lockThreshold)) return false
         val settings = ProtectionSettingsStore(app).load()
         if (!settings.armed || !settings.snatchLockEnabled) {
             end(app, restartCountdown = false)

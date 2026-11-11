@@ -31,17 +31,20 @@ class GeofenceLogicTest {
     }
 
     @Test
-    fun `with no zones nothing is inside and nothing has left`() {
+    fun `with no zones nothing is inside`() {
         assertFalse(GeofenceLogic.isInsideAny(36.0, 3.0, emptyList()))
-        assertFalse(GeofenceLogic.hasLeftSafeZone(36.1, 3.0, emptyList(), wasInside = true))
+        assertFalse(GeofenceLogic.isConfidentlyOutside(36.1, 3.0, 5.0, emptyList()))
     }
 
     @Test
-    fun `leaving fires only on the crossing out`() {
+    fun `crossing out only moves the quiet state and starts nothing`() {
         val zones = listOf(home)
-        assertTrue(GeofenceLogic.hasLeftSafeZone(36.1, 3.0, zones, wasInside = true))
-        assertFalse(GeofenceLogic.hasLeftSafeZone(36.1, 3.0, zones, wasInside = false))
-        assertFalse(GeofenceLogic.hasLeftSafeZone(36.005, 3.0, zones, wasInside = true))
+        // The decisive fix outside flips the state to outside; nothing else reads that crossing (A-47 D2).
+        assertFalse(GeofenceLogic.nextInsideState(36.1, 3.0, 5.0, zones, previous = true))
+        // Still outside from outside is not a new crossing either.
+        assertFalse(GeofenceLogic.nextInsideState(36.1, 3.0, 5.0, zones, previous = false))
+        // Inside stays inside.
+        assertTrue(GeofenceLogic.nextInsideState(36.005, 3.0, 5.0, zones, previous = true))
     }
 }
 
@@ -52,13 +55,13 @@ class GeofenceAccuracyTest {
     private val farLat = 36.0045
 
     @Test
-    fun `a precise fix well outside counts as having left`() {
-        assertTrue(GeofenceLogic.hasLeftSafeZone(farLat, 3.0, 20.0, listOf(home), wasInside = true))
+    fun `a precise fix well outside is confidently outside`() {
+        assertTrue(GeofenceLogic.isConfidentlyOutside(farLat, 3.0, 20.0, listOf(home)))
     }
 
     @Test
-    fun `a vague fix that could still be inside does not fire`() {
-        assertFalse(GeofenceLogic.hasLeftSafeZone(farLat, 3.0, 400.0, listOf(home), wasInside = true))
+    fun `a vague fix that could still be inside is not confidently outside`() {
+        assertFalse(GeofenceLogic.isConfidentlyOutside(farLat, 3.0, 400.0, listOf(home)))
     }
 
     @Test
@@ -71,10 +74,5 @@ class GeofenceAccuracyTest {
     fun `a decisive fix sets the state`() {
         assertFalse(GeofenceLogic.nextInsideState(farLat, 3.0, 20.0, listOf(home), previous = true))
         assertTrue(GeofenceLogic.nextInsideState(36.0, 3.0, 20.0, listOf(home), previous = false))
-    }
-
-    @Test
-    fun `no zones never fires`() {
-        assertFalse(GeofenceLogic.hasLeftSafeZone(farLat, 3.0, 5.0, emptyList(), wasInside = true))
     }
 }

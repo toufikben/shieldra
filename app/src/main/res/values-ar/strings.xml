@@ -29,11 +29,10 @@
     <string name="map_remote_hint">أرسِل ‎/locate إلى بوت تلغرام في أي وقت لتحصل على الموقع الحالي.</string>
     <string name="map_open_protection">إعدادات التتبّع</string>
     <string name="safe_zones_title">المناطق الآمنة</string>
-    <string name="safe_zones_hint">نبّهني عند مغادرة الهاتف لهذه الأماكن أثناء التفعيل.</string>
+    <string name="safe_zones_hint">داخل هذه الأماكن تبقى الصفّارة وعدّاد الخطف صامتين أثناء التفعيل. الخروج من المنطقة لا يبدأ أي تنبيه.</string>
     <string name="safe_zones_quiet_hint">داخل المنطقة تبقى الصفّارة والعدّاد صامتين، وتُسجَّل الحركة دون رسالة. أما تنبيهات كلمة السر الخاطئة وشريحة SIM فتصل دائمًا.</string>
     <string name="safe_zone_sampler_off">لا قراءة للمنطقة بعد: لا يستطيع الهاتف معرفة مكانه الآن، فتتصرّف الحرّاس كأنه خارجها.</string>
     <string name="safe_zone_quiet_now">هادئ الآن: الهاتف داخل منطقة آمنة.</string>
-    <string name="safe_zones_enable">تنبيه عند المغادرة</string>
     <string name="safe_zones_add">علّم هذا المكان كآمن</string>
     <string name="safe_zones_empty">لا مناطق آمنة بعد</string>
     <string name="safe_zones_radius">حجم المنطقة الجديدة (نصف القطر)</string>
@@ -474,7 +473,7 @@
     <string name="help_commands_title">الأوامر عن بُعد</string>
     <string name="help_commands_body">فعّل الأوامر عن بُعد في الحماية. من محادثة تلغرام الخاصة بك يمكنك إرسال:\n/locate — الموقع الحالي\n/photo — صورة بالكاميرا الأمامية\n/alarm و /stopalarm\n/track on و /track off — موقع متكرّر\n/lost و /found — رسالة المالك على شاشة القفل\n/status — البطارية والشبكة\n\nالأوامر عن بُعد جزء من Shieldra Pro.</string>
     <string name="help_zones_title">المناطق الآمنة</string>
-    <string name="help_zones_body">في تبويب الخريطة قِف في مكان آمن كالمنزل أو العمل واضغط علّم هذا المكان كآمن ثم شغّل التنبيه عند المغادرة. أثناء التفعيل يفحص Shieldra الموقع كل بضع دقائق وينبّهك حين يصبح الهاتف خارج كل المناطق الآمنة. وداخل المنطقة تبقى الصفّارة والعدّاد صامتين وتُسجَّل الحركة دون رسالة، أما تنبيهات كلمة السر الخاطئة وشريحة SIM فتصل دائمًا.</string>
+    <string name="help_zones_body">في تبويب الخريطة قِف في مكان آمن كالمنزل أو العمل واضغط علّم هذا المكان كآمن. أثناء التفعيل يفحص Shieldra الموقع كل بضع دقائق؛ وداخل المنطقة تبقى الصفّارة وعدّاد الخطف صامتين وتُسجَّل الحركة دون رسالة. الخروج من المنطقة لا يبدأ أي تنبيه — خارجها يقوم كل حارس بعمله العادي فقط. أما تنبيهات كلمة السر الخاطئة وشريحة SIM فتصل دائمًا.</string>
     <string name="help_export_title">تصدير الأدلّة</string>
     <string name="help_export_body">افتح حدثاً واضغط تصدير. اختر عبارة مرور من 8 أحرف فأكثر، أكّد بقفل شاشتك، واحفظ الملف المشفّر. بدون عبارة المرور لا يمكن فتحه، فاحفظها جيّداً.</string>
     <string name="help_battery_title">أبقِه يعمل</string>

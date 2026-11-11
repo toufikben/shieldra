@@ -784,14 +784,17 @@ class ProtectionService : Service() {
         }
 
         /**
-         * One safe-zone reading (A-45 D2): where the phone is, whether it just crossed out, and when this
-         * became known. The service takes one at arm and [GeofenceTickReceiver] takes the rest, so the
-         * state the quiet decision reads never depends on a service instance staying alive.
+         * One safe-zone reading: where the phone is and when this became known. The service takes one at
+         * arm and [GeofenceTickReceiver] takes the rest, so the state the quiet decision reads never
+         * depends on a service instance staying alive.
          *
          * Refusals write nothing on purpose. A fix older than two intervals is not evidence about where
          * the phone is now, and no fix at all is the same case: leaving the stored reading alone lets it
          * age out, and an aged-out reading fails the quiet rule closed rather than muting a snatch at the
-         * door. The one-shot "it left a safe zone" alert (A-36) keeps its exact old meaning.
+         * door.
+         *
+         * A-47 D2: the reading is a silencer, nothing else. Crossing out of a zone reports nothing —
+         * outside a zone every guard simply returns to its own base behavior.
          */
         suspend fun sampleSafeZoneNow(context: Context) {
             val app = context.applicationContext
@@ -812,21 +815,14 @@ class ProtectionService : Service() {
                 return
             }
             val previous = ZoneStateStore(app).read()
-            // With no reading yet, assume inside — the same first-fix rule A-36 used, so the alert still
-            // fires on the crossing out and not on the very first fix.
+            // With no reading yet, assume inside: a first fix is not a crossing.
             val wasInside = previous?.inside ?: true
             val accuracy = (fix.accuracyMeters ?: 0f).toDouble()
             val inside = GeofenceLogic.nextInsideState(fix.latitude, fix.longitude, accuracy, zones, wasInside)
-            val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, accuracy, zones, wasInside)
             ZoneStateStore(app).write(inside = inside, atMs = nowMs)
-            if (!left) return
-            val base = AlertRuntime.snapshot(app, AlertKind.TRACKING, null)
-            runCatching {
-                AlertRuntime.alert(
-                    app,
-                    base.copy(occurredAt = Instant.now(), location = fix, evidenceAttempted = false, photoEvidenceId = null),
-                )
-            }.onFailure { Log.w(TAG, "leaving a safe zone could not be reported: ${it.message}") }
+            if (!inside) {
+                Log.i(TAG, "the phone is outside every safe zone: every guard keeps its base behavior")
+            }
         }
 
         /**

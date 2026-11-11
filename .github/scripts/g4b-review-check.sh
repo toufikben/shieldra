@@ -521,12 +521,24 @@ if grep -n 'quietInSafeZone' app/src/main/kotlin/com/shieldra/protection/Protect
   | grep -Eq 'LOCK_CONFIRMED|SIM_CONFIRMED'; then
   fail "a wrong-unlock or SIM alert was put behind the safe-zone gate; evidence must always send"
 fi
-# A-46: a wrong unlock while the snatch proof window is open is an accelerator, never a silent event.
-# The receiver asks the coordinator first; only when no snatch is open does the ordinary lock evidence
-# run. Pinned before the old guard path so the order cannot be reversed unnoticed.
-grep -q 'if (SnatchCoordinator.escalateNow(context)) return' \
+# A-47 D7: the receiver counts first, and only the attempt that reaches the owner's own threshold may
+# accelerate an open snatch. Earlier attempts do nothing extra; later ones keep the ordinary
+# lock-evidence path, so a wrong PIN cannot turn the ladder into a stream.
+grep -q 'verdict.count == settings.lockThreshold &&' \
   app/src/main/kotlin/com/shieldra/protection/LockGuardReceiver.kt \
-  || fail "a wrong unlock no longer accelerates an open snatch (A-46)"
+  || fail "a wrong unlock no longer waits for the owner's own threshold before accelerating (A-47 D7)"
+grep -q 'SnatchCoordinator.escalateNow(context, verdict.count, settings.lockThreshold)' \
+  app/src/main/kotlin/com/shieldra/protection/LockGuardReceiver.kt \
+  || fail "the threshold attempt no longer hands the acceleration to the coordinator (A-47 D7)"
+grep -q 'if (!SnatchPolicy.acceleratesOnFailedUnlock(incident, failedAttempts, lockThreshold)) return false' \
+  app/src/main/kotlin/com/shieldra/protection/SnatchCoordinator.kt \
+  || fail "the coordinator accelerates on any attempt again instead of the measured threshold (A-47 D7)"
+COUNT_FIRST=$(grep -n 'LockGuardState.counter(settings.lockThreshold).onFailure' \
+  app/src/main/kotlin/com/shieldra/protection/LockGuardReceiver.kt | cut -d: -f1)
+ESCALATE_AT=$(grep -n 'SnatchCoordinator.escalateNow' \
+  app/src/main/kotlin/com/shieldra/protection/LockGuardReceiver.kt | cut -d: -f1)
+[ -n "$COUNT_FIRST" ] && [ -n "$ESCALATE_AT" ] && [ "$COUNT_FIRST" -lt "$ESCALATE_AT" ] \
+  || fail "the wrong-PIN receiver accelerates before it counts (A-47 D7)"
 pass "Lock Guard: watch-login plus one snatch lock, one signal per unlock session, and no wipe/reset power"
 
 # 5e. Motion guard (A-43, narrowed by design B on 2026-11-06): the owner asked for the Motion guard to
@@ -645,16 +657,30 @@ if grep -Eq 'SnatchLadder|TheftDemand|ZoneResponse' \
 fi
 grep -q 'if (!quiet && SnatchCoordinator.begin(context, eventId)) return' "$RESPONDER" \
   || fail "a confirmed Motion outside a safe zone no longer opens the snatch lock (A-46)"
+# A-47 D3: only a Motion can reach the challenge. SIM, battery, lock or a scheduled job that called
+# begin would turn an evidence alert into a lock screen the owner never asked for.
+BEGIN_CALLERS=$(grep -rl 'SnatchCoordinator.begin(' app/src/main/kotlin | sort | tr '\n' ' ')
+[ "$BEGIN_CALLERS" = "app/src/main/kotlin/com/shieldra/protection/TableModeResponder.kt " ] \
+  || fail "a non-Motion guard reaches SnatchCoordinator.begin; only a confirmed Motion may open the challenge (A-47 D3); got [$BEGIN_CALLERS]"
 grep -A 12 'is MotionConfirmation.BoundToActive ->' \
   app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt \
   | grep -q 'TableModeResponder.onMotionConfirmed' \
   || fail "a movement that joins an open incident is silent again"
-# Safe zones stay, for the one-shot leave-a-zone alert (A-36) and the owner's quiet-inside rule of
-# 2026-11-08; the sampler that feeds them must not be deleted with the A-45 ladder that also read it.
+# Safe zones stay as the silencer the owner approved (A-47 D2): the sampler feeds the quiet rule,
+# and leaving a zone reports nothing — the old A-36 one-shot leave alert is deleted on purpose.
 [ -s app/src/main/kotlin/com/shieldra/protection/GeofenceTicker.kt ] \
-  || fail "the safe-zone sampler that feeds the leave-a-zone alert (A-36) is missing"
-grep -q 'GeofenceLogic.hasLeftSafeZone' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
-  || fail "leaving a safe zone no longer raises the one-shot alert the Map screen promises (A-36)"
+  || fail "the safe-zone sampler that feeds the quiet rule is missing"
+grep -q 'ZoneStateStore(app).write(inside = inside, atMs = nowMs)' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  || fail "the safe-zone reading stopped writing the state the quiet rule reads (A-47 D2)"
+if grep -q 'GeofenceLogic.hasLeftSafeZone' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt; then
+  fail "leaving a safe zone still raises a signal; the zone is a silencer, not a trigger (A-47 D2)"
+fi
+if sed -n '/suspend fun sampleSafeZoneNow/,/^        }/p' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  | grep -q 'AlertRuntime.alert'; then
+  fail "the safe-zone sampler reports a crossing instead of staying silent (A-47 D2)"
+fi
 pass "A-46: the retired A-45 layer stays deleted; the evidence-only Motion path still alerts, sirens and captures, and an outdoor confirmed Motion opens the snatch lock"
 
 # 5h. Safe-zone quieting (owner decision 2026-11-08). The owner asked to restore the quieting that
@@ -707,7 +733,7 @@ if grep -A6 'val motionInsideSafeZone' app/src/main/kotlin/com/shieldra/protecti
   | grep -Eq 'LOCK_CONFIRMED|SIM_CONFIRMED'; then
   fail "the zone gate reached a wrong-unlock or SIM alert; only Motion may be quieted"
 fi
-pass "safe-zone quieting: siren, countdown and Motion messages stay home; wrong-PIN, SIM and leaving still send"
+pass "safe-zone quieting: siren, countdown and Motion messages stay home; wrong-PIN and SIM still send; leaving a zone sends nothing"
 
 # 5i. Snatch lock (A-46, owner decision 2026-11-10). This is the checkpoint of the restored real lock:
 # one confirmed Motion outside a fresh safe zone locks the screen at once, opens a ten-minute proof
