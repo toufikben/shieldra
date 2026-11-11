@@ -10,15 +10,16 @@ import com.shieldra.detection.gravityDeltaMs2
  * There are deliberately no defaults. The owner's rule is that a sharp grab after a measured calm,
  * followed within seconds by sustained strong locomotion, is what opens the challenge; whether a
  * hand grab, a run and a motorcycle really produce those numbers is a property of the phone, not of
- * this file. Stage 3 measures it there, exactly as Q-G1 measured the Motion levels, and only then
- * may a shipping object exist. Every other layer receives the calibration as an argument.
+ * this file. Stage 3 measured it on the owner's phone and the result is
+ * [ApprovedSnatchSignatureCalibration.signature]; every other layer receives the calibration as an
+ * argument.
  */
 data class SnatchSignatureCalibration(
-    /** A deliberate grab reaches at least this deviation for one reading. */
+    /** A deliberate grab brings at least one reading of its burst to this deviation. */
     val grabPeakDeltaMs2: Double,
-    /** How long the device must have been still before that reading for it to count as a grab. */
+    /** How long the device must have been still before the grab's burst begins. */
     val calmBeforeGrabMs: Long,
-    /** Where the grab's own sharp part ends; the follow-up is counted from there. */
+    /** Where the grab's own sharp part ends, counted from the burst's first reading. */
     val grabMaxDurationMs: Long,
     /** The sustained movement after the grab must reach this deviation. */
     val followMinPeakDeltaMs2: Double,
@@ -46,17 +47,54 @@ data class SnatchSignatureCalibration(
 }
 
 /**
+ * The shipping signature, measured from RAW streams on the owner's phone (A-47/3, 2026-11-11).
+ *
+ * The measurement matrix, at exactly the follow-up definition below (window from the burst's start
+ * +1 s to +6 s, movement summed over readings at 14 m/s² with gaps up to 500 ms):
+ *
+ * - ordinary lifts and walks: 0 ms of follow-up movement;
+ * - ordinary pocket walking, three windows: 548, 236 and 804 ms (the worst is 804);
+ * - a grab followed by running, two windows: 4772 and 4488 ms;
+ * - a grab followed by a vehicle, two windows: 2272 and 1911 ms (the weakest is 1911).
+ *
+ * The 1200 ms requirement sits 396 ms above the worst ordinary shape and 711 ms below the weakest
+ * snatch shape. These are measurements, not preferences; a new number needs a new measurement set,
+ * which is the only thing that may become this object.
+ */
+object ApprovedSnatchSignatureCalibration {
+    val signature = SnatchSignatureCalibration(
+        grabPeakDeltaMs2 = 3.0,
+        calmBeforeGrabMs = 2_500L,
+        grabMaxDurationMs = 1_000L,
+        followMinPeakDeltaMs2 = 14.0,
+        followWindowMs = 6_000L,
+        followMinMovementMs = 1_200L,
+        followMaxGapMs = 500L,
+    )
+}
+
+/**
  * The pure snatch signature (A-47). A confirmed Motion is not a snatch by itself: the phoning owner
  * also runs, lifts the phone and rides. This object reads the same sample window the Motion guard
  * confirmed and answers one question — did a hand grab from rest turn into sustained strong motion
  * inside the window?
  *
- * The shape is the owner's rule, not an engineer's: [calmBeforeGrabMs] of stillness (every reading
- * below the Motion noise floor), a sharp onset at [SnatchSignatureCalibration.grabPeakDeltaMs2],
- * and then, counted only after the sharp part ends, at least [SnatchSignatureCalibration.followMinMovementMs]
- * of movement at [SnatchSignatureCalibration.followMinPeakDeltaMs2] with no silent gap beyond the
- * limit. A run for the bus starts with the phone already moving, a lift ends in quiet, and a
- * motorcycle ride never has the calm-then-grab onset; all three stay [Verdict.Ordinary].
+ * The shape is the owner's rule, not an engineer's: [SnatchSignatureCalibration.calmBeforeGrabMs]
+ * of stillness (every reading below the Motion noise floor), then a burst of movement — readings at
+ * or above the noise floor, with no silent gap beyond the limit — that carries at least one sharp
+ * reading at [SnatchSignatureCalibration.grabPeakDeltaMs2]. A real grab ramps through the noise band
+ * before it peaks, so the burst's first reading is the grab's onset, not the sharp reading itself.
+ * From [SnatchSignatureCalibration.grabMaxDurationMs] after that onset and inside
+ * [SnatchSignatureCalibration.followWindowMs], the window must hold at least
+ * [SnatchSignatureCalibration.followMinMovementMs] of movement at
+ * [SnatchSignatureCalibration.followMinPeakDeltaMs2], with no silence beyond
+ * [SnatchSignatureCalibration.followMaxGapMs] bridging it.
+ *
+ * Every burst is tried in order until one qualifies. A released cable makes a motionless spike whose
+ * follow-up is stillness; that burst spends its own question and the walking that starts later is
+ * still judged on its own measured calm. A run for the bus starts with the phone already moving, a
+ * lift ends in quiet, and a motorcycle ride has no calm-then-grab onset; all three stay
+ * [Verdict.Ordinary].
  *
  * Fail-closed means fail to the *base* behaviour, never to the challenge: an untrusted stream, a
  * short window, a non-finite reading or a non-increasing clock is [Verdict.Ordinary]. The base Motion
@@ -71,7 +109,7 @@ object SnatchSignaturePolicy {
         /** The base Motion response, and nothing more: no lock, no demand, no ladder. */
         data object Ordinary : Verdict
 
-        /** A grab from rest became locomotion: the owner may be asked to prove the phone is theirs. */
+        /** A grab from rest became locomotion; [grabAtMs] is the first reading of the grab's burst. */
         data class Snatch(val grabAtMs: Long) : Verdict
     }
 
@@ -93,18 +131,96 @@ object SnatchSignaturePolicy {
             deviations[index] = gravityDeltaMs2(sample.x, sample.y, sample.z)
         }
 
-        val onset = findGrabOnset(samples, deviations, motionCalibration.noiseFloorDeltaMs2, signature)
-            ?: return Verdict.Ordinary
-        val onsetAtMs = samples[onset].elapsedMs
-        val followFromMs = onsetAtMs + signature.grabMaxDurationMs
-        val followUntilMs = onsetAtMs + signature.followWindowMs
+        val bursts = movementBursts(samples, deviations, motionCalibration.noiseFloorDeltaMs2, signature.followMaxGapMs)
+        for (burst in bursts) {
+            if (!hasGrabReading(burst, deviations, signature.grabPeakDeltaMs2)) continue
+            if (!hasMeasuredCalm(samples, deviations, burst.first, motionCalibration.noiseFloorDeltaMs2, signature)) {
+                continue
+            }
+            val burstStartMs = samples[burst.first].elapsedMs
+            if (followMovementMs(samples, deviations, burstStartMs, signature) >= signature.followMinMovementMs) {
+                return Verdict.Snatch(burstStartMs)
+            }
+        }
+        return Verdict.Ordinary
+    }
 
+    /**
+     * The stretches of movement in the window: runs of readings at or above the Motion noise floor,
+     * where a silent gap longer than [maxGapMs] ends a stretch and the next reading opens another.
+     */
+    private fun movementBursts(
+        samples: List<MotionSample>,
+        deviations: DoubleArray,
+        noiseFloorDeltaMs2: Double,
+        maxGapMs: Long,
+    ): List<IntRange> {
+        val bursts = mutableListOf<IntRange>()
+        var first = -1
+        var last = -1
+        for (index in samples.indices) {
+            if (deviations[index] < noiseFloorDeltaMs2) continue
+            if (first < 0) {
+                first = index
+            } else if (samples[index].elapsedMs - samples[last].elapsedMs > maxGapMs) {
+                bursts += first..last
+                first = index
+            }
+            last = index
+        }
+        if (first >= 0) bursts += first..last
+        return bursts
+    }
+
+    private fun hasGrabReading(burst: IntRange, deviations: DoubleArray, grabPeakDeltaMs2: Double): Boolean {
+        for (index in burst) {
+            if (deviations[index] >= grabPeakDeltaMs2) return true
+        }
+        return false
+    }
+
+    /**
+     * The calm is measured, never assumed: the whole interval before the burst must be inside the
+     * window and every reading in it below the noise floor. A burst whose calm is not inside the
+     * window is skipped rather than accepted: "I did not see the phone being still" is not the same
+     * as "the phone was still".
+     */
+    private fun hasMeasuredCalm(
+        samples: List<MotionSample>,
+        deviations: DoubleArray,
+        burstFirst: Int,
+        noiseFloorDeltaMs2: Double,
+        signature: SnatchSignatureCalibration,
+    ): Boolean {
+        val burstStartMs = samples[burstFirst].elapsedMs
+        if (burstStartMs - samples.first().elapsedMs < signature.calmBeforeGrabMs) return false
+        val calmStartMs = burstStartMs - signature.calmBeforeGrabMs
+        var cursor = burstFirst - 1
+        while (cursor >= 0 && samples[cursor].elapsedMs >= calmStartMs) {
+            if (deviations[cursor] >= noiseFloorDeltaMs2) return false
+            cursor--
+        }
+        return true
+    }
+
+    /**
+     * The probe's own movement sum, applied to this burst's follow-up window, so the classifier and
+     * the measurement cannot drift apart: time between strong readings is added, silence is not.
+     */
+    private fun followMovementMs(
+        samples: List<MotionSample>,
+        deviations: DoubleArray,
+        burstStartMs: Long,
+        signature: SnatchSignatureCalibration,
+    ): Long {
+        val fromMs = burstStartMs + signature.grabMaxDurationMs
+        val untilMs = burstStartMs + signature.followWindowMs
         var movedMs = 0L
         var previousQualifyingAt: Long? = null
         for (index in samples.indices) {
             val at = samples[index].elapsedMs
-            if (at < followFromMs) continue
-            if (at > followUntilMs) break
+            if (at < fromMs) continue
+            if (at > untilMs) break
             if (deviations[index] < signature.followMinPeakDeltaMs2) continue
             val previous = previousQualifyingAt
             if (previous != null) {
@@ -113,41 +229,6 @@ object SnatchSignaturePolicy {
             }
             previousQualifyingAt = at
         }
-        return if (movedMs >= signature.followMinMovementMs) {
-            Verdict.Snatch(onsetAtMs)
-        } else {
-            Verdict.Ordinary
-        }
-    }
-
-    /**
-     * The first reading at the grab level with a full, measured calm behind it. A candidate whose
-     * calm is not inside the window is skipped rather than accepted: "I did not see the phone being
-     * still" is not the same as "the phone was still".
-     */
-    private fun findGrabOnset(
-        samples: List<MotionSample>,
-        deviations: DoubleArray,
-        noiseFloorDeltaMs2: Double,
-        signature: SnatchSignatureCalibration,
-    ): Int? {
-        val windowStartMs = samples.first().elapsedMs
-        for (index in samples.indices) {
-            if (deviations[index] < signature.grabPeakDeltaMs2) continue
-            val at = samples[index].elapsedMs
-            if (at - windowStartMs < signature.calmBeforeGrabMs) continue
-            val calmStartMs = at - signature.calmBeforeGrabMs
-            var calm = true
-            var cursor = index - 1
-            while (cursor >= 0 && samples[cursor].elapsedMs >= calmStartMs) {
-                if (deviations[cursor] >= noiseFloorDeltaMs2) {
-                    calm = false
-                    break
-                }
-                cursor--
-            }
-            if (calm) return index
-        }
-        return null
+        return movedMs
     }
 }
