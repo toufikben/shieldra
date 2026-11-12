@@ -1352,3 +1352,72 @@ front, no Shieldra process before or after; the installed base APK's sha256 matc
 exactly, `versionCode=415`. The lock, the vibration, the trilingual lock-screen demand, the ten-minute
 escalation and the safe-zone pause are the owner's to confirm on the phone; the checklist is
 `qa/phone-checklist-snatch-lock-a46-2026-11-10.md` (not committed).
+
+## 2026-11-12 — the Motion guard acts only on the measured snatch signature, and unlocking is the proof (A-47)
+
+**Owner request 2026-11-11/12.** The owner rejected A-46's trigger: with no safe zone created, every
+confirmed Motion opened the full snatch, so a walk with the phone, a run for the bus, a table lift and
+a motorcycle ride all locked the screen and escalated. The correction, recorded with the owner's
+«موافق» after the rebuilt plan was read in full: safe zones exist to reduce alarms and leaving one must
+not start escalating alarms; the Motion guard acts only on an "at rest → grab → sustained locomotion"
+signature measured on this phone; and the proof of ownership is unlocking the phone, not pressing the
+app's stop button. The record is `docs/superpowers/specs/2026-11-10-a47-zone-silencer-snatch-proof-design.md`.
+
+**What the build does.** `SnatchSignaturePolicy` is the pure classifier, with the constants in
+`ApprovedSnatchSignatureCalibration` (same file): the stream is split into bursts at the 0.8 m/s² noise
+floor with a >500 ms silence separator; a burst qualifies only if it holds a ≥3.0 m/s² grab reading, a
+fully measured 2500 ms calm before its first reading, and **≥1200 ms at ≥14.0 m/s² inside
+`[burstStart+1000, burstStart+6000]`**; the first qualifying burst wins; an unreadable stream
+fail-closes to Ordinary. `MotionMonitoringService` keeps a rolling signature window beside the
+confirmed window, classifies a copy before `samples.clear()`, tries every burst instead of spending the
+one confirmation on a cable spike, and holds the decision until `verdictFixedAtMs` so the follow window
+is measured to its end even though the first confirmation arrives about 3 s after the burst. A stream
+break beyond `maxSampleGapMs` or teardown fails closed. `TableModeResponder.onMotionConfirmed(...,
+snatchSignature)` opens `SnatchCoordinator.begin` only for a signed snatch outside a zone; every other
+Motion keeps the base response, and inside a zone there is no challenge. The challenge is the real lock
+plus the trilingual demand; the runtime `ACTION_USER_PRESENT` receiver proves ownership on unlock at
+once, the 20 s / 60 s / 3 min / 5 min checkpoints (and the ten-minute tick as ceiling) cover a killed
+process, and `proofSeenAtMs` is persisted so a kill between the write and the teardown closes the
+incident instead of sending. A wrong PIN counts first and accelerates only at the lock threshold; the
+A-36 leave-zone `TRACKING` alert is deleted while the zone state is still written. The Motion guard
+itself still records its base evidence for every confirmed episode.
+
+**The measured numbers behind the rule.** The probe on the owner's phone measured, at ≥14.0 m/s² inside
+the follow window: ordinary table lifts and walks 0 ms; three pocket walks 548/236/804 ms; the weakest
+snatch shapes 2272/1911 ms (vehicle), 4772/4488 ms (grab + run). The 1200 ms gate sits 396 ms above the
+worst ordinary burst and 711 ms below the weakest snatch burst. A lower pair (≥10.0 with 1500 ms) was
+discarded — three ordinary pocket walks supply 1515, 1552 and 1183 ms of movement there. The honest
+residual risk is a pocket *run*, which was not measured; unlocking is what makes such a false positive
+cheap.
+
+**Tests.** Six new JVM tests pin `verdictFixedAtMs` — a burst without a grab reading, a burst at the
+window start without measured calm, asked-before-due (9000), two grab bursts (12400), asked at/after
+the deadline, and a NaN stream — for **659 total**. `g4b-review-check.sh` moved with the behaviour in
+the same commit: the responder gate, the single `SnatchCoordinator.begin` caller, the new
+`snatchSignature` parameter, nine Motion-service pins, the signature-window line order before
+`guardPipeline.observe`, and five named signature tests.
+
+**Gates, all green on CI run `43100534074` (`06b617a`, run number 423, 2026-11-11T21:08:44Z→21:20:11Z,
+conclusion success):** `CI TEST SUMMARY: 659 tests, 659 passed, 0 failures, 0 errors, 0 skipped`;
+`G4-B LOCAL REVIEW PASS — runtime/device evidence still required`; `PHASE 3 STATIC REVIEW PASS`;
+`LOCALE PARITY PASS — Arabic equals English key for key`; `Group C boundary scan passed.`; `PASS: the
+installed APK declares exactly the reviewed permission set (22 permissions)`. The stage commits are
+design `e77a60c`, pure policy `f9882b6`, instant proof `947d1af` + locked-boot demand `2b3d5ed`,
+calibration revision `39e5f0e`, wiring `06b617a`.
+
+**A failed dispatch stays on the record.** Two dispatches (`43097200035`, `43098197281`, both
+`06b617a`) returned `startup_failure` with `jobs: []` while GitHub Actions was in a major outage
+(incident `dvy0t3mvh1lg`); the repository, workflow and permissions were unchanged and no check was
+created. After the Actions status returned to operational at 21:08:43Z, the dispatch above ran green.
+No code change was involved.
+
+**Device:** build 423 installed over 418 (the calibration build) with `adb install -r` **without
+launching**, the launcher in front before and after, no Shieldra process or service, app data and prefs
+preserved; the installed base APK's sha256
+`64b761263bea952ffaabf7cf14c344aef3ed480353686f2df8ba9153efe5650f` matches the CI artifact
+(21,418,156 bytes) exactly, `versionCode=423`, `versionName=0.2.0`. The matching `androidTest` APK
+(sha256 `f50ec0975763353d7dfe22f953747da53ef06bd7c66603da1264435b53480d66`, 635,385 bytes) is installed
+for the owner's matrix. The lock, the trilingual demand, the vibration, the instant unlock proof and
+the ten-minute ladder are physically verifiable only by the owner; the 18-row acceptance matrix of the
+design (§7) is the checklist, copied to `qa/phone-checklist-a47-signature-2026-11-12.md` (not
+committed).
