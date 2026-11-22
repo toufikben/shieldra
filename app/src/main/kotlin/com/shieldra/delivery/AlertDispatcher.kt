@@ -1,10 +1,12 @@
 package com.shieldra.delivery
 
+import android.util.Log
 import com.shieldra.domain.DeliveryInformation
 import com.shieldra.domain.DeliveryStatus
 import com.shieldra.domain.EventId
 import com.shieldra.domain.EventLifecycle
 import com.shieldra.domain.EventRepository
+import com.shieldra.domain.RepositoryResult
 import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
@@ -41,6 +43,7 @@ class AlertDispatcher(
     private val worker: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "shieldra-alerts").apply { isDaemon = true }
     },
+    private val logError: (String, Throwable?) -> Unit = { message, error -> Log.e(TAG, message, error) },
 ) {
     /** Queues [alert] and returns at once; the caller may be the sensor thread or the UI. */
     fun dispatch(alert: SecurityAlert) {
@@ -66,14 +69,21 @@ class AlertDispatcher(
     private fun deliver(alert: SecurityAlert) {
         val eventId = eventIdFor(alert)
         val lifecycle = eventId?.let { id -> repository()?.let { EventLifecycle(it) } }
-        if (eventId != null && lifecycle != null) runCatching { lifecycle.beginDelivery(eventId) }
+        val deliveryStarted = if (eventId != null && lifecycle != null) {
+            runCatching { lifecycle.beginDelivery(eventId) }
+                .onFailure { logError("delivery state could not be persisted for $eventId", it) }
+                .getOrDefault(false)
+        } else {
+            eventId == null
+        }
+        if (!deliveryStarted) {
+            logError("delivery state was refused for $eventId; the alert stays retryable", null)
+        }
         val source = settings()
         val channels = source.activeChannels()
         val unusable = source.unusableChannels()
         if (channels.isEmpty() && unusable.isEmpty()) {
-            if (eventId != null && lifecycle != null) {
-                runCatching { lifecycle.finishDelivery(eventId, deferred = false) }
-            }
+            finishDelivery(eventId, lifecycle, deferred = false)
             return
         }
         val text = wording()
@@ -81,21 +91,35 @@ class AlertDispatcher(
         val subject = AlertText.subject(alert, text)
         val body = AlertText.body(alert, text, zone, photoAttached = carried.photoJpeg != null)
         var keepForLater = false
+        var receiptPersistenceFailed = false
         channels.forEach { channel ->
             val result = sendWithRetry(channel, subject, body, carried)
             if (result is ChannelResult.Retryable) keepForLater = true
-            record(alert, channel.channel, result)
+            if (!record(alert, channel.channel, result)) receiptPersistenceFailed = true
         }
         // Audit development (ز) / B-4: a channel the owner switched on that cannot be opened is a
         // delivery failure, and a delivery failure is a security fact — the event records FAILED so
         // the guard card shows a receipt instead of nothing. The alert is kept, so re-entering the
         // secret sends it once the channel works again.
-        unusable.forEach { record(alert, it.channel, ChannelResult.Rejected(it.reason)) }
-        val deferred = keepForLater || unusable.isNotEmpty()
-        if (deferred) pending.add(alert)
-        if (eventId != null && lifecycle != null) {
-            runCatching { lifecycle.finishDelivery(eventId, deferred) }
+        unusable.forEach {
+            if (!record(alert, it.channel, ChannelResult.Rejected(it.reason))) receiptPersistenceFailed = true
         }
+        // A remote success without its durable SUCCESS receipt is not DELIVERED. Keep the alert for
+        // an at-least-once retry instead of laundering a storage failure into a completed incident.
+        val deferred = keepForLater || unusable.isNotEmpty() || receiptPersistenceFailed || !deliveryStarted
+        if (deferred) {
+            runCatching { pending.add(alert) }
+                .onFailure { logError("deferred alert could not be queued for $eventId", it) }
+        }
+        finishDelivery(eventId, lifecycle, deferred)
+    }
+
+    private fun finishDelivery(eventId: EventId?, lifecycle: EventLifecycle?, deferred: Boolean) {
+        if (eventId == null || lifecycle == null) return
+        val finished = runCatching { lifecycle.finishDelivery(eventId, deferred) }
+            .onFailure { logError("delivery completion could not be persisted for $eventId", it) }
+            .getOrDefault(false)
+        if (!finished) logError("delivery completion was refused for $eventId", null)
     }
 
     private fun eventIdFor(alert: SecurityAlert): EventId? =
@@ -115,17 +139,32 @@ class AlertDispatcher(
         return result
     }
 
-    private fun record(alert: SecurityAlert, channel: DeliveryChannel, result: ChannelResult) {
-        val eventId = eventIdFor(alert) ?: return
+    private fun record(alert: SecurityAlert, channel: DeliveryChannel, result: ChannelResult): Boolean {
+        val eventId = eventIdFor(alert) ?: return true
         val information = when (result) {
             ChannelResult.Sent -> DeliveryInformation(channel.name, DeliveryStatus.SUCCESS, now())
             is ChannelResult.Retryable -> DeliveryInformation(channel.name, DeliveryStatus.DEFERRED, now(), result.reason)
             is ChannelResult.Rejected -> DeliveryInformation(channel.name, DeliveryStatus.FAILED, now(), result.reason)
         }
-        runCatching { repository()?.recordDeliveryAttempt(eventId, information) }
+        val store = repository() ?: return false
+        return runCatching {
+            when (store.recordDeliveryAttempt(eventId, information)) {
+                RepositoryResult.Applied -> true
+                RepositoryResult.AlreadyExists ->
+                    store.find(eventId)?.deliveryInformation?.contains(information) == true
+                else -> false
+            }
+        }.getOrElse {
+            logError("delivery receipt could not be stored for $eventId", it)
+            false
+        }.also { persisted ->
+            if (!persisted) logError("delivery receipt was refused for $eventId", null)
+        }
     }
 
     private companion object {
+        const val TAG = "AlertDispatcher"
+
         /** Three tries per channel: at once, after 2 s, after 8 s. Longer gaps belong to the pending queue. */
         val RETRY_WAITS_MS = listOf(0L, 2_000L, 8_000L)
     }

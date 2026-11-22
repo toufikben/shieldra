@@ -69,10 +69,11 @@ class RoomEventRepository(
                             evidence.insert(reference.toEntity(event.id.value.toString())) != -1L,
                         ) { "Evidence reference collision: ${reference.id}" }
                     }
-                    event.deliveryInformation.forEachIndexed { index, information ->
+                    event.deliveryInformation.forEach { information ->
+                        val attemptId = UUID.randomUUID().toString()
                         check(
-                            delivery.insert(information.toEntity(event.id.value.toString(), index)) != -1L,
-                        ) { "Delivery attempt collision: ${event.id.value}:$index" }
+                            delivery.insert(information.toEntity(event.id.value.toString(), attemptId)) != -1L,
+                        ) { "Delivery attempt collision: $attemptId" }
                     }
                 }
             }
@@ -109,8 +110,11 @@ class RoomEventRepository(
             resumeStage = resumeStage,
             expiresAtEpochMs = expiresAt?.toEpochMilli() ?: current.expiresAtEpochMs,
         )
-        return if (changed == 1) RepositoryResult.Applied
-        else events.find(eventId.value.toString())?.let { RepositoryResult.Conflict(EventState.valueOf(it.state)) }
+        if (changed == 1) {
+            onRecordPersisted()
+            return RepositoryResult.Applied
+        }
+        return events.find(eventId.value.toString())?.let { RepositoryResult.Conflict(EventState.valueOf(it.state)) }
             ?: RepositoryResult.NotFound
     }
 
@@ -125,9 +129,11 @@ class RoomEventRepository(
     override fun recordDeliveryAttempt(eventId: EventId, information: DeliveryInformation): RepositoryResult {
         val id = eventId.value.toString()
         if (events.find(id) == null) return RepositoryResult.NotFound
-        val index = delivery.findForEvent(id).size
-        val inserted = delivery.insert(information.toEntity(id, index))
-        return if (inserted != -1L) RepositoryResult.Applied else RepositoryResult.Rejected("Delivery attempt collision: $id:$index")
+        val attemptId = UUID.randomUUID().toString()
+        val inserted = delivery.insert(information.toEntity(id, attemptId))
+        if (inserted != -1L) onRecordPersisted()
+        return if (inserted != -1L) RepositoryResult.Applied
+        else RepositoryResult.Rejected("Delivery attempt collision: $attemptId")
     }
 
     override fun panicActivationCount(eventId: EventId): Int? =
@@ -200,9 +206,9 @@ class RoomEventRepository(
         aadVersion = EvidenceKeyPolicy.AAD_VERSION_V1,
     )
 
-    private fun DeliveryInformation.toEntity(eventId: String, index: Int): DeliveryAttemptEntity =
+    private fun DeliveryInformation.toEntity(eventId: String, attemptId: String): DeliveryAttemptEntity =
         DeliveryAttemptEntity(
-            attemptId = "$eventId:$index",
+            attemptId = attemptId,
             eventId = eventId,
             channel = channel,
             status = status.name,

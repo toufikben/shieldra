@@ -4,6 +4,7 @@ import java.time.Instant
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class EventLifecycleTest {
     private val repository = InMemoryEventRepository()
@@ -73,6 +74,22 @@ class EventLifecycleTest {
 
         lifecycle.beginDelivery(event.id)
         assertEquals(EventState.DELIVERING, repository.find(event.id)!!.state)
+    }
+
+    @Test
+    fun refused_transition_is_reported_and_does_not_start_delivery() {
+        val refusingRepository = object : EventRepository by repository {
+            override fun updateState(
+                eventId: EventId,
+                expected: EventState,
+                next: EventState,
+                metadata: Map<String, String>?,
+                expiresAt: Instant?,
+            ): RepositoryResult = RepositoryResult.Rejected("injected transition failure")
+        }
+
+        assertFalse(EventLifecycle(refusingRepository).beginDelivery(event.id))
+        assertEquals(EventState.INITIATED, repository.find(event.id)!!.state)
     }
 
     @Test

@@ -33,7 +33,7 @@ class ProtectionEvents(
     data class Binding(val event: SecurityEvent, val isNew: Boolean)
 
     @Synchronized
-    fun openOrBind(type: SecurityEventType, grouped: Boolean, severity: GuardSeverity): Binding {
+    fun openOrBind(type: SecurityEventType, grouped: Boolean, severity: GuardSeverity): Binding? {
         val at = clock.now()
         if (grouped) {
             val open = repository.listRecent(ACTIVE_SCAN_LIMIT).firstOrNull {
@@ -49,8 +49,9 @@ class ProtectionEvents(
         )
         return when (repository.save(event)) {
             is RepositoryResult.Applied -> Binding(event, isNew = true)
-            // A collision on a fresh UUID is effectively impossible; treat anything else as recorded.
-            else -> Binding(repository.find(event.id) ?: event, isNew = true)
+            // A colliding id is reusable only when the database really contains that incident.
+            is RepositoryResult.AlreadyExists -> repository.find(event.id)?.let { Binding(it, isNew = false) }
+            else -> null
         }
     }
 

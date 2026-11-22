@@ -389,7 +389,16 @@ class ProtectionService : Service() {
                 }
                 val repository = storage.eventRepository
                 val grouped = type == SecurityEventType.SIM_CONFIRMED_EVENT
-                val binding = ProtectionEvents(repository).openOrBind(type, grouped, severityFor(type))
+                val binding = runCatching {
+                    ProtectionEvents(repository).openOrBind(type, grouped, severityFor(type))
+                }.getOrElse {
+                    Log.e(TAG, "a $type event could not be opened", it)
+                    null
+                }
+                if (binding == null) {
+                    queueForRetry(type, eventId = null, "the event could not be persisted")
+                    return@launch
+                }
                 captureStoreDispatch(storage, repository, binding.event.id, alertKindFor(type))
                 // A new intrusion incident starts the live trail (if the owner turned it on).
                 val intrusion = type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
@@ -414,7 +423,10 @@ class ProtectionService : Service() {
         kind: AlertKind,
     ) {
         val lifecycle = EventLifecycle(repository)
-        lifecycle.beginCapture(eventId)
+        val captureStarted = runCatching { lifecycle.beginCapture(eventId) }
+            .onFailure { Log.e(TAG, "capture state could not be persisted for $eventId", it) }
+            .getOrDefault(false)
+        if (!captureStarted) Log.e(TAG, "capture state was refused for $eventId; capture and alert continue")
         val settings = ProtectionSettingsStore(applicationContext).load()
         val tier = settings.tier
         // The free plan sends a location only; the paid plan adds photos and audio (owner's split).
@@ -440,7 +452,10 @@ class ProtectionService : Service() {
             "${it.latitude}|${it.longitude}|${it.accuracyMeters ?: ""}|${it.provider}".toByteArray(Charsets.UTF_8)
         }
         storeEvidence(storage, repository, eventId, locationBytes, "LOCATION")
-        lifecycle.finishCapture(eventId)
+        val captureFinished = runCatching { lifecycle.finishCapture(eventId) }
+            .onFailure { Log.e(TAG, "capture completion could not be persisted for $eventId", it) }
+            .getOrDefault(false)
+        if (!captureFinished) Log.e(TAG, "capture completion was refused for $eventId; alert continues")
         dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId)
     }
 
@@ -461,7 +476,24 @@ class ProtectionService : Service() {
         if (bytes == null) return null
         val id = "cap_" + UUID.randomUUID().toString().replace("-", "")
         val written = runCatching { storage.evidenceFiles.write(id, bytes) }.map { id }.getOrNull() ?: return null
-        runCatching { repository.recordEvidence(eventId, com.shieldra.domain.EvidenceReference(written, kind)) }
+        val reference = com.shieldra.domain.EvidenceReference(written, kind)
+        val recorded = runCatching { repository.recordEvidence(eventId, reference) }
+            .onFailure { Log.e(TAG, "evidence reference could not be stored for $eventId", it) }
+            .getOrNull()
+        val persisted = when (recorded) {
+            com.shieldra.domain.RepositoryResult.Applied -> true
+            com.shieldra.domain.RepositoryResult.AlreadyExists -> runCatching {
+                repository.find(eventId)?.evidenceReferences?.any { it == reference } == true
+            }.getOrDefault(false)
+            else -> false
+        }
+        if (!persisted) {
+            Log.e(TAG, "evidence $written was not attached to $eventId; removing the orphan payload")
+            runCatching {
+                if (!storage.evidenceFiles.delete(written)) Log.e(TAG, "orphan evidence $written was not found")
+            }.onFailure { Log.e(TAG, "orphan evidence $written could not be removed", it) }
+            return null
+        }
         return written
     }
 

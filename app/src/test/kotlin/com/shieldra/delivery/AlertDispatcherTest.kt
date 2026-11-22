@@ -177,6 +177,7 @@ class AlertDispatcherTest {
         sleep = {},
         zone = ZoneOffset.UTC,
         worker = DirectExecutor(),
+        logError = { _, _ -> },
     )
 
     /** Settings whose active channels are the fakes under test. */

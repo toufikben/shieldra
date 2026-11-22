@@ -190,6 +190,35 @@ class RoomEventRepositoryInstrumentedTest {
     }
 
     @Test
+    fun delivery_attempts_have_unique_ids_and_every_persisted_change_notifies_history() {
+        val name = databaseName()
+        val database = open(name)
+        var notifications = 0
+        val repository = RoomEventRepository(database, fixedClock, onRecordPersisted = { notifications += 1 })
+        val event = event()
+        repository.save(event)
+        val information = DeliveryInformation(
+            channel = "device-test",
+            status = DeliveryStatus.DEFERRED,
+            occurredAt = fixedClock.instant(),
+        )
+
+        assertEquals(RepositoryResult.Applied, repository.recordDeliveryAttempt(event.id, information))
+        assertEquals(RepositoryResult.Applied, repository.recordDeliveryAttempt(event.id, information))
+        assertEquals(
+            RepositoryResult.Applied,
+            repository.updateState(event.id, EventState.INITIATED, EventState.COLLECTING),
+        )
+
+        val attempts = database.deliveryAttemptDao().findForEvent(event.id.value.toString())
+        assertEquals(2, attempts.size)
+        assertEquals("A row count must not become a colliding primary key", 2, attempts.map { it.attemptId }.toSet().size)
+        assertEquals("Creation, two receipts and the transition each invalidate History", 4, notifications)
+        database.close()
+        delete(name)
+    }
+
+    @Test
     fun artifacts_cannot_be_recorded_for_an_event_that_does_not_exist() {
         val name = databaseName()
         val database = open(name)

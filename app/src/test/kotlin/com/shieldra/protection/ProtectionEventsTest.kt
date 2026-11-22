@@ -31,6 +31,22 @@ class ProtectionEventsTest {
     }
 
     @Test
+    fun colliding_id_without_a_persisted_row_is_not_an_open_incident() {
+        val base = InMemoryEventRepository()
+        val repository = object : EventRepository by base {
+            override fun save(event: SecurityEvent): RepositoryResult = RepositoryResult.AlreadyExists
+        }
+
+        val binding = ProtectionEvents(repository).openOrBind(
+            SecurityEventType.BATTERY_SIGNAL,
+            grouped = false,
+            GuardSeverity.MEDIUM,
+        )
+
+        assertNull(binding)
+    }
+
+    @Test
     fun applied_event_persistence_returns_the_real_incident() {
         val repository = InMemoryEventRepository()
 
