@@ -120,7 +120,7 @@ class ProtectionService : Service() {
         intrusionTimes.add(now)
         intrusionTimes.removeIf { now - it > EscalationPolicy.WINDOW_MS }
         if (EscalationPolicy.shouldEscalate(intrusionTimes.toList(), now, settings.escalationThreshold)) {
-            Siren.start(applicationContext)
+            Siren.start(applicationContext, ESCALATION_SIREN_MAX_MS)
         }
     }
 
@@ -193,7 +193,7 @@ class ProtectionService : Service() {
                     screenInteractive = screenInteractive(),
                     online = online(),
                 )
-                if (CompositeTamper.isHighRisk(signals)) Siren.start(applicationContext)
+                if (CompositeTamper.isHighRisk(signals)) Siren.start(applicationContext, ESCALATION_SIREN_MAX_MS)
             }
         }
     }
@@ -661,6 +661,8 @@ class ProtectionService : Service() {
         private const val NOTIFICATION_ID = 20_003
         private const val HEARTBEAT_MS = 60_000L
         private const val NETWORK_LOST_CONFIRM_CHECKS = 2
+    /** Cap for the escalation / composite-tamper siren so it can never loop until the battery dies. */
+    private const val ESCALATION_SIREN_MAX_MS = 60_000L
 
         const val ACTION_ARM = "com.shieldra.protection.ARM"
         const val ACTION_CAPTURE = "com.shieldra.protection.CAPTURE"

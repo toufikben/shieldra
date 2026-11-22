@@ -77,8 +77,7 @@ object TableModeResponder {
 
     private fun fire(context: Context, eventId: String, siren: Boolean) {
         if (siren) {
-            Siren.start(context)
-            handler.postDelayed({ Siren.stop(context) }, SIREN_MAX_MS)
+            Siren.start(context, SIREN_MAX_MS)
         }
         // A live (armed) protection service attaches the photo and fix to the Motion incident, or keeps
         // the request for its next free moment; only when neither is possible does the guard's own text

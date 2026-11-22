@@ -89,7 +89,7 @@ class RemoteCommandPoller(context: Context) {
                 else client.replyText(chat, "SHIELDRA: no photo could be taken")
             }
             "/alarm" -> {
-                Siren.start(app)
+                Siren.start(app, REMOTE_ALARM_MAX_MS)
                 client.replyText(chat, "SHIELDRA: alarm on — send /stopalarm to silence")
             }
             "/stopalarm" -> {
@@ -158,5 +158,7 @@ class RemoteCommandPoller(context: Context) {
 
     private companion object {
         const val TAG = "RemoteCommandPoller"
+        /** Cap for the owner-initiated `/alarm` siren so a leaked token cannot loop it forever. */
+        const val REMOTE_ALARM_MAX_MS = 120_000L
     }
 }

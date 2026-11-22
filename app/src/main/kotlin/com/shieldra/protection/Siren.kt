@@ -6,6 +6,8 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 
 /**
@@ -13,16 +15,23 @@ import android.util.Log
  * option is to scare the thief off. It plays the device's alarm tone on the ALARM stream, looping,
  * and raises that stream to its maximum for the duration — so a silenced ringer does not mute it.
  * It is process-wide and idempotent: starting twice does nothing, and stopping restores the volume.
+ *
+ * An optional max duration on [start] bounds how long it may sound: when it elapses the siren stops
+ * itself, so an escalated or remote-command siren can never loop until the battery dies. Passing
+ * null (the default) leaves the stop to the caller.
  */
 object Siren {
     private const val TAG = "ShieldraSiren"
 
+    private val handler = Handler(Looper.getMainLooper())
+
     @Volatile
     private var player: MediaPlayer? = null
     private var previousVolume: Int? = null
+    private var autoStop: Runnable? = null
 
     @Synchronized
-    fun start(context: Context) {
+    fun start(context: Context, maxMs: Long? = null) {
         if (player != null) return
         val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         runCatching {
@@ -45,14 +54,34 @@ object Siren {
                 prepare()
                 start()
             }
+            scheduleAutoStop(context.applicationContext, maxMs)
         }.onFailure {
             Log.w(TAG, "could not start the siren: ${it.message}")
             stop(context)
         }
     }
 
+    /**
+     * Bounds how long the siren may sound: after [maxMs] it stops itself, so an escalated or tamper
+     * siren can never loop until the battery dies. A null [maxMs] leaves the stop to the caller,
+     * which is how table mode manages its own window.
+     */
+    private fun scheduleAutoStop(appContext: Context, maxMs: Long?) {
+        cancelAutoStop()
+        if (maxMs == null || maxMs <= 0L) return
+        val runnable = Runnable { stop(appContext) }
+        autoStop = runnable
+        handler.postDelayed(runnable, maxMs)
+    }
+
+    private fun cancelAutoStop() {
+        autoStop?.let { handler.removeCallbacks(it) }
+        autoStop = null
+    }
+
     @Synchronized
     fun stop(context: Context) {
+        cancelAutoStop()
         runCatching { player?.stop() }
         runCatching { player?.release() }
         player = null
