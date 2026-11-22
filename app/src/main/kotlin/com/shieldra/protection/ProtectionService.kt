@@ -23,6 +23,7 @@ import com.shieldra.delivery.AlertKind
 import com.shieldra.delivery.AlertLocation
 import com.shieldra.delivery.AlertRuntime
 import com.shieldra.domain.EventId
+import com.shieldra.domain.EventLifecycle
 import com.shieldra.domain.EventRepository
 import com.shieldra.domain.GuardSeverity
 import com.shieldra.domain.SecurityEventType
@@ -412,6 +413,8 @@ class ProtectionService : Service() {
         eventId: EventId,
         kind: AlertKind,
     ) {
+        val lifecycle = EventLifecycle(repository)
+        lifecycle.beginCapture(eventId)
         val settings = ProtectionSettingsStore(applicationContext).load()
         val tier = settings.tier
         // The free plan sends a location only; the paid plan adds photos and audio (owner's split).
@@ -437,6 +440,7 @@ class ProtectionService : Service() {
             "${it.latitude}|${it.longitude}|${it.accuracyMeters ?: ""}|${it.provider}".toByteArray(Charsets.UTF_8)
         }
         storeEvidence(storage, repository, eventId, locationBytes, "LOCATION")
+        lifecycle.finishCapture(eventId)
         dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId)
     }
 

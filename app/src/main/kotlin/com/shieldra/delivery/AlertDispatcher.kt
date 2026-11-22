@@ -3,6 +3,7 @@ package com.shieldra.delivery
 import com.shieldra.domain.DeliveryInformation
 import com.shieldra.domain.DeliveryStatus
 import com.shieldra.domain.EventId
+import com.shieldra.domain.EventLifecycle
 import com.shieldra.domain.EventRepository
 import java.time.Instant
 import java.time.ZoneId
@@ -63,10 +64,18 @@ class AlertDispatcher(
     }
 
     private fun deliver(alert: SecurityAlert) {
+        val eventId = eventIdFor(alert)
+        val lifecycle = eventId?.let { id -> repository()?.let { EventLifecycle(it) } }
+        if (eventId != null && lifecycle != null) runCatching { lifecycle.beginDelivery(eventId) }
         val source = settings()
         val channels = source.activeChannels()
         val unusable = source.unusableChannels()
-        if (channels.isEmpty() && unusable.isEmpty()) return
+        if (channels.isEmpty() && unusable.isEmpty()) {
+            if (eventId != null && lifecycle != null) {
+                runCatching { lifecycle.finishDelivery(eventId, deferred = false) }
+            }
+            return
+        }
         val text = wording()
         val carried = extrasFor(alert)
         val subject = AlertText.subject(alert, text)
@@ -82,8 +91,15 @@ class AlertDispatcher(
         // the guard card shows a receipt instead of nothing. The alert is kept, so re-entering the
         // secret sends it once the channel works again.
         unusable.forEach { record(alert, it.channel, ChannelResult.Rejected(it.reason)) }
-        if (keepForLater || unusable.isNotEmpty()) pending.add(alert)
+        val deferred = keepForLater || unusable.isNotEmpty()
+        if (deferred) pending.add(alert)
+        if (eventId != null && lifecycle != null) {
+            runCatching { lifecycle.finishDelivery(eventId, deferred) }
+        }
     }
+
+    private fun eventIdFor(alert: SecurityAlert): EventId? =
+        alert.eventId?.let { runCatching { EventId.from(UUID.fromString(it)) }.getOrNull() }
 
     private fun extrasFor(alert: SecurityAlert): AlertExtras =
         runCatching { extras(alert) }.getOrDefault(AlertExtras.NONE)
@@ -100,7 +116,7 @@ class AlertDispatcher(
     }
 
     private fun record(alert: SecurityAlert, channel: DeliveryChannel, result: ChannelResult) {
-        val eventId = alert.eventId?.let { runCatching { EventId.from(UUID.fromString(it)) }.getOrNull() } ?: return
+        val eventId = eventIdFor(alert) ?: return
         val information = when (result) {
             ChannelResult.Sent -> DeliveryInformation(channel.name, DeliveryStatus.SUCCESS, now())
             is ChannelResult.Retryable -> DeliveryInformation(channel.name, DeliveryStatus.DEFERRED, now(), result.reason)
