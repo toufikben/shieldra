@@ -1,10 +1,13 @@
 package com.shieldra.delivery
 
+import com.shieldra.domain.DeliveryInformation
 import com.shieldra.domain.DeliveryStatus
 import com.shieldra.domain.EventId
+import com.shieldra.domain.EventRepository
 import com.shieldra.domain.EventState
 import com.shieldra.domain.GuardSeverity
 import com.shieldra.domain.InMemoryEventRepository
+import com.shieldra.domain.RepositoryResult
 import com.shieldra.domain.SecurityEvent
 import com.shieldra.domain.SecurityEventType
 import java.time.Instant
@@ -124,6 +127,22 @@ class AlertDispatcherTest {
         assertTrue(pending.items.isEmpty())
     }
 
+    @Test
+    fun a_sent_alert_whose_receipt_cannot_be_persisted_is_deferred_and_retried() {
+        val telegram = FakeChannel(DeliveryChannel.TELEGRAM, ChannelResult.Sent)
+        val failingRepository = object : EventRepository by repository {
+            override fun recordDeliveryAttempt(
+                eventId: EventId,
+                information: DeliveryInformation,
+            ): RepositoryResult = RepositoryResult.Rejected("injected receipt failure")
+        }
+
+        dispatcherFor(FixedSettings(listOf(telegram)), failingRepository).dispatch(alert())
+
+        assertEquals(EventState.DEFERRED, repository.find(event.id)!!.state)
+        assertEquals(listOf(alert()), pending.items)
+    }
+
     private fun alert() = SecurityAlert(
         eventId = event.id.value.toString(),
         kind = AlertKind.PANIC,
@@ -134,9 +153,12 @@ class AlertDispatcherTest {
 
     private fun dispatcher(channels: List<AlertChannel>) = dispatcherFor(FixedSettings(channels))
 
-    private fun dispatcherFor(source: ChannelSource) = AlertDispatcher(
+    private fun dispatcherFor(
+        source: ChannelSource,
+        eventRepository: EventRepository = repository,
+    ) = AlertDispatcher(
         settings = { source },
-        repository = { repository },
+        repository = { eventRepository },
         wording = {
             AlertWording(
                 appName = "SHIELDRA",
