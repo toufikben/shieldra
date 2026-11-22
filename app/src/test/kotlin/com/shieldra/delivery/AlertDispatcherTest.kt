@@ -2,6 +2,7 @@ package com.shieldra.delivery
 
 import com.shieldra.domain.DeliveryStatus
 import com.shieldra.domain.EventId
+import com.shieldra.domain.EventState
 import com.shieldra.domain.GuardSeverity
 import com.shieldra.domain.InMemoryEventRepository
 import com.shieldra.domain.SecurityEvent
@@ -36,6 +37,7 @@ class AlertDispatcherTest {
 
         val attempts = repository.find(event.id)!!.deliveryInformation
         assertEquals(listOf("TELEGRAM" to DeliveryStatus.SUCCESS), attempts.map { it.channel to it.status })
+        assertEquals(EventState.DELIVERED, repository.find(event.id)!!.state)
         assertEquals(1, telegram.calls)
         assertTrue(pending.items.isEmpty())
     }
@@ -48,6 +50,8 @@ class AlertDispatcherTest {
 
         assertEquals(3, email.calls)
         assertEquals(DeliveryStatus.DEFERRED, repository.find(event.id)!!.deliveryInformation.single().status)
+        assertEquals(EventState.DEFERRED, repository.find(event.id)!!.state)
+        assertEquals("DELIVERY", repository.find(event.id)!!.metadata["deferredStage"])
         assertEquals(listOf(alert()), pending.items)
     }
 
@@ -61,6 +65,7 @@ class AlertDispatcherTest {
         assertEquals(1, email.calls)
         val attempts = repository.find(event.id)!!.deliveryInformation.associate { it.channel to it.status }
         assertEquals(mapOf("EMAIL" to DeliveryStatus.FAILED, "TELEGRAM" to DeliveryStatus.SUCCESS), attempts)
+        assertEquals(EventState.DELIVERED, repository.find(event.id)!!.state)
         assertTrue(pending.items.isEmpty())
     }
 
@@ -96,6 +101,7 @@ class AlertDispatcherTest {
         assertEquals("TELEGRAM", attempt.channel)
         assertEquals(DeliveryStatus.FAILED, attempt.status)
         assertEquals(DeliverySettings.REASON_TOKEN_UNREADABLE, attempt.failureReason)
+        assertEquals(EventState.DEFERRED, repository.find(event.id)!!.state)
         assertEquals(listOf(alert()), pending.items)
     }
 
@@ -104,6 +110,17 @@ class AlertDispatcherTest {
         dispatcher(emptyList()).dispatch(alert())
 
         assertTrue(repository.find(event.id)!!.deliveryInformation.isEmpty())
+        assertEquals(EventState.FAILED_FINAL, repository.find(event.id)!!.state)
+        assertTrue(pending.items.isEmpty())
+    }
+
+    @Test
+    fun permanent_failures_on_every_channel_end_the_event_as_failed_final() {
+        val email = FakeChannel(DeliveryChannel.EMAIL, ChannelResult.Rejected("bad password"))
+
+        dispatcher(listOf(email)).dispatch(alert())
+
+        assertEquals(EventState.FAILED_FINAL, repository.find(event.id)!!.state)
         assertTrue(pending.items.isEmpty())
     }
 
