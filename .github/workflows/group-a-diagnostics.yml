@@ -8,6 +8,8 @@ on:
         type: boolean
         default: false
   push:
+    branches: [main, 'fix/**']
+  pull_request:
     branches: [main]
 
 permissions:
