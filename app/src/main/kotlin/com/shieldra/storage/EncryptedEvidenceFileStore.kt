@@ -67,6 +67,7 @@ class EncryptedEvidenceFileStore(
     rootDirectory: File,
     private val cipher: EvidenceCipher,
     private val evidenceIdProvider: (String) -> ByteArray,
+    private val cipherResolver: EvidenceCipherResolver? = null,
 ) {
     private val rootDirectory: File = rootDirectory.canonicalFile
 
@@ -82,7 +83,7 @@ class EncryptedEvidenceFileStore(
         val temporary = File(rootDirectory, ".$evidenceId.tmp")
         try {
             val aad = evidenceIdProvider(evidenceId)
-            val encrypted = cipher.encrypt(plaintext, aad)
+            val encrypted = writeCipher().encrypt(plaintext, aad)
             FileOutputStream(temporary).use { output ->
                 output.write(encrypted)
                 output.flush()
@@ -109,7 +110,7 @@ class EncryptedEvidenceFileStore(
         }
         val aad = evidenceIdProvider(evidenceId)
         return try {
-            cipher.decrypt(file.readBytes(), aad)
+            readCipher(evidenceId).decrypt(file.readBytes(), aad)
         } catch (error: EvidenceKeyRecoveryRequiredException) {
             // §6/A-4: do not launder a missing-key recovery signal into "unavailable".
             // The file is present; only the key is gone, so the operator must act.
@@ -206,6 +207,15 @@ class EncryptedEvidenceFileStore(
             deletedTemporaryFiles = deletedTemporary,
         )
     }
+
+    /** Writes always use the currently active key generation (rotation-aware when a resolver is wired). */
+    private fun writeCipher(): EvidenceCipher = cipherResolver?.writeCipher() ?: cipher
+
+    /**
+     * Reads follow the key version stored with the evidence row, so files re-encrypted by a rotation
+     * stay readable. Without a resolver (tests, legacy callers) the single injected cipher is used.
+     */
+    private fun readCipher(evidenceId: String): EvidenceCipher = cipherResolver?.readCipher(evidenceId) ?: cipher
 
     private fun fileFor(evidenceId: String): File = File(rootDirectory, "$evidenceId$FILE_SUFFIX")
 

@@ -10,8 +10,7 @@ import java.io.File
 
 /**
  * Explicit local-storage composition root.
- * It is intentionally not installed from Application yet: runtime rollout and
- * Android Keystore behavior still require owner-device verification.
+ * Installed from [com.shieldra.app.ShieldraApp] behind StorageRuntimeApproval.
  */
 class LocalShieldraStorage private constructor(
     val database: ShieldraDatabase,
@@ -108,6 +107,9 @@ class LocalShieldraStorage private constructor(
             // the orchestrator decides whether the set is due and when a superseded
             // generation may be marked retired. Room remains the reference authority.
             val rotationMetadata = RoomRotationMetadata(database)
+            val keyLifecycle = FileBackedKeyLifecycle(FileBackedKeyLifecycle.fileIn(context.noBackupFilesDir)) {
+                System.currentTimeMillis()
+            }
             val rotation = EvidenceRotationOrchestrator(
                 rotator = EvidenceKeyRotator(
                     files = FileSystemRotationGateway(evidenceDirectory),
@@ -116,13 +118,33 @@ class LocalShieldraStorage private constructor(
                     aad = RotationAadVersions,
                 ),
                 scope = rotationMetadata,
-                lifecycle = FileBackedKeyLifecycle(FileBackedKeyLifecycle.fileIn(context.noBackupFilesDir)) {
-                    System.currentTimeMillis()
-                },
+                lifecycle = keyLifecycle,
                 nowMillis = { System.currentTimeMillis() },
             )
 
-            val evidenceFiles = EncryptedEvidenceFileStore(evidenceDirectory, evidenceCipher, evidenceIdProvider)
+            // Reads follow the key version stored on each evidence row; writes use the active
+            // generation. Without this the store kept decrypting with the v1 alias after a
+            // rotation had re-sealed the files under v2, making rotated evidence unreadable.
+            val cipherResolver = object : EvidenceCipherResolver {
+                override fun writeCipher(): EvidenceCipher =
+                    KeystoreEvidenceCipherWithAad(
+                        encryptor,
+                        EvidenceKeyPolicy.aliasForKeyVersion(keyLifecycle.snapshot().activeKeyVersion),
+                        policy,
+                    )
+
+                override fun readCipher(evidenceId: String): EvidenceCipher {
+                    val metadata = rotationMetadata.versionsOf(evidenceId)
+                        ?: throw EvidenceUnavailableException("Evidence rotation metadata is missing: $evidenceId")
+                    return KeystoreEvidenceCipherWithAad(
+                        encryptor,
+                        EvidenceKeyPolicy.aliasForKeyVersion(metadata.keyVersion),
+                        policy,
+                    )
+                }
+            }
+
+            val evidenceFiles = EncryptedEvidenceFileStore(evidenceDirectory, evidenceCipher, evidenceIdProvider, cipherResolver)
 
             // Q-K-2: retention is given the same composition root as rotation, and
             // the repository is told to notify it whenever it commits a record.
@@ -132,7 +154,11 @@ class LocalShieldraStorage private constructor(
 
             return LocalShieldraStorage(
                 database = database,
-                eventRepository = RoomEventRepository(database, onRecordPersisted = retention::schedule),
+                eventRepository = RoomEventRepository(
+                    database,
+                    onRecordPersisted = retention::schedule,
+                    activeKeyVersion = { keyLifecycle.snapshot().activeKeyVersion },
+                ),
                 evidenceFiles = evidenceFiles,
                 rotation = rotation,
                 retention = retention,
@@ -166,7 +192,7 @@ class LocalShieldraStorage private constructor(
 
         /**
          * The owner's confirmed "delete all data" (§5.7, and audit B-3/§5.13): every event row, every
-         * evidence file, both evidence keys, the keys that seal the delivery secrets and queued
+         * evidence file, every evidence key generation, the keys that seal the delivery secrets and queued
          * positions, and every value the app has stored in its own preferences. The caller restarts the
          * process afterwards, because nothing may keep using the closed database or the destroyed keys.
          *
@@ -185,7 +211,7 @@ class LocalShieldraStorage private constructor(
                 metadataDatabase = app.getDatabasePath(DEFAULT_DATABASE_NAME),
                 keyDeletion = encryptor::deleteEvidenceKeyIrreversibly,
             ).execute(
-                aliases = EVIDENCE_KEY_ALIASES + SECRET_KEY_ALIASES,
+                aliases = (encryptor.evidenceKeyAliases() + EVIDENCE_KEY_ALIASES).distinct() + SECRET_KEY_ALIASES,
                 confirmed = true,
             )
             FileBackedKeyLifecycle.fileIn(app.noBackupFilesDir).delete()

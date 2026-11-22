@@ -30,9 +30,15 @@ class FileBackedKeyLifecycle(
 
     override fun snapshot(): KeyLifecycleSnapshot = load().toSnapshot()
 
-    override fun nextKeyVersion(current: String): String? = when (current) {
-        EvidenceKeyPolicy.KEY_VERSION_V1 -> EvidenceKeyPolicy.KEY_VERSION_V2
-        else -> null
+    /**
+     * Rotation is a continuing sequence, not a one-shot v1 to v2 step: v1 to v2 to
+     * v3 and so on, so every 90-day window always has an approved successor. An
+     * unreadable or unsupported current version still fails closed (null).
+     */
+    override fun nextKeyVersion(current: String): String? {
+        if (!EvidenceKeyPolicy.isSupportedKeyVersion(current)) return null
+        val generation = current.removePrefix("v").toIntOrNull() ?: return null
+        return "v${generation + 1}"
     }
 
     override fun completeRotation(fromKeyVersion: String, toKeyVersion: String, atEpochMs: Long) {

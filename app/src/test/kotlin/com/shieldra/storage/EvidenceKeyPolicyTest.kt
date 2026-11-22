@@ -62,7 +62,7 @@ class EvidenceKeyPolicyTest {
             EvidenceKeyPolicy.aliasForKeyVersion(EvidenceKeyPolicy.KEY_VERSION_V2),
         )
         assertFailsWith<IllegalArgumentException> {
-            EvidenceKeyPolicy.aliasForKeyVersion("v99")
+            EvidenceKeyPolicy.aliasForKeyVersion("not-a-version")
         }
     }
 

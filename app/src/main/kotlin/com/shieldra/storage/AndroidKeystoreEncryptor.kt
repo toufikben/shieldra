@@ -228,8 +228,26 @@ open class AndroidKeystoreEncryptor(
         return true
     }
 
+    /**
+     * Every evidence key generation this install holds (shieldra_evidence_v1, _v2, ...).
+     * A reset must delete all of them: enumerating beats a fixed list, because a fixed
+     * list stops being complete the moment rotation creates its third generation.
+     */
+    fun evidenceKeyAliases(): List<String> {
+        val keyStore = try {
+            KeyStore.getInstance(EncryptionPolicy.PROVIDER).apply { load(null) }
+        } catch (error: Exception) {
+            throw KeyMaterialUnavailableException(
+                "Android Keystore is unavailable; evidence key enumeration failed",
+                error,
+            )
+        }
+        return keyStore.aliases().toList().filter { it.startsWith(EVIDENCE_ALIAS_PREFIX) }
+    }
+
     companion object {
         private val ALIAS_PATTERN = Regex("[A-Za-z0-9._-]{3,128}")
+        private const val EVIDENCE_ALIAS_PREFIX = "shieldra_evidence_"
     }
 }
 

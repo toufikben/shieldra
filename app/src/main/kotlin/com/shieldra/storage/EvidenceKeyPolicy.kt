@@ -13,7 +13,7 @@ object EvidenceKeyPolicy {
 
     /**
      * Versioned key alias (decision §2.1).
-     * The active rotation target uses "shieldra_evidence_v2".
+     * Alias of generation v1; later generations resolve through [aliasForKeyVersion].
      */
     const val EVIDENCE_KEY_ALIAS: String = "shieldra_evidence_v1"
 
@@ -39,11 +39,19 @@ object EvidenceKeyPolicy {
      * Returns the Keystore alias for a stored key version.
      * Unknown versions fail closed: there is no implicit alias mapping.
      */
-    fun aliasForKeyVersion(keyVersion: String): String = when (keyVersion) {
-        KEY_VERSION_V1 -> EVIDENCE_KEY_ALIAS
-        KEY_VERSION_V2 -> EVIDENCE_KEY_ALIAS_V2
-        else -> throw IllegalArgumentException("Unsupported evidence key version: $keyVersion")
+    fun aliasForKeyVersion(keyVersion: String): String {
+        require(isSupportedKeyVersion(keyVersion)) { "Unsupported evidence key version: $keyVersion" }
+        return "shieldra_evidence_$keyVersion"
     }
+
+    /**
+     * A key version is "v" followed by a positive generation with no leading zeros
+     * (v1, v2, v3 ...). Anything else fails closed, so no stored row can ever be
+     * routed to an invented alias. Rotation is a continuing sequence, so this
+     * deliberately covers generations beyond v2.
+     */
+    fun isSupportedKeyVersion(keyVersion: String): Boolean =
+        keyVersion.matches(KEY_VERSION_PATTERN)
 
     /**
      * Returns true when [ROTATION_INTERVAL_DAYS] elapsed since [lastRotationEpochMs].
@@ -58,6 +66,8 @@ object EvidenceKeyPolicy {
     }
 
     private const val MILLIS_PER_DAY: Long = 24L * 60L * 60L * 1000L
+
+    private val KEY_VERSION_PATTERN = Regex("v[1-9][0-9]*")
 
     /**
      * Production encryption policy for evidence keys (decision §2.2).

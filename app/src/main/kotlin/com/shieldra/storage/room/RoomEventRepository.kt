@@ -26,6 +26,8 @@ class RoomEventRepository(
     private val clock: Clock = Clock.systemUTC(),
     /** Q-K-2's third execution point. Must only dispatch: a save can arrive on the main thread. */
     private val onRecordPersisted: () -> Unit = {},
+    /** Active evidence key generation, stamped on every new evidence reference (rotation-aware). */
+    private val activeKeyVersion: () -> String = { EvidenceKeyPolicy.KEY_VERSION_V1 },
 ) : EventRepository, PanicActivationStore {
     private val events = database.securityEventDao()
     private val evidence = database.evidenceReferenceDao()
@@ -194,7 +196,7 @@ class RoomEventRepository(
         kind = kind,
         contentReference = null,
         capturedAtEpochMs = null,
-        keyVersion = EvidenceKeyPolicy.KEY_VERSION_V1,
+        keyVersion = activeKeyVersion(),
         aadVersion = EvidenceKeyPolicy.AAD_VERSION_V1,
     )
 

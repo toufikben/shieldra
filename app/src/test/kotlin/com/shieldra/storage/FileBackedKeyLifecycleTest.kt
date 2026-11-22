@@ -76,7 +76,7 @@ class FileBackedKeyLifecycleTest {
     }
 
     @Test
-    fun only_the_installed_generation_has_an_approved_successor() {
+    fun every_generation_has_an_approved_successor() {
         val lifecycle = FileBackedKeyLifecycle(record("lifecycle-successor"), Clock().millis)
 
         assertEquals(
@@ -84,9 +84,9 @@ class FileBackedKeyLifecycleTest {
             lifecycle.nextKeyVersion(EvidenceKeyPolicy.KEY_VERSION_V1),
         )
         assertEquals(
-            null,
+            "v3",
             lifecycle.nextKeyVersion(EvidenceKeyPolicy.KEY_VERSION_V2),
-            "no v3 alias is approved (decisions 3.1); rotation must stop instead of inventing one",
+            "rotation is a continuing sequence: v2 is succeeded by v3, never a dead end",
         )
         assertEquals(null, lifecycle.nextKeyVersion("v-unapproved"))
     }
