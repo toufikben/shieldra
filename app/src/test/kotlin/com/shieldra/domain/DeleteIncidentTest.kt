@@ -46,7 +46,11 @@ class DeleteIncidentTest {
 
         repository.deleteIncident(deleted.id)
 
-        assertEquals(kept, repository.find(kept.id))
+        // `kept` was saved before its evidence reference existed, so the stored row is the one to
+        // read: it must still be there and must still hold the reference that was recorded on it.
+        val survivor = repository.find(kept.id)
+        assertEquals(kept.id, survivor?.id)
+        assertEquals(listOf("kept_front"), survivor?.evidenceReferences?.map { it.id })
         assertEquals(listOf(kept.id), repository.listRecent(10).map { it.id })
     }
 
