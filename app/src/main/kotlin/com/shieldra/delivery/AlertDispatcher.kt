@@ -13,11 +13,18 @@ import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+/** One alert waiting to be (re)sent, with the key that retires exactly that one. */
+data class QueuedAlert(val key: String, val alert: SecurityAlert)
+
 /** Alerts that could not leave the phone yet, kept until a network comes back. */
 interface PendingAlertStore {
     fun add(alert: SecurityAlert)
 
-    fun drain(): List<SecurityAlert>
+    /** Everything still waiting, oldest first, without removing any of it. */
+    fun pending(): List<QueuedAlert>
+
+    /** Retires the alert that really left the phone. Anything else stays queued. */
+    fun markSent(key: String)
 }
 
 /**
@@ -52,7 +59,15 @@ class AlertDispatcher(
 
     /** Retries everything kept while offline. Called when a network becomes available. */
     fun flushPending() {
-        worker.execute { pending.drain().forEach(::deliver) }
+        worker.execute {
+            pending.pending().forEach { queued ->
+                deliver(queued.alert)
+                // Retired only after this alert's own attempt finished: a failure halfway through the
+                // batch leaves the rest exactly where they were, instead of emptying the queue first.
+                runCatching { pending.markSent(queued.key) }
+                    .onFailure { logError("a queued alert could not be retired", it) }
+            }
+        }
     }
 
     /** Sends through one channel now and reports the answer; used by the "send test" button. */

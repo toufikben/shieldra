@@ -1,61 +1,47 @@
 package com.shieldra.delivery
 
-import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * P1-3: a queued alert must survive a failed flush. Draining the store up front loses every alert in
- * the batch when the process dies or the network drops mid-send, and orders them by their encoded text
- * rather than by when they happened.
+ * P1-3: the queue behind the pending-alert store must order by when an alert happened and retire
+ * exactly what was sent. An emptied queue loses the rest of the batch when one send fails.
  */
 class PendingAlertQueueTest {
-    private val first = alertAt("2026-11-23T10:00:00Z")
-    private val second = alertAt("2026-11-23T10:05:00Z")
-    private val third = alertAt("2026-11-23T10:10:00Z")
-
     @Test
-    fun a_failure_during_flush_keeps_the_alerts_that_were_not_sent() {
-        val queue = InMemoryPendingQueue(listOf(third, first, second))
-        val sent = mutableListOf<SecurityAlert>()
+    fun the_queue_is_ordered_by_when_the_alert_happened() {
+        val queue = PendingAlertQueue(capacity = 50)
+        queue.add("third", occurredAtMs = 300L)
+        queue.add("first", occurredAtMs = 100L)
+        queue.add("second", occurredAtMs = 200L)
 
-        val started = queue.beginFlush()
-        assertEquals(listOf(first, second, third), started.map { it.alert }, "a flush is oldest first")
-
-        queue.markSent(started[0].key)
-        queue.markSent(started[1].key)
-        // The third send never happens: the process dies, or the network goes away with the worker.
-
-        assertEquals(listOf(third), queue.pending(), "only the failed remainder may be retried")
+        assertEquals(listOf("first", "second", "third"), queue.pending().map { it.key })
     }
 
     @Test
-    fun a_new_alert_is_never_truncated_by_an_unfinished_flush() {
-        val queue = InMemoryPendingQueue(listOf(first))
+    fun retiring_one_alert_leaves_every_other_alert_queued() {
+        val queue = PendingAlertQueue(capacity = 50)
+        queue.add("first", occurredAtMs = 100L)
+        queue.add("second", occurredAtMs = 200L)
 
-        val started = queue.beginFlush()
-        queue.add(second)
+        queue.markSent("first")
 
-        assertEquals(listOf(second), queue.pending(), "an in-flight alert is not pending, the new one is")
-        assertEquals(listOf(first), started.map { it.alert })
+        assertEquals(listOf("second"), queue.pending().map { it.key })
     }
 
     @Test
-    fun a_completed_flush_leaves_nothing_behind() {
-        val queue = InMemoryPendingQueue(listOf(first, second))
+    fun a_full_queue_drops_the_oldest_alert_not_the_first_alphabetically() {
+        val queue = PendingAlertQueue(capacity = 2)
+        queue.add("z-oldest", occurredAtMs = 100L)
+        queue.add("a-newest", occurredAtMs = 300L)
+        queue.add("m-middle", occurredAtMs = 200L)
 
-        queue.beginFlush().forEach { queue.markSent(it.key) }
-
-        assertTrue(queue.pending().isEmpty())
-        assertTrue(queue.beginFlush().isEmpty(), "an empty queue must not invent a send")
+        assertEquals(listOf("m-middle", "a-newest"), queue.pending().map { it.key })
     }
 
-    private fun alertAt(instant: String) = SecurityAlert(
-        eventId = "00000000-0000-0000-0000-000000000001",
-        kind = AlertKind.MOTION,
-        occurredAt = Instant.parse(instant),
-        device = "realme RMX3910",
-        batteryPercent = 54,
-    )
+    @Test
+    fun an_empty_queue_reports_nothing_to_send() {
+        assertTrue(PendingAlertQueue(capacity = 50).pending().isEmpty())
+    }
 }

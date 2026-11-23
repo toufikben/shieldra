@@ -40,6 +40,14 @@ object AlertLineCodec {
         alert.silentMinutes?.toString().orEmpty(),
     ).joinToString(SEPARATOR)
 
+    /**
+     * The moment this line says it happened, read before the whole line is trusted. Used to order a
+     * queue without decoding every alert, and null when the line carries no readable time.
+     */
+    fun occurredAtMs(line: String): Long? = line.split(SEPARATOR, limit = FIELD_COUNT)
+        .firstOrNull()
+        ?.toLongOrNull()
+
     /** Null for a line this build cannot make sense of; a line that is merely old still decodes. */
     fun decode(line: String, open: (String) -> String?): SecurityAlert? = runCatching {
         val parts = line.split(SEPARATOR, limit = FIELD_COUNT)

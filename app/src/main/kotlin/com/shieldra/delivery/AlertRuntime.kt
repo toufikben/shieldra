@@ -12,6 +12,48 @@ import com.shieldra.storage.SecretText
 import java.time.Instant
 
 /**
+ * The ordered queue behind [PreferencesPendingAlertStore], kept free of Android types so its ordering
+ * and retirement rules are provable off-device. Each entry carries the moment it happened, because the
+ * encoded text alone sorts a recent incident behind an old one.
+ */
+class PendingAlertQueue(private val capacity: Int) {
+    private val entries = mutableListOf<Entry>()
+
+    init {
+        require(capacity > 0) { "capacity must be positive" }
+    }
+
+    /** Adds one entry, keeping the newest [capacity] by occurrence time. */
+    @Synchronized
+    fun add(key: String, occurredAtMs: Long) {
+        entries += Entry(key, occurredAtMs)
+        if (entries.size > capacity) {
+            val kept = entries.sortedBy { it.occurredAtMs }.takeLast(capacity)
+            entries.clear()
+            entries += kept
+        }
+    }
+
+    /** Everything waiting, oldest first. Reading never removes anything. */
+    @Synchronized
+    fun pending(): List<Entry> = entries.sortedBy { it.occurredAtMs }
+
+    /** Retires exactly one entry: what really went out, never the whole batch. */
+    @Synchronized
+    fun markSent(key: String) {
+        entries.removeAll { it.key == key }
+    }
+
+    @Synchronized
+    fun replaceAll(replacement: List<Entry>) {
+        entries.clear()
+        entries += replacement.sortedBy { it.occurredAtMs }.takeLast(capacity)
+    }
+
+    data class Entry(val key: String, val occurredAtMs: Long)
+}
+
+/**
  * [PendingAlertStore] in app-private preferences: a few short lines, and the one that holds a
  * position is sealed before it is written (audit §5.13). An alert waits here for as long as the phone
  * stays offline — which, during a theft, is exactly when its coordinates must not be readable.
@@ -25,15 +67,27 @@ class PreferencesPendingAlertStore(
 
     @Synchronized
     override fun add(alert: SecurityAlert) {
-        val lines = prefs.getStringSet(KEY_PENDING, emptySet()).orEmpty() + AlertLineCodec.encode(alert, ::sealedLocation)
-        prefs.edit().putStringSet(KEY_PENDING, lines.sortedBy { it }.takeLast(MAX_PENDING).toSet()).apply()
+        val queue = PendingAlertQueue(MAX_PENDING)
+        queue.replaceAll(readEntries())
+        queue.add(AlertLineCodec.encode(alert, ::sealedLocation), alert.occurredAt.toEpochMilli())
+        writeEntries(queue.pending())
     }
 
     @Synchronized
-    override fun drain(): List<SecurityAlert> {
-        val lines = prefs.getStringSet(KEY_PENDING, emptySet()).orEmpty()
-        prefs.edit().remove(KEY_PENDING).apply()
-        return lines.mapNotNull { AlertLineCodec.decode(it, locationSecret::open) }.sortedBy { it.occurredAt }
+    override fun pending(): List<QueuedAlert> {
+        val queue = PendingAlertQueue(MAX_PENDING)
+        queue.replaceAll(readEntries())
+        return queue.pending().mapNotNull { entry ->
+            AlertLineCodec.decode(entry.key, locationSecret::open)?.let { QueuedAlert(entry.key, it) }
+        }
+    }
+
+    @Synchronized
+    override fun markSent(key: String) {
+        val queue = PendingAlertQueue(MAX_PENDING)
+        queue.replaceAll(readEntries())
+        queue.markSent(key)
+        writeEntries(queue.pending())
     }
 
     /**
@@ -44,9 +98,35 @@ class PreferencesPendingAlertStore(
     private fun sealedLocation(location: AlertLocation): String =
         locationSecret.seal(AlertLocationLine.format(location)) ?: ""
 
+    /**
+     * Each stored line carries its own occurrence stamp, so ordering never depends on the encoded
+     * text. A line written by an older build has no stamp: its own time field supplies one, and a line
+     * with neither is read as oldest rather than silently jumping the queue.
+     */
+    private fun readEntries(): List<PendingAlertQueue.Entry> =
+        prefs.getStringSet(KEY_PENDING, emptySet()).orEmpty().map { stored ->
+            val separator = stored.indexOf(STAMP_SEPARATOR)
+            if (separator < 0) {
+                PendingAlertQueue.Entry(stored, AlertLineCodec.occurredAtMs(stored) ?: 0L)
+            } else {
+                PendingAlertQueue.Entry(
+                    key = stored.substring(separator + STAMP_SEPARATOR.length),
+                    occurredAtMs = stored.substring(0, separator).toLongOrNull() ?: 0L,
+                )
+            }
+        }
+
+    private fun writeEntries(entries: List<PendingAlertQueue.Entry>) {
+        prefs.edit()
+            .putStringSet(KEY_PENDING, entries.map { "${it.occurredAtMs}$STAMP_SEPARATOR${it.key}" }.toSet())
+            .apply()
+    }
+
     private companion object {
         const val PREFERENCES_NAME = "shieldra_pending_alerts"
         const val KEY_PENDING = "pending"
+        /** Separates the occurrence stamp from the encoded line; never appears in the line itself. */
+        const val STAMP_SEPARATOR = "\u0001"
         /** Bound as additional authenticated data, so a sealed position cannot be replayed elsewhere. */
         const val FIELD_LOCATION = "queued_alert_location"
         /** Oldest are dropped past this: the newest alerts are the ones that matter after a theft. */
