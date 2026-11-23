@@ -7,6 +7,7 @@ class ProtectionScoreTest {
 
     private fun inputs(
         armed: Boolean = true,
+        guardsRunning: Boolean = true,
         motion: Boolean = false,
         sim: Boolean = false,
         batteryGuard: Boolean = false,
@@ -17,6 +18,7 @@ class ProtectionScoreTest {
         channel: Boolean = false,
     ) = ProtectionScore.Inputs(
         armed = armed,
+        guardsRunning = guardsRunning,
         motionMonitoring = motion,
         simEnabled = sim,
         batteryEnabled = batteryGuard,
@@ -81,6 +83,49 @@ class ProtectionScoreTest {
             ProtectionScore.W_MOTION + ProtectionScore.W_SIM + ProtectionScore.W_BATTERY_GUARD +
                 ProtectionScore.W_CHANNEL + ProtectionScore.W_CAMERA + ProtectionScore.W_LOCATION +
                 ProtectionScore.W_NOTIFICATIONS + ProtectionScore.W_BATTERY_EXEMPT,
+        )
+    }
+
+    @Test
+    fun `P2-5 a stored guard that is not running is not counted`() {
+        // The armed flag is on and both guard switches are on, but no protection service is live:
+        // nothing is watching the SIM or the battery, so neither guard may add a point.
+        assertEquals(
+            0,
+            ProtectionScore.score(inputs(guardsRunning = false, sim = true, batteryGuard = true)),
+        )
+    }
+
+    @Test
+    fun `P2-5 the same guards count once the service really runs`() {
+        assertEquals(
+            ProtectionScore.W_SIM + ProtectionScore.W_BATTERY_GUARD,
+            ProtectionScore.score(inputs(guardsRunning = true, sim = true, batteryGuard = true)),
+        )
+    }
+
+    @Test
+    fun `P2-5 a guard the owner switched off does not count even while the service runs`() {
+        assertEquals(
+            0,
+            ProtectionScore.score(inputs(guardsRunning = true, sim = false, batteryGuard = false)),
+        )
+    }
+
+    @Test
+    fun `P2-5 facts outside the service are still read from their own live source`() {
+        // Camera, location, notification permission, battery exemption and the alert channel are
+        // platform answers, not settings, so a stopped service does not withdraw them.
+        assertEquals(
+            ProtectionScore.W_CHANNEL + ProtectionScore.W_CAMERA + ProtectionScore.W_LOCATION +
+                ProtectionScore.W_NOTIFICATIONS + ProtectionScore.W_BATTERY_EXEMPT,
+            ProtectionScore.score(
+                inputs(
+                    guardsRunning = false,
+                    camera = true, location = true, notifications = true,
+                    batteryExempt = true, channel = true,
+                ),
+            ),
         )
     }
 }
