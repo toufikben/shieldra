@@ -180,7 +180,10 @@ fun EventDetailScreen(
             if (actionsAvailable || exportAvailable) item {
                 DestructiveActions(
                     onDelete = if (actionsAvailable) callbacks.onDelete else null,
-                    onExport = callbacks.onExport,
+                    // Export used to be drawn even when there was no exporter behind it, so the
+                    // button existed and did nothing on an event with no payloads. It now follows
+                    // the same rule as Delete: drawn only when it can act.
+                    onExport = if (exportAvailable) callbacks.onExport else null,
                     modifier = Modifier.padding(horizontal = spacing.l),
                 )
             }
@@ -388,7 +391,7 @@ private fun DetailRow(label: String, value: String) {
 @Composable
 private fun DestructiveActions(
     onDelete: (() -> Unit)?,
-    onExport: () -> Unit,
+    onExport: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -401,7 +404,7 @@ private fun DestructiveActions(
             variant = ShieldraButtonVariant.Destructive,
             modifier = Modifier.weight(1f),
         )
-        ShieldraButton(
+        if (onExport != null) ShieldraButton(
             text = stringResource(R.string.action_export),
             onClick = onExport,
             variant = ShieldraButtonVariant.Secondary,

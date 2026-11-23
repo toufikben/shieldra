@@ -110,6 +110,10 @@
     <string name="action_continue">Continue</string>
     <string name="action_delete">Delete</string>
     <string name="action_export">Export</string>
+    <string name="event_deleted">Event deleted.</string>
+    <string name="event_delete_failed">The event was not deleted. Nothing was removed.</string>
+    <string name="panic_needs_storage">The emergency was not recorded: local storage is not open. Restart Shieldra and try again.</string>
+    <string name="settings_row_unavailable">This setting is not available in this build.</string>
     <string name="action_cancel">Cancel</string>
 
     <string name="step_of">Step %1$d of %2$d</string>
@@ -244,7 +248,6 @@
     <string name="event_battery">Battery</string>
     <string name="charging">Charging</string>
     <string name="not_charging">Not charging</string>
-    <string name="phase3_deferred">This feature is not available yet.</string>
     <string name="dashboard_events_disclosure">Security events are recorded and stored on this phone. Motion monitoring is off until you start it.</string>
     <string name="dashboard_motion_disclosure">Security events are recorded and stored on this phone. Motion monitoring is running.</string>
     <string name="dashboard_no_storage_disclosure">Nothing is stored on this phone yet. No continuous monitoring is running.</string>

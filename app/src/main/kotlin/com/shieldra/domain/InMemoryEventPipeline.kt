@@ -61,6 +61,16 @@ class InMemoryEventRepository : EventRepository {
         events[eventId] = current.withArtifacts(deliveryInformation = current.deliveryInformation + information)
         return RepositoryResult.Applied
     }
+
+    @Synchronized
+    override fun deleteIncident(eventId: EventId): DeletedIncident {
+        val removed = events.remove(eventId)
+            ?: return DeletedIncident(deleted = false, evidenceIds = emptySet())
+        return DeletedIncident(
+            deleted = true,
+            evidenceIds = removed.evidenceReferences.map { it.id }.toSet(),
+        )
+    }
 }
 
 /**

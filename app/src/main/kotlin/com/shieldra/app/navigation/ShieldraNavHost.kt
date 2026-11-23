@@ -152,8 +152,14 @@ fun ShieldraNavHost(
     val showBottomBar = currentRoute in BottomTab.entries.map { it.route }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val deferredMessage = stringResource(R.string.phase3_deferred)
-    val defer = { scope.launch { snackbarHostState.showSnackbar(deferredMessage) } }
+    // P1-4: one sentence for one honest refusal. A single "not available yet" line used to answer
+    // both a Panic press with no storage behind it and a settings row this build does not carry, so
+    // the owner could not tell which of the two had happened.
+    val settingsRowUnavailableMessage = stringResource(R.string.settings_row_unavailable)
+    val panicNeedsStorageMessage = stringResource(R.string.panic_needs_storage)
+    fun explain(message: String) {
+        scope.launch { snackbarHostState.showSnackbar(message) }
+    }
     // Motion monitoring is projected from the claim the service publishes about itself, never from
     // the fact that Start was pressed (A-18): while no service has reported a live registration the
     // guard renders as not monitoring.
@@ -204,12 +210,18 @@ fun ShieldraNavHost(
     // UI renders empty until the real rows arrive. The keys are the writes that change what the
     // query can return: a Panic press, and an event row the running monitor just persisted.
     val motionEventWrites by MotionEventWrites.state.collectAsState()
+    // A delete changes what the one page query can return, so it bumps the same reload key the
+    // monitor's own writes bump. Without it the History list and the dashboard would keep showing
+    // the row the owner just removed until the next process start.
+    var eventListRefresh by remember { mutableStateOf(0) }
     // One load serves both lists: History shows the whole page, the dashboard the newest few. A page
     // is three queries whatever its size, so History no longer stops at the dashboard's twenty.
-    val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage, panicActivations, motionEventWrites) {
+    val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage, panicActivations, motionEventWrites, eventListRefresh) {
         value = withContext(Dispatchers.IO) { eventReader.readRecent(HISTORY_EVENT_LIMIT, Instant.now()) }
     }
     var panicInFlight by remember { mutableStateOf(false) }
+    val eventDeletedMessage = stringResource(R.string.event_deleted)
+    val eventDeleteFailedMessage = stringResource(R.string.event_delete_failed)
     val panicRejectedMessage = stringResource(R.string.panic_not_recorded)
     val panicHoldMessage = stringResource(R.string.panic_hold_hint)
     val ownerCheckTitle = stringResource(R.string.owner_check_stop_title)
@@ -578,14 +590,17 @@ fun ShieldraNavHost(
                         onEventClick = { id ->
                             navController.navigate(ShieldraRoutes.eventDetail(id))
                         },
-                        onGuardClick = { defer() },
+                        onGuardClick = {
+                            // A guard card is the shortest way to the switch that arms it.
+                            navController.navigate(ShieldraRoutes.PROTECTION_SETUP)
+                        },
                         onPanicTapHint = {
                             scope.launch { snackbarHostState.showSnackbar(panicHoldMessage) }
                         },
                         onPanic = {
                             val coordinator = panicCoordinator
                             if (coordinator == null) {
-                                defer()
+                                explain(panicNeedsStorageMessage)
                             } else if (!panicInFlight) {
                                 // One activation at a time: a second hold while the first is still
                                 // being stored would only queue a duplicate write behind it.
@@ -881,7 +896,7 @@ fun ShieldraNavHost(
 
                             SettingsRowTarget.AppLock -> settingsDialog = SettingsDialog.AppLock
 
-                            SettingsRowTarget.NotAvailable -> defer()
+                            SettingsRowTarget.NotAvailable -> explain(settingsRowUnavailableMessage)
                         }
                     },
                 )
@@ -1096,9 +1111,47 @@ fun ShieldraNavHost(
                                 runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
                                 Unit
                             },
-                            onDelete = { defer() },
+                            onDelete = {
+                                // Deleting an incident destroys evidence the owner may still need;
+                                // it proves the owner first, exactly like every other destructive change.
+                                requireOwner {
+                                    scope.launch {
+                                        val storage = installedStorage
+                                        val deleted = withContext(Dispatchers.IO) {
+                                            if (storage == null) {
+                                                null
+                                            } else {
+                                                runCatching {
+                                                    val outcome = storage.eventRepository.deleteIncident(
+                                                        com.shieldra.domain.EventId.from(java.util.UUID.fromString(id)),
+                                                    )
+                                                    // The repository cannot see the payload files, so
+                                                    // it names them and they are removed here.
+                                                    if (outcome.deleted) {
+                                                        outcome.evidenceIds.forEach { evidenceId ->
+                                                            runCatching { storage.evidenceFiles.delete(evidenceId) }
+                                                        }
+                                                    }
+                                                    outcome
+                                                }.getOrNull()
+                                            }
+                                        }
+                                        val succeeded = deleted?.deleted == true
+                                        if (succeeded) {
+                                            navController.popBackStack()
+                                            eventListRefresh += 1
+                                        }
+                                        snackbarHostState.showSnackbar(
+                                            if (succeeded) eventDeletedMessage else eventDeleteFailedMessage,
+                                        )
+                                    }
+                                }
+                            },
                             onExport = { exportFlow.begin(detail) },
                         ),
+                        // P1-4: Delete is a real action now (owner check, row + children + payloads),
+                        // so it is offered whenever the repository that can carry it out exists.
+                        actionsAvailable = installedStorage != null,
                         exportAvailable = installedStorage != null && detail.evidenceItems.isNotEmpty(),
                         loadEvidence = { id ->
                             withContext(Dispatchers.IO) {

@@ -26,7 +26,7 @@ class PresentationModelTest {
     }
 
     @Test
-    fun phase3_deferred_status_vocabulary_is_explicit() {
+    fun status_vocabulary_is_explicit() {
         assertEquals(DeliveryStatus.Deferred, DeliveryStatus.entries.first { it.name == "Deferred" })
         assertEquals(LocationKind.LastKnown, LocationKind.entries.first { it.name == "LastKnown" })
         assertEquals(ChannelId.Email, ChannelId.entries.first { it.name == "Email" })

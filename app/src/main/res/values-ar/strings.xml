@@ -97,6 +97,10 @@
     <string name="action_continue">متابعة</string>
     <string name="action_delete">حذف</string>
     <string name="action_export">تصدير</string>
+    <string name="event_deleted">حُذف الحدث.</string>
+    <string name="event_delete_failed">لم يُحذف الحدث. لم يُزَل شيء.</string>
+    <string name="panic_needs_storage">لم يُسجَّل النداء: التخزين المحلي غير مفتوح. أعد تشغيل SHIELDRA وحاول ثانية.</string>
+    <string name="settings_row_unavailable">هذا الإعداد غير متاح في هذه النسخة.</string>
     <string name="action_cancel">إلغاء</string>
 
     <string name="step_of">الخطوة %1$d من %2$d</string>
@@ -227,7 +231,6 @@
     <string name="event_battery">البطارية</string>
     <string name="charging">جارٍ الشحن</string>
     <string name="not_charging">غير متصل بالشحن</string>
-    <string name="phase3_deferred">هذه الميزة غير متاحة بعد.</string>
     <string name="dashboard_events_disclosure">تُسجَّل الأحداث الأمنية وتُحفظ على هذا الهاتف. مراقبة الحركة متوقفة حتى تبدأها.</string>
     <string name="dashboard_motion_disclosure">تُسجَّل الأحداث الأمنية وتُحفظ على هذا الهاتف. مراقبة الحركة تعمل الآن.</string>
     <string name="dashboard_no_storage_disclosure">لا شيء محفوظ على هذا الهاتف بعد. لا توجد مراقبة مستمرة تعمل.</string>

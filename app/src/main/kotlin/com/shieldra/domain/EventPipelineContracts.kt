@@ -32,7 +32,21 @@ interface EventRepository {
      * A successful delivery state implies a recorded SUCCESS attempt.
      */
     fun recordDeliveryAttempt(eventId: EventId, information: DeliveryInformation): RepositoryResult
+
+    /**
+     * Removes one incident and everything it owns: the event row, its evidence references and its
+     * delivery attempts. The evidence payload ids are returned so the caller can delete the files
+     * this repository cannot see, instead of leaving unreadable payloads behind with no row naming
+     * them. A missing incident reports `deleted = false` rather than pretending it removed something.
+     */
+    fun deleteIncident(eventId: EventId): DeletedIncident
 }
+
+/** Outcome of [EventRepository.deleteIncident]. */
+data class DeletedIncident(
+    val deleted: Boolean,
+    val evidenceIds: Set<String>,
+)
 
 sealed interface RepositoryResult {
     data object Applied : RepositoryResult

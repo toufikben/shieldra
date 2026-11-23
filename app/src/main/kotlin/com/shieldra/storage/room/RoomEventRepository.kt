@@ -2,6 +2,7 @@ package com.shieldra.storage.room
 
 import com.shieldra.domain.DeliveryInformation
 import com.shieldra.domain.DeliveryStatus
+import com.shieldra.domain.DeletedIncident
 import com.shieldra.domain.EventId
 import com.shieldra.domain.EventRepository
 import com.shieldra.domain.EventState
@@ -134,6 +135,28 @@ class RoomEventRepository(
         if (inserted != -1L) onRecordPersisted()
         return if (inserted != -1L) RepositoryResult.Applied
         else RepositoryResult.Rejected("Delivery attempt collision: $attemptId")
+    }
+
+    override fun deleteIncident(eventId: EventId): DeletedIncident {
+        val id = eventId.value.toString()
+        val evidenceIds = evidence.findForEvent(id).map { it.evidenceId }.toSet()
+        // Same shape as the retention sweep: the batch statements go in one transaction and the
+        // count is read back from a local, so a partial delete can never be reported as complete.
+        var removed = 0
+        try {
+            database.runInTransaction {
+                delivery.deleteForEvents(listOf(id))
+                evidence.deleteForEvents(listOf(id))
+                removed = events.deleteByIds(listOf(id))
+            }
+        } catch (error: Exception) {
+            // §6: a refused delete is not a success. Report nothing removed so the caller can say so
+            // instead of closing the detail screen over an incident that is still stored.
+            return DeletedIncident(deleted = false, evidenceIds = emptySet())
+        }
+        if (removed != 1) return DeletedIncident(deleted = false, evidenceIds = emptySet())
+        onRecordPersisted()
+        return DeletedIncident(deleted = true, evidenceIds = evidenceIds)
     }
 
     override fun panicActivationCount(eventId: EventId): Int? =
