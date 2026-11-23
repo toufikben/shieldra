@@ -165,13 +165,14 @@
     <string name="protection_perm_camera">Camera — front photo on an event</string>
     <string name="protection_perm_location">Location — where the phone is</string>
     <string name="protection_perm_notifications">Notifications — the ongoing notice</string>
-    <string name="protection_perm_phone">Phone — tell a SIM swap apart</string>
+    <string name="protection_perm_phone">Phone - name the SIM that was armed with</string>
     <string name="protection_perm_keep_awake">Keep running — ignore battery saver</string>
     <string name="protection_perm_exact_alarms">Alarms and reminders — fire the countdown on time</string>
     <string name="protection_grant">Grant</string>
     <string name="protection_guards_title">Guards</string>
     <string name="protection_guard_sim">SIM change</string>
-    <string name="protection_guard_sim_desc">Alert if the SIM is pulled or swapped.</string>
+    <string name="protection_guard_sim_desc">Alerts when a SIM you armed with disappears, a SIM that was not there appears, or the radio goes dark.</string>
+    <string name="protection_guard_sim_esim_note">An eSIM profile switches on or off like a card, so it is reported the same way. Android does not let an app tell an embedded profile from a physical card, or read the card\'s serial, so a swap to a different card is reported as a change, never proven.</string>
     <string name="protection_guard_battery">Low battery</string>
     <string name="protection_guard_battery_desc">A last location before the phone dies.</string>
     <string name="protection_battery_level">At %1$d%% battery</string>

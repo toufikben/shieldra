@@ -38,6 +38,7 @@ import com.shieldra.app.design.components.foundation.ShieldraFullWidthButton
 import com.shieldra.app.design.components.foundation.ShieldraSlider
 import com.shieldra.app.design.components.foundation.ShieldraSwitch
 import com.shieldra.app.design.theme.ShieldraTheme
+import com.shieldra.app.presentation.guard.SimGuardTruth
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.text.KeyboardOptions
@@ -185,7 +186,10 @@ fun ProtectionSetupScreen(
         SectionTitle(stringResource(R.string.protection_guards_title))
         GuardToggle(
             title = stringResource(R.string.protection_guard_sim),
-            subtitle = stringResource(R.string.protection_guard_sim_desc),
+            subtitle = stringResource(SimGuardTruth.descriptionRes),
+            // P2-6: the embedded caveat sits under the switch, where the owner sets the guard, not in
+            // a help page they would only reach after a false alarm.
+            note = stringResource(SimGuardTruth.embeddedNoteRes),
             checked = draft.simEnabled,
         ) { draft = draft.copy(simEnabled = it) }
         GuardToggle(
@@ -443,6 +447,7 @@ private fun GuardToggle(
     subtitle: String,
     checked: Boolean,
     locked: Boolean = false,
+    note: String? = null,
     onLocked: () -> Unit = {},
     onChange: (Boolean) -> Unit,
 ) {
@@ -461,6 +466,15 @@ private fun GuardToggle(
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // A caveat the owner must read before trusting the guard: shown whenever the guard is on,
+            // because a limit read after the alarm is a limit that already cost them a false alarm.
+            if (note != null && checked) {
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         if (locked) {
             ShieldraSwitch(checked = false, onCheckedChange = { onLocked() })

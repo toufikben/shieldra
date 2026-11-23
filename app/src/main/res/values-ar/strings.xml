@@ -152,13 +152,14 @@
     <string name="protection_perm_camera">الكاميرا — صورة أمامية عند أي حدث</string>
     <string name="protection_perm_location">الموقع — أين الهاتف</string>
     <string name="protection_perm_notifications">الإشعارات — الإشعار المستمر</string>
-    <string name="protection_perm_phone">الهاتف — تمييز تغيير الشريحة</string>
+    <string name="protection_perm_phone">الهاتف — تسمية الشريحة التي سُلِّح بها</string>
     <string name="protection_perm_keep_awake">الاستمرار — تجاهل موفّر البطارية</string>
     <string name="protection_perm_exact_alarms">المنبّهات والتذكيرات — إطلاق العدّ في وقته</string>
     <string name="protection_grant">منح</string>
     <string name="protection_guards_title">الحُرّاس</string>
     <string name="protection_guard_sim">تغيير الشريحة</string>
-    <string name="protection_guard_sim_desc">تنبيه عند نزع الشريحة أو تبديلها.</string>
+    <string name="protection_guard_sim_desc">تنبيه عند اختفاء شريحة سُلِّحت بها، أو ظهور شريحة لم تكن موجودة، أو انقطاع الشبكة.</string>
+    <string name="protection_guard_sim_esim_note">شريحة eSIM تُشغَّل أو تُطفأ كبطاقة عادية، فتُبلَّغ بالطريقة نفسها. ولا يتيح أندرويد لتطبيق أن يميّز الشريحة المدمجة من البطاقة الفيزيائية ولا أن يقرأ رقمها التسلسلي، فتبديل البطاقة يُبلَّغ كتغيير ولا يُثبَت.</string>
     <string name="protection_guard_battery">بطارية منخفضة</string>
     <string name="protection_guard_battery_desc">آخر موقع قبل انطفاء الهاتف.</string>
     <string name="protection_battery_level">عند %1$d%% من البطارية</string>
