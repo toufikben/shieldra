@@ -52,6 +52,10 @@ class RemoteCommandPoller(context: Context) {
         if (!delivery.telegramEnabled || !delivery.telegram.isComplete) return
         val client = TelegramCommandClient(delivery.telegram)
         val ownerChat = delivery.telegram.chatId.trim()
+        // P2-4: one command per update. Telegram redelivers an update whose offset it never saw
+        // confirmed, and this poller re-reads its offset after a restart; without the guard the same
+        // `/alarm` or `/track on` would run twice from one message.
+        val replayGuard = RemoteCommandReplayGuard()
         // Skip the backlog so a command sent before arming is not acted on now.
         var offset = client.poll(0, timeoutSeconds = 0)?.lastOrNull()?.let { it.updateId + 1 } ?: 0L
         while (!Thread.currentThread().isInterrupted && active()) {
@@ -59,6 +63,10 @@ class RemoteCommandPoller(context: Context) {
             for (update in updates) {
                 offset = update.updateId + 1
                 if (update.chatId != ownerChat) continue
+                if (!replayGuard.claim(update.updateId)) {
+                    Log.i(TAG, "an update was already carried out and is not repeated: ${update.updateId}")
+                    continue
+                }
                 runCatching { execute(client, ownerChat, update.text) }
                     .onFailure { Log.w(TAG, "command failed: ${it.message}") }
             }
