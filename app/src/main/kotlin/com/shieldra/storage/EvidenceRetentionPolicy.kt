@@ -104,6 +104,13 @@ data class EvidenceRetentionPolicy(
         const val EVIDENCE_RETENTION_DAYS: Long = 30L
         const val EVENT_METADATA_RETENTION_DAYS: Long = 90L
 
+        /**
+         * How many times longer an event row outlives the payload it names. The approved windows keep
+         * this ratio (90 over 30), so a shortened evidence window shortens the row window with it
+         * instead of leaving a row that points at a file the sweep already deleted.
+         */
+        private const val EVENT_TO_EVIDENCE_RATIO: Long = 3L
+
         private const val MILLIS_PER_DAY: Long = 24L * 60L * 60L * 1000L
 
         /** The approved §5.4 policy, amended by A-1. */
@@ -112,5 +119,20 @@ data class EvidenceRetentionPolicy(
             evidenceRetentionDays = EVIDENCE_RETENTION_DAYS,
             eventMetadataRetentionDays = EVENT_METADATA_RETENTION_DAYS,
         )
+
+        /**
+         * The policy the owner's [days] setting asks for. A setting that cannot be honoured (zero or
+         * negative) keeps the approved windows: expiry authorizes irreversible deletion, so a broken
+         * preference must never be read as "delete everything now".
+         */
+        fun fromOwnerDays(days: Int): EvidenceRetentionPolicy {
+            if (days <= 0) return default
+            val evidence = days.toLong()
+            return EvidenceRetentionPolicy(
+                quarantineRetentionDays = evidence,
+                evidenceRetentionDays = evidence,
+                eventMetadataRetentionDays = evidence * EVENT_TO_EVIDENCE_RATIO,
+            )
+        }
     }
 }

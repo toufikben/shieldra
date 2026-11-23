@@ -81,6 +81,7 @@ class LocalShieldraStorage private constructor(
             policy: EncryptionPolicy = EvidenceKeyPolicy.EVIDENCE_POLICY,
             databaseName: String = DEFAULT_DATABASE_NAME,
             evidenceDirectory: File = File(context.noBackupFilesDir, EVIDENCE_DIRECTORY),
+            retentionDays: () -> Int = { EvidenceRetentionPolicy.EVIDENCE_RETENTION_DAYS.toInt() },
         ): LocalShieldraStorage {
             require(evidenceDirectory.canonicalFile.toPath().startsWith(context.noBackupFilesDir.canonicalFile.toPath())) {
                 "Evidence directory must remain inside Context.noBackupFilesDir"
@@ -149,8 +150,13 @@ class LocalShieldraStorage private constructor(
             // Q-K-2: retention is given the same composition root as rotation, and
             // the repository is told to notify it whenever it commits a record.
             // Nothing here schedules a run: the sweep happens at an execution point
-            // that already exists, not on a clock.
-            val retention = EvidenceRetentionSweeper(database, evidenceFiles)
+            // that already exists, not on a clock. The windows come from the owner's
+            // retention setting, so shortening it in Settings really shortens expiry.
+            val retention = EvidenceRetentionSweeper(
+                database = database,
+                evidenceFiles = evidenceFiles,
+                policy = EvidenceRetentionPolicy.fromOwnerDays(retentionDays()),
+            )
 
             return LocalShieldraStorage(
                 database = database,
@@ -185,9 +191,10 @@ class LocalShieldraStorage private constructor(
             policy: EncryptionPolicy = EvidenceKeyPolicy.EVIDENCE_POLICY,
             databaseName: String = DEFAULT_DATABASE_NAME,
             evidenceDirectory: File = File(context.noBackupFilesDir, EVIDENCE_DIRECTORY),
+            retentionDays: () -> Int = { EvidenceRetentionPolicy.EVIDENCE_RETENTION_DAYS.toInt() },
         ): StorageOpenResult<LocalShieldraStorage> =
             StorageRecoveryGuard.open(context.getDatabasePath(databaseName)) {
-                create(context, encryptor, keyAlias, policy, databaseName, evidenceDirectory)
+                create(context, encryptor, keyAlias, policy, databaseName, evidenceDirectory, retentionDays)
             }
 
         /**

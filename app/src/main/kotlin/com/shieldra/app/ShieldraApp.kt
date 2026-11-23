@@ -63,7 +63,19 @@ class ShieldraApp : Application() {
         super.onCreate()
         val decision = decideStorageInstall(
             approved = StorageRuntimeApproval.approved,
-            open = { LocalShieldraStorage.openOrRecovery(applicationContext) },
+            // The retention windows are the owner's setting, read once at open time: the sweeper is
+            // built with them, so changing the setting changes the next process's expiry, never a
+            // half-applied window inside the running one.
+            open = {
+                LocalShieldraStorage.openOrRecovery(
+                    context = applicationContext,
+                    retentionDays = {
+                        com.shieldra.protection.ProtectionSettingsStore(applicationContext)
+                            .load()
+                            .retentionDays
+                    },
+                )
+            },
         )
         storageDecision = decision
         if (decision is StorageInstallDecision.Installed) {
