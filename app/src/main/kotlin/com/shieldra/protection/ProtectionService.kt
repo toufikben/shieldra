@@ -774,7 +774,7 @@ class ProtectionService : Service() {
             val live = liveInstance?.takeIf { it.promoted } ?: return false
             val app = context.applicationContext
             live.scope.launch {
-                runCatching { live.sampleSafeZoneNow(app, allowFresh = true) }
+                runCatching { sampleSafeZoneNow(app, allowFresh = true) }
                     .onFailure { Log.w(TAG, "the service safe-zone reading failed: ${it.message}") }
             }
             return true
