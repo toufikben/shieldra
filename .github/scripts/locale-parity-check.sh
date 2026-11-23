@@ -7,24 +7,51 @@
 # audit rounds keep finding (F-K11, Q-K-4), so it is pinned as a set comparison rather than
 # spot-checked.
 #
+# It also pins the *arguments* each line passes. Key parity alone let a translation drop "%1$s": the
+# Arabic sentence then printed a gap where the value belonged, or threw at format time. The argument
+# comparison is per key and order-free, because an Arabic sentence legitimately reorders them.
+#
 # Design B (2026-11-06) deleted the trilingual lock-screen notice together with the lock it belonged
 # to, so there is no third locale left to check. A phone set to a language the app does not ship reads
 # English through Android's own fallback; there is no hand-composed notice for a stranger any more, and
 # g4b fails the build if values-fr comes back.
 set -uo pipefail
-cd "$(dirname "$0")/../.."
+cd "$(dirname "$0")/../.." || exit 1
 
 RES=app/src/main/res
 fail=0
 
 keys_of() { grep -ho 'name="[A-Za-z0-9_]*"' "$1" | sort -u; }
 
-# 1. English and Arabic agree on which strings exist, in strings.xml and in plurals.xml.
+# One line per key: "key<TAB>sorted format arguments". A <plurals> block contributes every one of its
+# items under the plural's own name, so a count dropped from one item is caught as well.
+args_of() {
+    awk '
+        /<string[ \t]+name="/ {
+            key = $0; sub(/.*name="/, "", key); sub(/".*/, "", key)
+            body[key] = body[key] " " $0
+            next
+        }
+        /<plurals[ \t]+name="/ {
+            inPlural = $0; sub(/.*name="/, "", inPlural); sub(/".*/, "", inPlural)
+            next
+        }
+        /<\/plurals>/ { inPlural = ""; next }
+        inPlural != "" { body[inPlural] = body[inPlural] " " $0 }
+        END { for (k in body) printf "%s\t%s\n", k, body[k] }
+    ' "$1" | while IFS=$'\t' read -r key text; do
+        args=$(printf '%s' "$text" | grep -oE '%[0-9]+\$[a-zA-Z]|%[a-zA-Z]' | sort -u | tr '\n' ' ')
+        printf '%s\t%s\n' "$key" "$args"
+    done | sort
+}
+
 for file in strings.xml plurals.xml; do
     en="$RES/values/$file"
     ar="$RES/values-ar/$file"
     [ -s "$en" ] || { echo "FAIL: $en is missing or empty"; fail=1; continue; }
     [ -s "$ar" ] || { echo "FAIL: $ar is missing or empty"; fail=1; continue; }
+
+    # 1. The same keys exist on both sides.
     missing=$(comm -23 <(keys_of "$en") <(keys_of "$ar"))
     orphan=$(comm -13 <(keys_of "$en") <(keys_of "$ar"))
     if [[ -n "$missing" ]]; then
@@ -37,10 +64,19 @@ for file in strings.xml plurals.xml; do
         echo "$orphan" | sed 's/^/        /'
         fail=1
     fi
+
+    # 2. Every line carries the same format arguments as its English counterpart.
+    enArgs=$(args_of "$en")
+    arArgs=$(args_of "$ar")
+    if [[ "$enArgs" != "$arArgs" ]]; then
+        echo "FAIL: $file passes different format arguments in Arabic than in English:"
+        diff <(printf '%s\n' "$enArgs") <(printf '%s\n' "$arArgs") | sed 's/^/        /'
+        fail=1
+    fi
 done
 
 if (( fail > 0 )); then
     echo "LOCALE PARITY FAILED" >&2
     exit 1
 fi
-echo "LOCALE PARITY PASS — Arabic equals English key for key"
+echo "LOCALE PARITY PASS — Arabic equals English key for key, arguments included"
