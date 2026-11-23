@@ -42,7 +42,7 @@ class AlertDispatcherTest {
         assertEquals(listOf("TELEGRAM" to DeliveryStatus.SUCCESS), attempts.map { it.channel to it.status })
         assertEquals(EventState.DELIVERED, repository.find(event.id)!!.state)
         assertEquals(1, telegram.calls)
-        assertTrue(pending.items.isEmpty())
+        assertTrue(pending.alerts.isEmpty())
     }
 
     @Test
@@ -55,7 +55,7 @@ class AlertDispatcherTest {
         assertEquals(DeliveryStatus.DEFERRED, repository.find(event.id)!!.deliveryInformation.single().status)
         assertEquals(EventState.DEFERRED, repository.find(event.id)!!.state)
         assertEquals("DELIVERY", repository.find(event.id)!!.metadata["deferredStage"])
-        assertEquals(listOf(alert()), pending.items)
+        assertEquals(listOf(alert()), pending.alerts)
     }
 
     @Test
@@ -69,7 +69,7 @@ class AlertDispatcherTest {
         val attempts = repository.find(event.id)!!.deliveryInformation.associate { it.channel to it.status }
         assertEquals(mapOf("EMAIL" to DeliveryStatus.FAILED, "TELEGRAM" to DeliveryStatus.SUCCESS), attempts)
         assertEquals(EventState.DELIVERED, repository.find(event.id)!!.state)
-        assertTrue(pending.items.isEmpty())
+        assertTrue(pending.alerts.isEmpty())
     }
 
     @Test
@@ -105,7 +105,7 @@ class AlertDispatcherTest {
         assertEquals(DeliveryStatus.FAILED, attempt.status)
         assertEquals(DeliverySettings.REASON_TOKEN_UNREADABLE, attempt.failureReason)
         assertEquals(EventState.DEFERRED, repository.find(event.id)!!.state)
-        assertEquals(listOf(alert()), pending.items)
+        assertEquals(listOf(alert()), pending.alerts)
     }
 
     @Test
@@ -114,7 +114,7 @@ class AlertDispatcherTest {
 
         assertTrue(repository.find(event.id)!!.deliveryInformation.isEmpty())
         assertEquals(EventState.FAILED_FINAL, repository.find(event.id)!!.state)
-        assertTrue(pending.items.isEmpty())
+        assertTrue(pending.alerts.isEmpty())
     }
 
     @Test
@@ -124,7 +124,7 @@ class AlertDispatcherTest {
         dispatcher(listOf(email)).dispatch(alert())
 
         assertEquals(EventState.FAILED_FINAL, repository.find(event.id)!!.state)
-        assertTrue(pending.items.isEmpty())
+        assertTrue(pending.alerts.isEmpty())
     }
 
     @Test
@@ -140,7 +140,7 @@ class AlertDispatcherTest {
         dispatcherFor(FixedSettings(listOf(telegram)), failingRepository).dispatch(alert())
 
         assertEquals(EventState.DEFERRED, repository.find(event.id)!!.state)
-        assertEquals(listOf(alert()), pending.items)
+        assertEquals(listOf(alert()), pending.alerts)
     }
 
     @Test
@@ -158,7 +158,7 @@ class AlertDispatcherTest {
         dispatcherFor(FixedSettings(emptyList()), failingRepository).dispatch(alert())
 
         assertEquals(EventState.INITIATED, repository.find(event.id)!!.state)
-        assertEquals(listOf(alert()), pending.items)
+        assertEquals(listOf(alert()), pending.alerts)
     }
 
     @Test
@@ -181,7 +181,7 @@ class AlertDispatcherTest {
         dispatcherFor(FixedSettings(listOf(telegram)), failingRepository).dispatch(alert())
 
         assertEquals(EventState.DELIVERING, repository.find(event.id)!!.state)
-        assertEquals(listOf(alert()), pending.items)
+        assertEquals(listOf(alert()), pending.alerts)
     }
 
     private fun alert() = SecurityAlert(
@@ -245,13 +245,22 @@ class AlertDispatcherTest {
     }
 
     private class MemoryPending : PendingAlertStore {
-        val items = mutableListOf<SecurityAlert>()
+        val items = mutableListOf<QueuedAlert>()
+
+        /** Just the alerts waiting, so an assertion names the alert rather than its key. */
+        val alerts: List<SecurityAlert> get() = items.map { it.alert }
+
+        private var next = 0
 
         override fun add(alert: SecurityAlert) {
-            items += alert
+            items += QueuedAlert("queued-${next++}", alert)
         }
 
-        override fun drain(): List<SecurityAlert> = items.toList().also { items.clear() }
+        override fun pending(): List<QueuedAlert> = items.toList()
+
+        override fun markSent(key: String) {
+            items.removeAll { it.key == key }
+        }
     }
 
     /** Runs submitted work on the calling thread, so assertions see its effects immediately. */
