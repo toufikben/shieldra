@@ -143,6 +143,47 @@ class AlertDispatcherTest {
         assertEquals(listOf(alert()), pending.items)
     }
 
+    @Test
+    fun no_channels_does_not_drop_the_alert_when_delivery_cannot_start() {
+        val failingRepository = object : EventRepository by repository {
+            override fun updateState(
+                eventId: EventId,
+                expected: EventState,
+                next: EventState,
+                metadata: Map<String, String>?,
+                expiresAt: Instant?,
+            ): RepositoryResult = RepositoryResult.Rejected("injected state failure")
+        }
+
+        dispatcherFor(FixedSettings(emptyList()), failingRepository).dispatch(alert())
+
+        assertEquals(EventState.INITIATED, repository.find(event.id)!!.state)
+        assertEquals(listOf(alert()), pending.items)
+    }
+
+    @Test
+    fun successful_send_stays_queued_when_its_terminal_state_write_is_refused() {
+        val telegram = FakeChannel(DeliveryChannel.TELEGRAM, ChannelResult.Sent)
+        val failingRepository = object : EventRepository by repository {
+            override fun updateState(
+                eventId: EventId,
+                expected: EventState,
+                next: EventState,
+                metadata: Map<String, String>?,
+                expiresAt: Instant?,
+            ): RepositoryResult = if (expected == EventState.DELIVERING && next == EventState.DELIVERED) {
+                RepositoryResult.Rejected("injected completion failure")
+            } else {
+                repository.updateState(eventId, expected, next, metadata, expiresAt)
+            }
+        }
+
+        dispatcherFor(FixedSettings(listOf(telegram)), failingRepository).dispatch(alert())
+
+        assertEquals(EventState.DELIVERING, repository.find(event.id)!!.state)
+        assertEquals(listOf(alert()), pending.items)
+    }
+
     private fun alert() = SecurityAlert(
         eventId = event.id.value.toString(),
         kind = AlertKind.PANIC,
