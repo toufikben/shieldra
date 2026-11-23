@@ -243,5 +243,10 @@ class PanicActivationDurabilityTest {
 
         override fun recordDeliveryAttempt(eventId: EventId, information: DeliveryInformation): RepositoryResult =
             RepositoryResult.NotFound
+
+        override fun deleteIncident(eventId: EventId): DeletedIncident = synchronized(lock) {
+            val row = rows.remove(eventId) ?: return@synchronized DeletedIncident(false, emptySet())
+            DeletedIncident(true, row.event.evidenceReferences.map { it.id }.toSet())
+        }
     }
 }
