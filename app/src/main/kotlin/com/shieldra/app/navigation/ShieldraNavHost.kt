@@ -1300,6 +1300,8 @@ private fun readHealthChecks(
 private fun scoreFor(checks: HealthChecks, settings: ProtectionSettings): Int = ProtectionScore.score(
     ProtectionScore.Inputs(
         armed = checks.armed,
+        // P2-5: the SIM and battery weights need a running service, not just a saved switch.
+        guardsRunning = com.shieldra.protection.ProtectionService.isLive,
         motionMonitoring = checks.motionMonitoring,
         simEnabled = settings.simEnabled,
         batteryEnabled = settings.batteryEnabled,

@@ -6,6 +6,13 @@ package com.shieldra.app.presentation.guard
  * whether any alert channel is live. It is honest projection, not a flattering number: a disarmed
  * phone scores 0 because no protection is running, whatever the stored toggles say.
  *
+ * P2-5: a stored switch is not a running guard. The SIM and battery points used to come from the
+ * saved settings alone, so a phone whose protection service had been killed by the battery manager
+ * still showed those guards as protecting — the exact silent failure the watchdog exists to report.
+ * [guardsRunning] is the live fact the service publishes about itself (`ProtectionService.isLive`),
+ * and while it is false those two guards earn nothing. The remaining inputs are platform answers
+ * (a granted permission, an exemption, a live channel), which a stopped service does not withdraw.
+ *
  * Design B (2026-11-06): the app holds no device administrator, so the former Lock guard and the
  * admin privilege are gone from the model; their weight moved to the guards that still run.
  *
@@ -15,6 +22,8 @@ object ProtectionScore {
 
     data class Inputs(
         val armed: Boolean,
+        /** True only while the protection service is really up; the two guard weights need it. */
+        val guardsRunning: Boolean,
         val motionMonitoring: Boolean,
         val simEnabled: Boolean,
         val batteryEnabled: Boolean,
@@ -30,8 +39,9 @@ object ProtectionScore {
         if (!i.armed) return 0
         var s = 0
         if (i.motionMonitoring) s += W_MOTION
-        if (i.simEnabled) s += W_SIM
-        if (i.batteryEnabled) s += W_BATTERY_GUARD
+        // A guard the owner switched on, inside a service that is really running.
+        if (i.guardsRunning && i.simEnabled) s += W_SIM
+        if (i.guardsRunning && i.batteryEnabled) s += W_BATTERY_GUARD
         if (i.anyChannelActive) s += W_CHANNEL
         if (i.cameraGranted) s += W_CAMERA
         if (i.locationGranted) s += W_LOCATION
