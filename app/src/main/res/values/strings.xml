@@ -261,6 +261,7 @@
     <string name="filter_sim">SIM</string>
     <string name="filter_panic">Panic</string>
     <string name="filter_battery">Battery</string>
+    <string name="filter_tamper">Tampering</string>
     <string name="filter_any_status">Any status</string>
     <string name="filter_deferred">Deferred</string>
     <string name="evidence_photo">Photo evidence</string>
@@ -367,6 +368,7 @@
     <string name="event_title_sim">SIM change</string>
     <string name="event_title_countdown">Periodic signal</string>
     <string name="event_title_battery">Low battery</string>
+    <string name="event_title_tamper">Debugging turned on</string>
     <string name="alert_title_panic">Silent panic pressed</string>
     <string name="alert_title_motion">Movement detected</string>
     <string name="alert_title_test">Test alert</string>
@@ -377,6 +379,7 @@
     <string name="alert_title_sim">SIM changed</string>
     <string name="alert_title_battery">Low battery</string>
     <string name="alert_title_shutdown">Phone is shutting down</string>
+    <string name="alert_title_tamper">Debugging was turned on</string>
     <string name="alert_title_restart">Phone was restarted while protection was on</string>
     <string name="alert_title_guard_silent">SHIELDRA guards have gone quiet</string>
     <string name="alert_label_silent_for">Guards silent for %1$d min</string>

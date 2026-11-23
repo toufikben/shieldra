@@ -3,6 +3,7 @@ package com.shieldra.app.design.icons
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -35,6 +36,7 @@ fun EventType.icon(): ImageVector = when (this) {
     EventType.Panic -> Icons.Filled.WarningAmber
     EventType.Battery -> Icons.Filled.BatteryAlert
     EventType.Countdown -> Icons.Filled.Timer
+    EventType.Tamper -> Icons.Filled.BugReport
     EventType.Other -> Icons.Filled.Info
 }
 

@@ -58,6 +58,7 @@ private fun typeAccent(type: EventType): Color = when (type) {
     EventType.SimChange -> MaterialTheme.colorScheme.tertiary
     EventType.Battery -> ShieldraTheme.semantic.attention
     EventType.Countdown -> ShieldraTheme.semantic.protection
+    EventType.Tamper -> MaterialTheme.colorScheme.error
     EventType.Other -> MaterialTheme.colorScheme.primary
 }
 

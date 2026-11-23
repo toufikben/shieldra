@@ -291,6 +291,7 @@ private fun HistoryTypeFilter.displayLabel(): String = stringResource(when (this
     HistoryTypeFilter.Sim -> R.string.filter_sim
     HistoryTypeFilter.Panic -> R.string.filter_panic
     HistoryTypeFilter.Battery -> R.string.filter_battery
+    HistoryTypeFilter.Tamper -> R.string.filter_tamper
 })
 
 @Composable

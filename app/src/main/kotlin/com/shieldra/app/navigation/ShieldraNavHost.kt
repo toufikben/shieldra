@@ -1185,6 +1185,7 @@ private fun persistedEventLabels(): PersistedEventLabels {
         SecurityEventType.SIM_CONFIRMED_EVENT to stringResource(R.string.event_title_sim),
         SecurityEventType.COUNTDOWN_SIGNAL to stringResource(R.string.event_title_countdown),
         SecurityEventType.BATTERY_SIGNAL to stringResource(R.string.event_title_battery),
+        SecurityEventType.TAMPER_SIGNAL to stringResource(R.string.event_title_tamper),
     )
     return PersistedEventLabels(
         title = stringResource(R.string.event_security_event),

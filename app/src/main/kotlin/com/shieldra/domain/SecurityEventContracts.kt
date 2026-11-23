@@ -41,6 +41,16 @@ enum class SecurityEventType {
 
     /** A low-battery "last breath" signal; not a detected intrusion (amendment A-33). */
     BATTERY_SIGNAL,
+
+    /**
+     * A debugging door (USB debugging or the developer options behind it) was turned on while
+     * protection was armed (P2-1).
+     *
+     * It is its own type for the same reason every other guard has one: the event detail, the
+     * history filter and the alert must name what really happened. Filing it under a Motion or a
+     * Panic incident would show the owner a row whose title is a guard that never fired.
+     */
+    TAMPER_SIGNAL,
 }
 
 data class EvidenceReference(

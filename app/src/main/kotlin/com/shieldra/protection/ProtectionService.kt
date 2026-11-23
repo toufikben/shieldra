@@ -72,6 +72,14 @@ class ProtectionService : Service() {
 
     private val heartbeatHandler = Handler(Looper.getMainLooper())
 
+    /**
+     * P2-1: the debugging doors, watched against the state they had when protection armed. Created
+     * lazily on the first heartbeat so the last-seen state is always the armed one, and never reset
+     * while the instance lives: a door that stayed open is not a new act.
+     */
+    @Volatile
+    private var tamperWatch: TamperWatch? = null
+
     /** Every minute while armed: a real pass over the SIM guard, which also stamps "last check" (A-38). */
     private fun startHeartbeat() {
         heartbeatHandler.removeCallbacksAndMessages(null)
@@ -86,6 +94,7 @@ class ProtectionService : Service() {
                     return
                 }
                 checkSim()
+                checkTamper()
                 refreshNoticeNow()
                 // The one moment a request that had to wait is guaranteed to be looked at again.
                 drainQueue()
@@ -198,6 +207,25 @@ class ProtectionService : Service() {
                 if (CompositeTamper.isHighRisk(signals)) Siren.start(applicationContext, ESCALATION_SIREN_MAX_MS)
             }
         }
+    }
+
+    /**
+     * P2-1: a debugging door opening after arming is a tamper signal, reported once per act.
+     *
+     * The baseline is the state at the first reading while armed, so a phone that was already a
+     * development device does not alarm for being one — the same rule the SIM guard uses for the
+     * card that was in the phone at arming. The reading happens on the heartbeat, so the answer is
+     * the switch that is really on now, not a state remembered from a broadcast.
+     */
+    private fun checkTamper() {
+        val store = ProtectionSettingsStore(applicationContext)
+        if (!store.load().armed) return
+        val now = TamperSettings.snapshot(applicationContext)
+        val watch = tamperWatch ?: TamperWatch(now).also { tamperWatch = it }
+        val findings = watch.newFindings(now)
+        if (findings.isEmpty()) return
+        store.markCheck()
+        capture(SecurityEventType.TAMPER_SIGNAL)
     }
 
     private fun screenInteractive(): Boolean = runCatching {
@@ -316,6 +344,9 @@ class ProtectionService : Service() {
                 startHeartbeat()
                 simGuard.captureBaselineIfNeeded()
                 checkSim()
+                // The debugging doors are baselined the moment protection runs, so a switch flipped
+                // during the first minute is still reported rather than adopted as the baseline.
+                checkTamper()
                 // Remote control over the owner's Telegram, when they turned it on (A-33 next stage).
                 ProtectionSettingsStore(applicationContext).load().let { s ->
                     if (s.remoteCommandsEnabled && com.shieldra.billing.TierGate.allowsRemote(s.tier)) {
@@ -701,6 +732,9 @@ class ProtectionService : Service() {
 
     private fun severityFor(type: SecurityEventType): GuardSeverity = when (type) {
         SecurityEventType.COUNTDOWN_SIGNAL, SecurityEventType.BATTERY_SIGNAL -> GuardSeverity.MEDIUM
+        // A debugging door is the first step of wiping a stolen phone, but it is not a confirmed
+        // intrusion on its own: an owner who lends the phone may switch it on for a repair.
+        SecurityEventType.TAMPER_SIGNAL -> GuardSeverity.HIGH
         else -> GuardSeverity.CRITICAL
     }
 
@@ -751,6 +785,7 @@ class ProtectionService : Service() {
             SecurityEventType.COUNTDOWN_SIGNAL -> AlertKind.COUNTDOWN
             SecurityEventType.MOTION_CONFIRMED_EVENT -> AlertKind.MOTION
             SecurityEventType.PANIC_ACTIVATION -> AlertKind.PANIC
+            SecurityEventType.TAMPER_SIGNAL -> AlertKind.TAMPER
             SecurityEventType.CONFIRMED_SECURITY_EVENT -> AlertKind.PANIC
         }
 

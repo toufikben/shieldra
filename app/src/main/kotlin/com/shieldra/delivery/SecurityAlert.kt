@@ -14,7 +14,7 @@ import java.util.Locale
  * than the tolerance window (audit development أ): also no event, because the whole news is the
  * absence of activity.
  */
-enum class AlertKind { PANIC, MOTION, SIM, BATTERY, COUNTDOWN, TRACKING, SHUTDOWN, RESTART, GUARD_SILENT, TEST }
+enum class AlertKind { PANIC, MOTION, SIM, BATTERY, COUNTDOWN, TRACKING, SHUTDOWN, RESTART, GUARD_SILENT, TAMPER, TEST }
 
 /** A position fix the phone really produced: never a guess and never a default. */
 data class AlertLocation(
@@ -73,6 +73,8 @@ data class AlertWording(
     val trackingTitle: String = "Live location",
     val shutdownTitle: String = "Phone is shutting down",
     val restartTitle: String = "Phone was restarted",
+    /** P2-1: either debugging door opening; the act is the same whichever switch was used. */
+    val tamperTitle: String = "Debugging was turned on",
     val guardSilentTitle: String = "Guards have gone quiet",
     /** Carries the measured silence, so the owner learns how long the phone was unprotected. */
     val silentForLabel: String = "Guards silent for %1\$d min",
@@ -144,6 +146,7 @@ object AlertText {
         AlertKind.SHUTDOWN -> wording.shutdownTitle
         AlertKind.RESTART -> wording.restartTitle
         AlertKind.GUARD_SILENT -> wording.guardSilentTitle
+        AlertKind.TAMPER -> wording.tamperTitle
         AlertKind.TEST -> wording.testTitle
     }
 }

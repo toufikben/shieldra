@@ -244,6 +244,7 @@
     <string name="filter_sim">SIM</string>
     <string name="filter_panic">الذعر</string>
     <string name="filter_battery">البطارية</string>
+    <string name="filter_tamper">التلاعب</string>
     <string name="filter_any_status">أي حالة</string>
     <string name="filter_deferred">مؤجل</string>
     <string name="evidence_photo">دليل صوري</string>
@@ -349,6 +350,7 @@
     <string name="event_title_sim">تغيير الشريحة</string>
     <string name="event_title_countdown">إشارة دورية</string>
     <string name="event_title_battery">بطارية منخفضة</string>
+    <string name="event_title_tamper">تم تشغيل تصحيح الأخطاء</string>
     <string name="alert_title_panic">تم الضغط على الذعر الصامت</string>
     <string name="alert_title_motion">تم اكتشاف حركة</string>
     <string name="alert_title_test">تنبيه تجريبي</string>
@@ -359,6 +361,7 @@
     <string name="alert_title_sim">تغيّرت الشريحة</string>
     <string name="alert_title_battery">بطارية منخفضة</string>
     <string name="alert_title_shutdown">الهاتف يُطفأ الآن</string>
+    <string name="alert_title_tamper">تم تشغيل تصحيح الأخطاء</string>
     <string name="alert_title_restart">أُعيد تشغيل الهاتف والحماية مفعّلة</string>
     <string name="alert_title_guard_silent">حراس SHIELDRA توقفوا عن إرسال إشارات النبض</string>
     <string name="alert_label_silent_for">توقف الحراس عن إرسال النبض منذ %1$d دقيقة</string>

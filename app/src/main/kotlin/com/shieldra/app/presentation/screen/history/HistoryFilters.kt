@@ -17,6 +17,7 @@ fun filterHistoryEvents(
         HistoryTypeFilter.Sim -> event.type == EventType.SimChange
         HistoryTypeFilter.Panic -> event.type == EventType.Panic
         HistoryTypeFilter.Battery -> event.type == EventType.Battery
+        HistoryTypeFilter.Tamper -> event.type == EventType.Tamper
     }
     val statusMatches = when (filterState.status) {
         HistoryStatusFilter.All -> true

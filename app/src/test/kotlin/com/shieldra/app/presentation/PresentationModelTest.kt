@@ -22,7 +22,7 @@ class PresentationModelTest {
             ProtectionVisualState.entries.toSet(),
         )
         assertEquals(setOf(GuardKind.Motion, GuardKind.Sim, GuardKind.Panic, GuardKind.Battery), GuardKind.entries.toSet())
-        assertEquals(setOf(EventType.Motion, EventType.SimChange, EventType.Panic, EventType.Battery, EventType.Countdown, EventType.Other), EventType.entries.toSet())
+        assertEquals(setOf(EventType.Motion, EventType.SimChange, EventType.Panic, EventType.Battery, EventType.Countdown, EventType.Tamper, EventType.Other), EventType.entries.toSet())
     }
 
     @Test
@@ -62,6 +62,7 @@ class PresentationModelTest {
             EventUiModel("sim", EventType.SimChange, "", "", "", DeliveryStatus.Delivered, false, false),
             EventUiModel("panic", EventType.Panic, "", "", "", DeliveryStatus.Failed, false, false),
             EventUiModel("battery", EventType.Battery, "", "", "", DeliveryStatus.NotAttempted, false, false),
+            EventUiModel("tamper", EventType.Tamper, "", "", "", DeliveryStatus.Delivered, false, false),
         )
 
         val expectedByType = mapOf(
@@ -69,6 +70,7 @@ class PresentationModelTest {
             HistoryTypeFilter.Sim to "sim",
             HistoryTypeFilter.Panic to "panic",
             HistoryTypeFilter.Battery to "battery",
+            HistoryTypeFilter.Tamper to "tamper",
         )
         expectedByType.forEach { (type, id) ->
             assertEquals(

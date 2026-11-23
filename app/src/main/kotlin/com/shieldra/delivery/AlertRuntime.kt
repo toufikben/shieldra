@@ -202,6 +202,7 @@ object AlertRuntime {
             shutdownTitle = resources.getString(R.string.alert_title_shutdown),
             restartTitle = resources.getString(R.string.alert_title_restart),
             guardSilentTitle = resources.getString(R.string.alert_title_guard_silent),
+            tamperTitle = resources.getString(R.string.alert_title_tamper),
             silentForLabel = resources.getString(R.string.alert_label_silent_for),
             locationLabel = resources.getString(R.string.alert_label_location),
             locationUnavailable = resources.getString(R.string.alert_location_unavailable),
