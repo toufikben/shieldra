@@ -164,7 +164,13 @@ fun EventDetailScreen(
             }
 
             item {
-                DetailsBlock(model, modifier = Modifier.padding(horizontal = spacing.l))
+                DetailsBlock(
+                    model,
+                    modifier = Modifier.padding(horizontal = spacing.l),
+                    // The battery reading lives in the encrypted payloads like every other captured
+                    // fact, so the details block reads it through the same decrypt path.
+                    loadEvidence = loadEvidence,
+                )
             }
 
             if (deliveryCardVisible(model.delivery)) {
@@ -331,8 +337,28 @@ private fun AudioPlayerCard(
 private fun DetailsBlock(
     model: EventDetailUiModel,
     modifier: Modifier = Modifier,
+    /** P1-5: the stored battery payload, decrypted on demand; null in previews. */
+    loadEvidence: (suspend (String) -> ByteArray?)? = null,
 ) {
     val spacing = ShieldraTheme.spacing
+    // The captured reading is a stored fact; the model's own percent/charging pair is the demo
+    // projection. The stored one wins, because it is what this phone measured at the capture.
+    var storedBattery by remember(model.batteryEvidenceId) {
+        mutableStateOf<com.shieldra.domain.BatteryEvidence.Reading?>(null)
+    }
+    val batteryId = model.batteryEvidenceId
+    if (batteryId != null && loadEvidence != null) {
+        LaunchedEffect(batteryId) {
+            storedBattery = withContext(Dispatchers.IO) {
+                runCatching {
+                    val bytes = loadEvidence(batteryId) ?: return@runCatching null
+                    com.shieldra.domain.BatteryEvidence.decode(String(bytes, Charsets.UTF_8))
+                }.getOrNull()
+            }
+        }
+    }
+    val batteryPercent = storedBattery?.percent ?: model.batteryPercent
+    val batteryCharging = storedBattery?.charging ?: model.charging
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -354,11 +380,11 @@ private fun DetailsBlock(
         if (model.activationCount != null) {
             DetailRow(stringResource(R.string.detail_presses), "${model.activationCount}")
         }
-        if (model.batteryPercent != null) {
+        if (batteryPercent != null) {
             DetailRow(
                 stringResource(R.string.detail_battery),
-                "${model.batteryPercent}% · " + stringResource(
-                    if (model.charging) R.string.charging else R.string.not_charging,
+                "$batteryPercent% · " + stringResource(
+                    if (batteryCharging) R.string.charging else R.string.not_charging,
                 ),
             )
         }

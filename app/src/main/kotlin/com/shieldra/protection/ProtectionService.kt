@@ -453,6 +453,17 @@ class ProtectionService : Service() {
             "${it.latitude}|${it.longitude}|${it.accuracyMeters ?: ""}|${it.provider}".toByteArray(Charsets.UTF_8)
         }
         storeEvidence(storage, repository, eventId, locationBytes, "LOCATION")
+        // P1-5: the battery the phone really had at capture is stored with the incident, so the
+        // event detail can report the reading instead of showing nothing at all. Both numbers come
+        // from the same sticky broadcast the guard itself reads.
+        val batteryPercent = batteryPercent()
+        val batteryCharging = batteryCharging()
+        if (batteryPercent != null) {
+            val batteryBytes = com.shieldra.domain.BatteryEvidence
+                .encode(batteryPercent, batteryCharging)
+                ?.toByteArray(Charsets.UTF_8)
+            storeEvidence(storage, repository, eventId, batteryBytes, com.shieldra.domain.BatteryEvidence.KIND)
+        }
         val captureFinished = runCatching { lifecycle.finishCapture(eventId) }
             .onFailure { Log.e(TAG, "capture completion could not be persisted for $eventId", it) }
             .getOrDefault(false)

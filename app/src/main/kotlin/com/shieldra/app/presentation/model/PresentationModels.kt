@@ -105,6 +105,8 @@ data class EventDetailUiModel(
     val photoEvidenceId: String? = null,
     val audioEvidenceId: String? = null,
     val locationEvidenceId: String? = null,
+    /** P1-5: the stored battery reading for this incident, when the capture took one. */
+    val batteryEvidenceId: String? = null,
     /** Every evidence payload the event carries (id + stored kind), for export. */
     val evidenceItems: List<EvidenceItemUi> = emptyList(),
 )
