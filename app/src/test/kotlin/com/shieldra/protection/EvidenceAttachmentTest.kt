@@ -1,5 +1,6 @@
 package com.shieldra.protection
 
+import com.shieldra.domain.EventId
 import com.shieldra.domain.EventRepository
 import com.shieldra.domain.EvidenceReference
 import com.shieldra.domain.GuardSeverity
@@ -8,12 +9,14 @@ import com.shieldra.domain.RepositoryResult
 import com.shieldra.domain.SecurityEvent
 import com.shieldra.domain.SecurityEventType
 import java.time.Instant
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class EvidenceAttachmentTest {
     private val repository = InMemoryEventRepository()
     private val event = SecurityEvent.create(
+        eventId = EventId.from(UUID.randomUUID()),
         createdAt = Instant.parse("2026-11-23T00:00:00Z"),
         severity = GuardSeverity.CRITICAL,
         type = SecurityEventType.PANIC_ACTIVATION,

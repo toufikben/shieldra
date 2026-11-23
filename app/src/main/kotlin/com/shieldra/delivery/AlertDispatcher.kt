@@ -83,7 +83,10 @@ class AlertDispatcher(
         val channels = source.activeChannels()
         val unusable = source.unusableChannels()
         if (channels.isEmpty() && unusable.isEmpty()) {
-            finishDelivery(eventId, lifecycle, deferred = false)
+            // With no channel to carry it, an alert whose delivery state could not be persisted is
+            // kept rather than dropped; an owner who has configured nothing yet keeps the documented
+            // FAILED_FINAL receipt instead of an unbounded queue.
+            completeDelivery(alert, eventId, lifecycle, deferred = !deliveryStarted)
             return
         }
         val text = wording()
@@ -107,19 +110,39 @@ class AlertDispatcher(
         // A remote success without its durable SUCCESS receipt is not DELIVERED. Keep the alert for
         // an at-least-once retry instead of laundering a storage failure into a completed incident.
         val deferred = keepForLater || unusable.isNotEmpty() || receiptPersistenceFailed || !deliveryStarted
-        if (deferred) {
-            runCatching { pending.add(alert) }
-                .onFailure { logError("deferred alert could not be queued for $eventId", it) }
-        }
-        finishDelivery(eventId, lifecycle, deferred)
+        completeDelivery(alert, eventId, lifecycle, deferred)
     }
 
-    private fun finishDelivery(eventId: EventId?, lifecycle: EventLifecycle?, deferred: Boolean) {
-        if (eventId == null || lifecycle == null) return
+    /**
+     * Queues the alert exactly once when the incident is not durably completed. Requeueing from both
+     * the deferred branch and the refused-completion branch would leave two copies for one incident.
+     */
+    private fun completeDelivery(
+        alert: SecurityAlert,
+        eventId: EventId?,
+        lifecycle: EventLifecycle?,
+        deferred: Boolean,
+    ) {
+        if (eventId == null || lifecycle == null) {
+            if (deferred) keepForRetry(alert, eventId)
+            return
+        }
         val finished = runCatching { lifecycle.finishDelivery(eventId, deferred) }
             .onFailure { logError("delivery completion could not be persisted for $eventId", it) }
             .getOrDefault(false)
-        if (!finished) logError("delivery completion was refused for $eventId", null)
+        if (finished && !deferred) return
+        // A deferred incident still owes a send, and a refused completion leaves the event reading
+        // DELIVERING with nothing else to retry it. Either way the alert is queued exactly once.
+        if (!finished) {
+            logError("delivery completion was refused for $eventId; the alert is kept for a retry", null)
+        }
+        keepForRetry(alert, eventId)
+    }
+
+    /** Keeps one copy per alert in the retry store; a duplicate copy would resend the same event. */
+    private fun keepForRetry(alert: SecurityAlert, eventId: EventId?) {
+        runCatching { pending.add(alert) }
+            .onFailure { logError("deferred alert could not be queued for $eventId", it) }
     }
 
     private fun eventIdFor(alert: SecurityAlert): EventId? =

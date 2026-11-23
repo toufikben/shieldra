@@ -478,24 +478,25 @@ class ProtectionService : Service() {
         val id = "cap_" + UUID.randomUUID().toString().replace("-", "")
         val written = runCatching { storage.evidenceFiles.write(id, bytes) }.map { id }.getOrNull() ?: return null
         val reference = com.shieldra.domain.EvidenceReference(written, kind)
-        val recorded = runCatching { repository.recordEvidence(eventId, reference) }
-            .onFailure { Log.e(TAG, "evidence reference could not be stored for $eventId", it) }
-            .getOrNull()
-        val persisted = when (recorded) {
-            com.shieldra.domain.RepositoryResult.Applied -> true
-            com.shieldra.domain.RepositoryResult.AlreadyExists -> runCatching {
-                repository.find(eventId)?.evidenceReferences?.any { it == reference } == true
-            }.getOrDefault(false)
-            else -> false
+        val attachment = classifyEvidenceAttachment(repository, eventId, reference) {
+            repository.recordEvidence(eventId, reference)
         }
-        if (!persisted) {
-            Log.e(TAG, "evidence $written was not attached to $eventId; removing the orphan payload")
-            runCatching {
-                if (!storage.evidenceFiles.delete(written)) Log.e(TAG, "orphan evidence $written was not found")
-            }.onFailure { Log.e(TAG, "orphan evidence $written could not be removed", it) }
-            return null
+        return when (attachment) {
+            EvidenceAttachmentState.ATTACHED -> written
+            // The reference may already be stored, so the payload is kept: a lost photo cannot be
+            // recaptured, and the event would otherwise point at a file that no longer exists.
+            EvidenceAttachmentState.UNKNOWN -> {
+                Log.w(TAG, "evidence $written could not be verified for $eventId; keeping the payload")
+                written
+            }
+            EvidenceAttachmentState.ORPHAN -> {
+                Log.e(TAG, "evidence $written was not attached to $eventId; removing the orphan payload")
+                runCatching {
+                    if (!storage.evidenceFiles.delete(written)) Log.e(TAG, "orphan evidence $written was not found")
+                }.onFailure { Log.e(TAG, "orphan evidence $written could not be removed", it) }
+                null
+            }
         }
-        return written
     }
 
     /**
