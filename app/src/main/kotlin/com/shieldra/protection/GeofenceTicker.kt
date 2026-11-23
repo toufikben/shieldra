@@ -102,8 +102,14 @@ class GeofenceTickReceiver : BroadcastReceiver() {
                     Log.i(GeofenceTicker.TAG, "the safe-zone tick fired while the zone guard is off: nothing sampled")
                     return@Thread
                 }
-                runCatching { runBlocking { ProtectionService.sampleSafeZoneNow(app) } }
-                    .onFailure { Log.w(GeofenceTicker.TAG, "the safe-zone reading failed: ${it.message}") }
+                runCatching {
+                    // Only a live location-typed foreground service may request a fresh fix while the
+                    // app is in the background. Without one, lastLocation is the entire lawful read.
+                    val delegated = ProtectionService.sampleSafeZoneFromTick(app)
+                    if (!delegated) {
+                        runBlocking { ProtectionService.sampleSafeZoneNow(app, allowFresh = false) }
+                    }
+                }.onFailure { Log.w(GeofenceTicker.TAG, "the safe-zone reading failed: ${it.message}") }
             } finally {
                 pending.finish()
             }

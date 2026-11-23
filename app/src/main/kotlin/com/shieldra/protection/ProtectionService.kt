@@ -55,6 +55,7 @@ class ProtectionService : Service() {
     private val camera by lazy { CameraCapture(applicationContext) }
     private val location by lazy { LocationFix(applicationContext) }
     private val busy = AtomicBoolean(false)
+    @Volatile
     private var promoted = false
     private val battery by lazy { BatteryBreathLogic(mainThreshold = { ProtectionSettingsStore(applicationContext).load().batteryThreshold }) }
     private var batteryReceiver: android.content.BroadcastReceiver? = null
@@ -766,6 +767,20 @@ class ProtectionService : Service() {
         }
 
         /**
+         * Gives the alarm's fresh reading to the already-promoted location service. False means no
+         * such service exists, so the receiver must restrict itself to the cached location.
+         */
+        fun sampleSafeZoneFromTick(context: Context): Boolean {
+            val live = liveInstance?.takeIf { it.promoted } ?: return false
+            val app = context.applicationContext
+            live.scope.launch {
+                runCatching { live.sampleSafeZoneNow(app, allowFresh = true) }
+                    .onFailure { Log.w(TAG, "the service safe-zone reading failed: ${it.message}") }
+            }
+            return true
+        }
+
+        /**
          * One safe-zone reading (A-45 D2): where the phone is, whether it just crossed out, and when this
          * became known. The service takes one at arm and [GeofenceTickReceiver] takes the rest, so the
          * state the Motion ladder reads never depends on a service instance staying alive.
@@ -775,13 +790,13 @@ class ProtectionService : Service() {
          * age out, and an aged-out reading fails the ladder closed rather than muting a snatch at the
          * door. The one-shot "it left a safe zone" alert (A-36) keeps its exact old meaning.
          */
-        suspend fun sampleSafeZoneNow(context: Context) {
+        suspend fun sampleSafeZoneNow(context: Context, allowFresh: Boolean = true) {
             val app = context.applicationContext
             val store = ProtectionSettingsStore(app)
             val settings = store.load()
             val zones = store.safeZones().map(SafeZone::zone)
             if (zones.isEmpty()) return
-            val fix = runCatching { LocationFix(app).current() }.getOrNull()
+            val fix = runCatching { LocationFix(app).current(allowFresh) }.getOrNull()
             if (fix == null) {
                 Log.i(TAG, "the safe-zone tick got no fix: the stored reading is left to go stale")
                 return
