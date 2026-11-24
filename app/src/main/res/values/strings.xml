@@ -498,7 +498,7 @@
     <string name="privacy_billing_title">Shieldra Pro</string>
     <string name="privacy_billing_body">Payment is handled by Google Play. Shieldra only learns whether you own Pro; it never sees your card or account details.</string>
     <string name="privacy_control_title">Your control</string>
-    <string name="privacy_control_body">Export evidence as an encrypted file, delete it automatically after 90 days (events) and 30 days (evidence), lock the app with your screen lock, or delete all data now in Settings. Uninstalling Shieldra removes everything it stored.</string>
+    <string name="privacy_control_body">Export evidence as an encrypted file, delete it automatically after %1$d days (events) and %2$d days (evidence), lock the app with your screen lock, or delete all data now in Settings. Uninstalling Shieldra removes everything it stored.</string>
     <!-- The stolen-phone steps (audit development ج). Every line must be something the owner can do from
          another device, and every command named here must be one RemoteCommandPoller really answers. -->
     <string name="panic_guide_row">Phone stolen: what to do</string>

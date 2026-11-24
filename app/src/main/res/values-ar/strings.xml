@@ -480,7 +480,7 @@
     <string name="privacy_billing_title">Shieldra Pro</string>
     <string name="privacy_billing_body">الدفع تتولاه Google Play. يعرف Shieldra فقط هل تملك Pro؛ ولا يرى بطاقتك ولا بيانات حسابك.</string>
     <string name="privacy_control_title">تحكّمك</string>
-    <string name="privacy_control_body">صدّر الأدلة كملف مشفّر، تُحذف تلقائياً بعد 90 يوماً (الأحداث) و30 يوماً (الأدلة)، أقفل التطبيق بقفل شاشتك، أو احذف كل البيانات الآن من الإعدادات. إلغاء تثبيت Shieldra يزيل كل ما خزّنه.</string>
+    <string name="privacy_control_body">صدّر الأدلة كملف مشفّر، تُحذف تلقائياً بعد %1$d يوماً (الأحداث) و%2$d يوماً (الأدلة)، أقفل التطبيق بقفل شاشتك، أو احذف كل البيانات الآن من الإعدادات. إلغاء تثبيت Shieldra يزيل كل ما خزّنه.</string>
     <!-- خطوات لحظة السرقة (التطوير ج): كل سطر عمل يُنفَّذ من جهاز آخر، وكل أمر مذكور هنا هو أمر يرده RemoteCommandPoller فعلًا. -->
     <string name="panic_guide_row">هاتفي مسروق: ماذا أفعل</string>
     <string name="panic_guide_title">هاتفي مسروق — ماذا أفعل الآن؟</string>

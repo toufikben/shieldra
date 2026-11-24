@@ -956,7 +956,15 @@ fun ShieldraNavHost(
             }
             composable(ShieldraRoutes.ABOUT_INFO) { AboutScreen(onBack = { navController.popBackStack() }) }
             composable(ShieldraRoutes.HELP_INFO) { HelpScreen(onBack = { navController.popBackStack() }) }
-            composable(ShieldraRoutes.PRIVACY_INFO) { PrivacyScreen(onBack = { navController.popBackStack() }) }
+            composable(ShieldraRoutes.PRIVACY_INFO) {
+                PrivacyScreen(
+                    // P1-2: the deletion windows this screen promises are the ones in force, not the
+                    // shipped pair the string used to hard-code.
+                    policy = installedStorage?.retentionPolicy
+                        ?: com.shieldra.storage.EvidenceRetentionPolicy.default,
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composable(ShieldraRoutes.PANIC_GUIDE) { PanicGuideScreen(onBack = { navController.popBackStack() }) }
             composable(ShieldraRoutes.SURVIVAL_GUIDE) {
                 BatterySurvivalScreen(onBack = { navController.popBackStack() })

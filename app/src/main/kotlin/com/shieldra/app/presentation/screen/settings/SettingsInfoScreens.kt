@@ -320,9 +320,20 @@ fun HelpScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-/** What Shieldra stores, where it can go, and what the owner controls. */
+/**
+ * What Shieldra stores, where it can go, and what the owner controls.
+ *
+ * P1-2: the fourth paragraph states the deletion windows, which are the owner's own setting applied at
+ * open. It is formatted from the policy in force rather than given as a fixed sentence: a privacy
+ * statement that promises 90/30 to an owner whose sweeper expires at 14/42 is the one kind of wrong
+ * this screen cannot afford.
+ */
 @Composable
-fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun PrivacyScreen(
+    policy: EvidenceRetentionPolicy,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     InfoPage(title = stringResource(R.string.settings_privacy), onBack = onBack, modifier = modifier) {
         listOf(
             R.string.privacy_collect_title to R.string.privacy_collect_body,
@@ -330,7 +341,7 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             R.string.privacy_never_title to R.string.privacy_never_body,
             R.string.privacy_permissions_title to R.string.privacy_permissions_body,
             R.string.privacy_billing_title to R.string.privacy_billing_body,
-            R.string.privacy_control_title to R.string.privacy_control_body,
+            R.string.privacy_control_title to null,
         ).forEach { (title, body) ->
             GlassCard {
                 Text(
@@ -341,7 +352,17 @@ fun PrivacyScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = stringResource(body),
+                    // The windows are the only numbers on this screen, so they are the only line that
+                    // cannot be a fixed resource.
+                    text = if (body == null) {
+                        stringResource(
+                            R.string.privacy_control_body,
+                            policy.eventMetadataRetentionDays.toInt(),
+                            policy.evidenceRetentionDays.toInt(),
+                        )
+                    } else {
+                        stringResource(body)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
