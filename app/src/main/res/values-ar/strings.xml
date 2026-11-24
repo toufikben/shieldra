@@ -189,7 +189,7 @@
     <string name="protection_remote_title">التحكم عن بُعد (تلغرام)</string>
     <string name="protection_remote_enable">التحكم من تلغرام</string>
     <string name="protection_remote_desc">أرسل أوامر لبوتك والهاتف مُفعّل. يتطلب إعداد تلغرام في قنوات التنبيه.</string>
-    <string name="protection_remote_help">أرسل لبوتك: /locate لموقع، /photo لصورة أمامية، /alarm و /stopalarm للصفّارة، /status للبطارية والشبكة، /lost و /found لإظهار جهة اتصالك على شاشة القفل.</string>
+    <string name="protection_remote_help">أرسل لبوتك: /locate لموقع، /photo لصورة أمامية، /alarm لصفّارة مدّتها دقيقتان (ويُسكتها /stopalarm قبل ذلك)، /status للبطارية والشبكة، /lost و /found لإظهار جهة اتصالك على شاشة القفل.</string>
     <string name="protection_owner_contact">جهة اتصالك (تظهر على شاشة القفل)</string>
     <string name="protection_lost_message">رسالة شاشة الفقدان (اختياري)</string>
     <!-- التصميم B (2026-11-06): لم يعد ثمة إشعار مطالبة على شاشة القفل، فالتطبيق لا يملك قفلًا. هذان الحقلان يغذّيان إشعار الفقدان الذي يطلقه المالك (/lost). -->
@@ -492,7 +492,7 @@
     <string name="panic_step_photo_title">شاهد مَن يمسك الهاتف</string>
     <string name="panic_step_photo_body">أرسل /photo فيلتقط الهاتف صورة واحدة بالكاميرا الأمامية ويرسلها. كل تنبيه سبق أن أطلقه الحارس — ذعر، محاولات فتح خاطئة، تغيير الشريحة، حركة — كان يحمل صورة وموقعًا حين استطاعت الكاميرا وتحديد الموقع ذلك، فاقرأ سجل محادثتك قبل أن تطلب أي شيء جديد.</string>
     <string name="panic_step_signal_title">أطلق الصفّارة وقل إن الهاتف مفقود</string>
-    <string name="panic_step_signal_body">يشغّل /alarm الصفّارة حتى ترسل /stopalarm. ويعرض /lost رسالتك ورقم تواصلك على الشاشة لمن يجده، ويمسحها /found. ويرد /status بمستوى البطارية والشبكة وهل الحراس مُسلّحون.</string>
+    <string name="panic_step_signal_body">يشغّل /alarm الصفّارة دقيقتين ثم تتوقّف وحدها (ويُسكتها /stopalarm قبل ذلك). ويعرض /lost رسالتك ورقم تواصلك على الشاشة لمن يجده، ويمسحها /found. ويرد /status بمستوى البطارية والشبكة وهل الحراس مُسلّحون.</string>
     <string name="panic_step_imei_title">احجز الجهاز وحرّر محضرًا</string>
     <string name="panic_step_imei_body">يمكن لمشغّل الاتصال أن يحظر رقم IMEI فلا يلتحق الهاتف بأي شبكة خلوية، ومحضر الشرطة يحتاج الرقم نفسه. طُبع IMEI على العلبة وحامل الشريحة، ويظهر داخل الهاتف في الإعدادات › حول الهاتف.</string>
     <string name="panic_step_passwords_title">غيّر الحسابات التي يفتحها الهاتف</string>

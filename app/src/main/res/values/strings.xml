@@ -202,7 +202,7 @@
     <string name="protection_remote_title">Remote control (Telegram)</string>
     <string name="protection_remote_enable">Control from Telegram</string>
     <string name="protection_remote_desc">Send commands to your bot while the phone is armed. Needs Telegram set up in Alert channels.</string>
-    <string name="protection_remote_help">Send to your bot: /locate for a map pin, /photo for a front-camera photo, /alarm and /stopalarm for the siren, /status for battery and network, /lost and /found to show your contact on the lock screen.</string>
+    <string name="protection_remote_help">Send to your bot: /locate for a map pin, /photo for a front-camera photo, /alarm for a 2-minute siren (/stopalarm silences it early), /status for battery and network, /lost and /found to show your contact on the lock screen.</string>
     <string name="protection_owner_contact">Your contact (shown on the lock screen)</string>
     <string name="protection_lost_message">Lost-screen message (optional)</string>
     <!--
@@ -511,7 +511,7 @@
     <string name="panic_step_photo_title">See who is holding it</string>
     <string name="panic_step_photo_body">Send /photo and the phone takes one front-camera picture and replies with it. Any alert that already fired — panic, failed unlocks, a SIM change, motion — carried a photo and a position of its own when the camera and the GPS could produce one, so read your chat history before you ask for anything new.</string>
     <string name="panic_step_signal_title">Make it loud, and say it is lost</string>
-    <string name="panic_step_signal_body">/alarm sounds the siren until you send /stopalarm. /lost puts your own message and contact number on the screen for a finder, and /found clears it. /status replies with the battery, the network and whether the guards are armed.</string>
+    <string name="panic_step_signal_body">/alarm sounds the siren for 2 minutes and stops by itself (/stopalarm silences it early). /lost puts your own message and contact number on the screen for a finder, and /found clears it. /status replies with the battery, the network and whether the guards are armed.</string>
     <string name="panic_step_imei_title">Block the handset and file a report</string>
     <string name="panic_step_imei_body">Your carrier can blacklist the IMEI so the phone cannot join any mobile network, and the police report needs the same number. The IMEI is printed on the box and on the SIM tray, and shown by Settings › About phone on the device.</string>
     <string name="panic_step_passwords_title">Change what the phone can open</string>
