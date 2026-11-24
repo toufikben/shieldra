@@ -236,6 +236,7 @@
     <string name="dashboard_events_disclosure">تُسجَّل الأحداث الأمنية وتُحفظ على هذا الهاتف. مراقبة الحركة متوقفة حتى تبدأها.</string>
     <string name="dashboard_motion_disclosure">تُسجَّل الأحداث الأمنية وتُحفظ على هذا الهاتف. مراقبة الحركة تعمل الآن.</string>
     <string name="dashboard_no_storage_disclosure">لا شيء محفوظ على هذا الهاتف بعد. لا توجد مراقبة مستمرة تعمل.</string>
+    <string name="dashboard_armed_waiting_unlock">الحماية مُسلَّحة، لكن لا شيء يحرس بعد: لم يُكمل الهاتف إقلاعه. لا يسمح أندرويد للحُرّاس بالعمل إلا بعد أول فتح للقفل، وقد يوقفها موفّر بطارية الشركة لاحقًا. افتح قفل الهاتف ثم افتح Shieldra، وراجع صحّة الحماية.</string>
     <string name="action_get_started">ابدأ الآن</string>
     <string name="detail_type">النوع</string>
     <string name="detail_timestamp">الطابع الزمني</string>
@@ -415,6 +416,16 @@
     <string name="storage_evidence_files">ملفّات الأدلّة</string>
     <string name="storage_evidence_size">حجم الأدلّة</string>
     <string name="storage_encrypted_note">الأدلّة مشفّرة على هذا الهاتف بمفتاح لا يغادره أبداً. لا يُرسَل منه شيء إلا التنبيهات التي أعددتَها بنفسك.</string>
+    <string name="storage_rotation_last">تدوير مفتاح الأدلّة</string>
+    <string name="storage_rotation_rotated">أُعيد ختم كل ملف دليل محفوظ بالمفتاح الجديد وتحقّقت سلامته، والمفتاح القديم صار مُتقاعِداً.</string>
+    <string name="storage_rotation_not_due">غير مستحقّ: لم تنقضِ مهلة التسعين يوماً على آخر تدوير مكتمل.</string>
+    <string name="storage_rotation_partial">أُعيد ختم جزء من الأدلّة فقط. يبقى المفتاح القديم نشطاً والملفات التي فشلت ما تزال مقروءة.</string>
+    <string name="storage_rotation_blocked">لم يكتمل إعادة الختم، فيبقى المفتاح القديم نشطاً. لم يُفقد شيء ولم يُتقاعَد شيء.</string>
+    <string name="storage_rotation_nothing_eligible">لم يكن محفوظ شيء بالمفتاح الحالي، فلم يُنشأ مفتاح جديد.</string>
+    <string name="storage_rotation_no_successor">لا يوجد في هذه النسخة مفتاح بديل معتمد، فلم يُحاول التدوير وبقي المفتاح الحالي نشطاً.</string>
+    <string name="storage_rotation_failed">تعذّر تشغيل فحص التدوير: %1$s. وتبقى مهلة المفتاح مجهولة حتى ينجح.</string>
+    <string name="storage_rotation_failed_entries">%1$d ملفاً لم يُعَد ختمه وبقي بالمفتاح القديم.</string>
+    <string name="storage_rotation_not_run">لم ينتهِ فحص التدوير في هذه الجلسة بعد.</string>
     <string name="retention_events">مدّة حفظ سجلّات الأحداث</string>
     <string name="retention_evidence">مدّة حفظ الأدلّة</string>
     <string name="retention_days">%1$d يوماً</string>

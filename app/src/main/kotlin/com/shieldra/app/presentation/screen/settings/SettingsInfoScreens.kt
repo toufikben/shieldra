@@ -39,6 +39,8 @@ import com.shieldra.app.presentation.settings.ByteSize
 import com.shieldra.storage.EvidenceRetentionPolicy
 import com.shieldra.storage.LocalShieldraStorage
 import com.shieldra.storage.RetentionSweepReport
+import com.shieldra.storage.RotationRunReport
+import com.shieldra.storage.RotationTriggerOutcome
 
 /** The shared frame of the four information pages: back button, title, the teal mesh, a scroll body. */
 @Composable
@@ -104,11 +106,20 @@ private fun Note(text: String) {
     )
 }
 
-/** What this phone really holds: counts and bytes measured from the stored data, never estimated. */
+/**
+ * What this phone really holds: counts and bytes measured from the stored data, never estimated.
+ *
+ * P3-3: it also reports the evidence-key rotation this process ran. A rotation that failed, or one that
+ * could not even start because the key lifecycle record was unreadable, is the moment the app is most
+ * likely to lose evidence it promised to keep — and both outcomes used to be written to fields on
+ * `ShieldraApp` that no screen rendered. The owner reads storage here, so the answer belongs here.
+ */
 @Composable
 fun StorageScreen(
     figures: LocalShieldraStorage.Figures?,
     storageInstalled: Boolean,
+    rotationReport: RotationRunReport?,
+    rotationFailure: Throwable?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -128,10 +139,54 @@ fun StorageScreen(
             }
         }
         GlassCard {
+            Text(
+                text = stringResource(R.string.storage_rotation_last),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(6.dp))
+            when {
+                // A run that never started is the worse failure: the key clock is then unknown.
+                rotationFailure != null -> Text(
+                    text = stringResource(R.string.storage_rotation_failed, rotationFailure.message ?: rotationFailure::class.java.simpleName),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                rotationReport != null -> {
+                    Text(
+                        text = rotationOutcomeLabel(rotationReport.outcome),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (rotationReport.failed.isNotEmpty()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.storage_rotation_failed_entries, rotationReport.failed.size),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+                else -> Note(stringResource(R.string.storage_rotation_not_run))
+            }
+        }
+        GlassCard {
             Note(stringResource(R.string.storage_encrypted_note))
         }
     }
 }
+
+/** One sentence per real rotation outcome; every non-ROTATED one says the old key stayed active. */
+@Composable
+private fun rotationOutcomeLabel(outcome: RotationTriggerOutcome): String = stringResource(
+    when (outcome) {
+        RotationTriggerOutcome.ROTATED -> R.string.storage_rotation_rotated
+        RotationTriggerOutcome.NOT_DUE -> R.string.storage_rotation_not_due
+        RotationTriggerOutcome.PARTIALLY_MIGRATED -> R.string.storage_rotation_partial
+        RotationTriggerOutcome.RETIREMENT_BLOCKED -> R.string.storage_rotation_blocked
+        RotationTriggerOutcome.NO_ELIGIBLE_EVIDENCE -> R.string.storage_rotation_nothing_eligible
+        RotationTriggerOutcome.NO_APPROVED_SUCCESSOR -> R.string.storage_rotation_no_successor
+    },
+)
 
 /** The approved retention windows, the last cleanup's real outcome, and a manual cleanup. */
 @Composable

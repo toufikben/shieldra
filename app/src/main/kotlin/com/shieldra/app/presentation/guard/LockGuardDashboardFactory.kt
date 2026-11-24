@@ -10,7 +10,6 @@ import com.shieldra.app.presentation.model.GuardKind
 import com.shieldra.app.presentation.model.GuardStatus
 import com.shieldra.app.presentation.model.GuardUiModel
 import com.shieldra.app.presentation.model.NetworkStatus
-import com.shieldra.app.presentation.model.ProtectionVisualState
 import com.shieldra.protection.CountdownDeadline
 import com.shieldra.runtime.MonitoringClaim
 
@@ -33,6 +32,11 @@ fun lockGuardDashboard(
     // here is fabricated: an unarmed build still goes through the honest LockGuardDecision path, and
     // the not-active case still maps to Disabled.
     protectionArmed: Boolean = false,
+    // P3-3: the armed flag is a stored boolean; the guards are a running service. The shield may only
+    // read Protected when the service really is live, because the window between the two is real — a
+    // phone that rebooted while armed is locked, and no boot receiver may start the camera-type service
+    // before the first unlock.
+    guardsRunning: Boolean = false,
     simOn: Boolean = false,
     batteryOn: Boolean = false,
     // A-38: the phone's own readings. Each defaults to "not measured", so a caller that has no reading
@@ -50,12 +54,15 @@ fun lockGuardDashboard(
     periodicSignalIntervalMs: Long = 0L,
 ): DashboardUiModel {
     val statuses = LockGuardDecision.guardStatuses(state)
+    val readiness = ArmedReadiness.decide(armed = protectionArmed, guardsRunning = guardsRunning)
     val inactiveSubtitle = stringResource(R.string.guard_subtitle_inactive)
     val activeSubtitle = stringResource(R.string.guard_subtitle_active)
     val motionSubtitle = stringResource(MotionMonitoringPresentation.subtitleRes(motionClaim))
+    // A guard is only "active" when the service behind it is live: the switch alone is an intention.
+    val serviceLive = readiness == ArmedReadiness.ArmedAndRunning
     val armedGuards: Map<GuardKind, Boolean> = mapOf(
-        GuardKind.Sim to (protectionArmed && simOn),
-        GuardKind.Battery to (protectionArmed && batteryOn),
+        GuardKind.Sim to (serviceLive && simOn),
+        GuardKind.Battery to (serviceLive && batteryOn),
     )
     val guards = GuardKind.entries.map { kind ->
         val monitoring = kind == GuardKind.Motion
@@ -76,10 +83,12 @@ fun lockGuardDashboard(
             enabled = false,
         )
     }
-    val protectionState =
-        if (protectionArmed) ProtectionVisualState.Protected else LockGuardDecision.protectionState(state)
+    val protectionState = readiness.protectionVisualState()
     return DashboardUiModel(
         protectionState = protectionState,
+        // P3-3: the sentence the waiting window owes the owner, or null when the disclosure line
+        // already says everything true. Read here so the screen cannot invent its own wording.
+        armedReadinessNote = readiness.noteRes?.let { stringResource(it) },
         lastCheckSeconds = measuredLastCheckSeconds ?: LockGuardDecision.lastCheckSeconds(state),
         guards = guards,
         recentEvents = recentEvents,

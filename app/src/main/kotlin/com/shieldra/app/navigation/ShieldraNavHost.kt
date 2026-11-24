@@ -167,6 +167,8 @@ fun ShieldraNavHost(
     // Honest projection: the guards without a detector are projected from whether the storage gate
     // installed anything, never from fabricated protection numbers.
     val installedStorage = (LocalContext.current.applicationContext as ShieldraApp).installedStorage
+    val storageRotationReport = (LocalContext.current.applicationContext as ShieldraApp).lastRotationReport
+    val storageRotationFailure = (LocalContext.current.applicationContext as ShieldraApp).lastRotationFailure
     val storageInstalled = installedStorage != null
     val guardState = LockGuardDecision.decide(storageInstalled)
     val eventLabels = persistedEventLabels()
@@ -574,6 +576,7 @@ fun ShieldraNavHost(
                         recentEvents = recentEvents.take(RECENT_EVENT_LIMIT),
                         motionClaim = motionClaim,
                         protectionArmed = protectionArmed,
+                        guardsRunning = com.shieldra.protection.ProtectionService.isLive,
                         simOn = protectionSettings.simEnabled,
                         batteryOn = protectionSettings.batteryEnabled,
                         batteryPercent = device.batteryPercent,
@@ -909,6 +912,10 @@ fun ShieldraNavHost(
                 StorageScreen(
                     figures = figures,
                     storageInstalled = storageInstalled,
+                    // P3-3: the rotation this process ran, read once when the host is built from the app
+                    // that ran it, so the screen cannot show a fresh default over a real failure.
+                    rotationReport = storageRotationReport,
+                    rotationFailure = storageRotationFailure,
                     onBack = { navController.popBackStack() },
                 )
             }

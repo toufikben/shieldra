@@ -189,6 +189,22 @@ fun DashboardScreen(
             )
         }
 
+        // P3-3: armed is a stored flag, guarding is a running service, and the phone can be inside the
+        // gap between them (a rebooted, still-locked phone: no boot receiver may start the camera-type
+        // service before the first unlock). The shield reads Attention there, and this line says why —
+        // in the app's own words, never a second sentence invented by the screen.
+        val readinessNote = model.armedReadinessNote
+        if (readinessNote != null) {
+            item {
+                Text(
+                    text = readinessNote,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = spacing.l, vertical = spacing.s),
+                )
+            }
+        }
+
         item {
             LiveStatusStrip(
                 lastCheckLabel = lastCheckAgo(model.lastCheckSeconds),

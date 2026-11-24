@@ -253,6 +253,7 @@
     <string name="dashboard_events_disclosure">Security events are recorded and stored on this phone. Motion monitoring is off until you start it.</string>
     <string name="dashboard_motion_disclosure">Security events are recorded and stored on this phone. Motion monitoring is running.</string>
     <string name="dashboard_no_storage_disclosure">Nothing is stored on this phone yet. No continuous monitoring is running.</string>
+    <string name="dashboard_armed_waiting_unlock">Protection is armed, but nothing is guarding yet: the phone has not finished starting. Android lets the guards run only after the first unlock, and a vendor battery manager can stop them later. Unlock the phone and open Shieldra, then check protection health.</string>
     <string name="action_get_started">Get started</string>
     <string name="detail_type">Type</string>
     <string name="detail_timestamp">Timestamp</string>
@@ -433,6 +434,16 @@
     <string name="storage_evidence_files">Evidence files</string>
     <string name="storage_evidence_size">Evidence size</string>
     <string name="storage_encrypted_note">Evidence is encrypted on this phone with a key that never leaves it. Nothing here is sent anywhere except the alerts you set up yourself.</string>
+    <string name="storage_rotation_last">Evidence key rotation</string>
+    <string name="storage_rotation_rotated">Every stored evidence file was re-sealed under the new key and verified, and the old key is now retired.</string>
+    <string name="storage_rotation_not_due">Not due: the 90-day interval has not elapsed since the last completed rotation.</string>
+    <string name="storage_rotation_partial">Only part of the evidence was re-sealed. The old key stays active and the files that failed are still readable.</string>
+    <string name="storage_rotation_blocked">Re-sealing could not be completed, so the old key stays active. Nothing is lost and nothing was retired.</string>
+    <string name="storage_rotation_nothing_eligible">Nothing was stored under the current key, so no new key was created.</string>
+    <string name="storage_rotation_no_successor">This build has no approved successor key, so no rotation was attempted and the current key stays active.</string>
+    <string name="storage_rotation_failed">The rotation check could not run: %1$s. The key clock stays unknown until it succeeds.</string>
+    <string name="storage_rotation_failed_entries">%1$d file(s) did not re-seal and stay under the old key.</string>
+    <string name="storage_rotation_not_run">The rotation check has not finished on this run yet.</string>
     <string name="retention_events">Event records kept for</string>
     <string name="retention_evidence">Evidence kept for</string>
     <string name="retention_days">%1$d days</string>

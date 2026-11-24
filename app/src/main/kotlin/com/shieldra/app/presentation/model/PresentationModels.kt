@@ -129,6 +129,11 @@ data class DashboardUiModel(
     val storageInstalled: Boolean = false,
     /** The honest 0-100 protection score, computed from real state; null when not computed. */
     val protectionScore: Int? = null,
+    /**
+     * P3-3: what the owner must read when the armed flag and the running service disagree, or null
+     * when the shield already states the whole truth.
+     */
+    val armedReadinessNote: String? = null,
     /** True while Google Play reports an active Pro subscription; drives the top-bar Pro button. */
     val proActive: Boolean = false,
     /** Every stored event, when known; the list above is only the newest few. */
