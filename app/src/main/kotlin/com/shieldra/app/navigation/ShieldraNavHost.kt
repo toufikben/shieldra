@@ -167,8 +167,12 @@ fun ShieldraNavHost(
     // Honest projection: the guards without a detector are projected from whether the storage gate
     // installed anything, never from fabricated protection numbers.
     val installedStorage = (LocalContext.current.applicationContext as ShieldraApp).installedStorage
-    val storageRotationReport = (LocalContext.current.applicationContext as ShieldraApp).lastRotationReport
-    val storageRotationFailure = (LocalContext.current.applicationContext as ShieldraApp).lastRotationFailure
+    // P3-3: the startup sweep and rotation run on a thread started from onCreate, so their outcome does
+    // not exist yet while this host is being built. Collecting the app's published value is what makes
+    // the storage screen show the real outcome when it arrives, instead of the empty value it would have
+    // snapshotted here — and a failed rotation is the case that matters most.
+    val startupMaintenance by (LocalContext.current.applicationContext as ShieldraApp)
+        .startupMaintenance.collectAsState()
     val storageInstalled = installedStorage != null
     val guardState = LockGuardDecision.decide(storageInstalled)
     val eventLabels = persistedEventLabels()
@@ -912,15 +916,16 @@ fun ShieldraNavHost(
                 StorageScreen(
                     figures = figures,
                     storageInstalled = storageInstalled,
-                    // P3-3: the rotation this process ran, read once when the host is built from the app
-                    // that ran it, so the screen cannot show a fresh default over a real failure.
-                    rotationReport = storageRotationReport,
-                    rotationFailure = storageRotationFailure,
+                    // P3-3: the rotation this process ran, as published by the thread that ran it.
+                    rotationReport = startupMaintenance.rotationReport,
+                    rotationFailure = startupMaintenance.rotationFailure,
                     onBack = { navController.popBackStack() },
                 )
             }
             composable(ShieldraRoutes.RETENTION_INFO) {
-                var report by remember { mutableStateOf(installedStorage?.lastRetentionReport) }
+                // The startup sweep's own outcome, published when it finished; a manual run replaces it.
+                var manualReport by remember { mutableStateOf<com.shieldra.storage.RetentionSweepReport?>(null) }
+                val report = manualReport ?: startupMaintenance.retentionReport
                 var running by remember { mutableStateOf(false) }
                 RetentionScreen(
                     storageInstalled = storageInstalled,
@@ -932,7 +937,7 @@ fun ShieldraNavHost(
                             val fresh = withContext(Dispatchers.IO) {
                                 runCatching { installedStorage?.sweepExpiredEvidence() }.getOrNull()
                             }
-                            if (fresh != null) report = fresh
+                            if (fresh != null) manualReport = fresh
                             running = false
                         }
                     },

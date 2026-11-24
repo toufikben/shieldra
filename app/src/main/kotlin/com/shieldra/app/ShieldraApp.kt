@@ -7,6 +7,38 @@ import com.shieldra.storage.RotationRunReport
 import com.shieldra.storage.StorageInstallDecision
 import com.shieldra.storage.StorageRuntimeApproval
 import com.shieldra.storage.decideStorageInstall
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+/**
+ * What the startup maintenance thread has learned so far.
+ *
+ * The thread runs off `onCreate` because the retention sweep and the rotation check are Room reads and
+ * writes, so neither outcome exists when the first screen is composed. They used to be written to plain
+ * fields that a screen read once — at exactly the moment the fields were guaranteed to still be empty —
+ * so the storage screen reported "not finished on this run yet" for the rest of the process, even over
+ * a rotation that had already failed. Publishing a value the screen collects is what makes the report
+ * arrive after it exists.
+ *
+ * Each step publishes on its own: a rotation that takes a minute must not hide the sweep that already
+ * finished, and a sweep that threw must not be hidden by a rotation that succeeded.
+ */
+data class StartupMaintenance(
+    /** The expiry sweep's outcome, or null until it finishes. */
+    val retentionReport: RetentionSweepReport? = null,
+    /** A sweep that could not read the stored set; the clock behind it is then unknown. */
+    val retentionFailure: Throwable? = null,
+    /** The rotation check's outcome, or null until it finishes. */
+    val rotationReport: RotationRunReport? = null,
+    /** A rotation check that could not even read the key lifecycle record. */
+    val rotationFailure: Throwable? = null,
+) {
+    /** True until both steps have reported, one way or the other. */
+    val running: Boolean
+        get() = retentionReport == null && retentionFailure == null &&
+            rotationReport == null && rotationFailure == null
+}
 
 /**
  * §15 production wiring, behind an explicit runtime approval gate.
@@ -34,6 +66,14 @@ class ShieldraApp : Application() {
 
     /** The Google Play Pro subscription (A-40); started once the first activity is up. */
     val proStore: com.shieldra.billing.PlayProStore by lazy { com.shieldra.billing.PlayProStore(this) }
+
+    private val maintenanceState = MutableStateFlow(StartupMaintenance())
+
+    /**
+     * The startup sweep and rotation, collectable so a screen shows the outcome when it exists instead
+     * of the empty value it had while the thread was still running.
+     */
+    val startupMaintenance: StateFlow<StartupMaintenance> = maintenanceState.asStateFlow()
 
     /** Outcome of the rotation check this process started; null until it completes. */
     @Volatile
@@ -102,14 +142,20 @@ class ShieldraApp : Application() {
             // ages, and a rotation rewrites payloads. Sweeping afterwards would
             // read freshly written files as new.
             try {
-                lastRetentionReport = storage.sweepExpiredEvidence()
+                val sweep = storage.sweepExpiredEvidence()
+                lastRetentionReport = sweep
+                maintenanceState.value = maintenanceState.value.copy(retentionReport = sweep, retentionFailure = null)
             } catch (error: Exception) {
                 lastRetentionFailure = error
+                maintenanceState.value = maintenanceState.value.copy(retentionFailure = error)
             }
             try {
-                lastRotationReport = storage.rotateEvidenceIfNeeded(manual = false)
+                val rotated = storage.rotateEvidenceIfNeeded(manual = false)
+                lastRotationReport = rotated
+                maintenanceState.value = maintenanceState.value.copy(rotationReport = rotated, rotationFailure = null)
             } catch (error: Exception) {
                 lastRotationFailure = error
+                maintenanceState.value = maintenanceState.value.copy(rotationFailure = error)
             }
         }.start()
     }
