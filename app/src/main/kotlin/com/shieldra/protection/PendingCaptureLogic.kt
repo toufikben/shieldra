@@ -95,9 +95,9 @@ object PendingCaptureLogic {
 
     /**
      * Queues [capture] behind [existing]. Repeats collapse: one guard already waiting for the camera
-     * is that guard's whole story, because the burst of wrong unlocks is one scene and the alert
-     * groups it into one incident anyway. Anything already too old to run leaves on the way in, and
-     * the oldest remaining request gives its place up when the queue is full.
+     * is that guard's whole story, because a burst of one kind is one scene and the alert groups it
+     * into one incident anyway. Anything already too old to run leaves on the way in, and the oldest
+     * remaining request gives its place up when the queue is full.
      *
      * Returns the queue to store; it is the caller's job to notice that its own request is not in it.
      */

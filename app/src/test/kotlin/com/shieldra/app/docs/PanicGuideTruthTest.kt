@@ -57,6 +57,10 @@ class PanicGuideTruthTest {
             main("kotlin/com/shieldra/detection/GuardBoundaries.kt").contains("interface LockGuard"),
             "a LockGuard boundary is back; the guide may name failed unlocks again only with a real sensor",
         )
+        assertFalse(
+            main("kotlin/com/shieldra/domain/Signal.kt").contains("LOCK,"),
+            "SignalType still carries a LOCK value with no guard to feed it",
+        )
 
         for ((locale, phrase) in listOf(
             "values" to "failed unlock",

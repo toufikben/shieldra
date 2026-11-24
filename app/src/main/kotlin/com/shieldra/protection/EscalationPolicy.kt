@@ -2,7 +2,7 @@ package com.shieldra.protection
 
 /**
  * Decides when a burst of confirmed intrusions should escalate to the loud siren (A-33): a thief
- * who keeps trying — several wrong unlocks, a SIM swap, more movement — within a short window is
+ * who keeps trying — a SIM swap, more movement, another tamper signal — within a short window is
  * past the quiet-evidence stage, so the phone stops being discreet and starts screaming. One
  * intrusion never escalates; the owner sets how many within the window do.
  *

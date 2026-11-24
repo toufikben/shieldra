@@ -509,7 +509,7 @@
     <string name="panic_step_locate_title">Ask where it is, from your own Telegram chat</string>
     <string name="panic_step_locate_body">Send /locate and the phone answers with one map pin; /track on keeps sending one at your tracking interval until you send /track off. It answers only while protection is armed, \"Control from Telegram\" is on in Protection settings, your plan is Premium and the phone has a network. Commands are not queued: if the phone was offline, send it again.</string>
     <string name="panic_step_photo_title">See who is holding it</string>
-    <string name="panic_step_photo_body">Send /photo and the phone takes one front-camera picture and replies with it. Any alert that already fired — panic, failed unlocks, a SIM change, motion — carried a photo and a position of its own when the camera and the GPS could produce one, so read your chat history before you ask for anything new.</string>
+    <string name="panic_step_photo_body">Send /photo and the phone takes one front-camera picture and replies with it. Any alert that already fired — panic, a SIM change, motion — carried a photo and a position of its own when the camera and the GPS could produce one, so read your chat history before you ask for anything new.</string>
     <string name="panic_step_signal_title">Make it loud, and say it is lost</string>
     <string name="panic_step_signal_body">/alarm sounds the siren for 2 minutes and stops by itself (/stopalarm silences it early). /lost puts your own message and contact number on the screen for a finder, and /found clears it. /status replies with the battery, the network and whether the guards are armed.</string>
     <string name="panic_step_imei_title">Block the handset and file a report</string>

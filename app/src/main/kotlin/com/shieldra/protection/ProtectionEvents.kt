@@ -18,10 +18,11 @@ import java.time.Instant
 /**
  * Records protection events and attaches the evidence each capture produced (A-33/A-34).
  *
- * Lock attempts are grouped: repeated wrong unlocks inside the reuse window join the one open Lock
- * incident, so the owner's History shows a single incident that gathered several photos rather than
- * a row per attempt. SIM, countdown and battery events each stand alone. The binding never crosses
- * types — a Lock capture can only ever join an open Lock incident, never a Motion or Panic one.
+ * Lock attempts were once grouped here: repeated wrong unlocks inside the reuse window joined one
+ * open Lock incident. Design B (2026-11-06) took that guard away with its device-admin sensor, so
+ * [openOrBind] has no Lock type to group and [grouped] is false for every trigger this build has.
+ * What the grouping path still serves is one guard firing repeatedly inside [reuseWindow]. SIM,
+ * countdown and battery events each stand alone. The binding never crosses types.
  */
 class ProtectionEvents(
     private val repository: EventRepository,

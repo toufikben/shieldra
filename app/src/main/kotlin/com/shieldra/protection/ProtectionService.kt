@@ -43,9 +43,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * The owner-started foreground service that holds the camera and location capability for every
  * guard (amendment A-34). It is started once from the dashboard (type camera|location); after that
- * a background trigger — a wrong unlock, a SIM change, the countdown — hands its capture to the
- * already-running instance, which is how camera and location keep working in the background without
- * a forbidden background foreground-service start on Android 12+/14+.
+ * a background trigger — a SIM change, the countdown, a Motion confirmation — hands its capture to
+ * the already-running instance, which is how camera and location keep working in the background
+ * without a forbidden background foreground-service start on Android 12+/14+.
  *
  * On a capture it takes the photo and the fix in parallel, stores the photo as encrypted evidence,
  * records (or joins) the matching incident, and hands a fully-built alert to [AlertRuntime] — which

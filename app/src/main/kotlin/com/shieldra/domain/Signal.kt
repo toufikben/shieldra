@@ -3,7 +3,6 @@ package com.shieldra.domain
 import java.time.Instant
 
 enum class SignalType {
-    LOCK,
     MOTION,
     SIM,
     BATTERY,
