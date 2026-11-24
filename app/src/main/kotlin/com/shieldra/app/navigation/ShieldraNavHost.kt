@@ -765,7 +765,7 @@ fun ShieldraNavHost(
                 val safeZoneNoFix = stringResource(R.string.safe_zones_no_fix)
                 MapScreen(
                     armed = protectionArmed,
-                    liveTrackingEnabled = protectionSettings.liveTrackingEnabled,
+                    liveTrackingEnabled = protectionSettings.liveTrackingEnabled && TierGate.allowsTracking(protectionSettings.tier),
                     intervalMinutes = protectionSettings.trackingIntervalMinutes,
                     durationMinutes = protectionSettings.trackingDurationMinutes,
                     locationGranted = locationGranted,
