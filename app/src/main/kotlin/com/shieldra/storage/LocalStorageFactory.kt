@@ -42,6 +42,13 @@ class LocalShieldraStorage private constructor(
     val lastRetentionFailure: Throwable? get() = retention.lastFailure
 
     /**
+     * The windows the sweeper in this open storage really applies. The retention screen reports these,
+     * never a policy recomputed from the current setting: the windows are fixed at open time, so a
+     * setting changed since then will govern the next process, not this one.
+     */
+    val retentionPolicy: EvidenceRetentionPolicy get() = retention.policy
+
+    /**
      * Runs the approved retention windows now. Callers must be off the main
      * thread; the sweep is a Room read plus Room writes and file deletions.
      */

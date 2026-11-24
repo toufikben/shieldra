@@ -861,6 +861,10 @@ fun ShieldraNavHost(
                         themeMode = themeMode,
                         language = language,
                         appLockEnabled = appLockOn,
+                        // P1-2: the row states the windows in force, so it is given the policy the open
+                        // storage's sweeper runs with instead of the shipped default.
+                        retentionPolicy = installedStorage?.retentionPolicy
+                            ?: com.shieldra.storage.EvidenceRetentionPolicy.default,
                     ),
                     callbacks = SettingsCallbacks { id, _ ->
                         when (SettingsContent.targetOf(id)) {
@@ -927,8 +931,14 @@ fun ShieldraNavHost(
                 var manualReport by remember { mutableStateOf<com.shieldra.storage.RetentionSweepReport?>(null) }
                 val report = manualReport ?: startupMaintenance.retentionReport
                 var running by remember { mutableStateOf(false) }
+                // P1-2: the windows printed here are the ones the open storage's sweeper really runs
+                // with — not the compiled-in 30/90, and not a policy recomputed from the live setting
+                // (that would promise a window this process does not use; it takes effect next start).
+                val retentionPolicy = installedStorage?.retentionPolicy
+                    ?: com.shieldra.storage.EvidenceRetentionPolicy.default
                 RetentionScreen(
                     storageInstalled = storageInstalled,
+                    policy = retentionPolicy,
                     lastReport = report,
                     running = running,
                     onRunNow = {

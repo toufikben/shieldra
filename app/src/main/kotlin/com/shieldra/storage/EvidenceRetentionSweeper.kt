@@ -45,7 +45,13 @@ data class RetentionSweepReport(
 class EvidenceRetentionSweeper(
     private val database: ShieldraDatabase,
     private val evidenceFiles: EncryptedEvidenceFileStore,
-    private val policy: EvidenceRetentionPolicy = EvidenceRetentionPolicy.default,
+    /**
+     * The windows this sweeper really applies. Public because the retention screen has to report them:
+     * expiry is a promise about deletion, and a screen that recomputed the policy from the current
+     * setting would promise a window this running sweeper does not keep (the policy is fixed when
+     * storage opens — a changed setting applies to the next process).
+     */
+    val policy: EvidenceRetentionPolicy = EvidenceRetentionPolicy.default,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) {
     @Volatile

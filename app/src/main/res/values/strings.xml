@@ -331,7 +331,7 @@
     <string name="settings_storage_in_use">Local storage is in use on this phone</string>
     <string name="settings_storage_none">No local storage on this phone yet</string>
     <string name="settings_retention">Retention policy</string>
-    <string name="settings_retention_windows">Applied: 90-day events, 30-day evidence</string>
+    <string name="settings_retention_windows">Applied: %1$d-day events, %2$d-day evidence</string>
     <string name="settings_retention_no_data">Nothing stored on this phone yet</string>
     <string name="settings_about_shieldra">About Shieldra</string>
     <string name="settings_help">Help</string>

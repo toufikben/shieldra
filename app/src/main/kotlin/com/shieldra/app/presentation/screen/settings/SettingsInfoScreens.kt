@@ -192,6 +192,7 @@ private fun rotationOutcomeLabel(outcome: RotationTriggerOutcome): String = stri
 @Composable
 fun RetentionScreen(
     storageInstalled: Boolean,
+    policy: EvidenceRetentionPolicy,
     lastReport: RetentionSweepReport?,
     running: Boolean,
     onRunNow: () -> Unit,
@@ -200,14 +201,17 @@ fun RetentionScreen(
 ) {
     InfoPage(title = stringResource(R.string.settings_retention), onBack = onBack, modifier = modifier) {
         GlassCard {
+            // P1-2 honesty: these two rows state the windows the sweeper really runs on. They used to
+            // print the compiled-in 30/90 while expiry was built from the owner's own setting, so an
+            // owner who chose 14 days was told 30/90 on the one screen that describes deletion.
             FactRow(
                 stringResource(R.string.retention_events),
-                stringResource(R.string.retention_days, EvidenceRetentionPolicy.EVENT_METADATA_RETENTION_DAYS.toInt()),
+                stringResource(R.string.retention_days, policy.eventMetadataRetentionDays.toInt()),
             )
             Spacer(Modifier.height(10.dp))
             FactRow(
                 stringResource(R.string.retention_evidence),
-                stringResource(R.string.retention_days, EvidenceRetentionPolicy.EVIDENCE_RETENTION_DAYS.toInt()),
+                stringResource(R.string.retention_days, policy.evidenceRetentionDays.toInt()),
             )
             Spacer(Modifier.height(10.dp))
             Note(stringResource(R.string.retention_note))

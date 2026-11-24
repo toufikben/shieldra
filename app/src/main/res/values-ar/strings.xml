@@ -314,7 +314,7 @@
     <string name="settings_storage_in_use">التخزين المحلي مستخدم على هذا الهاتف</string>
     <string name="settings_storage_none">لا يوجد تخزين محلي على هذا الهاتف بعد</string>
     <string name="settings_retention">سياسة الاحتفاظ</string>
-    <string name="settings_retention_windows">مطبَّقة: الأحداث 90 يومًا والأدلة 30 يومًا</string>
+    <string name="settings_retention_windows">مطبَّقة: الأحداث %1$d يومًا والأدلة %2$d يومًا</string>
     <string name="settings_retention_no_data">لا توجد بيانات محفوظة على هذا الهاتف بعد</string>
     <string name="settings_about_shieldra">حول شيلدرا</string>
     <string name="settings_help">المساعدة</string>

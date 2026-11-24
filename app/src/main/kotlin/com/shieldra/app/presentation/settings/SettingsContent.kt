@@ -266,6 +266,9 @@ internal fun storageRowSubtitleRes(state: SettingsContent.StorageRowState): Int 
  * and Q-K-2 made the sweeps run, so "Policy pending" described a decision that has
  * long been made. While the storage gate installed nothing there is also nothing
  * to retain, and the row says that instead.
+ *
+ * The installed case carries figures and is therefore not a single resource id: the
+ * caller must format [R.string.settings_retention_windows] with the windows in force.
  */
 @StringRes
 internal fun retentionSubtitleRes(storageInstalled: Boolean): Int =
