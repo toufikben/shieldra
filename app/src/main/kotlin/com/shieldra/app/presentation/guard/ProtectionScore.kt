@@ -9,8 +9,9 @@ package com.shieldra.app.presentation.guard
  * P2-5: a stored switch is not a running guard. The SIM and battery points used to come from the
  * saved settings alone, so a phone whose protection service had been killed by the battery manager
  * still showed those guards as protecting — the exact silent failure the watchdog exists to report.
- * [guardsRunning] is the live fact the service publishes about itself (`ProtectionService.isLive`),
- * and while it is false those two guards earn nothing. The remaining inputs are platform answers
+ * [guardsRunning] is the live fact the service publishes about itself (`ProtectionService.live`,
+ * collected by the dashboard rather than read once), and while it is false those two guards earn
+ * nothing. The remaining inputs are platform answers
  * (a granted permission, an exemption, a live channel), which a stopped service does not withdraw.
  *
  * Design B (2026-11-06): the app holds no device administrator, so the former Lock guard and the

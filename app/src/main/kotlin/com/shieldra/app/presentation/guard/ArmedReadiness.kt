@@ -51,9 +51,9 @@ enum class ArmedReadiness {
 
     companion object {
         /**
-         * [guardsRunning] comes from `ProtectionService.isLive`, which is the service's own account of
-         * itself, not the stored switch. A running service with the flag off is reported as running:
-         * the phone is being watched, and hiding that would be the worse lie.
+         * [guardsRunning] comes from `ProtectionService.live`, collected by the dashboard, which is the
+         * service's own account of itself, not the stored switch. A running service with the flag off
+         * is reported as running: the phone is being watched, and hiding that would be the worse lie.
          */
         fun decide(armed: Boolean, guardsRunning: Boolean): ArmedReadiness = when {
             guardsRunning -> ArmedAndRunning

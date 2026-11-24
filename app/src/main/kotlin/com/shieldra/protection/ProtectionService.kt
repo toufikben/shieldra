@@ -31,6 +31,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import java.time.Instant
@@ -307,6 +310,7 @@ class ProtectionService : Service() {
                 remoteCommands.stop()
                 ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
                 liveInstance = null
+                liveState.value = false
                 stopSelf()
                 return START_NOT_STICKY
             }
@@ -335,6 +339,10 @@ class ProtectionService : Service() {
                     requested?.let {
                         declareFailure(applicationContext, it, eventId, "the service could not start in the foreground")
                     }
+                    // P4-5: this instance never became foreground, so it holds no camera and guards
+                    // nothing. Say so now instead of waiting for onDestroy, which the platform may
+                    // schedule a moment later — the dashboard would otherwise flash Protected.
+                    liveState.value = false
                     stopSelf(startId)
                     return START_NOT_STICKY
                 }
@@ -363,7 +371,13 @@ class ProtectionService : Service() {
     }
 
     override fun onDestroy() {
-        if (liveInstance === this) liveInstance = null
+        if (liveInstance === this) {
+            liveInstance = null
+            // P4-5: the dashboard collects this, so a service the system stopped (vendor battery
+            // manager, low-memory kill, a swipe) drops the shield out of Protected without the owner
+            // having to leave the screen and come back.
+            liveState.value = false
+        }
         trackingHandler.removeCallbacksAndMessages(null)
         // Deliberately no GeofenceTicker.cancel here (A-45): the safe-zone alarm must outlive this
         // instance, because on the owner's skin the service is what dies first and the zone state is
@@ -629,6 +643,10 @@ class ProtectionService : Service() {
                 ServiceCompat.startForeground(this, NOTIFICATION_ID, notice, 0)
             }
             promoted = true
+            // P4-5: liveness means "this instance really holds the camera and the location type",
+            // which is exactly what a successful promote grants. Setting it in onCreate would publish
+            // a service that Android had not yet let become foreground.
+            liveState.value = true
             true
         } catch (error: Exception) {
             // Not a warning to file away: a service Android will not put in the foreground holds no
@@ -756,8 +774,18 @@ class ProtectionService : Service() {
         @Volatile
         private var liveInstance: ProtectionService? = null
 
-        /** True while a camera-capable instance exists, so a background trigger can reach it. */
-        val isLive: Boolean get() = liveInstance != null
+        /**
+         * P4-5: whether a camera-capable instance exists, published instead of merely readable.
+         *
+         * A getter over [liveInstance] answers correctly only at the moment it is called. A Compose
+         * frame that ran while the service was alive never learns that Android stopped it (a vendor
+         * battery manager, a low-memory kill, the owner swiping the app away), so the shield kept
+         * claiming `Protected` over a dead service. The dashboard collects [live] instead, and every
+         * point that changes the fact writes it here — there is no second, pollable copy of it.
+         */
+        private val liveState = MutableStateFlow(false)
+
+        val live: StateFlow<Boolean> = liveState.asStateFlow()
 
         /** Re-posts the ongoing notice, so it shows the new next-signal time (or none after a cancel). */
         fun refreshNotice() {

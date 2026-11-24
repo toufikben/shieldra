@@ -114,6 +114,7 @@ import com.shieldra.storage.LocalShieldraStorage
 import com.shieldra.app.presentation.screen.settings.ProtectionSetupScreen as ProtectionGuardsScreen
 import com.shieldra.app.presentation.screen.settings.ProtectionPermissions
 import com.shieldra.protection.ProtectionRuntime
+import com.shieldra.protection.ProtectionService
 import com.shieldra.protection.ProtectionChange
 import com.shieldra.protection.ProtectionSettings
 import com.shieldra.protection.ProtectionSettingsStore
@@ -412,6 +413,10 @@ fun ShieldraNavHost(
     // A-33/A-34: the protection guards. Armed state is read from the stored flag the service and
     // boot recovery share; the settings draft and the live permission states drive the setup screen.
     val protectionArmed by ProtectionRuntime.armed.collectAsState()
+    // P4-5: the service's own account of whether an instance is alive, collected rather than asked for
+    // once. A getter answers only for the moment it is called; a service Android stopped would keep the
+    // shield green until the owner left the screen and came back.
+    val protectionLive by ProtectionService.live.collectAsState()
     val protectionStore = remember(context) { ProtectionSettingsStore(context) }
     var protectionSettings by remember { mutableStateOf(protectionStore.load()) }
     // A-44: the live arm state is the only writer of `armed`. The settings screen's snapshot was read
@@ -580,14 +585,14 @@ fun ShieldraNavHost(
                         recentEvents = recentEvents.take(RECENT_EVENT_LIMIT),
                         motionClaim = motionClaim,
                         protectionArmed = protectionArmed,
-                        guardsRunning = com.shieldra.protection.ProtectionService.isLive,
+                        guardsRunning = protectionLive,
                         simOn = protectionSettings.simEnabled,
                         batteryOn = protectionSettings.batteryEnabled,
                         batteryPercent = device.batteryPercent,
                         networkStatus = networkStatus,
                         networkLabel = networkLabel,
                         measuredLastCheckSeconds = device.lastCheckSeconds,
-                        protectionScore = scoreFor(healthChecks, protectionSettings),
+                        protectionScore = scoreFor(healthChecks, protectionSettings, protectionLive),
                         proActive = proState.entitled,
                         totalEvents = recentEvents.size,
                         periodicSignal = periodicSignalCycle,
@@ -826,7 +831,7 @@ fun ShieldraNavHost(
                     motionMonitoring = motionClaim.claimsProtection,
                 )
                 HealthCheckScreen(
-                    score = scoreFor(checks, protectionSettings),
+                    score = scoreFor(checks, protectionSettings, protectionLive),
                     checks = checks,
                     onBack = { navController.popBackStack() },
                 )
@@ -1327,11 +1332,17 @@ private fun readHealthChecks(
     )
 }
 
-private fun scoreFor(checks: HealthChecks, settings: ProtectionSettings): Int = ProtectionScore.score(
+private fun scoreFor(
+    checks: HealthChecks,
+    settings: ProtectionSettings,
+    guardsRunning: Boolean,
+): Int = ProtectionScore.score(
     ProtectionScore.Inputs(
         armed = checks.armed,
         // P2-5: the SIM and battery weights need a running service, not just a saved switch.
-        guardsRunning = com.shieldra.protection.ProtectionService.isLive,
+        // P4-5: the value is passed in from the collected flow, so a service the system stopped takes
+        // its weight out of the score in the same frame the shield drops out of Protected.
+        guardsRunning = guardsRunning,
         motionMonitoring = checks.motionMonitoring,
         simEnabled = settings.simEnabled,
         batteryEnabled = settings.batteryEnabled,
