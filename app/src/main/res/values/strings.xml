@@ -32,7 +32,7 @@
     <string name="map_honest_scope">This tab reports the tracking state, your safe zones, and the last event that carried a position. It draws no street map: the position opens on the event\'s own screen.</string>
     <string name="map_tracking_on">Live tracking is on</string>
     <string name="map_tracking_off">Live tracking is off</string>
-    <string name="map_tracking_detail">After a confirmed event the phone reports its location every %1$d min for %2$d min.</string>
+    <string name="map_tracking_detail">After a confirmed event the phone reports its location every %1$d min, for at least %2$d min. The gap widens as the battery falls.</string>
     <string name="map_armed">Protection is armed</string>
     <string name="map_disarmed">Protection is off</string>
     <string name="map_location_granted">Location permission granted</string>

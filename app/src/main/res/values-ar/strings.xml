@@ -19,7 +19,7 @@
     <string name="map_honest_scope">تعرض هذه الصفحة حالة التتبّع ومناطقك الآمنة وآخر حدث حمل موقعاً. ولا ترسم خريطة شوارع: الموقع يُفتح في شاشة الحدث نفسه.</string>
     <string name="map_tracking_on">التتبّع المباشر مفعّل</string>
     <string name="map_tracking_off">التتبّع المباشر متوقّف</string>
-    <string name="map_tracking_detail">بعد حدث مؤكّد يبثّ الهاتف موقعه كل %1$d دقيقة لمدّة %2$d دقيقة.</string>
+    <string name="map_tracking_detail">بعد حدث مؤكّد يبثّ الهاتف موقعه كل %1$d دقيقة، لمدّة %2$d دقيقة على الأقل. ويتّسع الفاصل كلّما هبطت البطارية.</string>
     <string name="map_armed">الحماية مفعّلة</string>
     <string name="map_disarmed">الحماية متوقّفة</string>
     <string name="map_location_granted">إذن الموقع ممنوح</string>
