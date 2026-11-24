@@ -54,7 +54,7 @@ class PanicGuideTruthTest {
             "a LOCK event type is back; the guide may name failed unlocks again only with a real sensor",
         )
         assertFalse(
-            main("kotlin/com/shieldra/protection/GuardBoundaries.kt").contains("interface LockGuard"),
+            main("kotlin/com/shieldra/detection/GuardBoundaries.kt").contains("interface LockGuard"),
             "a LockGuard boundary is back; the guide may name failed unlocks again only with a real sensor",
         )
 
