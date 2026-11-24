@@ -39,4 +39,13 @@
         <item quantity="many">قبل %1$d ثانية</item>
         <item quantity="other">قبل %1$d ثانية</item>
     </plurals>
+    <!-- عدد الأماكن المعلَّمة آمنة: عدد لا جملة، فللعربية صيغها الخاصة. -->
+    <plurals name="safe_zones_count">
+        <item quantity="zero">لا أماكن معلَّمة آمنة</item>
+        <item quantity="one">مكان واحد معلَّم آمن</item>
+        <item quantity="two">مكانان معلَّمان آمنان</item>
+        <item quantity="few">%1$d أماكن معلَّمة آمنة</item>
+        <item quantity="many">%1$d مكانًا معلَّمًا آمنًا</item>
+        <item quantity="other">%1$d مكان معلَّم آمن</item>
+    </plurals>
 </resources>

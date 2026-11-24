@@ -10,12 +10,13 @@
     <string name="tab_dashboard">الرئيسية</string>
     <string name="tab_history">السجل</string>
     <string name="tab_settings">الإعدادات</string>
-    <string name="tab_map">الخريطة</string>
+    <string name="tab_map">الموقع</string>
     <string name="app_tagline">حارسك الصامت</string>
     <string name="stat_guards">الحرّاس</string>
     <string name="stat_battery">البطارية</string>
     <string name="stat_events">الأحداث</string>
     <string name="map_title">موقع الجهاز</string>
+    <string name="map_honest_scope">تعرض هذه الصفحة حالة التتبّع ومناطقك الآمنة وآخر حدث حمل موقعاً. ولا ترسم خريطة شوارع: الموقع يُفتح في شاشة الحدث نفسه.</string>
     <string name="map_tracking_on">التتبّع المباشر مفعّل</string>
     <string name="map_tracking_off">التتبّع المباشر متوقّف</string>
     <string name="map_tracking_detail">بعد حدث مؤكّد يبثّ الهاتف موقعه كل %1$d دقيقة لمدّة %2$d دقيقة.</string>
@@ -25,7 +26,7 @@
     <string name="map_location_missing">إذن الموقع غير ممنوح</string>
     <string name="map_last_location">آخر موقع مسجّل</string>
     <string name="map_no_location">لا موقع مسجّل بعد</string>
-    <string name="map_open_event">افتح على الخريطة</string>
+    <string name="map_open_event">افتح الحدث</string>
     <string name="map_remote_hint">أرسِل ‎/locate إلى بوت تلغرام في أي وقت لتحصل على الموقع الحالي.</string>
     <string name="map_open_protection">إعدادات التتبّع</string>
     <string name="safe_zones_title">المناطق الآمنة</string>
@@ -437,7 +438,7 @@
     <string name="help_commands_title">الأوامر عن بُعد</string>
     <string name="help_commands_body">فعّل الأوامر عن بُعد في الحماية. من محادثة تلغرام الخاصة بك يمكنك إرسال:\n/locate — الموقع الحالي\n/photo — صورة بالكاميرا الأمامية\n/alarm و /stopalarm\n/track on و /track off — موقع متكرّر\n/lost و /found — رسالة المالك على شاشة القفل\n/status — البطارية والشبكة\n\nالأوامر عن بُعد جزء من Shieldra Pro.</string>
     <string name="help_zones_title">المناطق الآمنة</string>
-    <string name="help_zones_body">في تبويب الخريطة قِف في مكان آمن كالمنزل أو العمل واضغط علّم هذا المكان كآمن ثم شغّل التنبيه عند المغادرة. أثناء التفعيل يفحص Shieldra الموقع كل بضع دقائق وينبّهك حين يصبح الهاتف خارج كل المناطق الآمنة.</string>
+    <string name="help_zones_body">في تبويب الموقع قِف في مكان آمن كالمنزل أو العمل واضغط علّم هذا المكان كآمن ثم شغّل التنبيه عند المغادرة. أثناء التفعيل يفحص Shieldra الموقع كل بضع دقائق وينبّهك حين يصبح الهاتف خارج كل المناطق الآمنة.</string>
     <string name="help_export_title">تصدير الأدلّة</string>
     <string name="help_export_body">افتح حدثاً واضغط تصدير. اختر عبارة مرور من 8 أحرف فأكثر، أكّد بقفل شاشتك، واحفظ الملف المشفّر. بدون عبارة المرور لا يمكن فتحه، فاحفظها جيّداً.</string>
     <string name="help_battery_title">أبقِه يعمل</string>

@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -82,6 +83,14 @@ fun MapScreen(
             text = stringResource(R.string.map_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
+        )
+        // P3-2: the tab was named "Map" and this screen is not one — no tiles, no tile server, a
+        // coordinate locator only inside an event's own detail screen. The line says what the screen
+        // reports instead, so the owner is not left hunting for a street view that was never here.
+        Text(
+            text = stringResource(R.string.map_honest_scope),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         // Tracking status
@@ -134,6 +143,18 @@ fun MapScreen(
                     modifier = Modifier.weight(1f),
                 )
                 Switch(checked = geofenceEnabled, onCheckedChange = onToggleGeofence)
+            }
+            Spacer(Modifier.height(6.dp))
+            // P3-2: the card lists places but never said how many, so an owner with three zones and
+            // one that failed to save could not tell them apart. A count is a quantity, so Arabic gets
+            // its own dual and few forms instead of an English number-plus-"places". With no zones the
+            // empty-state line below already says it, so the count would only repeat it as "0 places".
+            if (zones.isNotEmpty()) {
+                Text(
+                    text = pluralStringResource(R.plurals.safe_zones_count, zones.size, zones.size),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             Spacer(Modifier.height(6.dp))
             Text(

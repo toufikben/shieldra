@@ -23,12 +23,13 @@
     <string name="tab_dashboard">Home</string>
     <string name="tab_history">History</string>
     <string name="tab_settings">Settings</string>
-    <string name="tab_map">Map</string>
+    <string name="tab_map">Location</string>
     <string name="app_tagline">Your silent guard</string>
     <string name="stat_guards">Guards</string>
     <string name="stat_battery">Battery</string>
     <string name="stat_events">Events</string>
     <string name="map_title">Device location</string>
+    <string name="map_honest_scope">This tab reports the tracking state, your safe zones, and the last event that carried a position. It draws no street map: the position opens on the event\'s own screen.</string>
     <string name="map_tracking_on">Live tracking is on</string>
     <string name="map_tracking_off">Live tracking is off</string>
     <string name="map_tracking_detail">After a confirmed event the phone reports its location every %1$d min for %2$d min.</string>
@@ -38,7 +39,7 @@
     <string name="map_location_missing">Location permission not granted</string>
     <string name="map_last_location">Last recorded location</string>
     <string name="map_no_location">No location recorded yet</string>
-    <string name="map_open_event">Open on map</string>
+    <string name="map_open_event">Open the event</string>
     <string name="map_remote_hint">Send /locate to your Telegram bot any time to get the current position.</string>
     <string name="map_open_protection">Tracking settings</string>
     <string name="safe_zones_title">Safe zones</string>
@@ -455,7 +456,7 @@
     <string name="help_commands_title">Remote commands</string>
     <string name="help_commands_body">Turn on remote commands in Protection. From your own Telegram chat you can send:\n/locate — current position\n/photo — front-camera photo\n/alarm and /stopalarm\n/track on and /track off — repeating location\n/lost and /found — owner message on the lock screen\n/status — battery and network\n\nRemote commands are part of Shieldra Pro.</string>
     <string name="help_zones_title">Safe zones</string>
-    <string name="help_zones_body">On the Map tab, stand in a safe place such as home or work and tap Mark this place as safe, then turn on Alert on leaving. While armed, Shieldra checks the position every few minutes and alerts you when the phone is outside every safe zone.</string>
+    <string name="help_zones_body">On the Location tab, stand in a safe place such as home or work and tap Mark this place as safe, then turn on Alert on leaving. While armed, Shieldra checks the position every few minutes and alerts you when the phone is outside every safe zone.</string>
     <string name="help_export_title">Exporting evidence</string>
     <string name="help_export_body">Open an event and tap Export. Choose a passphrase of 8 or more characters, confirm with your screen lock, and save the encrypted file. Without the passphrase it cannot be opened, so keep it safe.</string>
     <string name="help_battery_title">Keep it running</string>

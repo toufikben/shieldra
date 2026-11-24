@@ -26,4 +26,12 @@
         <item quantity="one">%1$d second ago</item>
         <item quantity="other">%1$d seconds ago</item>
     </plurals>
+    <!--
+      How many safe zones the owner has marked. A count, so it is a plural: "3 zone" and "3 المناطق"
+      are the same defect the event ages had (F-K11), and Arabic needs its own dual and few forms.
+    -->
+    <plurals name="safe_zones_count">
+        <item quantity="one">%1$d place marked safe</item>
+        <item quantity="other">%1$d places marked safe</item>
+    </plurals>
 </resources>
