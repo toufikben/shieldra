@@ -1139,20 +1139,42 @@ done
 grep -q 'resources.getQuantityString(ageQuantityRes(parts), count, count)' "$NAVHOST" \
   || fail "the age label no longer goes through the locale's own plural forms (F-K11)"
 # (د) A-1's three windows stay the numbers the retention row prints; the row may not invent a fourth.
+#
+# P1-2: the figures in that row are the owner's setting applied at open
+# (EvidenceRetentionPolicy.fromOwnerDays), so the sentence must take both numbers as arguments instead of
+# hard-coding the shipped pair. A fixed "90-day / 30-day" line told an owner who chose any other window
+# something the sweeper would not do — a false promise about deletion. The gate therefore requires:
+#   * the sentence carries %1$d (event window) then %2$d (evidence window), in both locales;
+#   * both call sites format it from the policy in force, never from a literal;
+#   * the policy still names the shipped windows and still renders them from the owner setting.
 POLICY=app/src/main/kotlin/com/shieldra/storage/EvidenceRetentionPolicy.kt
 EVENT_DAYS="$(grep -oE 'EVENT_METADATA_RETENTION_DAYS: Long = [0-9]+L' "$POLICY" | grep -oE '[0-9]+' | head -1 || true)"
 EVIDENCE_DAYS="$(grep -oE 'EVIDENCE_RETENTION_DAYS: Long = [0-9]+L' "$POLICY" | grep -oE '[0-9]+' | head -1 || true)"
 [ -n "$EVENT_DAYS" ] && [ -n "$EVIDENCE_DAYS" ] || fail "the retention policy no longer names its two shipped windows (F-K6)"
+grep -q 'fun fromOwnerDays(days: Int)' "$POLICY" \
+  || fail "the owner's retention setting no longer reaches the policy (P1-2)"
+
 EN_RETENTION="$(grep '<string name="settings_retention_windows">' "$STRINGS_EN" || true)"
 AR_RETENTION="$(grep '<string name="settings_retention_windows">' "$STRINGS_AR" || true)"
 case "$EN_RETENTION" in
-  *"${EVENT_DAYS}-day events"*"${EVIDENCE_DAYS}-day evidence"*) ;;
-  *) fail "the retention row's English numbers no longer match EvidenceRetentionPolicy ($EVENT_DAYS/$EVIDENCE_DAYS): $EN_RETENTION" ;;
+  *'%1$d'*'%2$d'*'day events'*'day evidence'*) ;;
+  *) fail "the retention row does not take %1\$d events then %2\$d evidence (P1-2): $EN_RETENTION" ;;
 esac
 case "$AR_RETENTION" in
-  *"${EVENT_DAYS}"*"${EVIDENCE_DAYS}"*) ;;
-  *) fail "the retention row's Arabic numbers no longer match EvidenceRetentionPolicy ($EVENT_DAYS/$EVIDENCE_DAYS): $AR_RETENTION" ;;
+  *'%1$d'*'%2$d'*'الأحداث'*) ;;
+  *) fail "the retention row's Arabic text does not take %1\$d then %2\$d (P1-2): $AR_RETENTION" ;;
 esac
+
+# Both places that render the sentence must format it from a policy, or its arguments would be a lie.
+RETENTION_SCREEN="$(grep -l 'fun RetentionScreen(' app/src/main/kotlin/com/shieldra/app/presentation/screen/settings/*.kt || true)"
+[ -n "$RETENTION_SCREEN" ] || fail "the retention screen is gone (F-K6)"
+ROWS=app/src/main/kotlin/com/shieldra/app/presentation/settings/HonestSettingsRows.kt
+for field in eventMetadataRetentionDays evidenceRetentionDays; do
+  grep -q "retentionPolicy.$field" "$ROWS" \
+    || fail "the Settings retention row does not print the policy's $field (P1-2)"
+  grep -q "policy.$field" "$RETENTION_SCREEN" \
+    || fail "the retention screen does not print the policy's $field (P1-2)"
+done
 # (هـ) A-28: the ten-minute window is the owner's number, measured from the incident's own persisted
 #     start, and the scan still filters by type so Panic can never bind to another guard's event.
 PANIC=app/src/main/kotlin/com/shieldra/domain/PanicIncidentCoordinator.kt
