@@ -32,16 +32,6 @@ class LocalShieldraStorage private constructor(
         evidenceFiles.reconcile(database.evidenceReferenceDao().findAll().map { it.evidenceId }.toSet())
 
     /**
-     * Q-K-2: the last sweep's outcome, or null if none has finished. Kept as
-     * state rather than logged away, the same way a failed rotation check is
-     * kept — an expiry run that could not read the stored set is information.
-     */
-    val lastRetentionReport: RetentionSweepReport? get() = retention.lastReport
-
-    /** A retention sweep that could not run at all. */
-    val lastRetentionFailure: Throwable? get() = retention.lastFailure
-
-    /**
      * The windows the sweeper in this open storage really applies. The retention screen reports these,
      * never a policy recomputed from the current setting: the windows are fixed at open time, so a
      * setting changed since then will govern the next process, not this one.

@@ -75,30 +75,6 @@ class ShieldraApp : Application() {
      */
     val startupMaintenance: StateFlow<StartupMaintenance> = maintenanceState.asStateFlow()
 
-    /** Outcome of the rotation check this process started; null until it completes. */
-    @Volatile
-    var lastRotationReport: RotationRunReport? = null
-        private set
-
-    /**
-     * A rotation check that could not even read the key lifecycle record. Kept
-     * instead of swallowed: the 90-day clock is then unknown, and guessing a key
-     * version is exactly what §6 forbids.
-     */
-    @Volatile
-    var lastRotationFailure: Throwable? = null
-        private set
-
-    /** What the startup retention sweep removed (Q-K-2); null until it completes. */
-    @Volatile
-    var lastRetentionReport: RetentionSweepReport? = null
-        private set
-
-    /** A retention sweep that could not read the stored set. Kept, not swallowed (§6). */
-    @Volatile
-    var lastRetentionFailure: Throwable? = null
-        private set
-
     override fun onCreate() {
         super.onCreate()
         val decision = decideStorageInstall(
@@ -143,18 +119,14 @@ class ShieldraApp : Application() {
             // read freshly written files as new.
             try {
                 val sweep = storage.sweepExpiredEvidence()
-                lastRetentionReport = sweep
                 maintenanceState.value = maintenanceState.value.copy(retentionReport = sweep, retentionFailure = null)
             } catch (error: Exception) {
-                lastRetentionFailure = error
                 maintenanceState.value = maintenanceState.value.copy(retentionFailure = error)
             }
             try {
                 val rotated = storage.rotateEvidenceIfNeeded(manual = false)
-                lastRotationReport = rotated
                 maintenanceState.value = maintenanceState.value.copy(rotationReport = rotated, rotationFailure = null)
             } catch (error: Exception) {
-                lastRotationFailure = error
                 maintenanceState.value = maintenanceState.value.copy(rotationFailure = error)
             }
         }.start()

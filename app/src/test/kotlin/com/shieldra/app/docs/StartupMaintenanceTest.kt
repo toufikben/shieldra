@@ -71,4 +71,21 @@ class StartupMaintenanceTest {
         assertTrue(app.contains("rotationReport"), "the published value drops the rotation report")
         assertTrue(app.contains("retentionReport"), "the published value drops the retention report")
     }
+
+    /**
+     * One place holds each outcome. Keeping the old public fields beside the flow left two sources for
+     * the same fact, and the stale one was still reachable — that is the defect this whole change is
+     * about, so they are gone, in the app and in the storage object that held the second copy.
+     */
+    @Test
+    fun p4_1_the_outcome_has_one_source_only() {
+        val app = source("com/shieldra/app/ShieldraApp.kt")
+        for (gone in listOf("lastRotationReport", "lastRotationFailure", "lastRetentionReport", "lastRetentionFailure")) {
+            assertFalse(app.contains(gone), "ShieldraApp still exposes $gone beside the published value")
+        }
+        val storage = source("com/shieldra/storage/LocalStorageFactory.kt")
+        for (gone in listOf("lastRetentionReport", "lastRetentionFailure")) {
+            assertFalse(storage.contains(gone), "LocalShieldraStorage still exposes a second copy of $gone")
+        }
+    }
 }

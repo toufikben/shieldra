@@ -301,7 +301,7 @@ pass "§10: retirement is gated behind a surviving-reference re-scan"
 # fails closed and the app keeps the failure instead of guessing a version.
 grep -q 'check(lines.firstOrNull() == SCHEMA)' "$DURABLE_LIFECYCLE" \
   || fail "the key lifecycle record must reject an unknown schema instead of assuming v1"
-grep -q 'lastRotationFailure' "$APP" \
+grep -q 'rotationFailure' "$APP" \
   || fail "ShieldraApp must retain a failed rotation check, not swallow it (§6)"
 grep -q 'rotateEvidenceIfNeeded' "$APP" \
   || fail "§9: the approved rotation trigger is not wired into the running app"
