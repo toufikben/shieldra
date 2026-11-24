@@ -1157,12 +1157,12 @@ grep -q 'fun fromOwnerDays(days: Int)' "$POLICY" \
 EN_RETENTION="$(grep '<string name="settings_retention_windows">' "$STRINGS_EN" || true)"
 AR_RETENTION="$(grep '<string name="settings_retention_windows">' "$STRINGS_AR" || true)"
 case "$EN_RETENTION" in
-  *'%1$d'*'%2$d'*'day events'*'day evidence'*) ;;
-  *) fail "the retention row does not take %1\$d events then %2\$d evidence (P1-2): $EN_RETENTION" ;;
+  *"%1\$d-day events"*"%2\$d-day evidence"*) ;;
+  *) fail "the retention row does not take %1\$d-day events then %2\$d-day evidence (P1-2): $EN_RETENTION" ;;
 esac
 case "$AR_RETENTION" in
-  *'%1$d'*'%2$d'*'الأحداث'*) ;;
-  *) fail "the retention row's Arabic text does not take %1\$d then %2\$d (P1-2): $AR_RETENTION" ;;
+  *"الأحداث %1\$d"*"والأدلة %2\$d"*) ;;
+  *) fail "the retention row's Arabic text does not take the event then evidence window (P1-2): $AR_RETENTION" ;;
 esac
 
 # Both places that render the sentence must format it from a policy, or its arguments would be a lie.
