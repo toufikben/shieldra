@@ -59,7 +59,8 @@ class RetentionWindowHonestyTest {
     @Test
     fun p1_2_the_host_hands_it_the_policy_the_sweeper_runs_with() {
         val host = source("com/shieldra/app/navigation/ShieldraNavHost.kt")
-        val start = host.indexOf("ShieldraRoutes.RETENTION_INFO")
+        // The declaration, not the first mention: the row that navigates here comes earlier in the file.
+        val start = host.indexOf("composable(ShieldraRoutes.RETENTION_INFO)")
         assertTrue(start > 0, "the retention route is gone")
         val body = host.substring(start, (start + 1600).coerceAtMost(host.length))
         assertTrue(
