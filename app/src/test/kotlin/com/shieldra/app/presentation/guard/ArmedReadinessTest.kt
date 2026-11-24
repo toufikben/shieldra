@@ -14,10 +14,10 @@ import kotlin.test.assertTrue
  * The armed flag is a stored boolean. The guards are a running foreground service. Between the two there
  * is a real window the owner can be inside: the phone has just booted and is still locked, so
  * `BootReceiver` has stamped the restart and stopped — Android does not let a boot receiver start the
- * camera-type service before the first unlock, and it does not deliver `ACTION_BOOT_COMPLETED` until that
- * unlock happens. The dashboard read only the flag and therefore painted the shield `Protected`, which is
- * the one claim the phone cannot make in that window: nothing is sampling the SIM, the battery or the
- * accelerometer yet.
+ * camera-type service before the first unlock, and it does not deliver the unlocked-boot broadcast until
+ * that unlock happens. The dashboard read only the flag and therefore painted the shield `Protected`,
+ * which is the one claim the phone cannot make in that window: nothing is sampling the SIM, the battery
+ * or the accelerometer yet.
  *
  * The honest answer is a third state: armed, and waiting for the phone to finish starting. It is not
  * `Disabled` (the owner did arm it, and the setting is intact) and it is not `Protected` (nothing runs).

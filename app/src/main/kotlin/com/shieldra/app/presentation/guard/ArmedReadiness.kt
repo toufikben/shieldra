@@ -10,11 +10,11 @@ import com.shieldra.app.presentation.model.ProtectionVisualState
  * The dashboard used to answer the second question and draw the first answer's shield: the armed flag
  * is a stored boolean, so `protectionArmed` painted [ProtectionVisualState.Protected] even when no
  * service existed. There is a real window where that is false. A phone that reboots while armed comes
- * back locked; `BootReceiver` receives `ACTION_LOCKED_BOOT_COMPLETED`, stamps the restart in
+ * back locked; `BootReceiver` receives the locked-boot broadcast, stamps the restart in
  * device-protected storage and stops, because Android refuses to let a boot receiver start a
- * camera-type foreground service before the first unlock and does not deliver `ACTION_BOOT_COMPLETED`
- * until that unlock happens. Until then nothing samples the SIM, the battery or the accelerometer, and
- * a "Protected" shield is the one claim the phone cannot make.
+ * camera-type foreground service before the first unlock and does not deliver the unlocked-boot
+ * broadcast until that unlock happens. Until then nothing samples the SIM, the battery or the
+ * accelerometer, and a "Protected" shield is the one claim the phone cannot make.
  *
  * [ArmedWaitingToStart] is that window, said out loud. It is not [ProtectionVisualState.Disabled] —
  * the owner did arm protection and the setting survives — and it is not `Protected` — nothing runs.
