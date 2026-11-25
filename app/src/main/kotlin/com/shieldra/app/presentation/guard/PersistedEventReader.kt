@@ -34,7 +34,7 @@ class PersistedEventReader(
      * The stored row count, straight from the database. Null when the caller has no count to offer, in
      * which case [countEvents] reports "unknown" instead of measuring a page it already holds.
      */
-    private val loadCount: (() -> Int)? = null,
+    private val loadCount: (() -> Int?)? = null,
 ) {
     fun readRecent(limit: Int, now: Instant): List<EventUiModel> {
         val events = readPersisted(limit) ?: return emptyList()
