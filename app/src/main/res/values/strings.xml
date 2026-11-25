@@ -26,7 +26,6 @@
     <string name="tab_map">Location</string>
     <string name="app_tagline">Your silent guard</string>
     <string name="stat_guards">Guards</string>
-    <string name="stat_battery">Battery</string>
     <string name="stat_events">Events</string>
     <string name="map_title">Device location</string>
     <string name="map_honest_scope">This tab reports the tracking state, your safe zones, and the last event that carried a position. It draws no street map: the position opens on the event\'s own screen.</string>
@@ -73,8 +72,6 @@
     <string name="nav_back">Back</string>
 
     <string name="dashboard_section_guards">GUARDS</string>
-    <string name="dashboard_section_recent">RECENT</string>
-    <string name="dashboard_view_all">View all</string>
 
     <string name="empty_events_title">No events yet</string>
     <string name="empty_events_message">Events recorded on this phone will appear here.</string>
@@ -232,8 +229,6 @@
     <string name="protection_retention_desc">How long this phone keeps recorded events and their evidence. The sweeper reads the window when the app starts, so a new window applies from the next start.</string>
     <string name="protection_retention_days">Keep evidence for %1$d days</string>
     <string name="protection_save">Save</string>
-    <string name="motion_monitoring_start">Start Motion monitoring</string>
-    <string name="motion_monitoring_stop">Stop Motion monitoring</string>
     <string name="motion_monitoring_needs_permission">Monitoring has to stay visible to you, so allow notifications first.</string>
     <string name="motion_monitoring_refused">Monitoring was not started: its ongoing notification would not reach you.</string>
     <string name="motion_monitoring_stopped">Motion monitoring stopped.</string>
@@ -319,7 +314,6 @@
     <string name="ago_hours">%1$dh ago</string>
     <string name="last_check_minutes">Last check: %1$dm ago</string>
     <string name="last_check_hours">Last check: %1$dh ago</string>
-    <string name="seconds_ago">%1$ds ago</string>
     <string name="demo_motion_guard">Motion Guard</string>
     <string name="demo_sim_guard">SIM Guard</string>
     <string name="demo_panic">Panic</string>
@@ -412,10 +406,8 @@
     <string name="alert_channel_email">Email</string>
     <string name="alert_telegram_token">Bot token</string>
     <string name="alert_telegram_chat">Chat ID</string>
-    <string name="alert_telegram_help">Create a bot with @BotFather to get its token, send your bot one message, then get your chat ID from @userinfobot.</string>
     <string name="alert_email_account">Email address</string>
     <string name="alert_email_app_password">App password</string>
-    <string name="alert_email_app_password_help">Use an app password, not your account password. Gmail: myaccount.google.com/apppasswords (2-step verification must be on).</string>
     <string name="alert_email_recipient">Send alerts to</string>
     <string name="alert_email_server">SMTP server</string>
     <string name="alert_email_port">Port</string>
@@ -435,7 +427,6 @@
     <string name="alert_secret_saved">Saved — type to replace</string>
     <string name="alert_channels_save">Save</string>
     <string name="alert_channels_saved">Alert channels saved.</string>
-    <string name="settings_alert_channels">Alert channels</string>
     <string name="settings_alert_channels_on">Alerts are sent automatically</string>
     <string name="settings_alert_channels_off">Not set up</string>
     <string name="evidence_audio">Audio evidence</string>

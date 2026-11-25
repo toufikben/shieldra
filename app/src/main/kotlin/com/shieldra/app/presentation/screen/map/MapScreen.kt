@@ -29,7 +29,6 @@ import com.shieldra.protection.SafeZone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,10 +38,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shieldra.app.R
 import com.shieldra.app.design.components.foundation.GlassCard
+import com.shieldra.app.design.components.foundation.ShieldraSwitch
 import com.shieldra.app.design.theme.ShieldraTheme
 import com.shieldra.app.presentation.model.EventUiModel
 
@@ -71,6 +73,9 @@ fun MapScreen(
     modifier: Modifier = Modifier,
 ) {
     val accent = ShieldraTheme.semantic.protection
+    // Resolved once here so the switch's own row can name it without a second stringResource call
+    // inside a semantics lambda, where no composable is allowed.
+    val zonesSwitchLabel = stringResource(R.string.safe_zones_enable)
     var newRadius by rememberSaveable { mutableStateOf(SafeZone.DEFAULT_RADIUS_M.toInt()) }
     Column(
         modifier = modifier
@@ -142,7 +147,17 @@ fun MapScreen(
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
-                Switch(checked = geofenceEnabled, onCheckedChange = onToggleGeofence)
+                // The switch is the only control on this card and the card's title is a separate
+                // semantics node, so without a name of its own a screen reader announces "switch, off"
+                // and never says which switch or what it does. safe_zones_enable was written for this
+                // row and referenced nowhere; it is the name now.
+                ShieldraSwitch(
+                    checked = geofenceEnabled,
+                    onCheckedChange = { onToggleGeofence() },
+                    modifier = Modifier.semantics {
+                        contentDescription = zonesSwitchLabel
+                    },
+                )
             }
             Spacer(Modifier.height(6.dp))
             // P3-2: the card lists places but never said how many, so an owner with three zones and

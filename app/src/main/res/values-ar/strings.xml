@@ -13,7 +13,6 @@
     <string name="tab_map">الموقع</string>
     <string name="app_tagline">حارسك الصامت</string>
     <string name="stat_guards">الحرّاس</string>
-    <string name="stat_battery">البطارية</string>
     <string name="stat_events">الأحداث</string>
     <string name="map_title">موقع الجهاز</string>
     <string name="map_honest_scope">تعرض هذه الصفحة حالة التتبّع ومناطقك الآمنة وآخر حدث حمل موقعاً. ولا ترسم خريطة شوارع: الموقع يُفتح في شاشة الحدث نفسه.</string>
@@ -60,8 +59,6 @@
     <string name="nav_back">رجوع</string>
 
     <string name="dashboard_section_guards">الحُرّاس</string>
-    <string name="dashboard_section_recent">الأحدث</string>
-    <string name="dashboard_view_all">عرض الكل</string>
 
     <string name="empty_events_title">لا توجد أحداث بعد</string>
     <string name="empty_events_message">ستظهر هنا الأحداث التي تُسجَّل على هذا الهاتف.</string>
@@ -215,8 +212,6 @@
     <string name="protection_retention_desc">كم يبقي هذا الهاتف الأحداث المسجَّلة وأدلّتها. يقرأ المنظّف النافذة عند بدء التطبيق، فالنافذة الجديدة تسري من البدء التالي.</string>
     <string name="protection_retention_days">الاحتفاظ بالأدلة %1$d يوماً</string>
     <string name="protection_save">حفظ</string>
-    <string name="motion_monitoring_start">تشغيل مراقبة الحركة</string>
-    <string name="motion_monitoring_stop">إيقاف مراقبة الحركة</string>
     <string name="motion_monitoring_needs_permission">يجب أن تبقى المراقبة ظاهرة لك، لذا اسمح بالإشعارات أولًا.</string>
     <string name="motion_monitoring_refused">لم تبدأ المراقبة: إشعارها الدائم لن يصل إليك.</string>
     <string name="motion_monitoring_stopped">توقفت مراقبة الحركة.</string>
@@ -302,7 +297,6 @@
     <string name="ago_hours">منذ %1$d س</string>
     <string name="last_check_minutes">آخر تحقق: منذ %1$d د</string>
     <string name="last_check_hours">آخر تحقق: منذ %1$d س</string>
-    <string name="seconds_ago">منذ %1$d ث</string>
     <string name="demo_motion_guard">حارس الحركة</string>
     <string name="demo_sim_guard">حارس SIM</string>
     <string name="demo_panic">الذعر</string>
@@ -394,10 +388,8 @@
     <string name="alert_channel_email">البريد الإلكتروني</string>
     <string name="alert_telegram_token">رمز البوت (Token)</string>
     <string name="alert_telegram_chat">معرّف المحادثة (Chat ID)</string>
-    <string name="alert_telegram_help">أنشئ بوتًا عبر ‎@BotFather‎ للحصول على الرمز، وأرسل للبوت رسالة واحدة، ثم احصل على معرّف المحادثة من ‎@userinfobot‎.</string>
     <string name="alert_email_account">عنوان البريد</string>
     <string name="alert_email_app_password">كلمة مرور التطبيق</string>
-    <string name="alert_email_app_password_help">استعمل كلمة مرور تطبيق وليس كلمة مرور حسابك. في Gmail: ‎myaccount.google.com/apppasswords‎ (يجب تفعيل التحقق بخطوتين).</string>
     <string name="alert_email_recipient">إرسال التنبيهات إلى</string>
     <string name="alert_email_server">خادم SMTP</string>
     <string name="alert_email_port">المنفذ</string>
@@ -417,7 +409,6 @@
     <string name="alert_secret_saved">محفوظ — اكتب لاستبداله</string>
     <string name="alert_channels_save">حفظ</string>
     <string name="alert_channels_saved">حُفظت قنوات التنبيه.</string>
-    <string name="settings_alert_channels">قنوات التنبيه</string>
     <string name="settings_alert_channels_on">تُرسَل التنبيهات تلقائيًا</string>
     <string name="settings_alert_channels_off">غير مُعدّة</string>
     <string name="evidence_audio">تسجيل صوتي</string>
