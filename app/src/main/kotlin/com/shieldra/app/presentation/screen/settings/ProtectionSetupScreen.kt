@@ -426,7 +426,7 @@ fun ProtectionSetupScreen(
         // The window is read once, when storage opens, so this control cannot promise an effect inside
         // the running process: the subtitle says the change lands on the next start. The range comes
         // from EvidenceRetentionPolicy so the screen offers exactly what the sweeper honours.
-        SectionTitle(stringResource(R.string.protection_retention_title))
+        SectionTitle(stringResource(R.string.protection_retention))
         Text(
             text = stringResource(R.string.protection_retention_desc),
             style = MaterialTheme.typography.bodySmall,
