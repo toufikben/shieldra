@@ -1036,6 +1036,7 @@ fun ShieldraNavHost(
                         },
                         batteryExemption = com.shieldra.protection.BackgroundSurvival.isExempt(context),
                         exactAlarms = com.shieldra.protection.ExactAlarmAccess.isGranted(context),
+                        microphone = has(Manifest.permission.RECORD_AUDIO),
                     )
                 }
                 ProtectionGuardsScreen(
@@ -1067,6 +1068,11 @@ fun ShieldraNavHost(
                         // alarm until the owner flips this system toggle.
                         com.shieldra.protection.ExactAlarmAccess.request(context)
                         permissionRefresh += 1
+                    },
+                    onGrantMicrophone = {
+                        // The audio clip refuses to record without it, so the check has to name the
+                        // microphone and this is the one place it can be asked for.
+                        protectionPermissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
                     },
                     onOpenSurvivalGuide = { navController.navigate(ShieldraRoutes.SURVIVAL_GUIDE) },
                     onArmToggle = {

@@ -57,6 +57,11 @@ data class ProtectionPermissions(
     val batteryExemption: Boolean = false,
     /** Exact-alarm access, so the countdown fires on the second instead of "within the hour" (A-33). */
     val exactAlarms: Boolean = false,
+    /**
+     * Microphone, for the optional audio clip. Without it `AudioCapture.record` returns null, so the
+     * Pro switch that pays for the clip would otherwise have no way to ever produce one.
+     */
+    val microphone: Boolean = false,
 )
 
 /**
@@ -76,6 +81,13 @@ fun ProtectionSetupScreen(
     onGrantNotifications: () -> Unit,
     onKeepAwake: () -> Unit,
     onGrantExactAlarms: () -> Unit,
+    /**
+     * Asks for the microphone. It sits in the checklist rather than beside the audio switch because
+     * the switch is Pro-gated and the permission is not: an owner on the free plan still has to be
+     * able to answer the prompt before upgrading, and a granted permission is what makes the switch
+     * honest once they do.
+     */
+    onGrantMicrophone: () -> Unit = {},
     /**
      * Opens the vendor battery-manager guide. The exemption above is the only one of those switches an
      * Intent can reach, so the rest have to be flipped by hand (audit development ب).
@@ -166,6 +178,10 @@ fun ProtectionSetupScreen(
         // ===== Permissions checklist =====
         SectionTitle(stringResource(R.string.protection_permissions_title))
         PermissionRow(stringResource(R.string.protection_perm_camera), permissions.camera, onGrantCamera)
+        // The audio clip is the one evidence type the checklist used to leave out: RECORD_AUDIO was in
+        // the manifest and in AudioCapture's own guard, but nothing ever asked for it, so the Pro
+        // switch recorded nothing for the life of the install.
+        PermissionRow(stringResource(R.string.protection_perm_microphone), permissions.microphone, onGrantMicrophone)
         PermissionRow(stringResource(R.string.protection_perm_location), permissions.location, onGrantLocation)
         PermissionRow(stringResource(R.string.protection_perm_notifications), permissions.notifications, onGrantNotifications)
         PermissionRow(stringResource(R.string.protection_perm_phone), permissions.phone, onGrantPhone)
@@ -224,6 +240,13 @@ fun ProtectionSetupScreen(
         GuardToggle(
             title = stringResource(R.string.protection_audio),
             subtitle = stringResource(R.string.protection_audio_desc),
+            // The switch can be on while the clip is impossible: the recorder refuses without the
+            // microphone. Saying so under the switch is the only place the owner would look.
+            note = if (draft.audioEnabled && !permissions.microphone) {
+                stringResource(R.string.protection_audio_needs_microphone)
+            } else {
+                null
+            },
             checked = draft.audioEnabled && com.shieldra.billing.TierGate.allowsAudio(draft.tier),
             locked = !com.shieldra.billing.TierGate.allowsAudio(draft.tier),
             onLocked = onOpenPro,

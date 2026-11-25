@@ -164,6 +164,7 @@
     <string name="protection_plan_premium">Premium</string>
     <string name="protection_permissions_title">Permissions</string>
     <string name="protection_perm_camera">Camera — front photo on an event</string>
+    <string name="protection_perm_microphone">Microphone — the short audio clip</string>
     <string name="protection_perm_location">Location — where the phone is</string>
     <string name="protection_perm_notifications">Notifications — the ongoing notice</string>
     <string name="protection_perm_phone">Phone - name the SIM that was armed with</string>
@@ -184,6 +185,7 @@
     <string name="protection_motion_with_arming_desc">On by default, like the SIM guard: arming starts it and disarming stops it. A confirmed lift or snatch runs the response below — Shieldra records the event, takes its evidence and alerts you. It cannot lock the screen.</string>
     <string name="protection_audio">Short audio clip</string>
     <string name="protection_audio_desc">Record a few seconds of sound around the phone.</string>
+    <string name="protection_audio_needs_microphone">Switched on but not recording: the microphone permission above is not granted yet.</string>
     <string name="protection_audio_seconds">Audio: %1$d seconds</string>
     <string name="protection_motion_title">Table mode (motion)</string>
     <string name="protection_motion_desc">When the phone is set down still and then lifted, this is what happens. Shieldra records the event and alerts you; it cannot lock the screen.</string>

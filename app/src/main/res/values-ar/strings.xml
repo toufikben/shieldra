@@ -151,6 +151,7 @@
     <string name="protection_plan_premium">مدفوع</string>
     <string name="protection_permissions_title">الأذونات</string>
     <string name="protection_perm_camera">الكاميرا — صورة أمامية عند أي حدث</string>
+    <string name="protection_perm_microphone">الميكروفون — المقطع الصوتي القصير</string>
     <string name="protection_perm_location">الموقع — أين الهاتف</string>
     <string name="protection_perm_notifications">الإشعارات — الإشعار المستمر</string>
     <string name="protection_perm_phone">الهاتف — تسمية الشريحة التي سُلِّح بها</string>
@@ -171,6 +172,7 @@
     <string name="protection_motion_with_arming_desc">مفعّل افتراضيًا مثل حارس الشريحة: التفعيل يشغّله والإيقاف يوقفه. الرفع أو الخطف المؤكَّد ينفّذ الاستجابة أدناه — تسجّل شيلدرا الحدث وتأخذ دليلها وتنبّهك. لا تستطيع قفل الشاشة.</string>
     <string name="protection_audio">مقطع صوتي قصير</string>
     <string name="protection_audio_desc">تسجيل بضع ثوانٍ من الصوت حول الهاتف.</string>
+    <string name="protection_audio_needs_microphone">مفتوح لكنه لا يسجّل: إذن الميكروفون أعلاه لم يُمنَح بعد.</string>
     <string name="protection_audio_seconds">الصوت: %1$d ثانية</string>
     <string name="protection_motion_title">وضع الطاولة (الحركة)</string>
     <string name="protection_motion_desc">عند وضع الهاتف ساكنًا ثم رفعه، هذا ما يحدث. تسجّل شيلدرا الحدث وتنبّهك؛ ولا تستطيع قفل الشاشة.</string>
