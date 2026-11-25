@@ -25,16 +25,12 @@ object DemoData {
         ProtectionVisualState.Protected,
         12L,
         guards(),
-        recentEvents(),
         84,
         stringResource(R.string.demo_network_wifi),
         NetworkStatus.Online,
         true,
         true,
     )
-
-    @Composable
-    fun dashboardEmpty(): DashboardUiModel = dashboard().copy(recentEvents = emptyList())
 
     @Composable
     fun dashboardSuspicious(): DashboardUiModel = dashboard().copy(

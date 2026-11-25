@@ -52,8 +52,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.shieldra.app.design.components.domain.EmptyState
-import com.shieldra.app.design.components.domain.EventCard
 import com.shieldra.app.design.components.domain.GuardTile
 import com.shieldra.app.design.components.domain.LiveStatusStrip
 import com.shieldra.app.design.components.domain.ShieldCore
@@ -548,7 +546,7 @@ private fun DashboardDarkPreview() {
     ShieldraTheme(darkTheme = true) {
         DashboardScreen(
             model = DemoData.dashboard(),
-            callbacks = DashboardCallbacks({}, {}, {}, {}),
+            callbacks = DashboardCallbacks({}, {}, {}, {}, {}, {}),
         )
     }
 }
@@ -559,18 +557,7 @@ private fun DashboardLightPreview() {
     ShieldraTheme(darkTheme = false) {
         DashboardScreen(
             model = DemoData.dashboard(),
-            callbacks = DashboardCallbacks({}, {}, {}, {}),
-        )
-    }
-}
-
-@Preview(name = "Dashboard Empty", showBackground = true)
-@Composable
-private fun DashboardEmptyPreview() {
-    ShieldraTheme(darkTheme = true) {
-        DashboardScreen(
-            model = DemoData.dashboardEmpty(),
-            callbacks = DashboardCallbacks({}, {}, {}, {}),
+            callbacks = DashboardCallbacks({}, {}, {}, {}, {}, {}),
         )
     }
 }
@@ -581,7 +568,7 @@ private fun DashboardSuspiciousPreview() {
     ShieldraTheme(darkTheme = true) {
         DashboardScreen(
             model = DemoData.dashboardSuspicious(),
-            callbacks = DashboardCallbacks({}, {}, {}, {}),
+            callbacks = DashboardCallbacks({}, {}, {}, {}, {}, {}),
         )
     }
 }
@@ -592,7 +579,7 @@ private fun DashboardDisabledPreview() {
     ShieldraTheme(darkTheme = true) {
         DashboardScreen(
             model = DemoData.dashboardDisabled(),
-            callbacks = DashboardCallbacks({}, {}, {}, {}),
+            callbacks = DashboardCallbacks({}, {}, {}, {}, {}, {}),
         )
     }
 }

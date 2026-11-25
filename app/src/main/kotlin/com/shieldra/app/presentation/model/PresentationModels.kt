@@ -119,7 +119,6 @@ data class DashboardUiModel(
     /** Seconds since a check really ran; null when no detector has ever checked. */
     val lastCheckSeconds: Long?,
     val guards: List<GuardUiModel>,
-    val recentEvents: List<EventUiModel>,
     val batteryPercent: Int?,
     val networkLabel: String,
     /** F-K7: what the slot really knows about connectivity, not a colour to render it with. */

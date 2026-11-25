@@ -588,7 +588,6 @@ fun ShieldraNavHost(
                 DashboardScreen(
                     model = lockGuardDashboard(
                         state = guardState,
-                        recentEvents = recentEvents.take(RECENT_EVENT_LIMIT),
                         motionClaim = motionClaim,
                         protectionArmed = protectionArmed,
                         guardsRunning = protectionLive,
@@ -605,9 +604,6 @@ fun ShieldraNavHost(
                         periodicSignalIntervalMs = protectionSettings.countdownIntervalMs,
                     ),
                     callbacks = DashboardCallbacks(
-                        onEventClick = { id ->
-                            navController.navigate(ShieldraRoutes.eventDetail(id))
-                        },
                         onGuardClick = {
                             // A guard card is the shortest way to the switch that arms it.
                             navController.navigate(ShieldraRoutes.PROTECTION_SETUP)
@@ -665,9 +661,6 @@ fun ShieldraNavHost(
                                     }
                                 }
                             }
-                        },
-                        onViewAllEvents = {
-                            navController.navigate(ShieldraRoutes.HISTORY)
                         },
                         onOpenPro = {
                             navController.navigate(ShieldraRoutes.PRO)
@@ -1266,7 +1259,6 @@ private fun ageLabelFormatter(): (Instant, Instant) -> String {
     }
 }
 
-private const val RECENT_EVENT_LIMIT = 20
 private const val HISTORY_EVENT_LIMIT = 200
 private const val DEVICE_REFRESH_MS = 5_000L
 

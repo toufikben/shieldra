@@ -17,15 +17,13 @@ import com.shieldra.runtime.MonitoringClaim
  * Builds the dashboard the app may honestly show, straight from the pure
  * [LockGuardDecision]. It never invents a "Protected" state, an active guard,
  * a battery reading, a network reading, or ads — none of those facts exist
- * yet, regardless of the storage gate. Only [recentEvents] is real, and it is
- * whatever the persisted reader actually returned. [motionClaim] is real too,
- * and it is the only thing that can make the Motion guard look active: it comes
- * from the monitoring service's own state, never from a press.
+ * yet, regardless of the storage gate. [motionClaim] is real, and it is the only
+ * thing that can make the Motion guard look active: it comes from the monitoring
+ * service's own state, never from a press.
  */
 @Composable
 fun lockGuardDashboard(
     state: LockGuardState,
-    recentEvents: List<EventUiModel> = emptyList(),
     motionClaim: MonitoringClaim = MonitoringClaim.NoExecution,
     // A-33/A-34: when the owner has armed protection, the guards they switched on are really running
     // behind the protection service, so they render Active and the shield reads Protected. Nothing
@@ -91,7 +89,6 @@ fun lockGuardDashboard(
         armedReadinessNote = readiness.noteRes?.let { stringResource(it) },
         lastCheckSeconds = measuredLastCheckSeconds ?: LockGuardDecision.lastCheckSeconds(state),
         guards = guards,
-        recentEvents = recentEvents,
         batteryPercent = batteryPercent,
         networkLabel = networkLabel ?: stringResource(R.string.status_network_unknown),
         networkStatus = networkStatus,
