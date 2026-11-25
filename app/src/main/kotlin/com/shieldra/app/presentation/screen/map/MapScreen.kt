@@ -153,7 +153,7 @@ fun MapScreen(
                 // row and referenced nowhere; it is the name now.
                 ShieldraSwitch(
                     checked = geofenceEnabled,
-                    onCheckedChange = { onToggleGeofence() },
+                    onCheckedChange = { checked -> onToggleGeofence(checked) },
                     modifier = Modifier.semantics {
                         contentDescription = zonesSwitchLabel
                     },
