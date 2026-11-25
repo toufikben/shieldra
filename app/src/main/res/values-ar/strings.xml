@@ -209,6 +209,9 @@
     <string name="lost_contact">للتواصل: %1$s</string>
     <string name="protection_track_enable">تتبّع مباشر بعد السرقة</string>
     <string name="protection_track_desc">بعد اقتحام مؤكد، يُرسل الموقع كل بضع دقائق لفترة لتتبّع الهاتف.</string>
+    <string name="protection_retention_title">الاحتفاظ بالأدلة</string>
+    <string name="protection_retention_desc">كم يبقي هذا الهاتف الأحداث المسجَّلة وأدلّتها. يقرأ المنظّف النافذة عند بدء التطبيق، فالنافذة الجديدة تسري من البدء التالي.</string>
+    <string name="protection_retention_days">الاحتفاظ بالأدلة %1$d يوماً</string>
     <string name="protection_save">حفظ</string>
     <string name="motion_monitoring_start">تشغيل مراقبة الحركة</string>
     <string name="motion_monitoring_stop">إيقاف مراقبة الحركة</string>

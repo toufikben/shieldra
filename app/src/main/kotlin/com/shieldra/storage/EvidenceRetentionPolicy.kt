@@ -111,6 +111,15 @@ data class EvidenceRetentionPolicy(
          */
         private const val EVENT_TO_EVIDENCE_RATIO: Long = 3L
 
+        /**
+         * The range the owner's own window may take. Below [MIN_OWNER_DAYS] the sweep would delete
+         * evidence the owner had no chance to read; above [MAX_OWNER_DAYS] a promise of deletion stops
+         * meaning anything on a phone that is used for years. Published here so the settings screen
+         * offers exactly the range the sweeper honours instead of inventing its own.
+         */
+        const val MIN_OWNER_DAYS: Int = 7
+        const val MAX_OWNER_DAYS: Int = 365
+
         private const val MILLIS_PER_DAY: Long = 24L * 60L * 60L * 1000L
 
         /** The approved §5.4 policy, amended by A-1. */

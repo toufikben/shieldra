@@ -47,6 +47,7 @@ import com.shieldra.app.design.components.foundation.ShieldraTextField
 import com.shieldra.protection.CountdownDeadline
 import com.shieldra.protection.EscalationPolicy
 import com.shieldra.protection.ProtectionSettings
+import com.shieldra.storage.EvidenceRetentionPolicy
 
 /** The permissions and consents a guard needs, read live from the platform. */
 data class ProtectionPermissions(
@@ -420,6 +421,23 @@ fun ProtectionSetupScreen(
             locked = !com.shieldra.billing.TierGate.allowsTracking(draft.tier),
             onLocked = onOpenPro,
         ) { draft = draft.copy(liveTrackingEnabled = it) }
+
+        // ===== Evidence retention =====
+        // The window is read once, when storage opens, so this control cannot promise an effect inside
+        // the running process: the subtitle says the change lands on the next start. The range comes
+        // from EvidenceRetentionPolicy so the screen offers exactly what the sweeper honours.
+        SectionTitle(stringResource(R.string.protection_retention_title))
+        Text(
+            text = stringResource(R.string.protection_retention_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        StepperRow(
+            label = stringResource(R.string.protection_retention_days, draft.retentionDays),
+            value = draft.retentionDays.toFloat(),
+            range = EvidenceRetentionPolicy.MIN_OWNER_DAYS.toFloat()..EvidenceRetentionPolicy.MAX_OWNER_DAYS.toFloat(),
+            steps = EvidenceRetentionPolicy.MAX_OWNER_DAYS - EvidenceRetentionPolicy.MIN_OWNER_DAYS - 1,
+        ) { draft = draft.copy(retentionDays = it.toInt()) }
 
         Spacer(Modifier.height(spacing.xl))
         ShieldraFullWidthButton(
