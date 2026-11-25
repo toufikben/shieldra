@@ -180,10 +180,6 @@
     <string name="protection_motion_siren">صفّارة عالية</string>
     <string name="protection_motion_grace">مهلة ثم صفّارة</string>
     <string name="protection_motion_grace_seconds">مهلة: %1$d ث قبل الصفّارة</string>
-    <string name="protection_escalation_title">صفّارة التصعيد</string>
-    <string name="protection_escalation">إطلاق الصفّارة عند تكرار الاقتحامات</string>
-    <string name="protection_escalation_desc">عندما تتوالى الاقتحامات المؤكَّدة داخل عشر دقائق، يتوقف التطبيق عن التخفّي: تدور الصفّارة دقيقة واحدة ثم تتوقف وحدها. شيلدرا لا تستطيع قفل الشاشة.</string>
-    <string name="protection_escalation_threshold">الصفّارة بعد %1$d اقتحامات في عشر دقائق</string>
     <string name="protection_countdown_title">إشارة دورية</string>
     <string name="protection_countdown_enable">إرسال إشارة دورية</string>
     <string name="protection_countdown_desc">صورة وموقع وبطارية، مراراً، حتى توقفها.</string>

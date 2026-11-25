@@ -112,7 +112,7 @@ class EscalationReachabilityTest {
                 )
             }
             assertTrue(
-                Regex("""name="protection_escalation_threshold">[^<]*%1${'$'}d""").containsMatchIn(text),
+                Regex("""name="protection_escalation_threshold">[^<]*%1\${'$'}d""").containsMatchIn(text),
                 "$name's protection_escalation_threshold carries no %1\$d, so the chosen number cannot be shown",
             )
         }
