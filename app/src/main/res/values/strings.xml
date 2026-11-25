@@ -193,6 +193,10 @@
     <string name="protection_motion_siren">Loud siren</string>
     <string name="protection_motion_grace">Grace then siren</string>
     <string name="protection_motion_grace_seconds">Grace: %1$d s before the siren</string>
+    <string name="protection_escalation_title">Escalation siren</string>
+    <string name="protection_escalation">Sound the siren on a burst of intrusions</string>
+    <string name="protection_escalation_desc">When confirmed intrusions keep coming within ten minutes, the app stops being discreet: the siren sounds for one minute and stops itself. Shieldra cannot lock the screen.</string>
+    <string name="protection_escalation_threshold">Siren after %1$d intrusions in ten minutes</string>
     <string name="protection_countdown_title">Periodic signal</string>
     <string name="protection_countdown_enable">Send a periodic signal</string>
     <string name="protection_countdown_desc">A photo, location and battery, over and over, until you stop it.</string>
