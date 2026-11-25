@@ -31,4 +31,16 @@ object TrackingCadence {
 
     const val LOW_FACTOR = 2
     const val CRITICAL_FACTOR = 4
+
+    /**
+     * The range the owner's own cadence may take. Below [MIN_INTERVAL_MINUTES] the trail is a stream
+     * that drains the battery it is trying to outlast; above [MAX_INTERVAL_MINUTES] the trail is too
+     * sparse to follow a moving phone. A run shorter than [MIN_DURATION_MINUTES] ends before the first
+     * gap has widened; longer than [MAX_DURATION_MINUTES] it keeps reporting long after the thief has
+     * stopped moving. Published here so the settings screen offers exactly the range the trail honours.
+     */
+    const val MIN_INTERVAL_MINUTES = 1
+    const val MAX_INTERVAL_MINUTES = 30
+    const val MIN_DURATION_MINUTES = 5
+    const val MAX_DURATION_MINUTES = 240
 }

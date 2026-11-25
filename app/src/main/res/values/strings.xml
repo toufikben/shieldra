@@ -226,6 +226,8 @@
     <string name="lost_contact">Contact: %1$s</string>
     <string name="protection_track_enable">Live tracking after a theft</string>
     <string name="protection_track_desc">After a confirmed intrusion, send a location every few minutes for a while to trace the phone.</string>
+    <string name="protection_track_interval">One location every %1$d min</string>
+    <string name="protection_track_duration">Keep reporting for %1$d min</string>
     <string name="protection_retention">Evidence retention</string>
     <string name="protection_retention_desc">How long this phone keeps recorded events and their evidence. The sweeper reads the window when the app starts, so a new window applies from the next start.</string>
     <string name="protection_retention_days">Keep evidence for %1$d days</string>

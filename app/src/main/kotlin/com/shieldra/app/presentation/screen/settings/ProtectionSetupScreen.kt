@@ -47,6 +47,7 @@ import com.shieldra.app.design.components.foundation.ShieldraTextField
 import com.shieldra.protection.CountdownDeadline
 import com.shieldra.protection.EscalationPolicy
 import com.shieldra.protection.ProtectionSettings
+import com.shieldra.protection.TrackingCadence
 import com.shieldra.storage.EvidenceRetentionPolicy
 
 /** The permissions and consents a guard needs, read live from the platform. */
@@ -421,6 +422,22 @@ fun ProtectionSetupScreen(
             locked = !com.shieldra.billing.TierGate.allowsTracking(draft.tier),
             onLocked = onOpenPro,
         ) { draft = draft.copy(liveTrackingEnabled = it) }
+        if (draft.liveTrackingEnabled) {
+            // The map tab prints these two numbers back to the owner, so they have to be his to set.
+            // The ranges come from TrackingCadence, the same object that spaces the pings.
+            StepperRow(
+                label = stringResource(R.string.protection_track_interval, draft.trackingIntervalMinutes),
+                value = draft.trackingIntervalMinutes.toFloat(),
+                range = TrackingCadence.MIN_INTERVAL_MINUTES.toFloat()..TrackingCadence.MAX_INTERVAL_MINUTES.toFloat(),
+                steps = TrackingCadence.MAX_INTERVAL_MINUTES - TrackingCadence.MIN_INTERVAL_MINUTES - 1,
+            ) { draft = draft.copy(trackingIntervalMinutes = it.toInt()) }
+            StepperRow(
+                label = stringResource(R.string.protection_track_duration, draft.trackingDurationMinutes),
+                value = draft.trackingDurationMinutes.toFloat(),
+                range = TrackingCadence.MIN_DURATION_MINUTES.toFloat()..TrackingCadence.MAX_DURATION_MINUTES.toFloat(),
+                steps = TrackingCadence.MAX_DURATION_MINUTES - TrackingCadence.MIN_DURATION_MINUTES - 1,
+            ) { draft = draft.copy(trackingDurationMinutes = it.toInt()) }
+        }
 
         // ===== Evidence retention =====
         // The window is read once, when storage opens, so this control cannot promise an effect inside
