@@ -22,8 +22,17 @@ class LocalShieldraStorage private constructor(
     /** What this phone really holds right now: measured, never estimated (Storage screen). */
     data class Figures(val eventRows: Int, val evidenceFiles: Int, val evidenceBytes: Long)
 
+    /**
+     * How many incident rows this phone really holds, answered by `SELECT COUNT(*)`.
+     *
+     * [figures] carries the same number but also measures the evidence directory, which is a directory
+     * walk and a file-size sum. A caller that only needs the count — the dashboard's Events tile — asks
+     * here instead of paying for the file scan and then indexing into the result.
+     */
+    fun eventRowCount(): Int = database.securityEventDao().count()
+
     fun figures(): Figures = Figures(
-        eventRows = database.securityEventDao().count(),
+        eventRows = eventRowCount(),
         evidenceFiles = evidenceFiles.evidenceAges().size,
         evidenceBytes = evidenceFiles.payloadBytes(),
     )

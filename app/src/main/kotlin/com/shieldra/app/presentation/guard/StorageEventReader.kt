@@ -25,6 +25,10 @@ object StorageEventReader {
                 runCatching { UUID.fromString(eventId) }.getOrNull()
                     ?.let { installed?.eventRepository?.find(EventId.from(it)) }
             },
+            // The dashboard's Events tile asks how many incidents exist, which is a COUNT(*) — not
+            // the length of the page it also reads. Bound here so the reader stays the only gateway
+            // to persisted facts and the installed-storage gate still applies to the count.
+            loadCount = { installed?.eventRowCount() },
         )
     }
 }

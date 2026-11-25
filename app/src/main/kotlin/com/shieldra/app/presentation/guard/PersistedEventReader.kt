@@ -30,10 +30,28 @@ class PersistedEventReader(
      * reader falls back to scanning the newest [LOOKUP_WINDOW] rows, which is what pure tests use.
      */
     private val loadOne: ((eventId: String) -> SecurityEvent?)? = null,
+    /**
+     * The stored row count, straight from the database. Null when the caller has no count to offer, in
+     * which case [countEvents] reports "unknown" instead of measuring a page it already holds.
+     */
+    private val loadCount: (() -> Int)? = null,
 ) {
     fun readRecent(limit: Int, now: Instant): List<EventUiModel> {
         val events = readPersisted(limit) ?: return emptyList()
         return events.map { it.toUiModel(now) }
+    }
+
+    /**
+     * Every incident this phone holds, or null when it cannot be known.
+     *
+     * This is deliberately not `readRecent(limit).size`: a page is capped, so its length answers a
+     * different question ("how many fit in the newest page") and would understate the total on any
+     * phone with more rows than the cap. A failed count is null, never zero — zero is a fact.
+     */
+    fun countEvents(): Int? {
+        if (!storageInstalled) return null
+        val counter = loadCount ?: return null
+        return runCatching { counter() }.getOrNull()
     }
 
     fun readOne(eventId: String, now: Instant): EventDetailUiModel? {

@@ -226,6 +226,12 @@ fun ShieldraNavHost(
     val recentEvents by produceState(initialValue = emptyList<EventUiModel>(), installedStorage, panicActivations, motionEventWrites, eventListRefresh) {
         value = withContext(Dispatchers.IO) { eventReader.readRecent(HISTORY_EVENT_LIMIT, Instant.now()) }
     }
+    // The Events tile's number, asked of the database rather than taken from the page above: a page
+    // is capped at HISTORY_EVENT_LIMIT, so its length would silently stop growing and then shrink as
+    // the owner deletes rows. Reloaded on the same keys as the list, so the two never disagree.
+    val eventCount by produceState<Int?>(initialValue = null, installedStorage, panicActivations, motionEventWrites, eventListRefresh) {
+        value = withContext(Dispatchers.IO) { eventReader.countEvents() }
+    }
     var panicInFlight by remember { mutableStateOf(false) }
     val eventDeletedMessage = stringResource(R.string.event_deleted)
     val eventDeleteFailedMessage = stringResource(R.string.event_delete_failed)
@@ -594,7 +600,7 @@ fun ShieldraNavHost(
                         measuredLastCheckSeconds = device.lastCheckSeconds,
                         protectionScore = scoreFor(healthChecks, protectionSettings, protectionLive),
                         proActive = proState.entitled,
-                        totalEvents = recentEvents.size,
+                        totalEvents = eventCount,
                         periodicSignal = periodicSignalCycle,
                         periodicSignalIntervalMs = protectionSettings.countdownIntervalMs,
                     ),
