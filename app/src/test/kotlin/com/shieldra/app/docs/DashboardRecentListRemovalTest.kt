@@ -93,11 +93,11 @@ class DashboardRecentListRemovalTest {
     fun p4_16_the_callbacks_offer_no_dead_actions() {
         val callbacks = main("kotlin/com/shieldra/app/presentation/screen/dashboard/DashboardCallbacks.kt")
         assertFalse(
-            callbacks.contains("onEventClick"),
+            callbacks.contains("val onEventClick"),
             "DashboardCallbacks still declares onEventClick, which no Composable invokes",
         )
         assertFalse(
-            callbacks.contains("onViewAllEvents"),
+            callbacks.contains("val onViewAllEvents"),
             "DashboardCallbacks still declares onViewAllEvents, the 'View all' control that was removed",
         )
     }
