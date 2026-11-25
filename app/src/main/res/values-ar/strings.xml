@@ -551,7 +551,6 @@
     <string name="language_english">English</string>
     <string name="language_arabic">العربية</string>
     <string name="history_week_title">آخر 7 أيام</string>
-    <string name="history_week_total">%1$d حدث</string>
     <string name="history_today">اليوم</string>
     <string name="history_yesterday">أمس</string>
     <string name="history_earlier">أقدم</string>

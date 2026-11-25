@@ -48,4 +48,13 @@
         <item quantity="many">%1$d مكانًا معلَّمًا آمنًا</item>
         <item quantity="other">%1$d مكان معلَّم آمن</item>
     </plurals>
+    <!-- مجموع الأسبوع في السجل: عدد ومعه اسمه، فللعربية صيغها: المثنى والجمع والمعدود. -->
+    <plurals name="history_week_events">
+        <item quantity="zero">لا أحداث</item>
+        <item quantity="one">حدث واحد</item>
+        <item quantity="two">حدثان</item>
+        <item quantity="few">%1$d أحداث</item>
+        <item quantity="many">%1$d حدثًا</item>
+        <item quantity="other">%1$d حدث</item>
+    </plurals>
 </resources>

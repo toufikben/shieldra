@@ -570,7 +570,6 @@
     <string name="language_english">English</string>
     <string name="language_arabic">العربية</string>
     <string name="history_week_title">Last 7 days</string>
-    <string name="history_week_total">%1$d events</string>
     <string name="history_today">Today</string>
     <string name="history_yesterday">Yesterday</string>
     <string name="history_earlier">Earlier</string>

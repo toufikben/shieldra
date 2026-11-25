@@ -34,4 +34,12 @@
         <item quantity="one">%1$d place marked safe</item>
         <item quantity="other">%1$d places marked safe</item>
     </plurals>
+    <!--
+      The week total on the History screen. A count with a noun attached cannot be a fixed template:
+      one event would read "1 events". Declared as a quantity so the locale declines it.
+    -->
+    <plurals name="history_week_events">
+        <item quantity="one">%1$d event</item>
+        <item quantity="other">%1$d events</item>
+    </plurals>
 </resources>
