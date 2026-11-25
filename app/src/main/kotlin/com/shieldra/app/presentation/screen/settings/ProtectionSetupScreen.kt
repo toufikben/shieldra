@@ -45,6 +45,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import com.shieldra.app.design.components.foundation.ShieldraTextField
 import com.shieldra.protection.CountdownDeadline
+import com.shieldra.protection.EscalationPolicy
 import com.shieldra.protection.ProtectionSettings
 
 /** The permissions and consents a guard needs, read live from the platform. */
@@ -294,6 +295,26 @@ fun ProtectionSetupScreen(
                 range = 3f..30f,
                 steps = 26,
             ) { draft = draft.copy(motionGraceSeconds = it.toInt()) }
+        }
+
+        // ===== Escalation siren =====
+        // The policy and the service have always honoured these two fields (a burst of confirmed
+        // intrusions inside ten minutes sounds the siren), but no screen ever drew them and no string
+        // named them, so the owner could not switch the siren on at all. The stepper takes its range
+        // from EscalationPolicy so the number shown is the number the store accepts.
+        SectionTitle(stringResource(R.string.protection_escalation_title))
+        GuardToggle(
+            title = stringResource(R.string.protection_escalation),
+            subtitle = stringResource(R.string.protection_escalation_desc),
+            checked = draft.escalationEnabled,
+        ) { draft = draft.copy(escalationEnabled = it) }
+        if (draft.escalationEnabled) {
+            StepperRow(
+                label = stringResource(R.string.protection_escalation_threshold, draft.escalationThreshold),
+                value = draft.escalationThreshold.toFloat(),
+                range = EscalationPolicy.MIN_THRESHOLD.toFloat()..EscalationPolicy.MAX_THRESHOLD.toFloat(),
+                steps = EscalationPolicy.MAX_THRESHOLD - EscalationPolicy.MIN_THRESHOLD - 1,
+            ) { draft = draft.copy(escalationThreshold = it.toInt()) }
         }
 
         // ===== Countdown =====
