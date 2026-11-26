@@ -29,6 +29,7 @@
     <string name="map_remote_hint">أرسِل ‎/locate إلى بوت تلغرام في أي وقت لتحصل على الموقع الحالي.</string>
     <string name="map_open_protection">إعدادات التتبّع</string>
     <string name="safe_zones_title">المناطق الآمنة</string>
+    <string name="safe_zones_enable">إسكات الحرّاس المزعجة في هذه الأماكن</string>
     <string name="safe_zones_hint">داخل هذه الأماكن تبقى الصفّارة وعدّاد الخطف صامتين أثناء التفعيل. الخروج من المنطقة لا يبدأ أي تنبيه.</string>
     <string name="safe_zones_quiet_hint">داخل المنطقة تبقى الصفّارة والعدّاد صامتين، وتُسجَّل الحركة دون رسالة. أما تنبيهات كلمة السر الخاطئة وشريحة SIM فتصل دائمًا.</string>
     <string name="safe_zone_sampler_off">لا قراءة للمنطقة بعد: لا يستطيع الهاتف معرفة مكانه الآن، فتتصرّف الحرّاس كأنه خارجها.</string>
@@ -246,8 +247,6 @@
     <string name="snatch_demand_call">اتصال بالمالك</string>
     <string name="snatch_demand_waiting">أعِد الهاتف إلى مالكه. وإن كنت المالك فافتحه برمزك الخاص لإيقاف هذا التنبيه.</string>
     <string name="snatch_demand_escalating">لا إثبات بعد: تُرسل الأدلة كل %1$d دقائق.</string>
-    <string name="motion_monitoring_start">تشغيل مراقبة الحركة</string>
-    <string name="motion_monitoring_stop">إيقاف مراقبة الحركة</string>
     <string name="motion_monitoring_needs_permission">يجب أن تبقى المراقبة ظاهرة لك، لذا اسمح بالإشعارات أولًا.</string>
     <string name="motion_monitoring_refused">لم تبدأ المراقبة: إشعارها الدائم لن يصل إليك.</string>
     <string name="motion_monitoring_stopped">توقفت مراقبة الحركة.</string>

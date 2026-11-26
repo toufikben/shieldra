@@ -240,7 +240,8 @@ class ProtectionService : Service() {
         val findings = watch.newFindings(now)
         if (findings.isEmpty()) return
         store.markCheck()
-        capture(SecurityEventType.TAMPER_SIGNAL)
+        // A debugging door carries no unlock attempt, so it is announced without a count.
+        capture(SecurityEventType.TAMPER_SIGNAL, null)
     }
 
     private fun screenInteractive(): Boolean = runCatching {

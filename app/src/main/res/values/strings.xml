@@ -42,6 +42,7 @@
     <string name="map_remote_hint">Send /locate to your Telegram bot any time to get the current position.</string>
     <string name="map_open_protection">Tracking settings</string>
     <string name="safe_zones_title">Safe zones</string>
+    <string name="safe_zones_enable">Keep the noisy guards quiet in these places</string>
     <string name="safe_zones_hint">Inside these places the siren and the snatch countdown stay quiet while armed. Leaving a zone never starts an alert.</string>
     <string name="safe_zones_quiet_hint">Inside a zone the siren and the countdown stay quiet, and Motion is recorded without a message. Wrong-PIN and SIM alerts always arrive.</string>
     <string name="safe_zone_sampler_off">No zone reading yet: the phone cannot tell where it is right now, so the guards behave as if it were outside.</string>
@@ -274,8 +275,6 @@
     <string name="snatch_demand_call">Call the owner</string>
     <string name="snatch_demand_waiting">Return the phone to its owner. If you are the owner, unlock it with your own code to stop this alert.</string>
     <string name="snatch_demand_escalating">No proof yet: evidence is being sent every %1$d minutes.</string>
-    <string name="motion_monitoring_start">Start Motion monitoring</string>
-    <string name="motion_monitoring_stop">Stop Motion monitoring</string>
     <string name="motion_monitoring_needs_permission">Monitoring has to stay visible to you, so allow notifications first.</string>
     <string name="motion_monitoring_refused">Monitoring was not started: its ongoing notification would not reach you.</string>
     <string name="motion_monitoring_stopped">Motion monitoring stopped.</string>
