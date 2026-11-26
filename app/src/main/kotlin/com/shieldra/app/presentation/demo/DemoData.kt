@@ -1,6 +1,7 @@
 package com.shieldra.app.presentation.demo
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.shieldra.app.R
 import com.shieldra.app.presentation.model.*
@@ -9,6 +10,7 @@ import com.shieldra.app.presentation.model.*
 object DemoData {
     @Composable
     fun guards(): List<GuardUiModel> = listOf(
+        GuardUiModel(GuardKind.Lock, stringResource(R.string.demo_lock_guard), pluralStringResource(R.plurals.demo_active_attempts, 2, 2), GuardStatus.Active),
         GuardUiModel(GuardKind.Motion, stringResource(R.string.demo_motion_guard), stringResource(R.string.demo_monitoring), GuardStatus.Active),
         GuardUiModel(GuardKind.Sim, stringResource(R.string.demo_sim_guard), stringResource(R.string.demo_monitored), GuardStatus.Active),
         GuardUiModel(GuardKind.Panic, stringResource(R.string.demo_panic), stringResource(R.string.demo_ready), GuardStatus.Active),
@@ -16,8 +18,8 @@ object DemoData {
 
     @Composable
     fun recentEvents(): List<EventUiModel> = listOf(
-        EventUiModel("evt_1", EventType.Motion, stringResource(R.string.demo_motion_detected), stringResource(R.string.demo_movement_after_stillness), stringResource(R.string.demo_time_motion), DeliveryStatus.Delivered, true, true),
-        EventUiModel("evt_2", EventType.SimChange, stringResource(R.string.event_title_sim), stringResource(R.string.demo_sim_guard), stringResource(R.string.demo_time_sim_change), DeliveryStatus.Deferred, false, false),
+        EventUiModel("evt_1", EventType.FailedUnlock, stringResource(R.string.demo_failed_unlock), stringResource(R.string.demo_attempt, 2), stringResource(R.string.demo_time_failed_unlock), DeliveryStatus.Delivered, true, true),
+        EventUiModel("evt_2", EventType.Motion, stringResource(R.string.demo_motion_detected), stringResource(R.string.demo_movement_after_stillness), stringResource(R.string.demo_time_motion), DeliveryStatus.Deferred, true, false),
     )
 
     @Composable

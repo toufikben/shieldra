@@ -431,7 +431,9 @@ DECLARED="$(grep -oE 'android:name="android\.permission\.[A-Z_]+"' app/src/main/
 # F-PLAY-1 (2026-11-03): USE_EXACT_ALARM is withheld — Google Play reserves it for alarm-clock and
 # calendar apps — so SCHEDULE_EXACT_ALARM is the only exact-alarm permission declared, and the
 # countdown falls back to an inexact alarm until the owner grants exact scheduling at runtime.
-EXPECTED="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_NETWORK_STATE CAMERA FOREGROUND_SERVICE FOREGROUND_SERVICE_CAMERA FOREGROUND_SERVICE_LOCATION FOREGROUND_SERVICE_MICROPHONE FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_BOOT_COMPLETED RECORD_AUDIO REQUEST_IGNORE_BATTERY_OPTIMIZATIONS SCHEDULE_EXACT_ALARM WAKE_LOCK "
+# A-46 (owner decision 2026-11-10) adds VIBRATE: the snatch proof window is felt, not only heard, and
+# the demand notice's channel pattern needs the permission declared.
+EXPECTED="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_NETWORK_STATE CAMERA FOREGROUND_SERVICE FOREGROUND_SERVICE_CAMERA FOREGROUND_SERVICE_LOCATION FOREGROUND_SERVICE_MICROPHONE FOREGROUND_SERVICE_SPECIAL_USE INTERNET POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_BOOT_COMPLETED RECORD_AUDIO REQUEST_IGNORE_BATTERY_OPTIMIZATIONS SCHEDULE_EXACT_ALARM VIBRATE WAKE_LOCK "
 if [ "$DECLARED" != "$EXPECTED" ]; then
   fail "the manifest declares permissions outside the A-6/A-19/A-32/A-33/A-34/A-35 named set; got [$DECLARED]"
 fi
@@ -449,29 +451,95 @@ grep -q 'recordPermissionRequest()' "$NAVHOST" \
   || fail "answering the system dialog is never recorded, so silence and refusal look alike"
 pass "notifications are local, permission-gated, and never claim delivery"
 
-# 5d. Design B (2026-11-06): the app holds no device administrator at all.
-# The owner retired the A-33 Lock guard and the A-42 remote /lock with it, because both rested on a
-# refused privilege: Android never grants a home-installed app the failed-unlock signal, and the
-# owner told us the app must not keep device-admin powers. This section asserts the absence, so a
-# later edit cannot quietly bring the privilege back.
+# 5d. Lock Guard and the snatch lock (owner order 2026-11-07; A-46, owner decision 2026-11-10): the
+# failed-unlock signal is the only lock-screen observation the app makes, and after a confirmed snatch
+# it holds exactly one lock power: close the screen at once, before anything is photographed. Android
+# delivers ACTION_PASSWORD_FAILED to an active admin that declares USES_POLICY_WATCH_LOGIN
+# (AOSP DevicePolicyManagerService.reportFailedPasswordAttempt), and locks on demand only for an admin
+# that was granted USES_POLICY_FORCE_LOCK. The declaration pins exactly those two policies, lockNow()
+# has one caller, and every wipe, reset or password power stays forbidden.
 ADMIN_XML=app/src/main/res/xml/device_admin.xml
-if [ -e "$ADMIN_XML" ]; then
-  fail "a device-admin policy declaration came back (design B holds no administrator)"
-fi
-if grep -q 'BIND_DEVICE_ADMIN\|LockGuardReceiver\|android.app.device_admin' app/src/main/AndroidManifest.xml; then
-  fail "the manifest registers a device administrator again (design B holds no administrator)"
-fi
-ADMIN_IMPORTS="$(grep -rn 'android\.app\.admin' app/src/main --include='*.kt' || true)"
-[ -z "$ADMIN_IMPORTS" ] || fail "production code imports android.app.admin again: $ADMIN_IMPORTS"
-LOCK_CALLERS="$(grep -rn 'lockNow[[:space:]]*(' app/src/main --include='*.kt' || true)"
-[ -z "$LOCK_CALLERS" ] || fail "code can lock the screen again (design B has no lock power): $LOCK_CALLERS"
+[ -s "$ADMIN_XML" ] || fail "the Lock Guard lost its device-admin policy declaration"
+grep -q '<watch-login' "$ADMIN_XML" \
+  || fail "the device-admin declaration no longer asks for watch-login, so Android will not report a wrong unlock"
+grep -q '<force-lock' "$ADMIN_XML" \
+  || fail "the device-admin declaration lost force-lock, so a confirmed snatch cannot close the screen (A-46)"
+for forbidden in '<wipe-data' '<reset-password' '<password-quality' 'set-password'; do
+  if grep -q "$forbidden" "$ADMIN_XML"; then
+    fail "the device-admin policy grew '$forbidden'; the app observes wrong unlocks and closes one screen, nothing else"
+  fi
+done
+MANIFEST=app/src/main/AndroidManifest.xml
+grep -q 'com.shieldra.protection.LockGuardReceiver' "$MANIFEST" \
+  || fail "the manifest no longer registers the receiver that hears a wrong unlock"
+grep -q 'android.permission.BIND_DEVICE_ADMIN' "$MANIFEST" \
+  || fail "the Lock Guard receiver is not protected by BIND_DEVICE_ADMIN"
+grep -q 'android.app.device_admin' "$MANIFEST" \
+  || fail "the Lock Guard receiver names no device-admin policy resource"
+# A-46: the one lock power in the app has one caller, and it is the object that also reports why a
+# lock failed. Every other module stays locked out by this exact-file comparison.
+LOCK_CALLERS="$(grep -rl 'lockNow[[:space:]]*(' app/src/main --include='*.kt' || true)"
+[ "$LOCK_CALLERS" = "app/src/main/kotlin/com/shieldra/protection/DeviceScreenLock.kt" ] \
+  || fail "the only lockNow() caller must be DeviceScreenLock.kt; got [$LOCK_CALLERS]"
+LOCK_CALL_COUNT="$(grep -c 'lockNow[[:space:]]*(' app/src/main/kotlin/com/shieldra/protection/DeviceScreenLock.kt || true)"
+[ "$LOCK_CALL_COUNT" = "1" ] \
+  || fail "DeviceScreenLock must hold exactly one lockNow() call; got [$LOCK_CALL_COUNT]"
+grep -q 'hasGrantedPolicy(admin, DeviceAdminInfo.USES_POLICY_FORCE_LOCK)' \
+  app/src/main/kotlin/com/shieldra/protection/DeviceScreenLock.kt \
+  || fail "the app cannot tell an admin granted before force-lock from one that holds it (NEEDS_REGRANT, A-46)"
+ADMIN_POWERS="$(grep -rn 'resetPassword[[:space:]]*(\|wipeData[[:space:]]*(\|setMaximumFailedPasswordsForWipe' app/src/main --include='*.kt' || true)"
+[ -z "$ADMIN_POWERS" ] || fail "code gained a destructive device-admin power: $ADMIN_POWERS"
 if grep -q '"/lock"' app/src/main/kotlin/com/shieldra/protection/RemoteCommandPoller.kt; then
-  fail "the /lock command came back into the remote poller (design B cannot lock)"
+  fail "the retired /lock command came back into the remote poller"
 fi
-if grep -q 'lock_enabled\|lock_threshold' app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt; then
-  fail "the Lock guard settings keys came back (design B removed the Lock guard)"
+SETTINGS_STORE=app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt
+grep -q 'lock_enabled' "$SETTINGS_STORE" || fail "the Lock Guard has no stored on/off choice"
+grep -q 'lock_threshold' "$SETTINGS_STORE" || fail "the Lock Guard has no stored attempt threshold"
+grep -q 'failedAttempts' app/src/main/kotlin/com/shieldra/delivery/SecurityAlert.kt \
+  || fail "the alert line cannot carry the failed-attempt count the owner asked to see"
+# Owner report 2026-11-08: the signal arrived after every wrong attempt. The capture still runs on
+# every later attempt, but one message speaks for one unlock session (LockAlertPolicy). Pinned so the
+# stream cannot come back unnoticed.
+LOCK_POLICY=app/src/main/kotlin/com/shieldra/protection/LockAlertPolicy.kt
+[ -s "$LOCK_POLICY" ] || fail "the lock alert rationing rule is missing, so every attempt announces again"
+grep -q 'fun announces(' "$LOCK_POLICY" \
+  || fail "the lock alert rationing rule lost its decision"
+# The owner decision of 2026-11-08 added a safe-zone gate in front of this call, but only for Motion:
+# a wrong unlock is evidence and must never be silenced by a place. The announces call itself stays
+# exactly the rationing rule, and the extra condition must name Motion alone.
+grep -q 'LockAlertPolicy.announces(type, incidentIsNew, failedAttempts, settings.lockThreshold)' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  || fail "the capture path no longer rations the lock alert; a burst would send a stream of signals again"
+grep -A1 'val motionInsideSafeZone = type == SecurityEventType.MOTION_CONFIRMED_EVENT &&' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  | grep -q 'ProtectionRuntime.quietInSafeZone(applicationContext)' \
+  || fail "the Motion dispatch no longer consults the safe-zone quiet policy (owner decision 2026-11-08)"
+grep -q 'if (!motionInsideSafeZone &&' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  || fail "the safe-zone gate no longer guards the dispatch"
+if grep -n 'quietInSafeZone' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  | grep -Eq 'LOCK_CONFIRMED|SIM_CONFIRMED'; then
+  fail "a wrong-unlock or SIM alert was put behind the safe-zone gate; evidence must always send"
 fi
-pass "design B: the app holds no device administrator and no power to lock the screen"
+# A-47 D7: the receiver counts first, and only the attempt that reaches the owner's own threshold may
+# accelerate an open snatch. Earlier attempts do nothing extra; later ones keep the ordinary
+# lock-evidence path, so a wrong PIN cannot turn the ladder into a stream.
+grep -q 'verdict.count == settings.lockThreshold &&' \
+  app/src/main/kotlin/com/shieldra/protection/LockGuardReceiver.kt \
+  || fail "a wrong unlock no longer waits for the owner's own threshold before accelerating (A-47 D7)"
+grep -q 'SnatchCoordinator.escalateNow(context, verdict.count, settings.lockThreshold)' \
+  app/src/main/kotlin/com/shieldra/protection/LockGuardReceiver.kt \
+  || fail "the threshold attempt no longer hands the acceleration to the coordinator (A-47 D7)"
+grep -q 'if (!SnatchPolicy.acceleratesOnFailedUnlock(incident, failedAttempts, lockThreshold)) return false' \
+  app/src/main/kotlin/com/shieldra/protection/SnatchCoordinator.kt \
+  || fail "the coordinator accelerates on any attempt again instead of the measured threshold (A-47 D7)"
+COUNT_FIRST=$(grep -n 'LockGuardState.counter(settings.lockThreshold).onFailure' \
+  app/src/main/kotlin/com/shieldra/protection/LockGuardReceiver.kt | cut -d: -f1)
+ESCALATE_AT=$(grep -n 'SnatchCoordinator.escalateNow' \
+  app/src/main/kotlin/com/shieldra/protection/LockGuardReceiver.kt | cut -d: -f1)
+[ -n "$COUNT_FIRST" ] && [ -n "$ESCALATE_AT" ] && [ "$COUNT_FIRST" -lt "$ESCALATE_AT" ] \
+  || fail "the wrong-PIN receiver accelerates before it counts (A-47 D7)"
+pass "Lock Guard: watch-login plus one snatch lock, one signal per unlock session, and no wipe/reset power"
 
 # 5e. Motion guard (A-43, narrowed by design B on 2026-11-06): the owner asked for the Motion guard to
 # be always on like the SIM guard, so it is on by default, arming and boot start it, disarming stops it,
@@ -499,19 +567,46 @@ grep -q 'ProtectionService.captureForEvent' "$RESPONDER" \
   || fail "a confirmed Motion no longer takes its evidence through the live service (A-43)"
 grep -q 'Siren.start' "$RESPONDER" \
   || fail "the loud-siren response no longer sounds (A-43)"
-grep -q 'if (store.load().motionEnabled) startMotion(app)' \
+grep -q 'val motionDecision = startMotionIfEnabled(app)' \
   app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
   || fail "arming no longer starts the Motion guard (A-43)"
+grep -q 'if (!ProtectionSettingsStore(app).load().motionEnabled) return null' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "the Motion save path no longer respects a guard the owner switched off (A-43)"
+grep -q 'return startMotion(app)' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "the Motion save path lost the one start decision arming also uses (A-43)"
 grep -q 'MotionRuntime.stopMonitoring(app)' \
   app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
   || fail "disarming no longer stops the Motion guard (A-43)"
 grep -q 'settings.motionEnabled' app/src/main/kotlin/com/shieldra/protection/BootReceiver.kt \
   || fail "a reboot no longer resumes the Motion guard with the other guards (A-43)"
+# Owner report 2026-11-08: the switches on the Protection screen were a draft, and Arm read only the
+# stored copy. A Motion toggle flipped there and Arm pressed below it is one instruction, so the draft
+# now travels with the arm press and is stored before the guards start.
+PROTECTION_RUNTIME=app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt
+grep -q 'fun arm(context: Context, choices: ProtectionSettings? = null)' "$PROTECTION_RUNTIME" \
+  || fail "arming no longer accepts the choices the owner is looking at (owner report 2026-11-08)"
+grep -q 'choices?.let { store.save(it) }' "$PROTECTION_RUNTIME" \
+  || fail "arming reads only the stored guard choice, so a toggle flipped before Arm is ignored"
+grep -Fq 'ProtectionRuntime.arm(context, visible)' "$NAVHOST" \
+  || fail "the Protection screen no longer passes its switches to the arm call"
+grep -Fq 'onArmToggle(draft)' app/src/main/kotlin/com/shieldra/app/presentation/screen/settings/ProtectionSetupScreen.kt \
+  || fail "the Arm button stopped carrying the screen's draft"
 grep -q 'old.motionEnabled && !new.motionEnabled' \
   app/src/main/kotlin/com/shieldra/protection/ProtectionChange.kt \
   || fail "switching the Motion guard off no longer asks the owner (A-43)"
-grep -q 'updated.motionEnabled && !motionClaim.claimsProtection' "$NAVHOST" \
-  || fail "saving the Motion guard on or off no longer syncs the running monitor (A-43)"
+if grep -q 'else if (!motionClaim.claimsProtection)' "$NAVHOST" &&
+  grep -q 'ProtectionRuntime.startMotionIfEnabled(context)' "$NAVHOST"; then
+  :
+else
+  fail "saving the Motion guard on no longer starts the running monitor (A-43)"
+fi
+if grep -A2 'if (!updated.motionEnabled)' "$NAVHOST" | grep -q 'MotionRuntime.stopMonitoring(context)'; then
+  :
+else
+  fail "saving the Motion guard off no longer stops the running monitor (A-43)"
+fi
 grep -q 'ProtectionRuntime.setMotionEnabled(context, true)' "$NAVHOST" \
   || fail "the dashboard's Motion start no longer records the guard choice (A-43)"
 grep -q 'ProtectionRuntime.setMotionEnabled(context, false)' "$NAVHOST" \
@@ -519,7 +614,7 @@ grep -q 'ProtectionRuntime.setMotionEnabled(context, false)' "$NAVHOST" \
 grep -Fq 'fun `the motion guard is on by default like the SIM guard`' \
   app/src/test/kotlin/com/shieldra/protection/MotionGuardDefaultsTest.kt \
   || fail "the default-on Motion guard test was removed or renamed"
-pass "A-43: Motion is on by default, arming and boot start it, and a confirmed lift runs the chosen response and takes evidence"
+pass "A-43: Motion is on by default, the arm press carries the switches shown, arming and boot start it, and a confirmed lift runs the chosen response and takes evidence"
 
 # 5f. A-44 (2026-11-04): found on the phone during A-43 verification. The protection screen's Save
 # wrote its whole snapshot back to storage, including an `armed=false` captured before the owner
@@ -540,11 +635,13 @@ grep -Fq 'LaunchedEffect(protectionArmed)' "$NAVHOST" \
   || fail "the settings snapshot no longer follows the live armed state (A-44)"
 pass "A-44: the armed flag has one writer; a settings Save can no longer disarm a running protection"
 
-# 5g. Design B (owner, 2026-11-06): the app holds no lock power, so the whole A-45 response layer is
-# gone and must stay gone. The old assertions here pinned SnatchLadder, TheftDemand, ZonePolicy and a
-# screen lock inside a confirmed Motion — they were deleted with the design they enforced, because a
-# gate that demands dead code is the defect. What replaces them is the opposite promise: the dead layer
-# never comes back, the trilingual lock-screen notice never comes back, and what survives still runs.
+# 5g. Design B retired (A-46, owner decision 2026-11-10). The owner restored the real screen lock, so
+# the old promise "the app holds no lock power" is gone — but the layer design B deleted stays deleted.
+# The A-45 ladder, zone policy, demand-text helper and sample recorder are not resurrected: the new
+# response has its own names (SnatchPolicy/SnatchCoordinator/SnatchDemand/SnatchStore) and its own
+# checkpoint in 5i. What is pinned here is the shape that survives: the evidence-only Motion path still
+# alerts, sirens and captures, and a confirmed Motion outside a safe zone hands the event to the
+# coordinator instead of photographing a thief who is running.
 LADDER="app/src/main/kotlin/com/shieldra/protection/SnatchLadder.kt"
 ZONE_POLICY="app/src/main/kotlin/com/shieldra/protection/ZonePolicy.kt"
 DEMAND="app/src/main/kotlin/com/shieldra/protection/TheftDemand.kt"
@@ -554,24 +651,218 @@ for dead in "$LADDER" "$ZONE_POLICY" "$DEMAND" \
   "$RECORDER"; do
   [ -e "$dead" ] && fail "a design-B-deleted file is back: $dead"
 done
-if [ -d app/src/main/res/values-fr ]; then
-  fail "values-fr is back, but the lock-screen notice it carried was deleted with the lock (design B)"
-fi
-if grep -Eq 'lockAtOnce|lockAfterGrace|DeviceScreenLock|SnatchLadder|TheftDemand|ZoneResponse' \
+if grep -Eq 'SnatchLadder|TheftDemand|ZoneResponse' \
   app/src/main/kotlin/com/shieldra/protection/MotionResponsePlan.kt "$RESPONDER"; then
-  fail "the Motion response reaches for a lock, a ladder, a demand notice or a zone policy again (design B)"
+  fail "the Motion response reaches for the retired A-45 ladder, demand notice or zone policy again"
 fi
-grep -A 12 'is MotionConfirmation.BoundToActive ->' \
-  app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt \
-  | grep -q 'TableModeResponder.onMotionConfirmed' \
-  || fail "a movement that joins an open incident is silent again"
-# Safe zones stay, but only for the one-shot leave-a-zone alert (A-36) the Map screen promises; the
-# sampler that feeds it must not be deleted with the policy that used to read it.
+MOTION_SERVICE=app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt
+grep -Fq 'if (snatchSignature && !quiet && SnatchCoordinator.begin(context, eventId)) return' "$RESPONDER" \
+  || fail "movement alone opens the snatch lock again, or the measured signature no longer reaches it (A-46, A-47 D3)"
+# A-47 D3: only a Motion can reach the challenge, and only with the measured signature. SIM, battery,
+# lock or a scheduled job that called begin would turn an evidence alert into a lock screen the owner
+# never asked for.
+BEGIN_CALLERS=$(grep -rl 'SnatchCoordinator.begin(' app/src/main/kotlin | sort | tr '\n' ' ')
+[ "$BEGIN_CALLERS" = "app/src/main/kotlin/com/shieldra/protection/TableModeResponder.kt " ] \
+  || fail "a non-Motion guard reaches SnatchCoordinator.begin; only a confirmed Motion may open the challenge (A-47 D3); got [$BEGIN_CALLERS]"
+grep -q 'fun onMotionConfirmed(context: Context, eventId: String, snatchSignature: Boolean)' "$RESPONDER" \
+  || fail "the Motion response no longer receives the measured snatch signature (A-47 D3)"
+# The signature reads a copy of the stream, because a confirmation consumes the Motion window in the
+# very sample that measured it. Both confirmation shapes (a new incident, and a movement joining the
+# open one) prime the open question, and the pure policy answers it: a snatch at once, or the base
+# response once the follow-up window can no longer change the answer.
+for pin in 'private val signatureWindow = mutableListOf<MotionSample>()' \
+  'private var pendingSignatureEventId: String? = null' \
+  'signatureWindow += sample' \
+  'is MotionConfirmation.Recorded -> confirmation.event.id.value.toString()' \
+  'is MotionConfirmation.BoundToActive -> confirmation.event.id.value.toString()' \
+  'ApprovedSnatchSignatureCalibration.signature' \
+  'SnatchSignaturePolicy.classify(' \
+  'SnatchSignaturePolicy.verdictFixedAtMs(' \
+  'TableModeResponder.onMotionConfirmed(applicationContext, eventId, snatchSignature = snatch)'; do
+  grep -Fq "$pin" "$MOTION_SERVICE" \
+    || fail "the Motion service lost '$pin' (A-47 D3)"
+done
+SIGNATURE_COPY=$(grep -n 'signatureWindow += sample' "$MOTION_SERVICE" | head -1 | cut -d: -f1)
+FIRST_OBSERVE=$(grep -n 'val observation = guardPipeline.observe' "$MOTION_SERVICE" | head -1 | cut -d: -f1)
+[ -n "$SIGNATURE_COPY" ] && [ -n "$FIRST_OBSERVE" ] && [ "$SIGNATURE_COPY" -lt "$FIRST_OBSERVE" ] \
+  || fail "the signature window is copied after the judgement, so a confirmation would clear it first (A-47 D3)"
+# Safe zones stay as the silencer the owner approved (A-47 D2): the sampler feeds the quiet rule,
+# and leaving a zone reports nothing — the old A-36 one-shot leave alert is deleted on purpose.
 [ -s app/src/main/kotlin/com/shieldra/protection/GeofenceTicker.kt ] \
-  || fail "the safe-zone sampler that feeds the leave-a-zone alert (A-36) is missing"
-grep -q 'GeofenceLogic.hasLeftSafeZone' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
-  || fail "leaving a safe zone no longer raises the one-shot alert the Map screen promises (A-36)"
-pass "design B: the A-45 lock, notice, ladder and zone policy stay deleted; Motion still alerts, sirens and takes evidence"
+  || fail "the safe-zone sampler that feeds the quiet rule is missing"
+grep -q 'ZoneStateStore(app).write(inside = inside, atMs = nowMs)' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  || fail "the safe-zone reading stopped writing the state the quiet rule reads (A-47 D2)"
+if grep -q 'GeofenceLogic.hasLeftSafeZone' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt; then
+  fail "leaving a safe zone still raises a signal; the zone is a silencer, not a trigger (A-47 D2)"
+fi
+if sed -n '/suspend fun sampleSafeZoneNow/,/^        }/p' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  | grep -q 'AlertRuntime.alert'; then
+  fail "the safe-zone sampler reports a crossing instead of staying silent (A-47 D2)"
+fi
+pass "A-46: the retired A-45 layer stays deleted; the evidence-only Motion path still alerts, sirens and captures, and only a signed outdoor Motion opens the snatch lock"
+
+# 5h. Safe-zone quieting (owner decision 2026-11-08). The owner asked to restore the quieting that
+# design B removed, but drew the line himself: inside a fresh safe zone the noisy layer — the siren,
+# the countdown signal, the Motion alert — is nuisance, while a wrong unlock or a SIM change is
+# evidence and must always leave the phone. The rule is fail-closed: guard on, a zone defined, a fresh
+# reading that says inside. Anything else keeps full strength.
+QUIET_POLICY=app/src/main/kotlin/com/shieldra/protection/SafeZoneQuietPolicy.kt
+[ -s "$QUIET_POLICY" ] || fail "the safe-zone quiet policy is missing (owner decision 2026-11-08)"
+grep -q 'fun isQuiet(' "$QUIET_POLICY" \
+  || fail "the safe-zone quiet rule lost its single decision"
+grep -q 'geofenceEnabled && hasZones && readingFresh && inside' "$QUIET_POLICY" \
+  || fail "the safe-zone quiet rule is no longer the fail-closed conjunction the owner approved"
+grep -Fq 'fresh inside with the guard on and a zone defined is quiet' \
+  app/src/test/kotlin/com/shieldra/protection/SafeZoneQuietPolicyTest.kt \
+  || fail "the safe-zone quiet test was removed or renamed"
+grep -Fq 'only one of the sixteen combinations is quiet' \
+  app/src/test/kotlin/com/shieldra/protection/SafeZoneQuietPolicyTest.kt \
+  || fail "the fail-closed combination test of the safe-zone quiet rule was removed"
+RUNTIME=app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt
+grep -q 'fun quietInSafeZone(context: Context)' "$RUNTIME" \
+  || fail "the runtime no longer exposes the safe-zone quiet decision"
+grep -q 'hasZones = store.safeZones().isNotEmpty()' "$RUNTIME" \
+  || fail "the quiet decision no longer requires a zone to be inside of"
+RESPONDER=app/src/main/kotlin/com/shieldra/protection/TableModeResponder.kt
+grep -q 'val quiet = ProtectionRuntime.quietInSafeZone(context)' "$RESPONDER" \
+  || fail "the Motion response no longer asks whether the phone is quietly at home"
+grep -q 'if (siren && !quiet)' "$RESPONDER" \
+  || fail "the siren is no longer held back inside a safe zone"
+grep -q 'if (!quiet) AlertRuntime.alert(context, AlertKind.MOTION, eventId)' "$RESPONDER" \
+  || fail "the fallback Motion message is no longer held back inside a safe zone"
+grep -q 'ProtectionService.captureForEvent' "$RESPONDER" \
+  || fail "the Motion evidence capture was dropped with the quieting"
+grep -A2 'if (ProtectionRuntime.quietInSafeZone(applicationContext)) return' \
+  app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  | grep -q 'intrusionTimes.add(now)' \
+  || fail "an escalation burst is still counted inside a safe zone, so it can siren on the first step outside"
+COUNTDOWN=app/src/main/kotlin/com/shieldra/protection/CountdownReceiver.kt
+COUNTDOWN_CHECKS=$(grep -c 'ProtectionRuntime.quietInSafeZone' "$COUNTDOWN" || true)
+[ "${COUNTDOWN_CHECKS:-0}" -ge 3 ] \
+  || fail "the countdown no longer checks the safe zone at the cycle, the warning and the boot resume"
+grep -A2 'if (!ProtectionRuntime.quietInSafeZone(appContext)) {' "$COUNTDOWN" \
+  | grep -q 'requestCapture(appContext, SecurityEventType.COUNTDOWN_SIGNAL)' \
+  || fail "the countdown capture is no longer held back inside a safe zone"
+grep -A3 'if (!com.shieldra.protection.ProtectionRuntime.quietInSafeZone(applicationContext)) {' \
+  app/src/main/kotlin/com/shieldra/detection/MotionMonitoringService.kt \
+  | grep -q 'postRecordedAlert' \
+  || fail "the local Motion notice is no longer held back inside a safe zone"
+if grep -A6 'val motionInsideSafeZone' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  | grep -Eq 'LOCK_CONFIRMED|SIM_CONFIRMED'; then
+  fail "the zone gate reached a wrong-unlock or SIM alert; only Motion may be quieted"
+fi
+pass "safe-zone quieting: siren, countdown and Motion messages stay home; wrong-PIN and SIM still send; leaving a zone sends nothing"
+
+# 5i. Snatch lock (A-46, owner decision 2026-11-10). This is the checkpoint of the restored real lock:
+# one confirmed Motion outside a fresh safe zone locks the screen at once, opens a ten-minute proof
+# window felt through sound, vibration and a public notice, resets everything on proof, and otherwise
+# escalates on its own every 5 or 10 minutes — slowing to the longest step at the owner's 10% battery
+# floor, pausing inside a safe zone, and stopping after six hours. It has to survive process death and
+# a reboot, so the state lives in device-protected storage and the tick is an exact alarm receiver.
+SNATCH_POLICY=app/src/main/kotlin/com/shieldra/protection/SnatchPolicy.kt
+[ -s "$SNATCH_POLICY" ] || fail "the snatch state machine is missing (A-46)"
+for pin in 'const val PROOF_WINDOW_MS = 10 * 60_000L' \
+  'const val MIN_INTERVAL_MINUTES = 5' \
+  'const val MAX_INTERVAL_MINUTES = 10' \
+  'const val BATTERY_FLOOR_PERCENT = 10' \
+  'const val INCIDENT_CAP_MS = 6 * 60 * 60_000L' \
+  'const val UNLOCK_PROOF_GRACE_MS = 15_000L' \
+  'enum class Phase { IDLE, AWAITING_PROOF, ESCALATING }'; do
+  # Literal match: the '* ' in the time constants is a multiplication sign, not a regex quantifier.
+  grep -qF "$pin" "$SNATCH_POLICY" \
+    || fail "the snatch policy no longer states '$pin'"
+done
+SNATCH_TEST=app/src/test/kotlin/com/shieldra/protection/SnatchPolicyTest.kt
+grep -Fq 'no proof after the window escalates on its own' "$SNATCH_TEST" \
+  || fail "the autonomous-escalation test was removed or renamed"
+grep -Fq 'the ladder slows to ten minutes at the battery floor' "$SNATCH_TEST" \
+  || fail "the 10% battery-floor test was removed or renamed"
+grep -Fq 'the cadence is clamped to the two offered values' "$SNATCH_TEST" \
+  || fail "the cadence-clamp test was removed or renamed"
+SNATCH_SIGNATURE_TEST=app/src/test/kotlin/com/shieldra/protection/SnatchSignaturePolicyTest.kt
+[ -s "$SNATCH_SIGNATURE_TEST" ] || fail "the snatch signature tests are missing (A-47 D3)"
+for name in 'the shipping signature is pinned to the stage three measurement' \
+  'a grab from rest followed by running is a snatch' \
+  'a grab after a measured calm holds the question until its follow-up window closes' \
+  'the latest grab shaped burst sets the deadline' \
+  'an untrusted stream is answered at once'; do
+  grep -Fq "fun \`$name\`()" "$SNATCH_SIGNATURE_TEST" \
+    || fail "the snatch signature test '$name' was removed or renamed (A-47 D3)"
+done
+SNATCH_STORE=app/src/main/kotlin/com/shieldra/protection/SnatchStore.kt
+grep -q 'createDeviceProtectedStorageContext' "$SNATCH_STORE" \
+  || fail "the snatch state no longer survives a locked boot (device-protected storage)"
+COORDINATOR=app/src/main/kotlin/com/shieldra/protection/SnatchCoordinator.kt
+for pin in 'fun begin(context: Context, eventId: String): Boolean' \
+  'fun onTick(context: Context)' \
+  'fun confirmOwner(context: Context, reason: String)' \
+  'fun confirmOwnerIfUnlocked(context: Context)' \
+  'fun resumeLockedBoot(context: Context)' \
+  'fun confirmOwnerAfterBoot(context: Context)' \
+  'class SnatchReceiver : BroadcastReceiver()'; do
+  grep -q "$pin" "$COORDINATOR" \
+    || fail "the snatch coordinator lost '$pin'"
+done
+grep -q 'SnatchPolicy.unlockedSince(incident, nowMs, keyguardLocked(app))' "$COORDINATOR" \
+  || fail "the coordinator no longer treats the owner's own unlock as proof"
+grep -q 'DeviceScreenLock.now(app)' "$COORDINATOR" \
+  || fail "a confirmed snatch no longer asks the one lock object to close the screen"
+grep -q 'SnatchPolicy.intervalMs(' "$COORDINATOR" \
+  || fail "the ladder ignores the owner's cadence and the battery floor"
+grep -q 'BatteryLevel.percent(app)' "$COORDINATOR" \
+  || fail "the ladder no longer reads the battery level it slows down for"
+grep -q 'ProtectionService.requestCaptureForEvent(' "$COORDINATOR" \
+  || fail "an escalation no longer requests full evidence for the incident"
+grep -q 'CountdownScheduler.cancel(app)' "$COORDINATOR" \
+  || fail "a snatch no longer stops the periodic countdown it replaces"
+grep -q 'CountdownScheduler.start(app)' "$COORDINATOR" \
+  || fail "proof or expiry no longer gives the periodic countdown its interval back"
+grep -A2 'android:name="com.shieldra.protection.SnatchReceiver"' "$MANIFEST" \
+  | grep -q 'android:directBootAware="true"' \
+  || fail "the snatch tick is not directBootAware, so it dies at the first lock after a reboot"
+grep -q 'SnatchCoordinator.resumeLockedBoot' app/src/main/kotlin/com/shieldra/protection/BootReceiver.kt \
+  || fail "a reboot before the first unlock no longer re-arms the snatch"
+grep -q 'SnatchCoordinator.confirmOwnerAfterBoot' app/src/main/kotlin/com/shieldra/protection/BootReceiver.kt \
+  || fail "restarting and unlocking the phone is no longer accepted as proof (BOOT_COMPLETED)"
+grep -q 'SnatchCoordinator.confirmOwnerIfUnlocked' app/src/main/kotlin/com/shieldra/app/MainActivity.kt \
+  || fail "returning to the app on an unlocked phone is no longer checked for proof"
+grep -q 'SnatchCoordinator.cancel(app)' app/src/main/kotlin/com/shieldra/protection/ProtectionRuntime.kt \
+  || fail "disarming or switching the snatch lock off no longer closes an open incident"
+grep -q 'old.snatchLockEnabled && !new.snatchLockEnabled' app/src/main/kotlin/com/shieldra/protection/ProtectionChange.kt \
+  || fail "switching the snatch lock off no longer asks the owner first"
+grep -q 'val snatchLockEnabled: Boolean = true' app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt \
+  || fail "the snatch lock is no longer on by default beside the Motion guard"
+grep -q 'KEY_SNATCH_INTERVAL' app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt \
+  || fail "the owner's snatch cadence has no stored key"
+grep -q 'fun percent(context: Context)' app/src/main/kotlin/com/shieldra/protection/BatteryLevel.kt \
+  || fail "the ladder cannot read a battery percentage for the 10% agreement"
+grep -q 'fun requestCaptureForEvent' app/src/main/kotlin/com/shieldra/protection/ProtectionService.kt \
+  || fail "the service cannot attach an escalation to its own incident"
+grep -q 'CHANNEL_ID = "shieldra_snatch_v1"' app/src/main/kotlin/com/shieldra/protection/SnatchDemand.kt \
+  || fail "the demand uses an old channel whose sound and visibility Android already froze"
+grep -q 'VISIBILITY_PUBLIC' app/src/main/kotlin/com/shieldra/protection/SnatchDemand.kt \
+  || fail "the demand is no longer readable on the lock screen"
+grep -q 'VibratorManager' app/src/main/kotlin/com/shieldra/protection/SnatchAlerts.kt \
+  || fail "the proof window can no longer be felt on a current phone"
+grep -q 'onConfirmOwner' app/src/main/kotlin/com/shieldra/app/presentation/screen/settings/ProtectionSetupScreen.kt \
+  || fail "the Protection screen has no in-app proof button"
+grep -q 'SnatchCoordinator.confirmOwner(' app/src/main/kotlin/com/shieldra/app/navigation/ShieldraNavHost.kt \
+  || fail "the in-app proof button reaches no coordinator"
+grep -q 'DeviceScreenLock.isGranted(context)' app/src/main/kotlin/com/shieldra/app/navigation/ShieldraNavHost.kt \
+  || fail "the screen cannot state an admin granted before force-lock (NEEDS_REGRANT)"
+# The demand must exist in all three languages of the notice, and French must carry nothing else:
+# values-fr returned for one purpose only (A-46), not as a third app locale.
+for demand_locale in values values-ar values-fr; do
+  grep -q 'snatch_demand_body' "app/src/main/res/$demand_locale/strings.xml" \
+    || fail "the lock-screen demand is missing its $demand_locale body"
+done
+FR_KEYS="$(grep -o 'name="[A-Za-z0-9_]*"' app/src/main/res/values-fr/strings.xml \
+  | sed 's/name="//;s/"//' | sort | tr '\n' ' ')"
+[ "$FR_KEYS" = "snatch_demand_body snatch_demand_call snatch_demand_channel snatch_demand_channel_desc snatch_demand_contact snatch_demand_escalating snatch_demand_owner_message snatch_demand_title snatch_demand_waiting " ] \
+  || fail "values-fr must hold exactly the nine demand keys and nothing else; got [$FR_KEYS]"
+pass "A-46: a confirmed snatch locks at once, proves for ten minutes, escalates every 5/10 minutes, slows at 10% battery, pauses in a safe zone, and survives reboot"
 
 # 6. The dashboard action reaches the real coordinator off the main thread.
 grep -q 'PanicIncidentCoordinator(repository' "$NAVHOST" || fail "NavHost does not build the panic coordinator"
@@ -1280,7 +1571,7 @@ for name in the_protection_row_opens_a_real_setup_and_the_row_list_stays_pinned 
   fk13_the_persisted_read_path_produces_a_detail_with_no_delivery_card; do
   grep -rq "fun $name" app/src/test || fail "the named Q-K-9/F-K13 test is missing: $name"
 done
-pass "Q-K-9 and F-K13 hold: no Lock Guard setting in the rows or the wording, and a Delivery section only where a receipt exists"
+pass "Q-K-9 and F-K13 hold: the withdrawn setting strings stay out, and a Delivery section only where a receipt exists"
 
 # B-3 (audit §5.13): "delete all data" is a claim about every store the app writes to, and the claim is
 # only as good as the list eraseAll wipes. So the list is compared against the preferences files the
@@ -1297,7 +1588,7 @@ declared_stores="$(
       grep -oE 'getSharedPreferences\("shieldra[a-z0-9_]*"' "$source" | sed 's/.*("//' | tr -d '"' || true
   done | sort -u | tr '\n' ' ')"
 erased_stores="$( { awk '/OWNER_PREFERENCES = listOf\(/,/^        \)/' "$ERASE";
-    grep 'DEVICE_PROTECTED_PREFERENCE = ' "$ERASE" || true; } | grep -oE '"shieldra[a-z0-9_]*"' \
+    awk '/DEVICE_PROTECTED_PREFERENCES = listOf\(/,/^        \)/' "$ERASE"; } | grep -oE '"shieldra[a-z0-9_]*"' \
   | tr -d '"' | sort -u | tr '\n' ' ' || true)"
 [ -n "$declared_stores" ] || fail "no preferences store was found to check — the B-3 gate is blind"
 [ -n "$erased_stores" ] || fail "eraseAll no longer carries a readable preferences list — the B-3 gate is blind"
@@ -1313,8 +1604,9 @@ for store in $erased_stores; do
 done
 grep -q 'createDeviceProtectedStorageContext' "$ERASE" \
     || fail "eraseAll does not reach device-protected storage, so the Direct Boot flag survives it"
-grep -q 'DEVICE_PROTECTED_PREFERENCE = "shieldra_boot"' "$ERASE" \
-    || fail "eraseAll does not name the device-protected preferences file"
+grep -q '"shieldra_boot"' "$ERASE" \
+  && grep -q '"shieldra_snatch"' "$ERASE" \
+    || fail "eraseAll does not name both device-protected preferences files"
 pass "B-3 holds: eraseAll accounts for every preferences store, including the device-protected one"
 
 git diff --check

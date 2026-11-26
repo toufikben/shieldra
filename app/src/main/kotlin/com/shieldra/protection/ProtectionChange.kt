@@ -15,6 +15,8 @@ object ProtectionChange {
 
     fun weakens(old: ProtectionSettings, new: ProtectionSettings): Boolean =
         (old.armed && !new.armed) ||
+            (old.lockEnabled && !new.lockEnabled) ||
+            (old.snatchLockEnabled && !new.snatchLockEnabled) ||
             (old.simEnabled && !new.simEnabled) ||
             (old.batteryEnabled && !new.batteryEnabled) ||
             (old.countdownEnabled && !new.countdownEnabled) ||
@@ -26,6 +28,8 @@ object ProtectionChange {
             (old.geofenceEnabled && !new.geofenceEnabled) ||
             (old.motionEnabled && !new.motionEnabled) ||
             new.motionResponse != old.motionResponse && new.motionResponse == ProtectionSettings.MotionResponse.SILENT ||
+            // Lock guard: a higher threshold waits for more wrong attempts before the alarm.
+            new.lockThreshold > old.lockThreshold ||
             // Evidence kept per capture: a shorter clip is less proof of what happened.
             new.audioSeconds < old.audioSeconds ||
             // Escalation: a wider threshold waits for more intrusions before the siren.

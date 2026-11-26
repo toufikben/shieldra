@@ -10,7 +10,7 @@ enum class ProtectionVisualState {
     Disabled,
 }
 
-enum class GuardKind { Motion, Sim, Panic, Battery }
+enum class GuardKind { Lock, Motion, Sim, Panic, Battery }
 
 enum class GuardStatus { Active, Signal, Disabled }
 
@@ -72,7 +72,7 @@ data class ChannelReceiptUiModel(
  * it shows under "All" and under no filter chip, because filing an unattributed row under another
  * guard's filter would state a fact the row does not carry.
  */
-enum class EventType { Motion, SimChange, Panic, Battery, Countdown, Tamper, Other }
+enum class EventType { FailedUnlock, Motion, SimChange, Panic, Battery, Countdown, Tamper, Other }
 
 data class EventUiModel(
     val id: String,
@@ -146,7 +146,7 @@ data class DashboardUiModel(
     val periodicSignalIntervalMs: Long = 0L,
 )
 
-enum class HistoryTypeFilter { All, Motion, Sim, Panic, Battery, Tamper }
+enum class HistoryTypeFilter { All, Lock, Motion, Sim, Panic, Battery, Tamper }
 enum class HistoryStatusFilter { All, Delivered, Deferred, Failed }
 
 data class HistoryFilterState(

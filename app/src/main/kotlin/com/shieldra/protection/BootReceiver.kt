@@ -52,6 +52,11 @@ class BootReceiver : BroadcastReceiver() {
                             "the phone restarted with protection disarmed: nothing to resume"
                         },
                     )
+                    // A-46: a snatch that was open when the phone went down is re-posted and its
+                    // ladder re-armed. The screen is still locked, so this is exactly the state the
+                    // demand notice exists for; the tick fires whether or not anyone ever unlocks.
+                    runCatching { SnatchCoordinator.resumeLockedBoot(appContext) }
+                        .onFailure { Log.e(TAG, "the snatch could not resume after a locked boot: ${it.message}", it) }
                     return@Thread
                 }
                 val settings = ProtectionSettingsStore(appContext).load()
@@ -69,6 +74,11 @@ class BootReceiver : BroadcastReceiver() {
                     runCatching { AlertRuntime.alert(appContext, AlertKind.RESTART, null) }
                         .onFailure { Log.e(TAG, "the restart could not be reported to the owner: ${it.message}", it) }
                 }
+                // A-46: this broadcast exists only after the phone's credential was entered, so a
+                // restart that got this far is its owner's. An incident still marked open is closed
+                // and the periodic countdown comes back before anything else is re-armed.
+                runCatching { SnatchCoordinator.confirmOwnerAfterBoot(appContext) }
+                    .onFailure { Log.e(TAG, "the snatch could not be closed after boot: ${it.message}", it) }
                 if (settings.armed) {
                     ProtectionService.arm(appContext)
                     // A-43: Motion is one of the armed guards now, so a reboot resumes it beside the

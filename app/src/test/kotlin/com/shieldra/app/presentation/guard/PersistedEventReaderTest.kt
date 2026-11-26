@@ -244,6 +244,29 @@ class PersistedEventReaderTest {
         assertEquals(com.shieldra.app.presentation.model.EventType.Panic, projected.type)
     }
 
+    // A-33 restored (owner order 2026-11-07): a wrong-unlock capture is its own guard, so the row
+    // keeps its own filter, icon and title instead of disappearing under the generic type.
+    @Test
+    fun a_persisted_wrong_unlock_event_projects_as_failed_unlock_with_its_own_title() {
+        val lock = event(
+            createdAt = now.minus(Duration.ofMinutes(1)),
+            state = EventState.INITIATED,
+            type = SecurityEventType.LOCK_CONFIRMED_EVENT,
+        )
+        val reader = PersistedEventReader(
+            storageInstalled = true,
+            loadRecent = { listOf(lock) },
+            labels = PersistedEventLabels(
+                typeTitles = mapOf(SecurityEventType.LOCK_CONFIRMED_EVENT to "Failed unlock attempts"),
+            ),
+        )
+
+        val projected = reader.readRecent(limit = 20, now = now).single()
+
+        assertEquals(com.shieldra.app.presentation.model.EventType.FailedUnlock, projected.type)
+        assertEquals("Failed unlock attempts", projected.title)
+    }
+
     @Test
     fun every_persisted_guard_projects_to_its_own_history_type_and_none_to_another_s() {
         val rows = SecurityEventType.entries.mapIndexed { index, type ->

@@ -44,10 +44,13 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import com.shieldra.app.design.components.foundation.ShieldraTextField
+import com.shieldra.app.presentation.guard.MotionMonitoringPresentation
 import com.shieldra.protection.CountdownDeadline
 import com.shieldra.protection.EscalationPolicy
 import com.shieldra.protection.ProtectionSettings
+import com.shieldra.protection.SnatchPolicy
 import com.shieldra.protection.TrackingCadence
+import com.shieldra.runtime.MonitoringClaim
 import com.shieldra.storage.EvidenceRetentionPolicy
 
 /** The permissions and consents a guard needs, read live from the platform. */
@@ -56,6 +59,18 @@ data class ProtectionPermissions(
     val location: Boolean = false,
     val phone: Boolean = false,
     val notifications: Boolean = false,
+    /**
+     * The device-admin role. It is requested with watch-login and force-lock, so it lets Android
+     * report a wrong unlock attempt and lets a confirmed snatch close the screen — and nothing else
+     * (Lock Guard, A-46).
+     */
+    val deviceAdmin: Boolean = false,
+    /**
+     * Whether that role really holds the force-lock policy. An administrator granted before A-46 does
+     * not silently gain it: Android keeps the policies it was granted with, so the owner has to switch
+     * the role off and on once. False while [deviceAdmin] is true is exactly that case.
+     */
+    val lockPower: Boolean = false,
     /** Battery-optimization exemption, so the system does not doze the guards (A-33). */
     val batteryExemption: Boolean = false,
     /** Exact-alarm access, so the countdown fires on the second instead of "within the hour" (A-33). */
@@ -82,6 +97,7 @@ fun ProtectionSetupScreen(
     onGrantLocation: () -> Unit,
     onGrantPhone: () -> Unit,
     onGrantNotifications: () -> Unit,
+    onEnableDeviceAdmin: () -> Unit,
     onKeepAwake: () -> Unit,
     onGrantExactAlarms: () -> Unit,
     /**
@@ -96,7 +112,12 @@ fun ProtectionSetupScreen(
      * Intent can reach, so the rest have to be flipped by hand (audit development ب).
      */
     onOpenSurvivalGuide: () -> Unit = {},
-    onArmToggle: () -> Unit,
+    /**
+     * Arm or disarm. The current draft travels with the press: the switches on screen are what the
+     * owner is arming, so the runtime stores them before it starts the guards (owner report
+     * 2026-11-08 — a Motion switch flipped here and an Arm below it is one instruction).
+     */
+    onArmToggle: (ProtectionSettings) -> Unit,
     onSave: (ProtectionSettings) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -105,6 +126,18 @@ fun ProtectionSetupScreen(
     onTierChange: (com.shieldra.billing.Tier) -> Unit = {},
     /** Opens the Pro screen; a feature the free plan lacks sends the owner there. */
     onOpenPro: () -> Unit = {},
+    /**
+     * What the Motion service itself reports. A guard that is on but not monitoring is stated here,
+     * with the one step that fixes it, instead of living only in the log (owner report 2026-11-08).
+     */
+    motionClaim: MonitoringClaim = MonitoringClaim.NoExecution,
+    onStartMotion: () -> Unit = {},
+    /**
+     * True while a snatch is open on this phone (A-46). The screen then shows the owner the one action
+     * that closes it — the in-app proof, beside the lock-screen demand and the credential itself.
+     */
+    snatchActive: Boolean = false,
+    onConfirmOwner: () -> Unit = {},
 ) {
     val spacing = ShieldraTheme.spacing
     // G-8/G-9: saveable, so a language switch (which recreates the activity) keeps the draft, and no
@@ -142,10 +175,37 @@ fun ProtectionSetupScreen(
         Spacer(Modifier.height(spacing.m))
         ShieldraFullWidthButton(
             text = stringResource(if (armed) R.string.protection_disarm else R.string.protection_arm),
-            onClick = onArmToggle,
+            onClick = { onArmToggle(draft) },
             variant = if (armed) ShieldraButtonVariant.Destructive else ShieldraButtonVariant.Primary,
             modifier = Modifier.fillMaxWidth(),
         )
+
+        // ===== A snatch is open right now (A-46) =====
+        // The owner who opened the app during the ten-minute window must not have to find the stop
+        // control inside the settings list: the incident, and the one press that ends it, come first.
+        if (snatchActive) {
+            Spacer(Modifier.height(spacing.m))
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(spacing.m)) {
+                    Text(
+                        text = stringResource(R.string.protection_snatch_active),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(spacing.s))
+                    ShieldraFullWidthButton(
+                        text = stringResource(R.string.protection_snatch_confirm),
+                        onClick = onConfirmOwner,
+                        variant = ShieldraButtonVariant.Destructive,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
 
         // ===== Plan (test switch) =====
         // The plan is Google Play's to decide (A-40). This manual switch exists only for copies that were
@@ -187,6 +247,16 @@ fun ProtectionSetupScreen(
         PermissionRow(stringResource(R.string.protection_perm_microphone), permissions.microphone, onGrantMicrophone)
         PermissionRow(stringResource(R.string.protection_perm_location), permissions.location, onGrantLocation)
         PermissionRow(stringResource(R.string.protection_perm_notifications), permissions.notifications, onGrantNotifications)
+        // The Lock Guard cannot hear a wrong unlock attempt until this role is active; the toggle below
+        // still saves, but the row keeps the missing capability visible instead of implied.
+        PermissionRow(stringResource(R.string.protection_perm_device_admin), permissions.deviceAdmin, onEnableDeviceAdmin)
+        // A-46: an administrator granted before force-lock exists does not gain it by update. The row
+        // above already reads "granted", so without this line the owner would believe the screen can
+        // close and only learn otherwise during a theft. Opening the same system screen lets them
+        // switch the role off and on once.
+        if (permissions.deviceAdmin && !permissions.lockPower) {
+            SnatchLockRegrantRow(onFix = onEnableDeviceAdmin)
+        }
         PermissionRow(stringResource(R.string.protection_perm_phone), permissions.phone, onGrantPhone)
         PermissionRow(stringResource(R.string.protection_perm_keep_awake), permissions.batteryExemption, onKeepAwake)
         // Exact scheduling is a special access the owner grants in system settings; until then the
@@ -203,6 +273,21 @@ fun ProtectionSetupScreen(
 
         // ===== Guards =====
         SectionTitle(stringResource(R.string.protection_guards_title))
+        GuardToggle(
+            title = stringResource(R.string.protection_guard_lock),
+            subtitle = stringResource(R.string.protection_guard_lock_desc),
+            checked = draft.lockEnabled,
+        ) { draft = draft.copy(lockEnabled = it) }
+        if (draft.lockEnabled) {
+            // 1..5 wrong attempts; the counter's own bounds are the slider's bounds, so the setting can
+            // never ask for a count the counter would clamp silently.
+            StepperRow(
+                label = stringResource(R.string.protection_lock_threshold, draft.lockThreshold),
+                value = draft.lockThreshold.toFloat(),
+                range = 1f..5f,
+                steps = 3,
+            ) { draft = draft.copy(lockThreshold = it.toInt()) }
+        }
         GuardToggle(
             title = stringResource(R.string.protection_guard_sim),
             subtitle = stringResource(SimGuardTruth.descriptionRes),
@@ -230,6 +315,46 @@ fun ProtectionSetupScreen(
             subtitle = stringResource(R.string.protection_motion_with_arming_desc),
             checked = draft.motionEnabled,
         ) { draft = draft.copy(motionEnabled = it) }
+        // While armed, an enabled Motion guard must show whether it is actually monitoring. Arming
+        // cannot start it without the notification permission, and that refusal must not be silent.
+        if (draft.motionEnabled && armed) {
+            val motionStatus = MotionMonitoringPresentation.setupStatus(motionClaim, permissions.notifications)
+            MotionStatusRow(
+                status = motionStatus,
+                onGrant = onGrantNotifications,
+                onStart = onStartMotion,
+            )
+        }
+        // A-46: what a confirmed Motion becomes outside a safe zone. On by default beside the guard,
+        // and the two chips are the owner's only cadence choices; SnatchPolicy clamps anything else.
+        GuardToggle(
+            title = stringResource(R.string.protection_snatch_lock),
+            subtitle = stringResource(R.string.protection_snatch_lock_desc),
+            checked = draft.snatchLockEnabled,
+        ) { draft = draft.copy(snatchLockEnabled = it) }
+        if (draft.snatchLockEnabled) {
+            Text(
+                text = stringResource(R.string.protection_snatch_interval),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(spacing.xs))
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.s)) {
+                SnatchPolicy.CHOICES_MINUTES.forEach { minutes ->
+                    ShieldraChip(
+                        label = stringResource(R.string.protection_snatch_interval_value, minutes),
+                        selected = draft.snatchIntervalMinutes == minutes,
+                        onClick = { draft = draft.copy(snatchIntervalMinutes = minutes) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(spacing.xs))
+            Text(
+                text = stringResource(R.string.protection_snatch_battery_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         // ===== Evidence (dual camera + audio) =====
         SectionTitle(stringResource(R.string.protection_evidence_title))
@@ -380,9 +505,9 @@ fun ProtectionSetupScreen(
         }
 
         // ===== The owner's contact and lost message =====
-        // Design B (2026-11-06): the app shows no lock-screen notice and holds no power to lock the
-        // screen. These two fields stay because the Telegram /lost reply still prints them, so an
-        // owner who finds the phone can be reached from one message.
+        // A-46: these two fields feed two notices now — the Telegram /lost reply, and the lock-screen
+        // demand a confirmed snatch leaves behind (SnatchDemand), where a stranger needs a way to reach
+        // the owner. The contact is validated as a phone number or an address, never assumed usable.
         SectionTitle(stringResource(R.string.protection_notice_title))
         val contactKind = com.shieldra.protection.OwnerContact.kind(draft.ownerContact)
         val contactUnusable = draft.ownerContact.isNotBlank() &&
@@ -559,6 +684,95 @@ private fun GuardToggle(
             ShieldraSwitch(checked = false, onCheckedChange = { onLocked() })
         } else {
             ShieldraSwitch(checked = checked, onCheckedChange = onChange)
+        }
+    }
+}
+
+/**
+ * The live state of the Motion guard while protection is armed. It reports the service's own claim,
+ * never the fact that the toggle is on; when monitoring is down it offers exactly one next step —
+ * allow notifications, or start it now.
+ */
+@Composable
+private fun MotionStatusRow(
+    status: MotionMonitoringPresentation.SetupStatus,
+    onGrant: () -> Unit,
+    onStart: () -> Unit,
+) {
+    val spacing = ShieldraTheme.spacing
+    val active = status == MotionMonitoringPresentation.SetupStatus.ACTIVE
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.xs),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(spacing.m),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (active) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+                contentDescription = null,
+                tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+            )
+            Spacer(Modifier.wrapContentWidth().padding(end = spacing.s))
+            Text(
+                text = stringResource(MotionMonitoringPresentation.setupTextRes(status)),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f),
+            )
+            when (status) {
+                MotionMonitoringPresentation.SetupStatus.ACTIVE -> Unit
+                MotionMonitoringPresentation.SetupStatus.NEEDS_NOTIFICATION_PERMISSION -> ShieldraChip(
+                    label = stringResource(R.string.protection_grant),
+                    selected = false,
+                    onClick = onGrant,
+                )
+                MotionMonitoringPresentation.SetupStatus.NOT_STARTED -> ShieldraChip(
+                    label = stringResource(R.string.protection_motion_start_now),
+                    selected = false,
+                    onClick = onStart,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The one case the permission checklist cannot express: the admin role is active, but it was granted
+ * before force-lock existed, so Android kept the old policy set. The fix is the owner switching the
+ * role off and on once; the row says so and opens that same system screen.
+ */
+@Composable
+private fun SnatchLockRegrantRow(onFix: () -> Unit) {
+    val spacing = ShieldraTheme.spacing
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.xs),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(spacing.m),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.RadioButtonUnchecked,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+            )
+            Spacer(Modifier.wrapContentWidth().padding(end = spacing.s))
+            Text(
+                text = stringResource(R.string.protection_snatch_regrant),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f),
+            )
+            ShieldraChip(
+                label = stringResource(R.string.protection_grant),
+                selected = false,
+                onClick = onFix,
+            )
         }
     }
 }

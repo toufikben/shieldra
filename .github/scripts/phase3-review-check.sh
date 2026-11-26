@@ -62,15 +62,25 @@ unexpected="$(printf '%s\n' "$declared" \
   | grep -v '^android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS$' \
   | grep -v '^android.permission.SCHEDULE_EXACT_ALARM$' \
   | grep -v '^android.permission.USE_EXACT_ALARM$' \
+  | grep -v '^android.permission.VIBRATE$' \
   | grep -v '^$' || true)"
 if [ -n "$unexpected" ]; then
-  printf 'FAIL: manifest declares permissions outside amendments A-6/A-19/A-32/A-33/A-34:\n%s\n' "$unexpected"; fail=1
+  printf 'FAIL: manifest declares permissions outside amendments A-6/A-19/A-32/A-33/A-34/A-46:\n%s\n' "$unexpected"; fail=1
 else
-  printf 'PASS: manifest declares only the named A-6/A-19/A-32/A-33/A-34 permission set\n'
+  printf 'PASS: manifest declares only the named A-6/A-19/A-32/A-33/A-34/A-46 permission set\n'
 fi
 
 if grep -qE '@mipmap/ic_launcher' app/src/main/AndroidManifest.xml; then
-  printf 'FAIL: manifest references a launcher resource that does not exist\n'; fail=1
+  if [ -s app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml ] \
+    && [ -s app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml ] \
+    && [ -s app/src/main/res/drawable/ic_launcher_background.xml ] \
+    && [ -s app/src/main/res/drawable/ic_launcher_foreground.xml ] \
+    && [ -s app/src/main/res/drawable/ic_launcher_monochrome.xml ] \
+    && grep -q 'android:roundIcon="@mipmap/ic_launcher_round"' app/src/main/AndroidManifest.xml; then
+    printf 'PASS: the manifest launcher icon has its adaptive, round and monochrome layers\n'
+  else
+    printf 'FAIL: manifest references a launcher resource that does not exist\n'; fail=1
+  fi
 else
   printf 'PASS: manifest has no broken launcher reference\n'
 fi

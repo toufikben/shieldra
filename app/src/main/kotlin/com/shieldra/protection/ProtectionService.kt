@@ -130,6 +130,10 @@ class ProtectionService : Service() {
     private fun maybeEscalate() {
         val settings = ProtectionSettingsStore(applicationContext).load()
         if (!settings.escalationEnabled) return
+        // Inside a fresh safe zone the owner's own movement is expected, so it neither counts toward a
+        // burst nor sounds the alarm (owner decision 2026-11-08). Outside, or with no trusted reading,
+        // the burst is counted and the siren sounds exactly as before.
+        if (ProtectionRuntime.quietInSafeZone(applicationContext)) return
         val now = System.currentTimeMillis()
         intrusionTimes.add(now)
         intrusionTimes.removeIf { now - it > EscalationPolicy.WINDOW_MS }
@@ -197,17 +201,25 @@ class ProtectionService : Service() {
         if (verdict == lastSimVerdict) return
         lastSimVerdict = verdict
         if (verdict != SimGuardLogic.Verdict.Normal) {
-            capture(SecurityEventType.SIM_CONFIRMED_EVENT)
+            capture(SecurityEventType.SIM_CONFIRMED_EVENT, null)
             // Composite tamper: a SIM swap with the screen dark and the network cut is the classic
             // way a stolen phone is hidden from recovery — sound the siren at once if the owner
-            // opted into escalation, without waiting for a burst to build up.
+            // opted into escalation, without waiting for a burst to build up. The SIM alert itself
+            // above is evidence and always leaves; only this siren yields inside a fresh safe zone
+            // (owner decision 2026-11-08), where a loud alarm is the nuisance.
             if (settings.escalationEnabled) {
                 val signals = CompositeTamper.Signals(
                     simAbnormal = true,
                     screenInteractive = screenInteractive(),
                     online = online(),
                 )
-                if (CompositeTamper.isHighRisk(signals)) Siren.start(applicationContext, ESCALATION_SIREN_MAX_MS)
+                // A-47 D2: inside a fresh safe zone the escalation siren is the owner's own home or
+                // office, so it stays silent; the tamper event itself is still recorded. The bound is
+                // the same one every siren carries, so a leaked or looping trigger cannot flatten the
+                // battery.
+                if (CompositeTamper.isHighRisk(signals) && !ProtectionRuntime.quietInSafeZone(applicationContext)) {
+                    Siren.start(applicationContext, ESCALATION_SIREN_MAX_MS)
+                }
             }
         }
     }
@@ -287,7 +299,7 @@ class ProtectionService : Service() {
                     status == android.os.BatteryManager.BATTERY_STATUS_FULL
                 ProtectionSettingsStore(applicationContext).markCheck()
                 if (battery.onLevel(percent, charging) is BatteryBreathLogic.Verdict.Breath) {
-                    capture(SecurityEventType.BATTERY_SIGNAL)
+                    capture(SecurityEventType.BATTERY_SIGNAL, null)
                 }
                 // A battery tick is a cheap, frequent moment to also re-read the SIM state.
                 checkSim()
@@ -317,6 +329,7 @@ class ProtectionService : Service() {
             else -> {
                 val kindName = intent?.getStringExtra(EXTRA_KIND)
                 val eventId = intent?.getStringExtra(EXTRA_EVENT_ID)
+                val failedAttempts = intent?.getIntExtra(EXTRA_FAILED_ATTEMPTS, -1)?.takeIf { it >= 0 }
                 val requested = kindName?.let { name ->
                     runCatching { SecurityEventType.valueOf(name) }.getOrElse {
                         Log.e(TAG, "an unknown capture request arrived: $name")
@@ -337,7 +350,7 @@ class ProtectionService : Service() {
                         },
                     )
                     requested?.let {
-                        declareFailure(applicationContext, it, eventId, "the service could not start in the foreground")
+                        declareFailure(applicationContext, it, eventId, failedAttempts, "the service could not start in the foreground")
                     }
                     // P4-5: this instance never became foreground, so it holds no camera and guards
                     // nothing. Say so now instead of waiting for onDestroy, which the platform may
@@ -362,7 +375,7 @@ class ProtectionService : Service() {
                     }
                 }
                 // Newest first: the request that woke this instance is the one still in front of the lens.
-                requested?.let { runCapture(it, eventId) }
+                requested?.let { runCapture(it, eventId, failedAttempts) }
                 drainQueue()
             }
         }
@@ -381,7 +394,7 @@ class ProtectionService : Service() {
         trackingHandler.removeCallbacksAndMessages(null)
         // Deliberately no GeofenceTicker.cancel here (A-45): the safe-zone alarm must outlive this
         // instance, because on the owner's skin the service is what dies first and the zone state is
-        // what the Motion ladder reads. Disarming is what stops it, in ProtectionRuntime.
+        // what the quiet decision reads. Disarming is what stops it, in ProtectionRuntime.
         heartbeatHandler.removeCallbacksAndMessages(null)
         remoteCommands.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
@@ -396,8 +409,8 @@ class ProtectionService : Service() {
      * Runs one capture, binding it to the incident [eventId] when the caller already created one (the
      * Motion guard) and opening or joining the incident for [type] otherwise.
      */
-    private fun runCapture(type: SecurityEventType, eventId: String?) {
-        if (eventId != null) captureForExisting(eventId, type) else capture(type)
+    private fun runCapture(type: SecurityEventType, eventId: String?, failedAttempts: Int?) {
+        if (eventId != null) captureForExisting(eventId, type) else capture(type, failedAttempts)
     }
 
     /**
@@ -416,10 +429,10 @@ class ProtectionService : Service() {
      * it goes to the queue and the next heartbeat or retry alarm runs it, because a guard that fired
      * and produced nothing is the failure the owner can never see coming.
      */
-    private fun capture(type: SecurityEventType) {
+    private fun capture(type: SecurityEventType, failedAttempts: Int?) {
         if (!busy.compareAndSet(false, true)) {
             Log.i(TAG, "a $type capture waited: the camera was already open")
-            queueForRetry(type, eventId = null, "the camera was busy")
+            queueForRetry(type, eventId = null, failedAttempts, "the camera was busy")
             return
         }
         scope.launch {
@@ -430,11 +443,11 @@ class ProtectionService : Service() {
                     // Still recovering rather than broken (the app opens storage off the main thread),
                     // so this one waits for the next drain instead of being lost.
                     Log.e(TAG, "a $type capture waited: no storage is installed")
-                    queueForRetry(type, eventId = null, "the storage was not installed yet")
+                    queueForRetry(type, eventId = null, failedAttempts, "the storage was not installed yet")
                     return@launch
                 }
                 val repository = storage.eventRepository
-                val grouped = type == SecurityEventType.SIM_CONFIRMED_EVENT
+                val grouped = type == SecurityEventType.LOCK_CONFIRMED_EVENT || type == SecurityEventType.SIM_CONFIRMED_EVENT
                 val binding = runCatching {
                     ProtectionEvents(repository).openOrBind(type, grouped, severityFor(type))
                 }.getOrElse {
@@ -442,12 +455,13 @@ class ProtectionService : Service() {
                     null
                 }
                 if (binding == null) {
-                    queueForRetry(type, eventId = null, "the event could not be persisted")
+                    queueForRetry(type, eventId = null, failedAttempts, "the event could not be persisted")
                     return@launch
                 }
-                captureStoreDispatch(storage, repository, binding.event.id, alertKindFor(type))
+                captureStoreDispatch(storage, repository, binding.event.id, type, failedAttempts, binding.isNew)
                 // A new intrusion incident starts the live trail (if the owner turned it on).
-                val intrusion = type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
+                val intrusion = type == SecurityEventType.LOCK_CONFIRMED_EVENT ||
+                    type == SecurityEventType.MOTION_CONFIRMED_EVENT ||
                     type == SecurityEventType.SIM_CONFIRMED_EVENT
                 if (binding.isNew && intrusion) {
                     startTrackingIfEnabled(binding.event.id, alertKindFor(type))
@@ -461,18 +475,22 @@ class ProtectionService : Service() {
     }
 
     /** Captures the configured media (front photo, optional back photo and audio), stores each as
-     *  evidence on [eventId], and sends the alert with their ids and the fix. */
+     *  evidence on [eventId], and sends the alert with their ids and the fix when
+     *  [LockAlertPolicy] says this capture is the one that speaks for its incident. */
     private suspend fun captureStoreDispatch(
         storage: com.shieldra.storage.LocalShieldraStorage,
         repository: EventRepository,
         eventId: EventId,
-        kind: AlertKind,
+        type: SecurityEventType,
+        failedAttempts: Int?,
+        incidentIsNew: Boolean,
     ) {
         val lifecycle = EventLifecycle(repository)
         val captureStarted = runCatching { lifecycle.beginCapture(eventId) }
             .onFailure { Log.e(TAG, "capture state could not be persisted for $eventId", it) }
             .getOrDefault(false)
         if (!captureStarted) Log.e(TAG, "capture state was refused for $eventId; capture and alert continue")
+        val kind = alertKindFor(type)
         val settings = ProtectionSettingsStore(applicationContext).load()
         val tier = settings.tier
         // The free plan sends a location only; the paid plan adds photos and audio (owner's split).
@@ -513,7 +531,19 @@ class ProtectionService : Service() {
             .onFailure { Log.e(TAG, "capture completion could not be persisted for $eventId", it) }
             .getOrDefault(false)
         if (!captureFinished) Log.e(TAG, "capture completion was refused for $eventId; alert continues")
-        dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId)
+        // The capture always happened and its evidence is stored; only the message is rationed, so a
+        // thief who keeps guessing cannot turn the owner's channel into a stream of signals. A Motion
+        // inside a fresh safe zone is the owner's own home or office, so its message is the nuisance
+        // the owner removed (2026-11-08): the evidence above stays, the message does not. Every other
+        // kind asks LockAlertPolicy alone — a wrong unlock, a SIM swap and a battery last breath are
+        // evidence, never noise, and this policy must never be in their path.
+        val motionInsideSafeZone = type == SecurityEventType.MOTION_CONFIRMED_EVENT &&
+            ProtectionRuntime.quietInSafeZone(applicationContext)
+        if (!motionInsideSafeZone &&
+            LockAlertPolicy.announces(type, incidentIsNew, failedAttempts, settings.lockThreshold)
+        ) {
+            dispatchAlert(eventId, kind, media.fix, frontId, backId, audioId, failedAttempts)
+        }
     }
 
     private class CapturedMedia(
@@ -565,7 +595,6 @@ class ProtectionService : Service() {
      *   reported as taken and then vanish.
      */
     private fun captureForExisting(eventIdStr: String, type: SecurityEventType): Boolean {
-        val kind = alertKindFor(type)
         val eventId = runCatching { EventId.from(java.util.UUID.fromString(eventIdStr)) }.getOrNull()
         if (eventId == null) {
             Log.e(TAG, "a $type capture was asked for something that is not an event id")
@@ -573,7 +602,7 @@ class ProtectionService : Service() {
         }
         if (!busy.compareAndSet(false, true)) {
             Log.i(TAG, "a $type capture waited for its own event: the camera was already open")
-            return queueForRetry(type, eventIdStr, "the camera was busy")
+            return queueForRetry(type, eventIdStr, failedAttempts = null, "the camera was busy")
         }
         scope.launch {
             val wakeLock = acquireWakeLock()
@@ -581,10 +610,10 @@ class ProtectionService : Service() {
                 val storage = (applicationContext as? ShieldraApp)?.installedStorage
                 if (storage == null) {
                     Log.e(TAG, "a $type capture waited for its own event: no storage is installed")
-                    queueForRetry(type, eventIdStr, "the storage was not installed yet")
+                    queueForRetry(type, eventIdStr, failedAttempts = null, "the storage was not installed yet")
                     return@launch
                 }
-                captureStoreDispatch(storage, storage.eventRepository, eventId, kind)
+                captureStoreDispatch(storage, storage.eventRepository, eventId, type, failedAttempts = null, incidentIsNew = true)
             } finally {
                 runCatching { if (wakeLock?.isHeld == true) wakeLock.release() }
                 busy.set(false)
@@ -603,9 +632,10 @@ class ProtectionService : Service() {
     private fun queueForRetry(
         type: SecurityEventType,
         eventId: String?,
+        failedAttempts: Int?,
         reason: String,
     ): Boolean {
-        val queued = requeue(applicationContext, type, eventId, reason)
+        val queued = requeue(applicationContext, type, eventId, failedAttempts, reason)
         if (queued) PendingCaptureReceiver.schedule(applicationContext)
         return queued
     }
@@ -617,6 +647,7 @@ class ProtectionService : Service() {
         evidenceId: String?,
         backEvidenceId: String?,
         audioEvidenceId: String?,
+        failedAttempts: Int?,
     ) {
         val base = AlertRuntime.snapshot(applicationContext, kind, eventId.value.toString())
         AlertRuntime.alert(
@@ -628,6 +659,7 @@ class ProtectionService : Service() {
                 photoBackEvidenceId = backEvidenceId,
                 audioEvidenceId = audioEvidenceId,
                 evidenceAttempted = true,
+                failedAttempts = failedAttempts,
             ),
         )
     }
@@ -770,6 +802,7 @@ class ProtectionService : Service() {
         const val ACTION_STOP = "com.shieldra.protection.STOP"
         const val EXTRA_KIND = "kind"
         const val EXTRA_EVENT_ID = "event_id"
+        const val EXTRA_FAILED_ATTEMPTS = "failed_attempts"
 
         @Volatile
         private var liveInstance: ProtectionService? = null
@@ -804,10 +837,37 @@ class ProtectionService : Service() {
         }
 
         /**
+         * Captures evidence for an event that already exists, starting the service when it is not live
+         * (A-46: the snatch ladder ticks from an alarm, often with no service alive). A live instance
+         * takes the capture directly; otherwise the same request is carried by [ACTION_CAPTURE], whose
+         * failure path queues it and tells the owner. The return value says the request was accepted —
+         * by a live instance or by a start that Android did not refuse — never that a photo exists.
+         */
+        fun requestCaptureForEvent(context: Context, eventId: String, type: SecurityEventType): Boolean {
+            val live = liveInstance
+            if (live != null) return live.captureForExisting(eventId, type)
+            val app = context.applicationContext
+            val intent = Intent(app, ProtectionService::class.java)
+                .setAction(ACTION_CAPTURE)
+                .putExtra(EXTRA_KIND, type.name)
+                .putExtra(EXTRA_EVENT_ID, eventId)
+            return runCatching { ContextCompat.startForegroundService(app, intent) }
+                .onFailure { error ->
+                    Log.e(
+                        TAG,
+                        "the $type capture for event $eventId could not start the service " +
+                            "(${error.javaClass.simpleName}): the caller must send its text alert",
+                    )
+                }
+                .isSuccess
+        }
+
+        /**
          * Which alert a guard's event is announced as. The capture path and the queue of captures that
          * could not run both need it, so it lives beside the instance handle rather than inside it.
          */
         fun alertKindFor(type: SecurityEventType): AlertKind = when (type) {
+            SecurityEventType.LOCK_CONFIRMED_EVENT -> AlertKind.LOCK
             SecurityEventType.SIM_CONFIRMED_EVENT -> AlertKind.SIM
             SecurityEventType.BATTERY_SIGNAL -> AlertKind.BATTERY
             SecurityEventType.COUNTDOWN_SIGNAL -> AlertKind.COUNTDOWN
@@ -862,8 +922,11 @@ class ProtectionService : Service() {
          *
          * Refusals write nothing on purpose. A fix older than two intervals is not evidence about where
          * the phone is now, and no fix at all is the same case: leaving the stored reading alone lets it
-         * age out, and an aged-out reading fails the ladder closed rather than muting a snatch at the
-         * door. The one-shot "it left a safe zone" alert (A-36) keeps its exact old meaning.
+         * age out, and an aged-out reading fails the quiet rule closed rather than muting a snatch at the
+         * door.
+         *
+         * A-47 D2: the reading is a silencer, nothing else. Crossing out of a zone reports nothing —
+         * outside a zone every guard simply returns to its own base behavior.
          */
         suspend fun sampleSafeZoneNow(context: Context, allowFresh: Boolean = true) {
             val app = context.applicationContext
@@ -884,21 +947,14 @@ class ProtectionService : Service() {
                 return
             }
             val previous = ZoneStateStore(app).read()
-            // With no reading yet, assume inside — the same first-fix rule A-36 used, so the alert still
-            // fires on the crossing out and not on the very first fix.
+            // With no reading yet, assume inside: a first fix is not a crossing.
             val wasInside = previous?.inside ?: true
             val accuracy = (fix.accuracyMeters ?: 0f).toDouble()
             val inside = GeofenceLogic.nextInsideState(fix.latitude, fix.longitude, accuracy, zones, wasInside)
-            val left = GeofenceLogic.hasLeftSafeZone(fix.latitude, fix.longitude, accuracy, zones, wasInside)
             ZoneStateStore(app).write(inside = inside, atMs = nowMs)
-            if (!left) return
-            val base = AlertRuntime.snapshot(app, AlertKind.TRACKING, null)
-            runCatching {
-                AlertRuntime.alert(
-                    app,
-                    base.copy(occurredAt = Instant.now(), location = fix, evidenceAttempted = false, photoEvidenceId = null),
-                )
-            }.onFailure { Log.w(TAG, "leaving a safe zone could not be reported: ${it.message}") }
+            if (!inside) {
+                Log.i(TAG, "the phone is outside every safe zone: every guard keeps its base behavior")
+            }
         }
 
         /**
@@ -908,22 +964,24 @@ class ProtectionService : Service() {
          * right away that the guard fired — so "nothing happened" is never mistaken for "nothing was
          * seen".
          */
-        fun requestCapture(context: Context, type: SecurityEventType) {
+        fun requestCapture(context: Context, type: SecurityEventType, failedAttempts: Int? = null) {
             val live = liveInstance
             if (live != null) {
-                live.capture(type)
+                live.capture(type, failedAttempts)
                 return
             }
             val app = context.applicationContext
             val intent = Intent(app, ProtectionService::class.java)
                 .setAction(ACTION_CAPTURE)
                 .putExtra(EXTRA_KIND, type.name)
+                .apply { failedAttempts?.let { putExtra(EXTRA_FAILED_ATTEMPTS, it) } }
             runCatching { ContextCompat.startForegroundService(app, intent) }
                 .onFailure { error ->
                     declareFailure(
                         app,
                         type,
                         eventId = null,
+                        failedAttempts,
                         "a background start of the camera service was refused: ${error.javaClass.simpleName}",
                     )
                 }
@@ -938,14 +996,15 @@ class ProtectionService : Service() {
             context: Context,
             type: SecurityEventType,
             eventId: String?,
+            failedAttempts: Int?,
             reason: String,
         ) {
             Log.e(TAG, "the $type capture could not run ($reason)")
             // The notice goes out now, so the queued request carries that fact with it: a later retry or
             // expiry must not tell the owner the same bad news a second time.
-            val firstTime = requeue(context, type, eventId, reason, announced = true)
+            val firstTime = requeue(context, type, eventId, failedAttempts, reason, announced = true)
             PendingCaptureReceiver.schedule(context)
-            if (firstTime) announceMissingCapture(context, type, eventId, reason)
+            if (firstTime) announceMissingCapture(context, type, eventId, failedAttempts, reason)
         }
 
         /**
@@ -958,6 +1017,7 @@ class ProtectionService : Service() {
             context: Context,
             type: SecurityEventType,
             eventId: String?,
+            failedAttempts: Int?,
             reason: String,
         ) {
             val base = runCatching { AlertRuntime.snapshot(context, alertKindFor(type), eventId) }.getOrNull()
@@ -966,7 +1026,7 @@ class ProtectionService : Service() {
                 return
             }
             runCatching {
-                AlertRuntime.alert(context, base.copy(evidenceAttempted = false))
+                AlertRuntime.alert(context, base.copy(evidenceAttempted = false, failedAttempts = failedAttempts))
             }.onFailure {
                 Log.e(TAG, "the owner could not be told about the $type capture ($reason): ${it.message}", it)
             }
@@ -977,10 +1037,11 @@ class ProtectionService : Service() {
             context: Context,
             type: SecurityEventType,
             eventId: String?,
+            failedAttempts: Int?,
             reason: String,
             announced: Boolean = false,
         ): Boolean =
-            runCatching { PendingCaptures(context).add(type, eventId, announced) }
+            runCatching { PendingCaptures(context).add(type, eventId, failedAttempts, announced) }
                 .onFailure { Log.e(TAG, "the $type capture could not be queued either ($reason): ${it.message}", it) }
                 .getOrDefault(false)
 
@@ -1004,7 +1065,7 @@ class ProtectionService : Service() {
                 val eventId = request.eventId
                 return if (eventId != null) live.captureForExisting(eventId, request.type)
                 else {
-                    live.capture(request.type)
+                    live.capture(request.type, request.failedAttempts)
                     true
                 }
             }
@@ -1013,6 +1074,7 @@ class ProtectionService : Service() {
                 .putExtra(EXTRA_KIND, request.type.name)
                 .apply {
                     request.eventId?.let { putExtra(EXTRA_EVENT_ID, it) }
+                    request.failedAttempts?.let { putExtra(EXTRA_FAILED_ATTEMPTS, it) }
                 }
             return runCatching { ContextCompat.startForegroundService(context, intent) }.isSuccess
         }
@@ -1053,6 +1115,7 @@ class ProtectionService : Service() {
                         app,
                         stale.type,
                         stale.eventId,
+                        stale.failedAttempts,
                         "it waited past the moment it asked for",
                     )
                 }
@@ -1067,6 +1130,7 @@ class ProtectionService : Service() {
                         app,
                         request.type,
                         request.eventId,
+                        request.failedAttempts,
                         "no capture service could be reached to run it",
                     )
                 }

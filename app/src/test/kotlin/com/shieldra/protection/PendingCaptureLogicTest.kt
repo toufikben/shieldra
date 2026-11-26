@@ -19,16 +19,44 @@ class PendingCaptureLogicTest {
     private fun request(
         type: SecurityEventType = SecurityEventType.SIM_CONFIRMED_EVENT,
         eventId: String? = null,
+        failedAttempts: Int? = null,
         at: Long = now,
-    ) = PendingCapture(type, eventId, at)
+    ) = PendingCapture(type, eventId, failedAttempts, at)
 
     @Test
     fun a_request_survives_being_written_down_and_read_back() {
-        val stored = PendingCapture(SecurityEventType.SIM_CONFIRMED_EVENT, "3f2a", now)
+        val stored = PendingCapture(SecurityEventType.SIM_CONFIRMED_EVENT, "3f2a", null, now)
 
         val read = PendingCaptureLogic.decode(PendingCaptureLogic.encode(stored))
 
         assertEquals(stored, read)
+    }
+
+    // A-33: the queued retry still knows how many wrong unlocks the thief made, because the text
+    // alert is the agreed signal even when the camera never opens.
+    @Test
+    fun the_attempt_count_survives_the_queue() {
+        val stored = request(
+            type = SecurityEventType.LOCK_CONFIRMED_EVENT,
+            failedAttempts = 4,
+        )
+
+        val read = PendingCaptureLogic.decode(PendingCaptureLogic.encode(stored))
+
+        assertEquals(4, read?.failedAttempts)
+        assertEquals(SecurityEventType.LOCK_CONFIRMED_EVENT, read?.type)
+    }
+
+    // The removal build kept this slot empty rather than shifting the fields; a queue that survived
+    // that build must read the empty slot as "no count", never as a fabricated attempt number.
+    @Test
+    fun a_line_written_by_the_removal_build_reads_as_no_attempt_count() {
+        val stored = PendingCaptureLogic.encode(request())
+
+        val read = PendingCaptureLogic.decode(stored)
+
+        assertNull(read?.failedAttempts)
+        assertEquals(now, read?.requestedAtEpochMs)
     }
 
     @Test

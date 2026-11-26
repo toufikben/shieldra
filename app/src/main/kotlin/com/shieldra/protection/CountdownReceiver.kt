@@ -17,7 +17,10 @@ import com.shieldra.domain.SecurityEventType
  * never stops on its own. A snooze notification appears before a cycle fires, letting the owner
  * postpone one cycle; whoever else holds the phone sees nothing but that neutral notification.
  *
- * The deadline is [CountdownDeadline]'s two-clock value, so moving the system clock cannot bring the
+ * Inside a fresh safe zone the cycle stays quiet (owner decision 2026-11-08): it re-arms as always,
+ * so the signal resumes the moment the phone leaves the zone, but it does not capture, send or post
+ * the snooze notice while the phone is home — that is the nuisance the owner asked to remove. The
+ * deadline is [CountdownDeadline]'s two-clock value, so moving the system clock cannot bring the
  * signal forward or push it back. Exact alarms ([AlarmManager]) wake the CPU for the firing.
  */
 class CountdownReceiver : BroadcastReceiver() {
@@ -25,11 +28,16 @@ class CountdownReceiver : BroadcastReceiver() {
         val appContext = context.applicationContext
         when (intent?.action) {
             ACTION_EXPIRED -> {
-                ProtectionService.requestCapture(appContext, SecurityEventType.COUNTDOWN_SIGNAL)
+                // The cycle always continues; only its message inside a safe zone is withheld.
+                if (!ProtectionRuntime.quietInSafeZone(appContext)) {
+                    ProtectionService.requestCapture(appContext, SecurityEventType.COUNTDOWN_SIGNAL)
+                }
                 // Continuous: arm the next cycle immediately so it never stops without the owner.
                 CountdownScheduler.restart(appContext)
             }
-            ACTION_WARNING -> CountdownScheduler.postSnoozeNotice(appContext)
+            ACTION_WARNING -> {
+                if (!ProtectionRuntime.quietInSafeZone(appContext)) CountdownScheduler.postSnoozeNotice(appContext)
+            }
             ACTION_SNOOZE -> {
                 appContext.getSystemService(NotificationManager::class.java)?.cancel(CountdownScheduler.WARNING_NOTIFICATION_ID)
                 CountdownScheduler.restart(appContext)
@@ -80,9 +88,13 @@ object CountdownScheduler {
             return
         }
         // Past due after a long power-off: the monotonic clock reset at reboot, so the wall clock
-        // decides whether the cycle came due while the phone was off.
+        // decides whether the cycle came due while the phone was off. A phone that comes back inside
+        // its own safe zone stays quiet for that cycle, exactly as it would have before the reboot;
+        // the next cycle, or the leave-a-zone alert, is what speaks if the phone is not home any more.
         if (deadline.isEpochExpired(System.currentTimeMillis())) {
-            ProtectionService.requestCapture(context, SecurityEventType.COUNTDOWN_SIGNAL)
+            if (!ProtectionRuntime.quietInSafeZone(context)) {
+                ProtectionService.requestCapture(context, SecurityEventType.COUNTDOWN_SIGNAL)
+            }
             start(context)
         } else {
             schedule(context, deadline)

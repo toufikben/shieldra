@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A-46 (owner decision 2026-11-10): French exists for one purpose only — the lock-screen demand a
+  stranger reads. SnatchDemand composes its body from these same keys in Arabic, English and French
+  whatever language the phone is set to, because the person holding a stolen phone may read none of
+  the owner's languages. Everything else still falls back to English here; the app itself has two
+  user-interface locales and that has not changed.
+
+  Keep this file limited to the snatch_demand keys: locale-parity-check.sh compares values/ with
+  values-ar/ only, and g4b 5i names every key here so a stray translation cannot ride along.
+-->
+<resources>
+    <string name="snatch_demand_channel">Alerte de vol</string>
+    <string name="snatch_demand_channel_desc">La demande d\'écran de verrouillage qui exige une preuve après un vol confirmé.</string>
+    <string name="snatch_demand_title">Ce téléphone a été volé</string>
+    <string name="snatch_demand_body">Ce téléphone a été pris à son propriétaire. L\'écran est verrouillé et des preuves sont envoyées. Si vous l\'avez trouvé, gardez-le allumé et appelez le propriétaire.</string>
+    <string name="snatch_demand_owner_message">Message du propriétaire :</string>
+    <string name="snatch_demand_contact">Propriétaire : %1$s</string>
+    <string name="snatch_demand_call">Appeler le propriétaire</string>
+    <string name="snatch_demand_waiting">Rendez le téléphone à son propriétaire. Si vous êtes le propriétaire, déverrouillez-le avec votre propre code pour arrêter cette alerte.</string>
+    <string name="snatch_demand_escalating">Pas encore de preuve : les preuves sont envoyées toutes les %1$d minutes.</string>
+</resources>

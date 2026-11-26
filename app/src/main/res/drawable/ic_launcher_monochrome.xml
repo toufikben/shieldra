@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome layer for Android 13+ themed icons. A solid silhouette only: the heartbeat is a
+     stroke and would merge into the shield when the system tints the whole layer. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M54,23 C63,26 71,29 76,33 L76,50 C76,64 67,76 54,82 C41,76 32,64 32,50 L32,33 C37,29 45,26 54,23 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M54,28 C61.5,30.5 67.5,33 71,36 L71,50 C71,61.5 63.5,71.5 54,77 C44.5,71.5 37,61.5 37,50 L37,36 C40.5,33 46.5,30.5 54,28 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeAlpha="0.45" />
+</vector>

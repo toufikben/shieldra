@@ -22,6 +22,7 @@ import com.shieldra.domain.SecurityEventType
 data class PendingCapture(
     val type: SecurityEventType,
     val eventId: String?,
+    val failedAttempts: Int?,
     val requestedAtEpochMs: Long,
     val announced: Boolean = false,
 )
@@ -62,15 +63,13 @@ object PendingCaptureLogic {
     private const val SEPARATOR = "\u0001"
 
     /**
-     * One line per request: guard, the event it belongs to if any, an empty slot the Lock guard's
-     * attempt count used to fill, the moment, and whether the owner has already been told in text.
-     * The slot stays empty rather than being removed because the fields after it are positional, and
-     * a line already queued on the phone must still decode to the same request.
+     * One line per request: guard, the event it belongs to if any, the attempt count, the moment, and
+     * whether the owner has already been told in text.
      */
     fun encode(capture: PendingCapture): String = listOf(
         capture.type.name,
         capture.eventId.orEmpty(),
-        "",
+        capture.failedAttempts?.toString().orEmpty(),
         capture.requestedAtEpochMs.toString(),
         if (capture.announced) ANNOUNCED else "",
     ).joinToString(SEPARATOR)
@@ -88,6 +87,7 @@ object PendingCaptureLogic {
         return PendingCapture(
             type = type,
             eventId = parts[1].ifBlank { null },
+            failedAttempts = parts[2].ifBlank { null }?.toLongOrNull()?.toInt(),
             requestedAtEpochMs = requestedAt,
             announced = parts.getOrNull(4) == ANNOUNCED,
         )

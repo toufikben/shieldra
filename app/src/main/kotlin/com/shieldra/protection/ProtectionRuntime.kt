@@ -45,12 +45,22 @@ object ProtectionRuntime {
      *
      * A-43: Motion is started here, beside the lock and SIM guards, when the owner left it on — it is
      * no longer a separate opt-in a second start button has to remember. A refusal (no notification
-     * permission, no storage) is logged and leaves arming intact; the dashboard states the reason,
-     * and an unanswered notification permission takes the same route the dashboard's Start does.
+     * permission, no storage) still leaves arming intact, but it is returned to the caller so the
+     * screen can state the reason instead of only writing it to the log.
+     *
+     * [choices] are the switches the owner is looking at when they press Arm. Arming saves them
+     * first, because a toggle the owner flipped on the screen and an Arm pressed below it are one
+     * instruction: without this the stored toggle (often the old one) decided whether Motion started,
+     * which is exactly the "I turned it on and armed, yet nothing started" report of 2026-11-08.
+     * `save` deliberately ignores the armed flag (A-44 keeps it single-writer), so this can never arm
+     * or disarm anything by itself.
+     *
+     * @return the Motion start decision when the owner left the guard on, or null when it is off.
      */
-    fun arm(context: Context) {
+    fun arm(context: Context, choices: ProtectionSettings? = null): MotionMonitoringStartDecision? {
         val app = context.applicationContext
         val store = ProtectionSettingsStore(app)
+        choices?.let { store.save(it) }
         store.setArmed(true)
         runCatching { BootFlags(app).sync(true) }
         runCatching { SimGuard(app).rebaseline() }
@@ -59,20 +69,34 @@ object ProtectionRuntime {
         // the service stopped stamping checks (audit development أ).
         runCatching { GuardWatchdog.schedule(app) }
         if (store.load().countdownEnabled) CountdownScheduler.start(app)
-        if (store.load().motionEnabled) startMotion(app)
+        val motionDecision = startMotionIfEnabled(app)
         armedState.value = true
+        return motionDecision
+    }
+
+    /**
+     * Starts Motion for the stored choice, for a screen that has just saved it. Returns null when the
+     * owner has the guard off; otherwise the decision is the same one arming would have produced, so
+     * the screen can surface a refusal instead of leaving the owner with a guard that looks on.
+     */
+    fun startMotionIfEnabled(context: Context): MotionMonitoringStartDecision? {
+        val app = context.applicationContext
+        if (!ProtectionSettingsStore(app).load().motionEnabled) return null
+        return startMotion(app)
     }
 
     /** Starts the Motion guard when the platform facts allow it; the claim itself stays the service's. */
-    private fun startMotion(app: Context) {
+    private fun startMotion(app: Context): MotionMonitoringStartDecision {
         val storageInstalled = (app as? ShieldraApp)?.installedStorage != null
-        when (val decision = MotionRuntime.startMonitoring(app, storageInstalled)) {
+        val decision = MotionRuntime.startMonitoring(app, storageInstalled)
+        when (decision) {
             MotionMonitoringStartDecision.MayStartMonitoring -> Unit
             MotionMonitoringStartDecision.AskForNotificationPermission ->
                 Log.i(TAG, "protection is armed; the Motion guard waits for the notification permission")
             is MotionMonitoringStartDecision.DoNotStartMonitoring ->
                 Log.w(TAG, "protection is armed but the Motion guard did not start: ${decision.reason}")
         }
+        return decision
     }
 
     /**
@@ -85,6 +109,10 @@ object ProtectionRuntime {
         ProtectionSettingsStore(app).setArmed(false)
         ProtectionService.stop(app)
         CountdownScheduler.cancel(app)
+        // A-46: an open snatch ends with the protection it belongs to. The demand notice, the alarm,
+        // the vibration and the ladder alarm all stop here, and nothing restarts the countdown after
+        // an explicit disarm.
+        runCatching { SnatchCoordinator.cancel(app) }
         // A-43: the Motion guard stops with the guards it belongs to, and a grace response still
         // waiting must not siren or lock a phone the owner just chose to stop watching.
         MotionRuntime.stopMonitoring(app)
@@ -92,9 +120,10 @@ object ProtectionRuntime {
         runCatching {
             // The owner chose silence; a patrol that kept waking to report it would be a defect.
             GuardWatchdog.cancel(app)
-            // A-45 D2: the safe-zone tick exists only to feed the ladder, so it stops with it, and the
-            // last reading is dropped — a phone that was at home while armed must not be assumed at
-            // home for the next arming, which could be months and a different city later.
+            // A-45 D2: the safe-zone tick feeds the quiet decision and the leave-a-zone alert, so it
+            // stops with the guards, and the last reading is dropped — a phone that was at home while
+            // armed must not be assumed at home for the next arming, which could be months and a
+            // different city later.
             GeofenceTicker.cancel(app)
             ZoneStateStore(app).clear()
             BootFlags(app).sync(false)
@@ -121,14 +150,42 @@ object ProtectionRuntime {
     fun geofenceEnabled(context: Context): Boolean =
         ProtectionSettingsStore(context.applicationContext).load().geofenceEnabled
 
+    /**
+     * The Map switch is the same instruction as saving the Protection screen: the alarm that keeps
+     * the reading fresh — and with it the quiet decision and the leave-a-zone alert — must start from
+     * here too, because the service instance is already running and will not call its arm path again.
+     * Switching the guard off cancels the alarm and drops the reading, so a place the owner stopped
+     * trusting cannot keep the phone quiet later.
+     */
     fun setGeofenceEnabled(context: Context, enabled: Boolean) {
-        val store = ProtectionSettingsStore(context.applicationContext)
-        store.save(store.load().copy(geofenceEnabled = enabled))
+        val app = context.applicationContext
+        val store = ProtectionSettingsStore(app)
+        val updated = store.load().copy(geofenceEnabled = enabled)
+        store.save(updated)
+        if (enabled) {
+            runCatching { GeofenceTicker.schedule(app, updated.geofenceIntervalMinutes) }
+        } else {
+            GeofenceTicker.cancel(app)
+            ZoneStateStore(app).clear()
+        }
+    }
+
+    /**
+     * One safe-zone reading, for a switch the owner just flipped on the Map screen. Without it the
+     * first reading would only come at the next alarm, so the quiet layer could stay off — or a stale
+     * "outside" could keep it off — for a whole interval after the owner defined a home.
+     */
+    suspend fun sampleSafeZoneNow(context: Context) {
+        ProtectionService.sampleSafeZoneNow(context.applicationContext)
     }
 
     /**
      * Marks the phone's current position as a safe zone. The fix is taken inside the protection
      * package (group-c/A-34), so the UI never touches location itself. Returns false if no fix.
+     *
+     * The same fix proves the phone is inside the place being created (the zone is centred on it), so
+     * the reading is written at once: a home the owner just marked must be able to stay discreet now,
+     * not only after the first alarm.
      */
     suspend fun addCurrentLocationAsZone(
         context: Context,
@@ -142,6 +199,8 @@ object ProtectionRuntime {
         val label = name.ifBlank { SafeZoneLabels.nextDefaultName(zones) }
         zones.add(SafeZone(label, GeofenceLogic.Zone(fix.latitude, fix.longitude, radiusMeters)))
         store.setSafeZones(zones)
+        ZoneStateStore(app).write(inside = true, atMs = System.currentTimeMillis())
+        runCatching { GeofenceTicker.schedule(app, store.load().geofenceIntervalMinutes) }
         return true
     }
 
@@ -150,8 +209,18 @@ object ProtectionRuntime {
      * two zones that happened to share one were both deleted from a single row.
      */
     fun removeZone(context: Context, zone: SafeZone) {
-        val store = ProtectionSettingsStore(context.applicationContext)
-        store.setSafeZones(store.safeZones().filterNot { it == zone })
+        val app = context.applicationContext
+        val store = ProtectionSettingsStore(app)
+        val remaining = store.safeZones().filterNot { it == zone }
+        store.setSafeZones(remaining)
+        // The reading was judged against the zones that existed when it was taken, and one of them is
+        // gone now. Clearing it means full strength until a fresh reading exists — the safe direction —
+        // instead of a remembered "inside" that may have been the deleted zone.
+        ZoneStateStore(app).clear()
+        if (remaining.isEmpty()) {
+            // There is nothing left to be inside of; nothing should keep sampling either.
+            GeofenceTicker.cancel(app)
+        }
     }
 
     /**
@@ -178,6 +247,10 @@ object ProtectionRuntime {
         // refuses and clears when the zone guard is off or the phone is disarmed, so calling it on every
         // Save is safe—and it is the only way a zone switch made from the settings screen starts ticking.
         runCatching { GeofenceTicker.schedule(app, settings.geofenceIntervalMinutes) }
+        // A-46: switching the snatch guard off is an instruction about the incident already open, not
+        // only about the next one. It ends without restarting the countdown — the owner is on this
+        // screen, so a periodic signal must not start speaking over their own Save.
+        if (!settings.snatchLockEnabled) runCatching { SnatchCoordinator.cancel(app) }
         if (!armed) {
             runCatching {
                 PendingCaptures(app).clear()
@@ -187,16 +260,39 @@ object ProtectionRuntime {
     }
 
     /**
-     * Whether the safe-zone sampler has a reading the Motion ladder would still trust (A-45 D2). False is
-     * the fail-closed answer — no reading yet, one older than two intervals, or a clock that jumped
-     * backwards — and false means the guards behave as if the phone were outside every zone, which is
-     * what the Map screen tells the owner when they turn the zone guard on.
+     * Whether the safe-zone sampler has a reading the quiet decision would still trust. False is the
+     * fail-closed answer — no reading yet, one older than two intervals, or a clock that jumped
+     * backwards — and false means the noisy layer keeps full strength, which is what the Map screen
+     * tells the owner when they turn the zone guard on.
      */
     fun zoneReadingFresh(context: Context): Boolean {
         val app = context.applicationContext
         val minutes = ProtectionSettingsStore(app).load().geofenceIntervalMinutes
         val sample = ZoneStateStore(app).read() ?: return false
         return sample.isFresh(nowMs = System.currentTimeMillis(), staleAfterMs = GeofenceTicker.staleAfterMs(minutes))
+    }
+
+    /**
+     * Whether the noisy layer (siren, countdown, Motion alert) should stay discreet right now. True
+     * only inside a fresh safe-zone reading, with the zone guard on and a zone still defined; every
+     * doubt means full strength (owner decision 2026-11-08). Evidence alerts — wrong unlock, SIM,
+     * battery, leaving a zone — never ask this question, so they are never silenced by it.
+     */
+    fun quietInSafeZone(context: Context): Boolean {
+        val app = context.applicationContext
+        val store = ProtectionSettingsStore(app)
+        val settings = store.load()
+        val sample = ZoneStateStore(app).read() ?: return false
+        val fresh = sample.isFresh(
+            nowMs = System.currentTimeMillis(),
+            staleAfterMs = GeofenceTicker.staleAfterMs(settings.geofenceIntervalMinutes),
+        )
+        return SafeZoneQuietPolicy.isQuiet(
+            geofenceEnabled = settings.geofenceEnabled,
+            hasZones = store.safeZones().isNotEmpty(),
+            readingFresh = fresh,
+            inside = sample.inside,
+        )
     }
 
     private const val TAG: String = "ProtectionRuntime"

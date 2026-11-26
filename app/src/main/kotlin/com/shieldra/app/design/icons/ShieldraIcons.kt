@@ -24,6 +24,7 @@ import com.shieldra.app.presentation.model.GuardKind
 import com.shieldra.app.presentation.model.SettingsIcon
 
 fun GuardKind.icon(): ImageVector = when (this) {
+    GuardKind.Lock -> Icons.Filled.Lock
     GuardKind.Motion -> Icons.AutoMirrored.Filled.DirectionsRun
     GuardKind.Sim -> Icons.Filled.SimCard
     GuardKind.Panic -> Icons.Filled.WarningAmber
@@ -31,6 +32,7 @@ fun GuardKind.icon(): ImageVector = when (this) {
 }
 
 fun EventType.icon(): ImageVector = when (this) {
+    EventType.FailedUnlock -> Icons.Filled.Lock
     EventType.Motion -> Icons.AutoMirrored.Filled.DirectionsRun
     EventType.SimChange -> Icons.Filled.SimCard
     EventType.Panic -> Icons.Filled.WarningAmber

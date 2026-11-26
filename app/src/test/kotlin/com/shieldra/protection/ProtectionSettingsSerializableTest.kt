@@ -19,6 +19,8 @@ class ProtectionSettingsSerializableTest {
     fun the_whole_settings_object_crosses_a_bundle_boundary() {
         val settings = ProtectionSettings(
             armed = true,
+            lockEnabled = false,
+            lockThreshold = 4,
             simEnabled = false,
             batteryThreshold = 17,
             countdownIntervalMs = 90_000,

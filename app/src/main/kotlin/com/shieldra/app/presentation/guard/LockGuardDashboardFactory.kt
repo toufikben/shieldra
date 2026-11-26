@@ -35,6 +35,9 @@ fun lockGuardDashboard(
     // phone that rebooted while armed is locked, and no boot receiver may start the camera-type service
     // before the first unlock.
     guardsRunning: Boolean = false,
+    lockOn: Boolean = false,
+    /** The device-admin role the Lock guard needs; without it the guard is switched on but deaf. */
+    deviceAdminGranted: Boolean = false,
     simOn: Boolean = false,
     batteryOn: Boolean = false,
     // A-38: the phone's own readings. Each defaults to "not measured", so a caller that has no reading
@@ -58,19 +61,26 @@ fun lockGuardDashboard(
     val motionSubtitle = stringResource(MotionMonitoringPresentation.subtitleRes(motionClaim))
     // A guard is only "active" when the service behind it is live: the switch alone is an intention.
     val serviceLive = readiness == ArmedReadiness.ArmedAndRunning
+    val lockNeedsAdminSubtitle = stringResource(R.string.guard_lock_needs_admin)
     val armedGuards: Map<GuardKind, Boolean> = mapOf(
+        // The Lock guard is the exception: its receiver is registered by the manifest and hears a
+        // wrong unlock whether or not the protection service is up, so it does not wait for
+        // [serviceLive]. It still needs the role, because a switch without the role is deaf.
+        GuardKind.Lock to (protectionArmed && lockOn && deviceAdminGranted),
         GuardKind.Sim to (serviceLive && simOn),
         GuardKind.Battery to (serviceLive && batteryOn),
     )
     val guards = GuardKind.entries.map { kind ->
         val monitoring = kind == GuardKind.Motion
         val armedActive = armedGuards[kind] == true
+        val lockMissingRole = kind == GuardKind.Lock && protectionArmed && lockOn && !deviceAdminGranted
         GuardUiModel(
             kind = kind,
             title = stringResource(titleRes(kind)),
             subtitle = when {
                 monitoring -> motionSubtitle
                 armedActive -> activeSubtitle
+                lockMissingRole -> lockNeedsAdminSubtitle
                 else -> inactiveSubtitle
             },
             status = when {
@@ -104,6 +114,7 @@ fun lockGuardDashboard(
 
 @StringRes
 private fun titleRes(kind: GuardKind): Int = when (kind) {
+    GuardKind.Lock -> R.string.demo_lock_guard
     GuardKind.Motion -> R.string.demo_motion_guard
     GuardKind.Sim -> R.string.demo_sim_guard
     GuardKind.Panic -> R.string.demo_panic

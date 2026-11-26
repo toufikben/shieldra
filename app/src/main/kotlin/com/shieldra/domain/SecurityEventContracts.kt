@@ -33,6 +33,13 @@ enum class SecurityEventType {
      */
     MOTION_CONFIRMED_EVENT,
 
+    /**
+     * A confirmed event from wrong unlock attempts past the owner's threshold (amendment A-33).
+     * Same binding rule as the others: repeated attempts in one session join the open Lock incident
+     * and never adopt an open Motion, SIM, Battery or Panic event.
+     */
+    LOCK_CONFIRMED_EVENT,
+
     /** A confirmed event from a SIM swap, removal, or network cut (amendment A-33). */
     SIM_CONFIRMED_EVENT,
 

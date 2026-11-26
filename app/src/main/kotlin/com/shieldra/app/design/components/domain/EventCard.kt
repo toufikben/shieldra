@@ -54,6 +54,8 @@ private fun deliveryColor(status: DeliveryStatus): Color = when (status) {
 @Composable
 private fun typeAccent(type: EventType): Color = when (type) {
     EventType.Panic -> ShieldraTheme.semantic.securityEvent
+    // A wrong unlock attempt is the theft signal the owner asked to hear, not a routine warning.
+    EventType.FailedUnlock -> ShieldraTheme.semantic.securityEvent
     EventType.Motion -> ShieldraTheme.semantic.suspicious
     EventType.SimChange -> MaterialTheme.colorScheme.tertiary
     EventType.Battery -> ShieldraTheme.semantic.attention

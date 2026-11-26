@@ -10,17 +10,12 @@ import kotlin.test.assertTrue
  * laptop, while deciding whether to keep waiting for an alert or to give up and wipe. Every guard it
  * names in that moment has to be a guard this build can actually fire.
  *
- * It names one that cannot. `panic_step_photo_body` says an alert that already fired may have been
- * "panic, failed unlocks, a SIM change, motion". There is no failed-unlock guard and there has not
- * been one since Design B (2026-11-06): its only sensor was the device-admin `onPasswordFailed`
- * callback, an authority the app does not hold, so `GuardBoundaries` deleted the `LockGuard` and
- * `GuardContracts` deleted the `LOCK` category. A wrong PIN therefore raises nothing, and an owner
- * who reads the broken screen of a phone someone is guessing at and waits for that alert waits for
- * something this app has never sent.
- *
- * The direction matters. The sentence is not over-claiming a habit, it is over-claiming evidence:
- * it tells the owner a photograph of the person pressing at the keypad may already be in the chat,
- * which is exactly the artifact they would look for before deciding the phone is worth chasing.
+ * Design B (2026-11-06) had removed the failed-unlock guard, and this test then forbade the guide
+ * from naming one. A-46 (owner decision 2026-11-10) restored it: the device-admin role is declared
+ * with `watch-login` in `res/xml/device_admin.xml` and `LockGuardReceiver` turns a failed unlock past
+ * the owner's threshold into a `LOCK_CONFIRMED_EVENT`. So the direction of the claim is now the
+ * other one — the guide may name failed unlocks **only while** that sensor really exists, and the
+ * sensor is pinned here rather than assumed.
  */
 class PanicGuideTruthTest {
 
@@ -39,48 +34,57 @@ class PanicGuideTruthTest {
         return match!!.groupValues[1]
     }
 
+    /** The failed-unlock sensor the guide leans on is a real, declared, wired sensor. */
+    @Test
+    fun p4_9_the_lock_guard_the_guide_names_really_fires() {
+        val adminXml = main("res/xml/device_admin.xml")
+        assertTrue(
+            adminXml.contains("<watch-login"),
+            "the guide names failed unlocks, but the device-admin policy no longer asks for watch-login",
+        )
+        val manifest = main("AndroidManifest.xml")
+        assertTrue(
+            manifest.contains("com.shieldra.protection.LockGuardReceiver"),
+            "the guide names failed unlocks, but no receiver is registered to hear them",
+        )
+        assertTrue(
+            main("kotlin/com/shieldra/domain/SecurityEventContracts.kt").contains("LOCK_CONFIRMED_EVENT"),
+            "the guide names failed unlocks, but the build records no lock event to show for them",
+        )
+        assertTrue(
+            main("kotlin/com/shieldra/protection/LockAlertPolicy.kt").isNotBlank(),
+            "the guide names failed unlocks, but the rationing rule that sends them is gone",
+        )
+    }
+
     /** The guide's list of guards is drawn from the guards the build really has. */
     @Test
     fun p4_9_the_guide_names_only_guards_that_can_fire() {
         val contracts = main("kotlin/com/shieldra/domain/GuardContracts.kt")
-        val eventTypes = main("kotlin/com/shieldra/domain/SecurityEventContracts.kt")
-        // The premise of the claim, stated once: no lock guard, no lock event type.
-        assertFalse(
-            contracts.contains(Regex("enum class GuardKind \\{[^}]*\\bLOCK\\b")),
-            "a LOCK guard category is back; the guide may name failed unlocks again only with a real sensor",
-        )
-        assertFalse(
-            eventTypes.contains("LOCK"),
-            "a LOCK event type is back; the guide may name failed unlocks again only with a real sensor",
-        )
-        assertFalse(
-            main("kotlin/com/shieldra/detection/GuardBoundaries.kt").contains("interface LockGuard"),
-            "a LockGuard boundary is back; the guide may name failed unlocks again only with a real sensor",
-        )
-        assertFalse(
-            main("kotlin/com/shieldra/domain/Signal.kt").contains("LOCK,"),
-            "SignalType still carries a LOCK value with no guard to feed it",
-        )
-
-        for ((locale, phrase) in listOf(
-            "values" to "failed unlock",
-            "values-ar" to "محاولات فتح",
-        )) {
-            val line = stringValue("panic_step_photo_body", locale)
-            assertFalse(
-                line.contains(phrase, ignoreCase = true),
-                "$locale: panic_step_photo_body tells the owner a failed unlock may already have sent a " +
-                    "photo, but this build has no lock guard to fire one: $line",
-            )
-        }
-    }
-
-    /** The guards it does name are the ones the guide can honestly name. */
-    @Test
-    fun p4_9_the_guide_still_names_the_guards_that_do_fire() {
-        val contracts = main("kotlin/com/shieldra/domain/GuardContracts.kt")
         for (guard in listOf("PANIC", "SIM", "MOTION")) {
             assertTrue(contracts.contains(guard), "GuardKind lost $guard, so the guide's list is out of date")
+        }
+        // A wrong unlock is not a GuardKind category: it arrives through the device-admin receiver,
+        // which is exactly why this test pins the declaration above instead of the enum.
+        assertFalse(
+            contracts.contains(Regex("enum class GuardKind \\{[^}]*\\bLOCK\\b")),
+            "a LOCK GuardKind category appeared; a failed unlock is a device-admin callback, not a boundary",
+        )
+    }
+
+    /** And the sentence that names them says it in both locales, without naming a guard that is gone. */
+    @Test
+    fun p4_9_the_guide_still_names_the_guards_that_do_fire() {
+        for ((locale, phrase) in listOf(
+            "values" to "failed unlock",
+            "values-ar" to "محاولات فتح فاشلة",
+        )) {
+            val line = stringValue("panic_step_photo_body", locale)
+            assertTrue(
+                line.contains(phrase, ignoreCase = true),
+                "$locale: panic_step_photo_body no longer tells the owner a failed unlock may already " +
+                    "have sent a photo, though the Lock guard is back: $line",
+            )
         }
         assertFalse(stringValue("panic_step_photo_body", "values").isBlank(), "the guide's photo step is empty")
         assertFalse(stringValue("panic_step_photo_body", "values-ar").isBlank(), "the guide's photo step is empty")

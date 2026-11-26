@@ -2,6 +2,7 @@ package com.shieldra.app.docs
 
 import java.io.File
 import kotlin.test.Test
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -60,12 +61,33 @@ class ReadmeTruthTest {
 
     @Test
     fun p3_1_the_readme_states_the_limits_it_cannot_cross() {
-        // The three facts a reader must not have to discover after buying: no lock, no device admin,
-        // no proven SIM swap.
-        for (token in listOf("cannot lock the screen", "no device administrator", "never proven")) {
+        // The facts a reader must not have to discover after buying: the lock is self-triggered only,
+        // the device-admin role carries no destructive power, and a SIM swap is never proven.
+        for (token in listOf(
+            "never on demand",
+            "no destructive device administrator",
+            "never proven",
+        )) {
             assertTrue(
                 readme.contains(token, ignoreCase = true),
                 "README is silent about \"$token\"",
+            )
+        }
+    }
+
+    @Test
+    fun p3_1_the_readme_does_not_repeat_the_retired_design_b_limits() {
+        // Design B (2026-11-06) removed the lock; A-46 (owner decision 2026-11-10) restored it. A
+        // front page that still denies the lock power describes a build that no longer ships.
+        for (token in listOf(
+            "cannot lock the screen",
+            "no device administrator",
+            "holds no device administrator",
+            "left the app without any lock power",
+        )) {
+            assertFalse(
+                readme.contains(token, ignoreCase = true),
+                "README still carries the retired claim \"$token\"",
             )
         }
     }

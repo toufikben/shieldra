@@ -10,7 +10,8 @@ import kotlin.test.assertTrue
  * than logic tests: [com.shieldra.protection.OwnerContactTest] covers the accepting part.
  *
  * Design B (2026-11-06) removed the lock-screen demand notice and its trilingual copy with the lock
- * itself; the field survives because the owner-triggered lost notice still prints it.
+ * itself; the field survives because the owner-triggered lost notice still prints it, and A-46
+ * (2026-11-10) restored the snatch demand beside it.
  *
  * The resources are read from disk instead of through a context because a JVM test has no context, and
  * because the claim being checked is about the shipped files: a key that exists only in English is a

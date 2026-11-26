@@ -24,8 +24,8 @@ Shieldra is a device-first Android anti-theft and personal-safety app (Kotlin, J
 
 These are platform and product limits, not gaps waiting to be filled. They are stated here so the list above is read correctly.
 
-- **It cannot lock the screen.** Design B (2026-11-06) left the app without any lock power. A guard detects and reports; it never freezes the phone.
-- **It holds no device administrator**, so there is no remote wipe and no factory-reset protection. The honest substitute that ships: a real local delete of events and their evidence, plus the lost notice.
+- **It locks the screen only by itself, never on demand.** The device-admin role it asks for holds two powers: notice a failed unlock, and close the screen after a confirmed snatch outside a safe zone. There is no `/lock` command and no remote freeze — a stolen phone is locked by its own guards, not by a message. An administrator granted before that policy existed must be switched off and on once.
+- **It holds no destructive device administrator**, so there is no remote wipe and no factory-reset protection. The honest substitute that ships: a real local delete of events and their evidence, plus the lost notice.
 - **A SIM swap is never proven.** The card's serial (ICCID) sits behind `READ_PRIVILEGED_PHONE_STATE`, which no store-distributed app may hold, so the guard reports *that* the subscription set changed, not *which* card replaced which. An eSIM profile switches on and off exactly like a card.
 - **A force-stopped app observes nothing.** Android excludes a stopped package from the SIM broadcast, and a vendor battery manager can starve the process. The patrol is what tells the owner the guards went quiet.
 - **Only when the owner turned it on.** Every guard runs inside the service the owner armed; nothing is silent, nothing starts itself, and nothing restarts on boot beyond what the owner's armed flag restores.

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Background layer of the adaptive launcher icon: deep space with a soft teal aurora.
+     Kept as a plain 108x108 layer so every launcher mask crops it cleanly. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108"
+                android:startColor="#FF161C26"
+                android:centerColor="#FF0A0E14"
+                android:endColor="#FF05070B" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M54,52 m-54,0 a54,54 0 1,0 108,0 a54,54 0 1,0 -108,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="48"
+                android:gradientRadius="56"
+                android:startColor="#3D00D4AA"
+                android:centerColor="#1400D4AA"
+                android:endColor="#0000D4AA" />
+        </aapt:attr>
+    </path>
+</vector>

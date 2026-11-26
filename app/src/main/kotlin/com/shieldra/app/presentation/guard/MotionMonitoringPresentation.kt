@@ -27,4 +27,25 @@ object MotionMonitoringPresentation {
         } else {
             R.string.guard_subtitle_inactive
         }
+
+    /**
+     * What the Protection screen says about Motion while protection is armed (owner report 2026-11-08).
+     * A guard that is on but not monitoring used to be invisible there: arming could not start it
+     * without the notification permission, and the refusal existed only in the log. The status makes
+     * the missing step, and its one action, visible.
+     */
+    enum class SetupStatus { ACTIVE, NEEDS_NOTIFICATION_PERMISSION, NOT_STARTED }
+
+    fun setupStatus(claim: MonitoringClaim, notificationsGranted: Boolean): SetupStatus = when {
+        claim.claimsProtection -> SetupStatus.ACTIVE
+        !notificationsGranted -> SetupStatus.NEEDS_NOTIFICATION_PERMISSION
+        else -> SetupStatus.NOT_STARTED
+    }
+
+    @StringRes
+    fun setupTextRes(status: SetupStatus): Int = when (status) {
+        SetupStatus.ACTIVE -> R.string.protection_motion_active
+        SetupStatus.NEEDS_NOTIFICATION_PERMISSION -> R.string.protection_motion_needs_notifications
+        SetupStatus.NOT_STARTED -> R.string.protection_motion_not_started
+    }
 }

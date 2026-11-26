@@ -11,8 +11,10 @@ import android.content.SharedPreferences
  */
 data class ProtectionSettings(
     val armed: Boolean = false,
+    val lockEnabled: Boolean = true,
     val simEnabled: Boolean = true,
     val batteryEnabled: Boolean = true,
+    val lockThreshold: Int = FailedUnlockCounter.DEFAULT_THRESHOLD,
     val batteryThreshold: Int = BatteryBreathLogic.DEFAULT_LEVEL,
     val countdownEnabled: Boolean = false,
     val countdownIntervalMs: Long = 60 * 60_000L,
@@ -26,8 +28,8 @@ data class ProtectionSettings(
     val dualCameraEnabled: Boolean = false,
     val audioEnabled: Boolean = false,
     /**
-     * Motion is a guard like the SIM one: on by default and started by arming (A-43). It detects and
-     * alerts only — design B leaves the app without any power to lock the screen.
+     * Motion is a guard like the lock and SIM ones: on by default and started by arming (A-43). It
+     * detects and alerts only; the Lock guard is the one that reacts to wrong unlock attempts.
      */
     val motionEnabled: Boolean = true,
     val audioSeconds: Int = 10,
@@ -35,6 +37,14 @@ data class ProtectionSettings(
     val escalationThreshold: Int = EscalationPolicy.DEFAULT_THRESHOLD,
     val geofenceEnabled: Boolean = false,
     val geofenceIntervalMinutes: Int = 3,
+    /**
+     * A-46 (owner decision 2026-11-10): a confirmed snatch locks the screen and opens the ownership
+     * window. On by default like the other guards; switching it off leaves Motion with its old
+     * evidence-only response.
+     */
+    val snatchLockEnabled: Boolean = true,
+    /** How often evidence leaves during the escalating ladder: five or ten minutes. */
+    val snatchIntervalMinutes: Int = SnatchPolicy.DEFAULT_INTERVAL_MINUTES,
     val ownerContact: String = "",
     val lostMessage: String = "",
     /** The owner's plan; PREMIUM until real billing is wired, so nothing is locked during testing. */
@@ -58,8 +68,10 @@ class ProtectionSettingsStore(context: Context) {
 
     fun load(): ProtectionSettings = ProtectionSettings(
         armed = prefs.getBoolean(KEY_ARMED, false),
+        lockEnabled = prefs.getBoolean(KEY_LOCK, true),
         simEnabled = prefs.getBoolean(KEY_SIM, true),
         batteryEnabled = prefs.getBoolean(KEY_BATTERY, true),
+        lockThreshold = prefs.getInt(KEY_LOCK_THRESHOLD, FailedUnlockCounter.DEFAULT_THRESHOLD),
         batteryThreshold = prefs.getInt(KEY_BATTERY_THRESHOLD, BatteryBreathLogic.DEFAULT_LEVEL),
         countdownEnabled = prefs.getBoolean(KEY_COUNTDOWN, false),
         countdownIntervalMs = prefs.getLong(KEY_COUNTDOWN_INTERVAL, 60 * 60_000L),
@@ -82,6 +94,8 @@ class ProtectionSettingsStore(context: Context) {
         escalationThreshold = prefs.getInt(KEY_ESCALATION_THRESHOLD, EscalationPolicy.DEFAULT_THRESHOLD),
         geofenceEnabled = prefs.getBoolean(KEY_GEOFENCE, false),
         geofenceIntervalMinutes = prefs.getInt(KEY_GEOFENCE_INTERVAL, 3),
+        snatchLockEnabled = prefs.getBoolean(KEY_SNATCH_LOCK, true),
+        snatchIntervalMinutes = prefs.getInt(KEY_SNATCH_INTERVAL, SnatchPolicy.DEFAULT_INTERVAL_MINUTES),
         ownerContact = prefs.getString(KEY_OWNER_CONTACT, "").orEmpty(),
         lostMessage = prefs.getString(KEY_LOST_MESSAGE, "").orEmpty(),
         tier = runCatching {
@@ -98,8 +112,10 @@ class ProtectionSettingsStore(context: Context) {
      */
     fun save(settings: ProtectionSettings) {
         prefs.edit()
+            .putBoolean(KEY_LOCK, settings.lockEnabled)
             .putBoolean(KEY_SIM, settings.simEnabled)
             .putBoolean(KEY_BATTERY, settings.batteryEnabled)
+            .putInt(KEY_LOCK_THRESHOLD, settings.lockThreshold.coerceIn(FailedUnlockCounter.MIN_THRESHOLD, FailedUnlockCounter.MAX_THRESHOLD))
             .putInt(KEY_BATTERY_THRESHOLD, settings.batteryThreshold.coerceIn(BatteryBreathLogic.MIN_LEVEL, BatteryBreathLogic.MAX_LEVEL))
             .putBoolean(KEY_COUNTDOWN, settings.countdownEnabled)
             .putLong(KEY_COUNTDOWN_INTERVAL, settings.countdownIntervalMs)
@@ -118,6 +134,14 @@ class ProtectionSettingsStore(context: Context) {
             .putInt(KEY_ESCALATION_THRESHOLD, settings.escalationThreshold.coerceIn(EscalationPolicy.MIN_THRESHOLD, EscalationPolicy.MAX_THRESHOLD))
             .putBoolean(KEY_GEOFENCE, settings.geofenceEnabled)
             .putInt(KEY_GEOFENCE_INTERVAL, settings.geofenceIntervalMinutes.coerceIn(1, 60))
+            .putBoolean(KEY_SNATCH_LOCK, settings.snatchLockEnabled)
+            .putInt(
+                KEY_SNATCH_INTERVAL,
+                settings.snatchIntervalMinutes.coerceIn(
+                    SnatchPolicy.MIN_INTERVAL_MINUTES,
+                    SnatchPolicy.MAX_INTERVAL_MINUTES,
+                ),
+            )
             .putString(KEY_OWNER_CONTACT, settings.ownerContact.trim())
             .putString(KEY_LOST_MESSAGE, settings.lostMessage.trim())
             .apply()
@@ -216,8 +240,10 @@ class ProtectionSettingsStore(context: Context) {
     private companion object {
         const val PREFERENCES_NAME = "shieldra_protection"
         const val KEY_ARMED = "armed"
+        const val KEY_LOCK = "lock_enabled"
         const val KEY_SIM = "sim_enabled"
         const val KEY_BATTERY = "battery_enabled"
+        const val KEY_LOCK_THRESHOLD = "lock_threshold"
         const val KEY_BATTERY_THRESHOLD = "battery_threshold"
         const val KEY_COUNTDOWN = "countdown_enabled"
         const val KEY_COUNTDOWN_INTERVAL = "countdown_interval_ms"
@@ -236,6 +262,8 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_ESCALATION_THRESHOLD = "escalation_threshold"
         const val KEY_GEOFENCE = "geofence_enabled"
         const val KEY_GEOFENCE_INTERVAL = "geofence_interval_minutes"
+        const val KEY_SNATCH_LOCK = "snatch_lock_enabled"
+        const val KEY_SNATCH_INTERVAL = "snatch_interval_minutes"
         const val KEY_SAFE_ZONES = "safe_zones"
         const val KEY_LAST_CHECK = "last_check_epoch_ms"
         const val KEY_GUARD_SILENCE_REPORTED = "guard_silence_reported_at"

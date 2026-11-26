@@ -981,6 +981,12 @@ of propped up. The rule applied: **a guard whose only sensor is a refused privil
 guard whose sensor is an ordinary permission stays, without lock power.** Motion therefore stays
 as detection + evidence + alert.
 
+> **Superseded in part, 2026-11-07.** The premise "`ACTION_PASSWORD_FAILED` is delivered only to a
+> provisioned administrator" was right, but it argued against the wrong thing: the guard's sensor is
+> the administrator, and the owner had already granted it and seen the alert fire. On his order the
+> watch-login guard is restored in `bb0455f` — the administrator returns with **one** power, and the
+> force-lock ladder, the demand notice and the zone lock stay dead. See the section below.
+
 **Three commits, each verified on its own run:**
 
 - `f980a08` — the A-45 layer: `SnatchLadder`, `TheftDemand`/`TheftNoticeText`, `ZonePolicy`, the
@@ -1073,3 +1079,345 @@ see the retired Lock surface absent.
 `LOCALE PARITY PASS`. The optimised phone APK and the signed release pair built green as well; the
 three rolling-release publish steps are skipped on a branch by design. **Device:** NOT RUN; this
 batch changes general screens and its phone round is #32 (P-1…P-16), not this one.
+
+## Lock Guard restored — the administrator with one power (`fix/general-app-gaps`, 2026-11-07)
+
+**The owner's order.** «اعد الحارس فورا وفق معاير ووضائف سليمة … عند سرقة الهاتف السارق بعد
+الابتعاد … سيحاول ادخال كلمة السر التي في غالب ستكون خاطئة وسيتم على اثرها ارسال الاشارة». Design B
+had retired the guard on a true but irrelevant premise: AOSP `DevicePolicyManagerService`
+`reportFailedPasswordAttempt` broadcasts `ACTION_PASSWORD_FAILED` to active admins holding
+`USES_POLICY_WATCH_LOGIN`, so a home-installed app **can** receive it — the sensor is the
+provisioned administrator itself. The owner had granted that administrator before and saw the alert
+fire. The guard therefore returns, and the policy stays exactly as wide as the sensor: watch-login
+only. No force-lock, no password reset, no wipe, no keyguard interaction. The A-45 ladder, the
+lock-screen demand notice and the zone lock remain dead.
+
+**What fires.** The receiver reads the saved settings and returns unless the app is armed **and**
+the Lock toggle is on. The counter keeps 1…5 (default 2) failures in one session — a gap longer than
+ten minutes starts a new session — captures on the threshold attempt and on **every later** failure
+in the same session, and a correct unlock resets it. The attempt count travels with the capture,
+the alert line (codec field 6) and the retry queue, so the notice says how many tries the thief
+made instead of only that one happened. The counter is process memory, by design: an app restart
+or a reboot starts the count again, and the capability file says so rather than pretending to be a
+forensic log.
+
+**What the owner sees.** The Protection setup screen offers the administrator row and the Lock
+toggle with the 1–5 threshold; the dashboard tile reads Active only when the app is armed, the
+toggle is on **and** the administrator is granted, and otherwise names the missing grant; the score
+awards the Lock weight (19) only for toggle + grant; the Health Check has a `deviceAdmin` row that
+refreshes when the system permission sheet returns; History gains a Lock filter and maps
+`LOCK_CONFIRMED_EVENT` to `FailedUnlock`. Copy is in English and Arabic, including the two honest
+warnings: the administrator is watch-login only, and disabling it while armed itself raises a
+capture.
+
+**Backward compatibility.** The removal build kept the attempt slots in both queues empty for
+exactly this return: `AlertLineCodec` field 6 and `PendingCaptureLogic` field 3 decode an empty
+value as null, and a four-field pending-capture line written by the removal build is still read
+(five fields are read only when the notice mark is present). An alert queued during a theft by the
+previous build still runs after the update.
+
+**Tests.** `FailedUnlockCounterTest` (6) covers the threshold, the later attempts, the session gap,
+the reset, the clamping and the below-threshold verdict; the score pair, the LOCK projection in
+`PersistedEventReader`, the queue survival with an empty slot, the LOCK line round-trip and its
+null, the two alert-dispatch cases, the two `ProtectionChange` cases, the restored defaults and the
+presentation enums add eleven more — **17 new tests, 596 total**.
+
+**Gates, all green on CI run `42391526874` (run 408, `bb0455f`, 2026-11-07T16:29:18Z→16:39:31Z,
+conclusion success):** `BUILD SUCCESSFUL in 5m 32s`; `CI TEST SUMMARY: 596 tests, 596 passed,
+0 failures, 0 errors, 0 skipped`; `PASS: Lock Guard: watch-login only, the attempt count rides the
+alert, and no lock/reset/wipe power exists`; `Group C boundary scan passed`; `G4-B LOCAL REVIEW
+PASS — runtime/device evidence still required`; `PHASE 3 STATIC REVIEW PASS`; `LOCALE PARITY PASS —
+Arabic equals English key for key`; `PASS: the installed APK declares exactly the reviewed
+permission set (21 permissions)` — the receiver's `BIND_DEVICE_ADMIN` is a component permission,
+not a new `uses-permission`. The optimised `app-phone.apk` (2,860,564 bytes, sha256 `ea4ad24a…`),
+the debug pair and the signed release built green; the branch was published with the draft release
+`test-42391526874` for a phone-only check.
+
+**Device:** **NOT RUN.** The wrong-PIN end-to-end signal cannot be produced under the standing
+rules — entering the phone PIN and automating failed unlock attempts are both forbidden — so the
+owner must run it: grant Device admin in Protection, arm with the Lock toggle on, then enter a wrong
+PIN twice. The CI evidence proves the receiver is compiled, registered, watch-login-only and
+covered by the counter's tests; it does not prove the alert arrives on his handset. That sentence
+stays until his own attempt replaces it.
+
+## Owner report — one signal per guess, and Motion stated where it is armed (2026-11-08)
+
+**What the owner reported.** «تم تفعيل وتم تحقق و الاشارة تعمل لكن لاحضت مواصلة ارسال الاشارة
+بشكل متواصل حتى بعد عدم تفعيل خاصية live tracking after therft … ايضا لاحضت ان حارس الحركة لم
+يتفعل من صفحة الحماية بعد التسليح هل كل مرة سنضطر الى تفعيله من زر واجهة home …؟»
+
+**The repeated signal was the Lock guard speaking after every guess, not tracking.** Every wrong
+attempt at or past the threshold reached `ProtectionService` and called `dispatchAlert`; the
+ten-minute grouping only merged the History incident, never the messages. Live tracking was off and
+is unrelated: it runs only when an **intrusion incident is new** and the owner enabled it. The
+countdown is off by default and was not the source either — if it had been, the phone would have
+signalled on a clock, not on wrong unlocks. The fix is `LockAlertPolicy`: the capture still happens
+and its evidence is still stored on every later attempt, but only one message speaks for an unlock
+session — the threshold attempt (or a new incident after the grouping window, or the device-admin
+removal tamper, which carries no count). A correct unlock starts a new session, so the next burst
+speaks again. The owner's channel is no longer a stream of signals for one thief guessing.
+
+**Motion was never started from the Protection page by a button — arming did try.** `arm()` already
+started it when the stored toggle was on, but two refusals were only written to the log: no
+notification permission (A-15 makes the ongoing notice a condition of monitoring) and no installed
+storage. The screen showed the toggle, never the guard's state, so the owner could not tell a
+running guard from a refused one, and the dashboard's Start looked like the only working control.
+The Protection screen now renders the service's own claim beside the Motion toggle while armed:
+**Active**, or the honest missing step with one action — **Grant** notifications, then **Start
+now**; the same refusal surfaces when arming or saving. Starting from the dashboard stays
+equivalent and persists the same flag, so the next arming resumes it. In code: `ProtectionRuntime.arm`
+returns the start decision, `startMotionIfEnabled` is the save path, `MotionMonitoringPresentation`
+gains the setup status projection, and the Motion status copy is in English and Arabic.
+
+**A second cause found while re-reading the arm path: the screen's switches were a draft.** The
+Protection screen keeps its toggles in a `rememberSaveable` draft until **Save**, but **Arm** read
+only the stored copy. An owner who flipped Motion on and pressed Arm below it — without pressing
+Save first — armed with the old stored flag, so nothing started and the page looked broken. Arm now
+carries the visible draft (`onArmToggle(draft)` → `ProtectionRuntime.arm(context, visible)`), stores
+it before the guards start, and updates the screen's snapshot; `save` still ignores the armed flag
+(A-44's single writer), so this can never arm or disarm by itself. The g4b gate pins the carried
+draft so the old read-stored-only path cannot come back.
+
+**Tests.** `LockAlertPolicyTest` (9) pins the threshold, the silent later attempts, a burst of eight
+guesses producing exactly one signal, a new incident and a fresh session, the tamper, threshold 1,
+the clamp and the non-lock guards; `MotionMonitoringPresentationTest` gains 4 tests for the setup
+status and its copy — **13 new tests, 609 total**.
+
+**Gates, all green on CI run `42457301498` (`b32e665`, 2026-11-08T07:04:50Z→07:12:31Z, conclusion
+success):** `BUILD SUCCESSFUL in 4m 11s` for `clean test lint assembleDebug assembleDebugAndroidTest`;
+`CI TEST SUMMARY: 609 tests, 609 passed, 0 failures, 0 errors, 0 skipped`; `PASS: Lock Guard:
+watch-login only, one signal per unlock session, and no lock/reset/wipe power exists`; `PASS: A-43:
+Motion is on by default, arming and boot start it…`; `PASS: A-44…`; `PASS: design B: the A-45 lock,
+notice, ladder and zone policy stay deleted…`; `G4-B LOCAL REVIEW PASS — runtime/device evidence
+still required`; `PHASE 3 STATIC REVIEW PASS`; `LOCALE PARITY PASS — Arabic equals English key for
+key`; `PASS: the installed APK declares exactly the reviewed permission set (21 permissions)`. The
+signed release built green and the draft release `test-42457301498` publishes `app-debug.apk`,
+`app-debug-androidTest.apk` and the optimised `app-phone.apk` (2,862,644 bytes) for the phone-only
+check. The wrong-PIN end-to-end signal remains the owner's to confirm; entering the PIN is forbidden
+here, so the CI evidence proves the rule and the receiver, not the arrival on his handset. That run
+covers `b32e665` (the signal policy and the Motion status row). The arm-draft follow-up (`c8a161e`)
+is green on CI run `42504803350` (2026-11-08T17:24:23Z→17:32:51Z, conclusion success): `BUILD
+SUCCESSFUL in 4m 36s`; `CI TEST SUMMARY: 609 tests, 609 passed, 0 failures, 0 errors, 0 skipped`;
+`PASS: A-43: Motion is on by default, the arm press carries the switches shown, arming and boot start
+it…`; the same Lock Guard, G4-B, Phase 3, locale-parity and 21-permission lines; draft release
+`test-42504803350` publishes `app-phone.apk` (2,862,644 bytes, sha256 `dbf4bd98…`, versionCode 410).
+
+**Device:** build 410 installed over 408 with `adb install -r` **without launching**, while the
+launcher was in front and no Shieldra process existed; the installed base APK's sha256 matches the
+CI asset (`dbf4bd98…`), `versionCode=410`. With the owner present, the Motion-after-Arm flow was then
+**verified on the phone**: Protection screen → Motion toggle on → **Arm** pressed with no Save →
+"Armed — guarding in the background" and the new row **"Motion monitoring is active."**, backed by
+`dumpsys activity services` showing `MotionMonitoringService` `isForeground=true` with its ongoing
+notice (evidence in `qa-artifacts/phone-motion-410/`). The owner confirmed the disarm owner-check
+with his own credential (none was entered here); the screen returned to "Not armed", both services
+stopped, and the app was force-closed back to the launcher with no process. The owner then confirmed
+on 2026-11-08 that a wrong-PIN attempt **sent the signal and arrived** («تم الارسال ونجحت المحاولة»),
+so the receiver→alert path is now owner-verified on his handset; the one-signal-per-session rationing
+itself is pinned by `LockAlertPolicyTest` and the CI gate. No PIN was entered here and the lock screen
+was never touched.
+
+## 2026-11-09 — Safe-zone quieting restored (noisy layer only)
+
+**Owner decision 2026-11-08.** Inside a place he marked safe, the siren, the countdown signal and the
+Motion message are nuisance, so they stay silent there; a wrong unlock, a SIM change, a battery last
+breath and leaving a zone are evidence, so they always send. Design B's deletion of the A-45 ladder
+stays deleted — this is a four-line fail-closed rule, not a return of the lock/notice machinery.
+
+**Rule.** `SafeZoneQuietPolicy.isQuiet(geofenceEnabled, hasZones, readingFresh, inside)` — exactly one
+of sixteen combinations is quiet; no reading, a stale one, a jumped clock, the guard off or no zones
+left all keep full strength. `ProtectionRuntime.quietInSafeZone` evaluates it against
+`ZoneStateStore`/`GeofenceTicker.staleAfterMs`. Disabling the guard clears the reading and cancels the
+sampler; removing a zone clears the reading and, when the last one goes, cancels the sampler too, so a
+place the owner stopped trusting cannot keep the phone quiet.
+
+**Suppression points (evidence untouched).** `ProtectionService.captureStoreDispatch` gates only
+`MOTION_CONFIRMED_EVENT` (the row, photo and fix are stored before the message decision);
+`maybeEscalate` returns before counting so a home burst cannot siren on the first step outside;
+composite-tamper siren yields while quiet but its SIM alert still sends; `TableModeResponder.fire`
+reads the rule at fire time, after any grace window; `MotionMonitoringService` writes the row then
+skips only the local "recorded" notice; `CountdownReceiver` re-arms every cycle and withholds only the
+capture, signal and snooze notice (including the past-due boot resume).
+
+**Discoverability.** Map screen gains `safe_zones_quiet_hint`, a `safe_zone_quiet_now` accent line
+when armed and quiet, and an extended `help_zones_body`, in English and Arabic only (locale parity).
+The Map switch now schedules `GeofenceTicker`, and both enabling it and marking/removing a zone take an
+immediate reading, so "quiet inside" is true without waiting an interval.
+
+**Tests.** `SafeZoneQuietPolicyTest` (8) pins the single quiet corner, the guard-off, stale, outside,
+no-zones and all-doubt cases, and enumerates all sixteen combinations — **617 total**.
+
+**Gates, all green on CI run `42574938050` (`c82c98b`, 2026-11-09T06:44:46Z→06:56:04Z, conclusion
+success):** `BUILD SUCCESSFUL in 6m 11s`; `CI TEST SUMMARY: 617 tests, 617 passed, 0 failures, 0
+errors, 0 skipped`; `PASS: safe-zone quieting: siren, countdown and Motion messages stay home;
+wrong-PIN, SIM and leaving still send`; `G4-B LOCAL REVIEW PASS — runtime/device evidence still
+required`; `PHASE 3 STATIC REVIEW PASS`; `LOCALE PARITY PASS — Arabic equals English key for key`;
+`Group C boundary scan passed.`; `PASS: the installed APK declares exactly the reviewed permission set
+(21 permissions)`. An earlier dispatch (`42573935477`, `a2f0808`) failed to compile the new test
+because it used `org.junit` where this project uses `kotlin.test`; the fix commit `c82c98b` is the run
+above. Draft release `test-42574938050` publishes `app-phone.apk` (2,864,316 bytes, sha256
+`ee066564dd31fb9df9c4cf48d431e8b5dea190359397dd4131f7a2d87398693f`, versionCode 412).
+
+**Device:** build 412 installed over 410 with `adb install -r` **without launching**, while another app
+was in front and no Shieldra process existed; the installed base APK's sha256 matches the CI asset
+exactly, `versionCode=412`, and no Shieldra process was started. Runtime verification of the quieting
+(zones on → siren/countdown/Motion message silent, Motion still recorded, wrong PIN still sends) is
+the owner's to confirm on the phone; the checklist is `qa/phone-checklist-safe-zone-quiet-2026-11-09.md`
+(not committed).
+
+## 2026-11-09 — a heartbeat launcher icon, and a welcome shield that breathes
+
+**Owner request 2026-11-09.** «ايضا اريد ايقونة اكثر جمالا للتطبيق تنبض بالحياة» — a more beautiful icon
+that feels alive. Android draws a launcher icon once and freezes it; no launcher API animates it, so
+the life has to live in the mark and in the first screen the owner meets.
+
+**The mark.** All in the 108 dp adaptive viewport, and everything inside the 66 dp guaranteed-visible
+circle so no launcher mask clips it: a deep-space diagonal gradient (`#161C26 → #0A0E14 → #05070B`)
+with a soft teal aurora, one faint radar ping (30 dp radius, 20 % teal), a teal-rimmed shield holding
+an ECG trace, and a low glow disc under it. Layers: `ic_launcher_background`, `ic_launcher_foreground`,
+`ic_launcher_monochrome` (solid silhouette for Android 13 themed icons — the ECG is a stroke and would
+merge into the shield under a system tint), wired from `mipmap-anydpi-v26/ic_launcher.xml` and
+`ic_launcher_round.xml`. The manifest now points at `@mipmap/ic_launcher` + `@mipmap/ic_launcher_round`
+and the superseded `drawable/ic_launcher.xml` is gone. `phase3-review-check.sh` used to treat any
+`@mipmap` reference as an unsupported icon; it now verifies every adaptive, round and monochrome layer
+and the round reference exist, matching the protocol's launcher section.
+
+**The breath.** `WelcomeScreen`'s shield now runs one `rememberInfiniteTransition`: scale `1f → 1.03f`
+and halo alpha `0.10 → 0.26`, `tween(motion.breathingMs = 3000, easingStandard)` with
+`RepeatMode.Reverse` — the same calm timing `ShieldCore` already breathes with on the dashboard. The
+canvas grew to 180 dp so the halo has room; the shield path is the existing `createShieldPath` at 80 %.
+This is the welcome screen only — it appears before onboarding is completed, never over a returning
+owner's dashboard (A-27/Q-K-7).
+
+**Gates, all green on CI run `42578191104` (`f24f827`, 2026-11-09T07:15:40Z, conclusion success):**
+`CI TEST SUMMARY: 617 tests, 617 passed, 0 failures, 0 errors, 0 skipped`; `PASS: the manifest launcher
+icon has its adaptive, round and monochrome layers`; `PHASE 3 STATIC REVIEW PASS`; `G4-B LOCAL REVIEW
+PASS — runtime/device evidence still required`; `LOCALE PARITY PASS — Arabic equals English key for
+key`; `Group C boundary scan passed.`; `PASS: the installed APK declares exactly the reviewed
+permission set (21 permissions)`. Draft release `test-42578191104` publishes `app-phone.apk` (2,868,956
+bytes, sha256 `e589471dd92f28a77171b45dc4c58ec3804436b48c8a14c6a49df7450f7fc787`, versionCode 413).
+`aapt2` confirms the shipped package resolves its application icon to the compiled adaptive XML whose
+tree holds `background`, `foreground` and `monochrome` at the three expected drawable ids.
+
+**Device:** build 413 installed over 412 with `adb install -r` **without launching**, no Shieldra
+process before or after, another QA app in front; the installed base APK's sha256 matches the CI asset
+exactly, `versionCode=413`. The new icon is visible to the owner in the launcher; an OEM launcher that
+caches icons may need a refresh. The breathing welcome shield cannot be shown on this install without
+clearing app data (destructive, not done) — it is reachable on a first run, and its motion is pinned by
+the build and by the design replica in `qa/icon-preview.html` (not committed).
+
+## 2026-11-10 — the real snatch lock returns: lock at once, ten minutes of proof, then automatic escalation (A-46)
+
+**Owner request 2026-11-10.** «عند التصعيد يتم مواصلة ارسال الاشارة كل x دقيقة حتى يتم كما قلت الدخول
+الى منطقة الامان … الحالة ثانية لا يدخل لاي منطقة امان يتم مواصلة الارسال ويدخل هنا في عين الاعتبار
+البطارية يعني وصول الى 10 بالمئة كما هو متفق». A confirmed snatch locks the screen at once and captures
+nothing at that moment — a location while the thief runs is noise; the phone rings and vibrates for ten
+minutes while the owner proves ownership by unlocking with their own credential or by pressing the app's
+stop button; without proof the ladder escalates by itself every five or ten minutes, pauses inside a
+safe zone, and treats 10 % battery as the agreed floor. The decision record, including what is
+deliberately absent, is `docs/superpowers/specs/2026-11-10-snatch-lock-a46-design.md`.
+
+**What the build does.** A Motion snatch outside a safe zone starts `SnatchCoordinator.begin`: the one
+`DeviceScreenLock.now` caller issues `lockNow()`, the public demand notification (`shieldra_snatch_v1`,
+trilingual from resources, chronometer, dial action) and the repeating vibration start, and the periodic
+countdown stops. The first ten minutes are proof-only — unlocking with the owner's credential after the
+lock (never within the first fifteen seconds) or the in-app «أنا المالك» button clears the whole
+incident and restarts the countdown at the owner's interval; a wrong PIN only accelerates. Without proof
+the ladder escalates every 5/10 minutes through `ProtectionService.requestCaptureForEvent`, slows to
+ten minutes at ≤10 % unplugged, pauses without forgetting inside a safe zone, and ends at six hours. The
+incident lives in device-protected `shieldra_snatch`; after a reboot with no first unlock,
+`LOCKED_BOOT_COMPLETED` re-posts a public demand and keeps it alive every ten minutes — no capture is
+possible before the credential is available, and the first unlock is itself proof. `device_admin.xml`
+now asks for `force-lock`; the regrant trap (an admin granted before this build does not gain it) is
+surfaced as a red row in the Protection screen. `VIBRATE` brings the reviewed set to 22 permissions.
+`eraseAll` wipes both device-protected stores.
+
+**Tests.** Fourteen new JVM tests pin the pure policy and the notice joining rule — ten in
+`SnatchPolicyTest`, four in `SnatchTextTest` — for **631 total**.
+
+**Gates, all green on CI run `42772181438` (`0ddd6b0`, 2026-11-10T06:59:38Z→07:08:29Z, conclusion
+success):** `CI TEST SUMMARY: 631 tests, 631 passed, 0 failures, 0 errors, 0 skipped`; `G4-B LOCAL
+REVIEW PASS — runtime/device evidence still required`; `PHASE 3 STATIC REVIEW PASS`; `LOCALE PARITY
+PASS — Arabic equals English key for key`; `Group C boundary scan passed.`; `PASS: the installed APK
+declares exactly the reviewed permission set (22 permissions)`. Draft release `test-42772181438`
+publishes `app-phone.apk` (2,897,912 bytes, sha256
+`ab6286b5bfc521fb7571d975251b4d884613f3832dfe668125b93c1e404e1189`, versionCode 415).
+
+**A failed dispatch stays on the record.** The first run `42770528740` (`b834695`) failed in
+`:app:lintDebug`: the new battery note's literal `%` read as a format specifier
+(`StringFormatInvalid`), because the note is display-only and never formatted. Fixed by marking the
+English and Arabic strings `formatted="false"` (`0ddd6b0`); the rerun above is the verified one.
+
+**Device:** build 415 installed over 413 with `adb install -r` **without launching**, another app in
+front, no Shieldra process before or after; the installed base APK's sha256 matches the CI asset
+exactly, `versionCode=415`. The lock, the vibration, the trilingual lock-screen demand, the ten-minute
+escalation and the safe-zone pause are the owner's to confirm on the phone; the checklist is
+`qa/phone-checklist-snatch-lock-a46-2026-11-10.md` (not committed).
+
+## 2026-11-12 — the Motion guard acts only on the measured snatch signature, and unlocking is the proof (A-47)
+
+**Owner request 2026-11-11/12.** The owner rejected A-46's trigger: with no safe zone created, every
+confirmed Motion opened the full snatch, so a walk with the phone, a run for the bus, a table lift and
+a motorcycle ride all locked the screen and escalated. The correction, recorded with the owner's
+«موافق» after the rebuilt plan was read in full: safe zones exist to reduce alarms and leaving one must
+not start escalating alarms; the Motion guard acts only on an "at rest → grab → sustained locomotion"
+signature measured on this phone; and the proof of ownership is unlocking the phone, not pressing the
+app's stop button. The record is `docs/superpowers/specs/2026-11-10-a47-zone-silencer-snatch-proof-design.md`.
+
+**What the build does.** `SnatchSignaturePolicy` is the pure classifier, with the constants in
+`ApprovedSnatchSignatureCalibration` (same file): the stream is split into bursts at the 0.8 m/s² noise
+floor with a >500 ms silence separator; a burst qualifies only if it holds a ≥3.0 m/s² grab reading, a
+fully measured 2500 ms calm before its first reading, and **≥1200 ms at ≥14.0 m/s² inside
+`[burstStart+1000, burstStart+6000]`**; the first qualifying burst wins; an unreadable stream
+fail-closes to Ordinary. `MotionMonitoringService` keeps a rolling signature window beside the
+confirmed window, classifies a copy before `samples.clear()`, tries every burst instead of spending the
+one confirmation on a cable spike, and holds the decision until `verdictFixedAtMs` so the follow window
+is measured to its end even though the first confirmation arrives about 3 s after the burst. A stream
+break beyond `maxSampleGapMs` or teardown fails closed. `TableModeResponder.onMotionConfirmed(...,
+snatchSignature)` opens `SnatchCoordinator.begin` only for a signed snatch outside a zone; every other
+Motion keeps the base response, and inside a zone there is no challenge. The challenge is the real lock
+plus the trilingual demand; the runtime `ACTION_USER_PRESENT` receiver proves ownership on unlock at
+once, the 20 s / 60 s / 3 min / 5 min checkpoints (and the ten-minute tick as ceiling) cover a killed
+process, and `proofSeenAtMs` is persisted so a kill between the write and the teardown closes the
+incident instead of sending. A wrong PIN counts first and accelerates only at the lock threshold; the
+A-36 leave-zone `TRACKING` alert is deleted while the zone state is still written. The Motion guard
+itself still records its base evidence for every confirmed episode.
+
+**The measured numbers behind the rule.** The probe on the owner's phone measured, at ≥14.0 m/s² inside
+the follow window: ordinary table lifts and walks 0 ms; three pocket walks 548/236/804 ms; the weakest
+snatch shapes 2272/1911 ms (vehicle), 4772/4488 ms (grab + run). The 1200 ms gate sits 396 ms above the
+worst ordinary burst and 711 ms below the weakest snatch burst. A lower pair (≥10.0 with 1500 ms) was
+discarded — three ordinary pocket walks supply 1515, 1552 and 1183 ms of movement there. The honest
+residual risk is a pocket *run*, which was not measured; unlocking is what makes such a false positive
+cheap.
+
+**Tests.** Six new JVM tests pin `verdictFixedAtMs` — a burst without a grab reading, a burst at the
+window start without measured calm, asked-before-due (9000), two grab bursts (12400), asked at/after
+the deadline, and a NaN stream — for **659 total**. `g4b-review-check.sh` moved with the behaviour in
+the same commit: the responder gate, the single `SnatchCoordinator.begin` caller, the new
+`snatchSignature` parameter, nine Motion-service pins, the signature-window line order before
+`guardPipeline.observe`, and five named signature tests.
+
+**Gates, all green on CI run `43100534074` (`06b617a`, run number 423, 2026-11-11T21:08:44Z→21:20:11Z,
+conclusion success):** `CI TEST SUMMARY: 659 tests, 659 passed, 0 failures, 0 errors, 0 skipped`;
+`G4-B LOCAL REVIEW PASS — runtime/device evidence still required`; `PHASE 3 STATIC REVIEW PASS`;
+`LOCALE PARITY PASS — Arabic equals English key for key`; `Group C boundary scan passed.`; `PASS: the
+installed APK declares exactly the reviewed permission set (22 permissions)`. The stage commits are
+design `e77a60c`, pure policy `f9882b6`, instant proof `947d1af` + locked-boot demand `2b3d5ed`,
+calibration revision `39e5f0e`, wiring `06b617a`.
+
+**A failed dispatch stays on the record.** Two dispatches (`43097200035`, `43098197281`, both
+`06b617a`) returned `startup_failure` with `jobs: []` while GitHub Actions was in a major outage
+(incident `dvy0t3mvh1lg`); the repository, workflow and permissions were unchanged and no check was
+created. After the Actions status returned to operational at 21:08:43Z, the dispatch above ran green.
+No code change was involved.
+
+**Device:** build 423 installed over 418 (the calibration build) with `adb install -r` **without
+launching**, the launcher in front before and after, no Shieldra process or service, app data and prefs
+preserved; the installed base APK's sha256
+`64b761263bea952ffaabf7cf14c344aef3ed480353686f2df8ba9153efe5650f` matches the CI artifact
+(21,418,156 bytes) exactly, `versionCode=423`, `versionName=0.2.0`. The matching `androidTest` APK
+(sha256 `f50ec0975763353d7dfe22f953747da53ef06bd7c66603da1264435b53480d66`, 635,385 bytes) is installed
+for the owner's matrix. The lock, the trilingual demand, the vibration, the instant unlock proof and
+the ten-minute ladder are physically verifiable only by the owner; the 18-row acceptance matrix of the
+design (§7) is the checklist, copied to `qa/phone-checklist-a47-signature-2026-11-12.md` (not
+committed).
