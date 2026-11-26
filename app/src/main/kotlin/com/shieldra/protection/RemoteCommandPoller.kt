@@ -20,8 +20,8 @@ import kotlinx.coroutines.runBlocking
  *  - `/alarm` / `/stopalarm` — sound or silence the loud siren.
  *  - `/status` — reply with battery, network and armed state.
  *
- * It runs on one daemon thread and stops the moment protection is disarmed or the option is turned
- * off. Nothing is shown on the phone.
+ * It runs on one daemon thread and stops the moment protection is disarmed, the option is turned
+ * off, or the plan no longer allows remote commands. Nothing is shown on the phone.
  */
 class RemoteCommandPoller(context: Context) {
     private val app = context.applicationContext
@@ -45,7 +45,17 @@ class RemoteCommandPoller(context: Context) {
         stopTrack()
     }
 
-    private fun active(): Boolean = ProtectionSettingsStore(app).load().let { it.armed && it.remoteCommandsEnabled }
+    /**
+     * Whether the loop may keep running. It asks the plan as well as the switch, because a tier is
+     * not fixed for the life of this process: `PlayProStore` rewrites it whenever Google Play
+     * answers, and nothing restarts the service when it does. Asking only armed + switch would let a
+     * subscription that lapsed mid-run keep obeying `/photo`, `/alarm` and `/track` (P4-20).
+     */
+    private fun active(): Boolean = ProtectionSettingsStore(app).load().let {
+        it.armed &&
+            it.remoteCommandsEnabled &&
+            com.shieldra.billing.TierGate.allowsRemote(it.tier)
+    }
 
     private fun loop() {
         val delivery = DeliverySettingsStore(app).load()
