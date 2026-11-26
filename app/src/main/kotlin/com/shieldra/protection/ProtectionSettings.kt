@@ -19,7 +19,7 @@ data class ProtectionSettings(
     val countdownEnabled: Boolean = false,
     val countdownIntervalMs: Long = 60 * 60_000L,
     val motionResponse: MotionResponse = MotionResponse.SILENT,
-    val motionGraceSeconds: Int = 5,
+    val motionGraceSeconds: Int = MotionResponsePlan.DEFAULT_GRACE_SECONDS,
     val retentionDays: Int = 30,
     val remoteCommandsEnabled: Boolean = false,
     val liveTrackingEnabled: Boolean = false,
@@ -32,7 +32,7 @@ data class ProtectionSettings(
      * detects and alerts only; the Lock guard is the one that reacts to wrong unlock attempts.
      */
     val motionEnabled: Boolean = true,
-    val audioSeconds: Int = 10,
+    val audioSeconds: Int = AudioCapture.DEFAULT_SECONDS,
     val escalationEnabled: Boolean = false,
     val escalationThreshold: Int = EscalationPolicy.DEFAULT_THRESHOLD,
     val geofenceEnabled: Boolean = false,
@@ -80,7 +80,7 @@ class ProtectionSettingsStore(context: Context) {
                 prefs.getString(KEY_MOTION_RESPONSE, ProtectionSettings.MotionResponse.SILENT.name).orEmpty(),
             )
         }.getOrDefault(ProtectionSettings.MotionResponse.SILENT),
-        motionGraceSeconds = prefs.getInt(KEY_MOTION_GRACE, 5),
+        motionGraceSeconds = prefs.getInt(KEY_MOTION_GRACE, MotionResponsePlan.DEFAULT_GRACE_SECONDS),
         retentionDays = prefs.getInt(KEY_RETENTION, 30),
         remoteCommandsEnabled = prefs.getBoolean(KEY_REMOTE, false),
         liveTrackingEnabled = prefs.getBoolean(KEY_TRACK, false),
@@ -89,7 +89,7 @@ class ProtectionSettingsStore(context: Context) {
         dualCameraEnabled = prefs.getBoolean(KEY_DUAL_CAM, false),
         audioEnabled = prefs.getBoolean(KEY_AUDIO, false),
         motionEnabled = prefs.getBoolean(KEY_MOTION_ENABLED, true),
-        audioSeconds = prefs.getInt(KEY_AUDIO_SECONDS, 10),
+        audioSeconds = prefs.getInt(KEY_AUDIO_SECONDS, AudioCapture.DEFAULT_SECONDS),
         escalationEnabled = prefs.getBoolean(KEY_ESCALATION, false),
         escalationThreshold = prefs.getInt(KEY_ESCALATION_THRESHOLD, EscalationPolicy.DEFAULT_THRESHOLD),
         geofenceEnabled = prefs.getBoolean(KEY_GEOFENCE, false),
@@ -120,7 +120,7 @@ class ProtectionSettingsStore(context: Context) {
             .putBoolean(KEY_COUNTDOWN, settings.countdownEnabled)
             .putLong(KEY_COUNTDOWN_INTERVAL, settings.countdownIntervalMs)
             .putString(KEY_MOTION_RESPONSE, settings.motionResponse.name)
-            .putInt(KEY_MOTION_GRACE, settings.motionGraceSeconds)
+            .putInt(KEY_MOTION_GRACE, settings.motionGraceSeconds.coerceIn(MotionResponsePlan.MIN_GRACE_SECONDS, MotionResponsePlan.MAX_GRACE_SECONDS))
             .putInt(KEY_RETENTION, settings.retentionDays)
             .putBoolean(KEY_REMOTE, settings.remoteCommandsEnabled)
             .putBoolean(KEY_TRACK, settings.liveTrackingEnabled)
@@ -129,7 +129,7 @@ class ProtectionSettingsStore(context: Context) {
             .putBoolean(KEY_DUAL_CAM, settings.dualCameraEnabled)
             .putBoolean(KEY_AUDIO, settings.audioEnabled)
             .putBoolean(KEY_MOTION_ENABLED, settings.motionEnabled)
-            .putInt(KEY_AUDIO_SECONDS, settings.audioSeconds)
+            .putInt(KEY_AUDIO_SECONDS, settings.audioSeconds.coerceIn(AudioCapture.MIN_SECONDS, AudioCapture.MAX_SECONDS))
             .putBoolean(KEY_ESCALATION, settings.escalationEnabled)
             .putInt(KEY_ESCALATION_THRESHOLD, settings.escalationThreshold.coerceIn(EscalationPolicy.MIN_THRESHOLD, EscalationPolicy.MAX_THRESHOLD))
             .putBoolean(KEY_GEOFENCE, settings.geofenceEnabled)

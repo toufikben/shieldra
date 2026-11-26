@@ -79,7 +79,12 @@ object TableModeResponder {
             fire(context, eventId, snatchSignature, siren = plan.sirenAfterGrace)
         }
         pending = runnable
-        handler.postDelayed(runnable, graceSeconds.coerceAtLeast(0) * 1000L)
+        handler.postDelayed(
+            runnable,
+            graceSeconds
+                .coerceIn(MotionResponsePlan.MIN_GRACE_SECONDS, MotionResponsePlan.MAX_GRACE_SECONDS)
+                .toLong() * 1000L,
+        )
     }
 
     private fun fire(context: Context, eventId: String, snatchSignature: Boolean, siren: Boolean) {

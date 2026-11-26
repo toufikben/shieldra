@@ -29,4 +29,12 @@ class MotionResponsePlanTest {
         assertFalse(plan.sirenNow)
         assertTrue(plan.sirenAfterGrace)
     }
+
+    /** P4-19: the bounds the setup slider draws are the bounds the responder now clamps to. */
+    @Test
+    fun `the published grace bounds contain the default`() {
+        assertTrue(MotionResponsePlan.MIN_GRACE_SECONDS <= MotionResponsePlan.DEFAULT_GRACE_SECONDS)
+        assertTrue(MotionResponsePlan.DEFAULT_GRACE_SECONDS <= MotionResponsePlan.MAX_GRACE_SECONDS)
+        assertTrue(MotionResponsePlan.MIN_GRACE_SECONDS < MotionResponsePlan.MAX_GRACE_SECONDS)
+    }
 }

@@ -21,7 +21,7 @@ import java.util.UUID
 class AudioCapture(private val context: Context) {
 
     /** Records [seconds] of audio as AAC/MP4 and returns its bytes and media type, or null. */
-    suspend fun record(seconds: Int = 10): Pair<ByteArray, String>? = withContext(Dispatchers.IO) {
+    suspend fun record(seconds: Int = DEFAULT_SECONDS): Pair<ByteArray, String>? = withContext(Dispatchers.IO) {
         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             return@withContext null
         }
@@ -36,7 +36,7 @@ class AudioCapture(private val context: Context) {
             recorder.setOutputFile(file.absolutePath)
             recorder.prepare()
             recorder.start()
-            delay(seconds.coerceIn(3, 60).toLong() * 1000L)
+            delay(seconds.coerceIn(MIN_SECONDS, MAX_SECONDS).toLong() * 1000L)
             true
         }.getOrElse {
             Log.w(TAG, "audio record failed: ${it.message}")
@@ -53,7 +53,16 @@ class AudioCapture(private val context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(context) else @Suppress("DEPRECATION") MediaRecorder()
     }.getOrNull()
 
-    private companion object {
-        const val TAG = "ShieldraAudio"
+    companion object {
+        private const val TAG = "ShieldraAudio"
+
+        /**
+         * The clip lengths the recorder really honours. The setup slider takes its range from these
+         * two, so the owner can ask for exactly what the recorder will deliver and nothing more —
+         * the screen used to draw `5f..30f` while this file clamped to `3..60`, and the two never met.
+         */
+        const val MIN_SECONDS = 3
+        const val MAX_SECONDS = 60
+        const val DEFAULT_SECONDS = 10
     }
 }

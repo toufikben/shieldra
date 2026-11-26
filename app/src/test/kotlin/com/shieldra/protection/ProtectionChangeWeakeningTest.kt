@@ -53,7 +53,12 @@ class ProtectionChangeWeakeningTest {
 
     @Test
     fun a_longer_motion_grace_delays_the_response() {
-        assertTrue(ProtectionChange.weakens(armed.copy(motionGraceSeconds = 5), armed.copy(motionGraceSeconds = 60)))
+        assertTrue(
+            ProtectionChange.weakens(
+                armed.copy(motionGraceSeconds = MotionResponsePlan.MIN_GRACE_SECONDS),
+                armed.copy(motionGraceSeconds = MotionResponsePlan.MAX_GRACE_SECONDS),
+            ),
+        )
     }
 
     @Test

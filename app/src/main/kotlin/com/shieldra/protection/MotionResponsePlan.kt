@@ -19,6 +19,15 @@ data class MotionResponsePlan(
     val sirenAfterGrace: Boolean,
 ) {
     companion object {
+        /**
+         * The grace window's bounds, published so the setup slider and the responder agree. The
+         * responder clamps to these two; before P4-19 the screen drew `3f..30f` and this file had no
+         * bound at all, so the screen was the only limit and nothing could be checked against it.
+         */
+        const val MIN_GRACE_SECONDS = 0
+        const val MAX_GRACE_SECONDS = 30
+        const val DEFAULT_GRACE_SECONDS = 5
+
         fun of(response: ProtectionSettings.MotionResponse): MotionResponsePlan = when (response) {
             ProtectionSettings.MotionResponse.SILENT -> MotionResponsePlan(
                 sirenNow = false,

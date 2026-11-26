@@ -45,8 +45,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import com.shieldra.app.design.components.foundation.ShieldraTextField
 import com.shieldra.app.presentation.guard.MotionMonitoringPresentation
+import com.shieldra.protection.AudioCapture
+import com.shieldra.protection.BatteryBreathLogic
 import com.shieldra.protection.CountdownDeadline
 import com.shieldra.protection.EscalationPolicy
+import com.shieldra.protection.FailedUnlockCounter
+import com.shieldra.protection.MotionResponsePlan
 import com.shieldra.protection.ProtectionSettings
 import com.shieldra.protection.SnatchPolicy
 import com.shieldra.protection.TrackingCadence
@@ -284,8 +288,8 @@ fun ProtectionSetupScreen(
             StepperRow(
                 label = stringResource(R.string.protection_lock_threshold, draft.lockThreshold),
                 value = draft.lockThreshold.toFloat(),
-                range = 1f..5f,
-                steps = 3,
+                range = FailedUnlockCounter.MIN_THRESHOLD.toFloat()..FailedUnlockCounter.MAX_THRESHOLD.toFloat(),
+                steps = FailedUnlockCounter.MAX_THRESHOLD - FailedUnlockCounter.MIN_THRESHOLD - 1,
             ) { draft = draft.copy(lockThreshold = it.toInt()) }
         }
         GuardToggle(
@@ -302,11 +306,13 @@ fun ProtectionSetupScreen(
             checked = draft.batteryEnabled,
         ) { draft = draft.copy(batteryEnabled = it) }
         if (draft.batteryEnabled) {
+            // The guard's own bounds, not a literal: the screen used to draw 5..50 while
+            // BatteryBreathLogic accepts from 3, so the two lowest levels it honours were unreachable.
             StepperRow(
                 label = stringResource(R.string.protection_battery_level, draft.batteryThreshold),
                 value = draft.batteryThreshold.toFloat(),
-                range = 5f..50f,
-                steps = 8,
+                range = BatteryBreathLogic.MIN_LEVEL.toFloat()..BatteryBreathLogic.MAX_LEVEL.toFloat(),
+                steps = BatteryBreathLogic.MAX_LEVEL - BatteryBreathLogic.MIN_LEVEL - 1,
             ) { draft = draft.copy(batteryThreshold = it.toInt()) }
         }
 
@@ -380,11 +386,13 @@ fun ProtectionSetupScreen(
             onLocked = onOpenPro,
         ) { draft = draft.copy(audioEnabled = it) }
         if (draft.audioEnabled) {
+            // The recorder's own bounds: it used to be 5..30 in the screen while AudioCapture clamped
+            // to 3..60, so the slider offered a promise the recorder never made in either direction.
             StepperRow(
                 label = stringResource(R.string.protection_audio_seconds, draft.audioSeconds),
                 value = draft.audioSeconds.toFloat(),
-                range = 5f..30f,
-                steps = 24,
+                range = AudioCapture.MIN_SECONDS.toFloat()..AudioCapture.MAX_SECONDS.toFloat(),
+                steps = AudioCapture.MAX_SECONDS - AudioCapture.MIN_SECONDS - 1,
             ) { draft = draft.copy(audioSeconds = it.toInt()) }
         }
 
@@ -416,11 +424,13 @@ fun ProtectionSetupScreen(
         }
         if (draft.motionResponse == ProtectionSettings.MotionResponse.GRACE_THEN_SIREN) {
             Spacer(Modifier.height(spacing.s))
+            // The plan's own bounds: the responder accepts any non-negative wait, so 3..30 was a
+            // number the screen invented and nothing else published.
             StepperRow(
                 label = stringResource(R.string.protection_motion_grace_seconds, draft.motionGraceSeconds),
                 value = draft.motionGraceSeconds.toFloat(),
-                range = 3f..30f,
-                steps = 26,
+                range = MotionResponsePlan.MIN_GRACE_SECONDS.toFloat()..MotionResponsePlan.MAX_GRACE_SECONDS.toFloat(),
+                steps = MotionResponsePlan.MAX_GRACE_SECONDS - MotionResponsePlan.MIN_GRACE_SECONDS - 1,
             ) { draft = draft.copy(motionGraceSeconds = it.toInt()) }
         }
 
