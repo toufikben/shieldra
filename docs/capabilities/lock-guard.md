@@ -1,6 +1,6 @@
 # Lock Guard — Restored (A-33, owner order 2026-11-07)
 
-**Status:** ACTIVE. The Lock guard is back in this build with one platform power and no others.
+**Status:** ACTIVE. The Lock guard is back in this build with exactly two platform powers and no others.
 
 ## Why it is back
 

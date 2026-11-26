@@ -6,9 +6,11 @@ import java.time.Instant
 /**
  * Approved product-level Guard categories; platform adapters are intentionally absent.
  *
- * Design B (2026-11-06): there is no LOCK category. Its only sensor was the device-admin
- * `onPasswordFailed` callback, an authority the app may not hold, so the guard was removed with
- * its boundary rather than kept as a category nothing can ever feed.
+ * There is no LOCK category, and A-46 does not add one. A wrong unlock is not a guard boundary: it
+ * arrives as a device-admin `onPasswordFailed` callback into `LockGuardReceiver`, which counts it and
+ * raises `LOCK_CONFIRMED_EVENT` — a sensor feeding the engine, not a category the engine dispatches.
+ * Design B (2026-11-06) had removed the category together with the guard; the guard came back in
+ * `bb0455f`, the category did not, and the asymmetry is deliberate.
  */
 enum class GuardKind {
     MOTION,

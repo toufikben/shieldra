@@ -7,8 +7,11 @@ package com.shieldra.protection
  * owner picked: whether the siren sounds now, or only after the grace window that their own unlock can
  * cancel. That wait is the difference between picking your own phone up and a snatch.
  *
- * There is deliberately no lock field: SHIELDRA holds no device administrator and no screen-lock power
- * (design B, 2026-11-06), so a response can make noise and take evidence but can never take the screen.
+ * There is deliberately no lock field here, and the reason changed with A-46: this plan describes the
+ * **noisy** half of the response, and the screen lock is not the owner's choice — a Motion that carries
+ * the measured snatch signature is locked by [SnatchCoordinator] before this plan is consulted at all,
+ * whatever the owner picked here. Keeping the lock out of the plan keeps "silent" meaning silent sound,
+ * not "leave the screen open".
  */
 data class MotionResponsePlan(
     val sirenNow: Boolean,

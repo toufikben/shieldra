@@ -120,7 +120,7 @@ object ProtectionRuntime {
         runCatching {
             // The owner chose silence; a patrol that kept waking to report it would be a defect.
             GuardWatchdog.cancel(app)
-            // A-45 D2: the safe-zone tick feeds the quiet decision and the leave-a-zone alert, so it
+            // A-45 D2: the safe-zone tick feeds the quiet decision and the snatch-lock zone gate, so it
             // stops with the guards, and the last reading is dropped — a phone that was at home while
             // armed must not be assumed at home for the next arming, which could be months and a
             // different city later.
@@ -152,10 +152,10 @@ object ProtectionRuntime {
 
     /**
      * The Map switch is the same instruction as saving the Protection screen: the alarm that keeps
-     * the reading fresh — and with it the quiet decision and the leave-a-zone alert — must start from
-     * here too, because the service instance is already running and will not call its arm path again.
-     * Switching the guard off cancels the alarm and drops the reading, so a place the owner stopped
-     * trusting cannot keep the phone quiet later.
+     * the reading fresh — and with it the quiet decision and the snatch lock's zone gate — must start
+     * from here too, because the service instance is already running and will not call its arm path
+     * again. Switching the guard off cancels the alarm and drops the reading, so a place the owner
+     * stopped trusting cannot keep the phone quiet later.
      */
     fun setGeofenceEnabled(context: Context, enabled: Boolean) {
         val app = context.applicationContext

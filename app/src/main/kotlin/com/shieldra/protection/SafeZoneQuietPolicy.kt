@@ -6,8 +6,9 @@ package com.shieldra.protection
  *
  * Inside a place the owner marked safe (home, work) the loud and periodic layer is nuisance: the
  * siren, the countdown signal and the Motion alert. Those go quiet. Detection and evidence do not:
- * a Motion still records its event and stores its photo/fix, and the wrong-unlock, SIM, battery and
- * leave-a-zone alerts are never touched by this policy — they are evidence, not noise.
+ * a Motion still records its event and stores its photo/fix, and the wrong-unlock, SIM and battery
+ * alerts are never touched by this policy — they are evidence, not noise. (The snatch lock is not
+ * silenced here: A-47 makes it open only *outside* a zone, so inside one there is nothing to silence.)
  *
  * Fail-closed by construction: quiet needs the zone guard on, at least one zone to be inside of, a
  * reading that is still fresh, and that reading saying inside. No reading, a stale one, a clock that

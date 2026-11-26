@@ -18,11 +18,12 @@ import java.time.Instant
 /**
  * Records protection events and attaches the evidence each capture produced (A-33/A-34).
  *
- * Lock attempts were once grouped here: repeated wrong unlocks inside the reuse window joined one
- * open Lock incident. Design B (2026-11-06) took that guard away with its device-admin sensor, so
- * [openOrBind] has no Lock type to group and [grouped] is false for every trigger this build has.
- * What the grouping path still serves is one guard firing repeatedly inside [reuseWindow]. SIM,
- * countdown and battery events each stand alone. The binding never crosses types.
+ * Two triggers group: repeated wrong unlocks inside the reuse window join one open Lock incident
+ * (`LockGuardReceiver` raises `LOCK_CONFIRMED_EVENT` once per burst, and a second burst inside the
+ * window belongs to the same incident), and a SIM guard firing again inside the window joins its own
+ * open SIM incident. Countdown, battery, tamper, motion and panic each stand alone. The binding never
+ * crosses types. Design B (2026-11-06) had removed the Lock grouping with the guard; `bb0455f` brought
+ * the guard back and the grouping with it.
  */
 class ProtectionEvents(
     private val repository: EventRepository,

@@ -14,9 +14,10 @@ import kotlinx.coroutines.runBlocking
  *
  * The old sampler was a `Handler` inside [ProtectionService]: it died with the process, drifted in Doze,
  * and its "was inside" flag lived in a field, so every restart silently assumed the phone was at home
- * again. The one-shot leave-a-zone alert (A-36) is a crossing, and a crossing needs the last reading to
- * survive a restart — otherwise every restart would re-announce the same zone. So the tick is an alarm
- * and the state is on disk, in [ZoneStateStore].
+ * again. That reading still has to survive a restart even though A-47 D2 retired the leave-a-zone alert:
+ * it is what the quiet rule and the snatch lock read, and a restart that forgot it would quietly stop
+ * silencing the phone inside the owner's own home. So the tick is an alarm and the state is on disk, in
+ * [ZoneStateStore].
  *
  * Exact alarms are used when the owner allowed them and idle-capable inexact ones when not — the same
  * reading the countdown and the guard patrol use — because a late zone reading is worse protection than

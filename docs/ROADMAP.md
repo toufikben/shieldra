@@ -973,6 +973,10 @@ the zone states against a real geofence and the `SHIELDRA_LIFT` samples are pend
 
 ## Design B — the app holds no privileges, and the dead guards leave (`remove-owner-privileges`, 2026-11-06)
 
+> **This section is history, fully superseded.** A-46 (owner decision 2026-11-10, below) restored the
+> real screen lock with `force-lock`, and the administrator is part of the build again. Read what
+> follows as the record of a decision that was later reversed, not as the design that ships.
+
 **The owner's direction.** The current design is **B**: a passive SIM watchdog — no screen lock, no
 lock-screen demand, no snatch ladder, and the app must never hold device-admin powers (an already
 granted one is released). The A-45 ladder rested on `DeviceAdminReceiver.ACTION_PASSWORD_FAILED`,
@@ -1017,9 +1021,12 @@ It is named here so the removal is traceable to a decision rather than an accide
 
 **Gates, all run locally on 2026-11-06 and all PASS:** `LOCALE PARITY PASS — Arabic equals English
 key for key`; `Group C boundary scan passed`; `PHASE 3 STATIC REVIEW PASS`; `G4-B LOCAL REVIEW
-PASS — runtime/device evidence still required`. The g4b design-B section asserts the absence of
+PASS — runtime/device evidence still required`. The g4b design-B section asserted the absence of
 the administrator, `lockNow(`, `/lock`, the Lock settings keys and the withdrawn Lock strings, so
-the privilege cannot return quietly; its history-type check now names the remaining guards only.
+the privilege could not return quietly; its history-type check then named the remaining guards only.
+That section was rewritten when A-46 restored the lock — it now **requires** `force-lock`, a single
+`lockNow()` caller, `NEEDS_REGRANT` and no `/lock` command, and it still forbids `lockNow(` anywhere
+outside `DeviceScreenLock.kt`.
 
 **CI:** `42167431517` **success** on `f980a08`; `42170370960` **success** on `90d4b1f`;
 `42172685894` **failure** on `0fd5ae1` — `ProtectionService.kt:186/257 Too many arguments for
@@ -1044,7 +1051,7 @@ opportunistically, but it is not a condition.
 
 ## General-app gaps — seven defects found by testing the app as an app (`fix/general-app-gaps`, 2026-11-06)
 
-**Why this batch exists.** Design B closed the anti-theft question, and the owner moved the focus:
+**Why this batch exists.** Design B had, at that date, closed the anti-theft question, and the owner moved the focus:
 «نحن الان نختبر التطبيق بشكل عام و ليس ميزة مكافحة السرقة». Reading the general flows — setup,
 export, map, history, health — against what the screens actually promise produced findings
 G-8…G-14. Each fix keeps its rule in a pure function or a data class so it is tested off-device,
@@ -1090,7 +1097,9 @@ had retired the guard on a true but irrelevant premise: AOSP `DevicePolicyManage
 provisioned administrator itself. The owner had granted that administrator before and saw the alert
 fire. The guard therefore returns, and the policy stays exactly as wide as the sensor: watch-login
 only. No force-lock, no password reset, no wipe, no keyguard interaction. The A-45 ladder, the
-lock-screen demand notice and the zone lock remain dead.
+lock-screen demand notice and the zone lock remained dead **at that date**; A-46 restored the lock,
+the demand and the escalation ladder three days later (see the 2026-11-10 section), leaving the
+watch-login sensor this section describes untouched.
 
 **What fires.** The receiver reads the saved settings and returns unless the app is armed **and**
 the Lock toggle is on. The counter keeps 1…5 (default 2) failures in one session — a gap longer than
@@ -1221,7 +1230,9 @@ was never touched.
 **Owner decision 2026-11-08.** Inside a place he marked safe, the siren, the countdown signal and the
 Motion message are nuisance, so they stay silent there; a wrong unlock, a SIM change, a battery last
 breath and leaving a zone are evidence, so they always send. Design B's deletion of the A-45 ladder
-stays deleted — this is a four-line fail-closed rule, not a return of the lock/notice machinery.
+stayed deleted at that date — this was a four-line fail-closed rule, not a return of the lock/notice
+machinery. A-46 reopened the lock two days later; the quieting rule survives it unchanged, because the
+snatch lock and its demand are exactly the noisy layer this rule silences inside a zone.
 
 **Rule.** `SafeZoneQuietPolicy.isQuiet(geofenceEnabled, hasZones, readingFresh, inside)` — exactly one
 of sixteen combinations is quiet; no reading, a stale one, a jumped clock, the guard off or no zones

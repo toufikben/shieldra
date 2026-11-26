@@ -541,11 +541,12 @@ ESCALATE_AT=$(grep -n 'SnatchCoordinator.escalateNow' \
   || fail "the wrong-PIN receiver accelerates before it counts (A-47 D7)"
 pass "Lock Guard: watch-login plus one snatch lock, one signal per unlock session, and no wipe/reset power"
 
-# 5e. Motion guard (A-43, narrowed by design B on 2026-11-06): the owner asked for the Motion guard to
-# be always on like the SIM guard, so it is on by default, arming and boot start it, disarming stops it,
-# and switching it off asks the owner (ProtectionChange). Design B removed the screen lock that used to
-# end the response — the app holds no lock power — so what is pinned here is the guard and its chosen
-# response, not a lock.
+# 5e. Motion guard (A-43, narrowed by design B on 2026-11-06 and re-scoped by A-46/A-47): the owner asked
+# for the Motion guard to be always on like the SIM guard, so it is on by default, arming and boot start
+# it, disarming stops it, and switching it off asks the owner (ProtectionChange). A-46 later restored the
+# screen lock, but not *through this file*: the lock belongs to SnatchCoordinator, which runs before the
+# owner's response is consulted. So what is pinned here is still the guard and its chosen response — the
+# noisy half — and never a lock field, because "SILENT" must keep meaning silent sound.
 MOTION_SETTINGS=app/src/main/kotlin/com/shieldra/protection/ProtectionSettings.kt
 grep -Eq 'val motionEnabled: Boolean = true' "$MOTION_SETTINGS" \
   || fail "the Motion guard is no longer on by default beside the SIM guard (A-43)"

@@ -49,6 +49,9 @@ class ReadmeTruthTest {
             "the battery guard" to "battery",
             "photo and location evidence" to "evidence",
             "the owner's own Telegram" to "Telegram",
+            "the failed-unlock guard" to "failed unlock",
+            "the snatch lock" to "snatch lock",
+            "the safe zones" to "safe zone",
             "Express the honest limits" to "cannot",
         )
         for ((what, token) in shipped) {

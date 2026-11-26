@@ -14,7 +14,8 @@ import com.shieldra.domain.SecurityEventType
 
 /**
  * Runs the owner's response when the Motion guard confirms the phone was moved (A-33, back to its
- * one-shot shape after the A-45 layer was removed under design B on 2026-11-06).
+ * one-shot shape after the A-45 layer was removed under design B on 2026-11-06; A-46/A-47 then put the
+ * snatch lock in front of it, below).
  *
  * The owner picks one of three responses:
  *  - SILENT: capture a photo and a fix and send, quietly.
