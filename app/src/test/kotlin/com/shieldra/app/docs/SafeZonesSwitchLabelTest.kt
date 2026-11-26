@@ -16,9 +16,9 @@ import kotlin.test.assertTrue
  * failure the whole screen otherwise avoids — every other icon on this tab carries a
  * `contentDescription`, and `safe_zones_title` names the card.
  *
- * The proof that a name was intended is in the resources: `safe_zones_enable` ("Alert on leaving") is
- * present in both languages, formatted as a control label, and referenced by no Kotlin file at all.
- * It was written for this switch and then the switch was drawn without it.
+ * The name is in the resources, present in both languages, formatted as a control label: it says what
+ * the switch does — keeps the noisy guards quiet inside the marked places — rather than the "Alert on
+ * leaving" wording the A-47 decision retired, because leaving a zone no longer starts anything.
  *
  * The test pins both halves: the copy exists in both languages with no format argument to fill, and
  * the control on the Map tab is one that carries that copy as its accessibility name.
