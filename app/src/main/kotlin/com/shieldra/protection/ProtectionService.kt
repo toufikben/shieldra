@@ -160,7 +160,16 @@ class ProtectionService : Service() {
         val baseMinutes = ProtectionSettingsStore(applicationContext).load().trackingIntervalMinutes
         val delayMs = TrackingCadence.intervalMs(baseMinutes, batteryPercent(), batteryCharging())
         trackingHandler.postDelayed({
-            if (!ProtectionSettingsStore(applicationContext).load().armed) return@postDelayed
+            // P4-21: the tick re-reads the switch and the plan, on one snapshot, because both can
+            // change while the trail runs — the owner may switch tracking off, and PlayProStore
+            // rewrites the tier whenever Google Play answers. Asking armed alone let a stopped
+            // switch keep sending the owner's position until the window ended.
+            val now = ProtectionSettingsStore(applicationContext).load()
+            if (!now.armed || !now.liveTrackingEnabled ||
+                !com.shieldra.billing.TierGate.allowsTracking(now.tier)
+            ) {
+                return@postDelayed
+            }
             scope.launch {
                 val fix = runCatching { location.current() }.getOrNull()
                 if (fix != null) {
