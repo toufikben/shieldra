@@ -123,10 +123,17 @@
           DeviceScreenLock is the only caller of lockNow(). Exported because the system is the sender;
           BIND_DEVICE_ADMIN is required, so no other app can drive it. The owner grants the role from
           Settings and can revoke it at any time.
+
+          android:label is not decoration: the platform's own activation dialog prints the receiver's
+          label, and a receiver that declares none inherits the application name — the owner would be
+          asked to activate "Shieldra" with no statement of what the role is for. device_admin_label
+          names the role, and device_admin_description (handed over by ACTION_ADD_DEVICE_ADMIN) is the
+          paragraph printed under it.
         -->
         <receiver
             android:name="com.shieldra.protection.LockGuardReceiver"
             android:exported="true"
+            android:label="@string/device_admin_label"
             android:permission="android.permission.BIND_DEVICE_ADMIN">
             <meta-data
                 android:name="android.app.device_admin"

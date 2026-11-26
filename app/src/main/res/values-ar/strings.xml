@@ -343,7 +343,6 @@
     <string name="demo_motion_detected">تم اكتشاف حركة</string>
     <string name="demo_movement_after_stillness">حركة بعد سكون</string>
     <string name="demo_time_motion">اليوم · ١٣:١٥</string>
-    <string name="demo_time_sim_change">اليوم · ١٢:٤٠</string>
     <string name="demo_failed_unlock">محاولة فتح فاشلة</string>
     <string name="demo_attempt">المحاولة %1$d</string>
     <string name="demo_time_failed_unlock">اليوم · ١٤:٣٢</string>

@@ -371,7 +371,6 @@
     <string name="demo_motion_detected">Motion detected</string>
     <string name="demo_movement_after_stillness">Movement after stillness</string>
     <string name="demo_time_motion">Today · 13:15</string>
-    <string name="demo_time_sim_change">Today · 12:40</string>
     <string name="demo_failed_unlock">Failed unlock attempt</string>
     <string name="demo_attempt">Attempt %1$d</string>
     <string name="demo_time_failed_unlock">Today · 14:32</string>
