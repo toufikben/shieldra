@@ -22,12 +22,28 @@ import com.shieldra.domain.SecurityEventType
  * the snooze notice while the phone is home — that is the nuisance the owner asked to remove. The
  * deadline is [CountdownDeadline]'s two-clock value, so moving the system clock cannot bring the
  * signal forward or push it back. Exact alarms ([AlarmManager]) wake the CPU for the firing.
+ *
+ * The countdown is a paid feature, and an alarm already in the clock outlives the plan that armed it
+ * (P4-23). So every path that can fire, re-arm or invite the owner to snooze asks the plan at the
+ * moment it acts, not only when the cycle was armed.
  */
 class CountdownReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val appContext = context.applicationContext
         when (intent?.action) {
             ACTION_EXPIRED -> {
+                // P4-23: the alarm in the clock was armed when the plan allowed the countdown, and it
+                // does not know the plan changed. A subscription that lapsed mid-cycle would otherwise
+                // still send one full capture-and-alert on the free plan, and every later reboot would
+                // repeat it from the stored deadline. The switch and the plan are asked here, at the
+                // moment the cycle fires, and a cycle that may not run clears what would bring it back.
+                val settings = ProtectionSettingsStore(appContext).load()
+                if (!settings.countdownEnabled ||
+                    !com.shieldra.billing.TierGate.allowsCountdown(settings.tier)
+                ) {
+                    CountdownScheduler.cancel(appContext)
+                    return
+                }
                 // The cycle always continues; only its message inside a safe zone is withheld.
                 if (!ProtectionRuntime.quietInSafeZone(appContext)) {
                     ProtectionService.requestCapture(appContext, SecurityEventType.COUNTDOWN_SIGNAL)
@@ -36,6 +52,8 @@ class CountdownReceiver : BroadcastReceiver() {
                 CountdownScheduler.restart(appContext)
             }
             ACTION_WARNING -> {
+                // The notice asks the plan too, so it never invites the owner to snooze a countdown
+                // he no longer has (P4-23).
                 if (!ProtectionRuntime.quietInSafeZone(appContext)) CountdownScheduler.postSnoozeNotice(appContext)
             }
             ACTION_SNOOZE -> {
@@ -64,7 +82,13 @@ object CountdownScheduler {
     fun start(context: Context) {
         val store = ProtectionSettingsStore(context)
         val settings = store.load()
-        if (!settings.countdownEnabled || !com.shieldra.billing.TierGate.allowsCountdown(settings.tier)) return
+        if (!settings.countdownEnabled || !com.shieldra.billing.TierGate.allowsCountdown(settings.tier)) {
+            // P4-23: a cycle that may not be armed must also not leave a deadline behind for the boot
+            // path to fire. Clearing here keeps the stored value in step with the plan, so a lapsed
+            // subscription cannot keep resurrecting a countdown nobody is paying for.
+            cancel(context)
+            return
+        }
         val deadline = CountdownDeadline.start(
             durationMs = settings.countdownIntervalMs,
             nowEpochMs = System.currentTimeMillis(),
@@ -81,7 +105,15 @@ object CountdownScheduler {
     /** Re-arms from the stored deadline after a reboot, without resetting the timer. */
     fun rescheduleAfterBoot(context: Context) {
         val store = ProtectionSettingsStore(context)
-        if (!store.load().countdownEnabled) return
+        val settings = store.load()
+        // P4-23: alarms survive nothing, but the stored deadline does, and this path fires it. A phone
+        // whose plan lapsed keeps a deadline it may no longer run, so the plan is asked before the
+        // stored value is trusted — and a deadline the plan forbids is dropped rather than kept for
+        // the next reboot to fire again.
+        if (!settings.countdownEnabled || !com.shieldra.billing.TierGate.allowsCountdown(settings.tier)) {
+            cancel(context)
+            return
+        }
         val deadline = store.countdownDeadline()
         if (deadline == null) {
             start(context)
@@ -134,7 +166,10 @@ object CountdownScheduler {
     }
 
     fun postSnoozeNotice(context: Context) {
-        if (!ProtectionSettingsStore(context).load().countdownEnabled) return
+        // P4-23: the notice is an invitation to a paid feature, so it asks the plan as well as the
+        // switch — the same question `start` asks before it arms the cycle it is about.
+        val settings = ProtectionSettingsStore(context).load()
+        if (!settings.countdownEnabled || !com.shieldra.billing.TierGate.allowsCountdown(settings.tier)) return
         val channelId = "shieldra_countdown"
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && manager.getNotificationChannel(channelId) == null) {
