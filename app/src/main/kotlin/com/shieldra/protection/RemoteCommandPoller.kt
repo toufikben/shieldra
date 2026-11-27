@@ -72,10 +72,10 @@ class RemoteCommandPoller(context: Context) {
     }
 
     private fun loop() {
-        val delivery = DeliverySettingsStore(app).load()
-        if (!delivery.telegramEnabled || !delivery.telegram.isComplete) return
-        val client = TelegramCommandClient(delivery.telegram)
-        val ownerChat = delivery.telegram.chatId.trim()
+        val initial = DeliverySettingsStore(app).load()
+        if (!initial.telegramEnabled || !initial.telegram.isComplete) return
+        var client = TelegramCommandClient(initial.telegram)
+        var ownerChat = initial.telegram.chatId.trim()
         // P2-4: one command per update. Telegram redelivers an update whose offset it never saw
         // confirmed, and this poller re-reads its offset after a restart; without the guard the same
         // `/alarm` or `/track on` would run twice from one message.
@@ -83,6 +83,22 @@ class RemoteCommandPoller(context: Context) {
         // Skip the backlog so a command sent before arming is not acted on now.
         var offset = client.poll(0, timeoutSeconds = 0)?.lastOrNull()?.let { it.updateId + 1 } ?: 0L
         while (!Thread.currentThread().isInterrupted && active()) {
+            // P4-30: the credentials are read again on every turn of the loop. A mistyped token or chat
+            // id that the owner corrects in Alert channels is saved while this thread is alive, and
+            // `start()` refuses to make a second thread (P4-28), so nothing else could ever pick it up:
+            // the poller would keep talking to a bot that was never his and ignoring his own chat.
+            val current = DeliverySettingsStore(app).load()
+            if (!current.telegramEnabled || !current.telegram.isComplete) {
+                Log.i(TAG, "the bot credentials were withdrawn while remote control ran: stopping")
+                return
+            }
+            if (current.telegram != initial.telegram) {
+                client = TelegramCommandClient(current.telegram)
+                ownerChat = current.telegram.chatId.trim()
+                // A different bot has its own update ids, so an offset from the old one means nothing.
+                offset = client.poll(0, timeoutSeconds = 0)?.lastOrNull()?.let { it.updateId + 1 } ?: 0L
+                Log.i(TAG, "the bot credentials changed: the poller is using the new ones")
+            }
             val updates = client.poll(offset, timeoutSeconds = 25) ?: continue
             for (update in updates) {
                 offset = update.updateId + 1
