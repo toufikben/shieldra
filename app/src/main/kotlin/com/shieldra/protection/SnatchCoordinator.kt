@@ -301,6 +301,11 @@ object SnatchCoordinator {
     @Synchronized
     fun confirmOwner(context: Context, reason: String) {
         val app = context.applicationContext
+        // P2-3: proving the phone is his cancels a wipe window, whether or not a snatch is open. The
+        // owner who finds the phone and unlocks it has said "this is mine" more clearly than any
+        // message, and the confirmation he sent before finding it must not erase it afterwards. This
+        // runs before the snatch check below, which returns early when no incident is active.
+        cancelRemoteWipe(app, reason)
         val store = SnatchStore(app)
         val incident = store.read()
         if (!incident.active) return
@@ -310,6 +315,20 @@ object SnatchCoordinator {
         end(app, restartCountdown = true)
         runCatching { TableModeResponder.cancel(app) }
         Log.i(TAG, "ownership was proven ($reason): the snatch is closed and the countdown is back")
+    }
+
+    /**
+     * P2-3: an open wipe window is dropped by proof of ownership. Logged only when there was one, so
+     * the ordinary unlock path stays quiet.
+     */
+    private fun cancelRemoteWipe(app: Context, reason: String) {
+        runCatching {
+            val store = RemoteWipeStore(app)
+            if (store.read() != null) {
+                store.clear()
+                Log.i(TAG, "an open wipe window was cancelled: $reason")
+            }
+        }
     }
 
     /**

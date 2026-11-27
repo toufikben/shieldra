@@ -21,6 +21,10 @@ object ProtectionChange {
             (old.batteryEnabled && !new.batteryEnabled) ||
             (old.countdownEnabled && !new.countdownEnabled) ||
             (old.remoteCommandsEnabled && !new.remoteCommandsEnabled) ||
+            // P2-3: switching the erase off removes the owner's last remote answer to a theft, so it
+            // is a weakening like any other. Turning it on is not: it grants a power, and the grant is
+            // already behind the owner's own confirmation window at the moment it acts.
+            (old.remoteWipeEnabled && !new.remoteWipeEnabled) ||
             (old.liveTrackingEnabled && !new.liveTrackingEnabled) ||
             (old.dualCameraEnabled && !new.dualCameraEnabled) ||
             (old.audioEnabled && !new.audioEnabled) ||

@@ -67,10 +67,17 @@ class RemoteWipeGateTruthTest {
 
     @Test
     fun p2_3_the_gates_are_asked_where_the_erase_happens() {
-        // The gates are read inside the erase path, not handed in from the loop's earlier snapshot.
-        val start = wipe.indexOf("fun eraseIfConfirmed(")
+        // The erase path is the pair below: `gatesOpen` reads the four gates, and `eraseIfConfirmed`
+        // asks it at the moment it acts. The region starts at the gate function so a name dropped from
+        // either half fails here, and it ends at the file, so no gate can be moved out of the path and
+        // still count as read.
+        val start = wipe.indexOf("fun gatesOpen(")
         assertTrue(start > 0, "the gate is gone, so this finding must be re-measured")
-        val body = wipe.substring(start, wipe.length)
+        val body = wipe.substring(start)
+        assertTrue(
+            body.contains("fun eraseIfConfirmed("),
+            "the gate is no longer read from the erase path, so a confirmation could skip it",
+        )
         for (gate in listOf("remoteWipeEnabled", "allowsRemoteWipe", "armed")) {
             assertTrue(
                 body.contains(gate),

@@ -219,6 +219,9 @@
     <string name="protection_remote_enable">التحكم من تلغرام</string>
     <string name="protection_remote_desc">أرسل أوامر لبوتك والهاتف مُفعّل. يتطلب إعداد تلغرام في قنوات التنبيه.</string>
     <string name="protection_remote_help">أرسل لبوتك: /locate لموقع، /photo لصورة أمامية، /alarm لصفّارة مدّتها دقيقتان (ويُسكتها /stopalarm قبل ذلك)، /status للبطارية والشبكة، /lost و /found لإظهار جهة اتصالك على شاشة القفل.</string>
+    <string name="protection_remote_wipe_enable">السماح بمحو هذا الهاتف من تلغرام</string>
+    <string name="protection_remote_wipe_desc">مطفأ افتراضياً، ومنفصل عن التحكّم عن بُعد. أمر واحد لا يمحو أبداً: يلزمك التأكيد خلال عشر دقائق، وفتح الهاتف يُلغيه.</string>
+    <string name="protection_remote_wipe_help">هذا لا رجعة فيه. أرسل /wipe ثم /wipe confirm خلال 10 دقائق. فتح الهاتف بمعرّفك أو /wipe cancel يوقفه. يتطلب دور مدير الجهاز.</string>
     <string name="protection_owner_contact">جهة اتصالك (تظهر على شاشة القفل)</string>
     <string name="protection_lost_message">رسالة شاشة الفقدان (اختياري)</string>
     <!-- التصميم B (2026-11-06): لم يعد ثمة إشعار مطالبة على شاشة القفل، فالتطبيق لا يملك قفلًا. هذان الحقلان يغذّيان إشعار الفقدان الذي يطلقه المالك (/lost). -->

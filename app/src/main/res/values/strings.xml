@@ -237,6 +237,9 @@
     <string name="protection_remote_enable">Control from Telegram</string>
     <string name="protection_remote_desc">Send commands to your bot while the phone is armed. Needs Telegram set up in Alert channels.</string>
     <string name="protection_remote_help">Send to your bot: /locate for a map pin, /photo for a front-camera photo, /alarm for a siren of 2 minutes (/stopalarm silences it early), /status for battery and network, /lost and /found to show your contact on the lock screen.</string>
+    <string name="protection_remote_wipe_enable">Allow erasing this phone from Telegram</string>
+    <string name="protection_remote_wipe_desc">Off by default, and separate from remote control. One command never erases: you must confirm within ten minutes, and unlocking the phone cancels it.</string>
+    <string name="protection_remote_wipe_help">This cannot be undone. Send /wipe, then /wipe confirm within 10 minutes. Unlocking the phone, or /wipe cancel, stops it. Needs the device administrator role.</string>
     <string name="protection_owner_contact">Your contact (shown on the lock screen)</string>
     <string name="protection_lost_message">Lost-screen message (optional)</string>
     <!--

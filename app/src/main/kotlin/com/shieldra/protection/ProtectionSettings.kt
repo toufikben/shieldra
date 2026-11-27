@@ -22,6 +22,13 @@ data class ProtectionSettings(
     val motionGraceSeconds: Int = MotionResponsePlan.DEFAULT_GRACE_SECONDS,
     val retentionDays: Int = 30,
     val remoteCommandsEnabled: Boolean = false,
+    /**
+     * P2-3 (owner decision 2026-11-27): the power to erase this phone from the owner's own chat.
+     *
+     * It is a switch of its own and off by default. Turning on remote control must never turn on the
+     * power to wipe: one is "answer my commands", the other is "make this phone irreversibly empty".
+     */
+    val remoteWipeEnabled: Boolean = false,
     val liveTrackingEnabled: Boolean = false,
     val trackingIntervalMinutes: Int = 2,
     val trackingDurationMinutes: Int = 30,
@@ -83,6 +90,7 @@ class ProtectionSettingsStore(context: Context) {
         motionGraceSeconds = prefs.getInt(KEY_MOTION_GRACE, MotionResponsePlan.DEFAULT_GRACE_SECONDS),
         retentionDays = prefs.getInt(KEY_RETENTION, 30),
         remoteCommandsEnabled = prefs.getBoolean(KEY_REMOTE, false),
+        remoteWipeEnabled = prefs.getBoolean(KEY_REMOTE_WIPE, false),
         liveTrackingEnabled = prefs.getBoolean(KEY_TRACK, false),
         trackingIntervalMinutes = prefs.getInt(KEY_TRACK_INTERVAL, 2),
         trackingDurationMinutes = prefs.getInt(KEY_TRACK_DURATION, 30),
@@ -133,6 +141,7 @@ class ProtectionSettingsStore(context: Context) {
                 ),
             )
             .putBoolean(KEY_REMOTE, settings.remoteCommandsEnabled)
+            .putBoolean(KEY_REMOTE_WIPE, settings.remoteWipeEnabled)
             .putBoolean(KEY_TRACK, settings.liveTrackingEnabled)
             .putInt(KEY_TRACK_INTERVAL, settings.trackingIntervalMinutes.coerceIn(TrackingCadence.MIN_INTERVAL_MINUTES, TrackingCadence.MAX_INTERVAL_MINUTES))
             .putInt(KEY_TRACK_DURATION, settings.trackingDurationMinutes.coerceIn(TrackingCadence.MIN_DURATION_MINUTES, TrackingCadence.MAX_DURATION_MINUTES))
@@ -261,6 +270,9 @@ class ProtectionSettingsStore(context: Context) {
         const val KEY_MOTION_GRACE = "motion_grace_seconds"
         const val KEY_RETENTION = "retention_days"
         const val KEY_REMOTE = "remote_commands_enabled"
+
+    /** P2-3: the erase switch, stored apart from the remote-control one so neither implies the other. */
+    const val KEY_REMOTE_WIPE = "remote_wipe_enabled"
         const val KEY_TRACK = "live_tracking_enabled"
         const val KEY_TRACK_INTERVAL = "tracking_interval_minutes"
         const val KEY_TRACK_DURATION = "tracking_duration_minutes"

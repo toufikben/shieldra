@@ -512,6 +512,24 @@ fun ProtectionSetupScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(Modifier.height(spacing.sm))
+            // P2-3 (owner decision 2026-11-27): the erase is its own switch, off by default, and it
+            // never rides on the remote-control switch above. The subtitle states the double
+            // confirmation in the owner's own words, because a warning he did not read is not a warning.
+            GuardToggle(
+                title = stringResource(R.string.protection_remote_wipe_enable),
+                subtitle = stringResource(R.string.protection_remote_wipe_desc),
+                checked = draft.remoteWipeEnabled && com.shieldra.billing.TierGate.allowsRemoteWipe(draft.tier),
+                locked = !com.shieldra.billing.TierGate.allowsRemoteWipe(draft.tier),
+                onLocked = onOpenPro,
+            ) { draft = draft.copy(remoteWipeEnabled = it) }
+            if (draft.remoteWipeEnabled) {
+                Text(
+                    text = stringResource(R.string.protection_remote_wipe_help),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
 
         // ===== The owner's contact and lost message =====

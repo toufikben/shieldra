@@ -19,4 +19,11 @@ object TierGate {
     fun allowsCountdown(tier: Tier): Boolean = tier == Tier.PREMIUM
     fun allowsTracking(tier: Tier): Boolean = tier == Tier.PREMIUM
     fun allowsRemote(tier: Tier): Boolean = tier == Tier.PREMIUM
+
+    /**
+     * P2-3: the remote wipe is the one power that cannot be undone, so it is gated on its own rather
+     * than riding on `allowsRemote`. Keeping them separate means a future plan that includes remote
+     * control but not the erase cannot be expressed by accident.
+     */
+    fun allowsRemoteWipe(tier: Tier): Boolean = tier == Tier.PREMIUM
 }

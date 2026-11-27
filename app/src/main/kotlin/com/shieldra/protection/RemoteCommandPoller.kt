@@ -154,6 +154,11 @@ class RemoteCommandPoller(context: Context) {
                 LostNotice.hide(app)
                 client.replyText(chat, "SHIELDRA: lost notice cleared")
             }
+            // P2-3 (owner decision 2026-11-27): the one command that cannot be undone. `/wipe` never
+            // erases — it opens a window and answers with the one sentence that says so. Only
+            // `/wipe confirm` inside that window erases, and `DeviceRemoteWipe` asks every gate again
+            // at that moment, because the window can last ten minutes.
+            "/wipe" -> client.replyText(chat, wipe(command.argument))
             else -> Unit // unknown command: ignore silently
         }
     }
@@ -199,6 +204,68 @@ class RemoteCommandPoller(context: Context) {
     private fun stopTrack() {
         trackWorker?.interrupt()
         trackWorker = null
+    }
+
+    /**
+     * P2-3: the remote wipe, and the sentence that says what actually happened.
+     *
+     * The switch is asked first and on its own. It is a separate setting from remote control, so an
+     * owner who turned on remote control but never turned on the erase gets a refusal here rather than
+     * a window that cannot be completed — and no window is opened at all, so there is nothing to race.
+     */
+    private fun wipe(argument: String): String {
+        val settings = ProtectionSettingsStore(app).load()
+        if (!settings.remoteWipeEnabled) {
+            return "SHIELDRA: remote wipe is off. Turn it on in Protection settings first."
+        }
+        if (!com.shieldra.billing.TierGate.allowsRemoteWipe(settings.tier)) {
+            return "SHIELDRA: remote wipe is not part of your plan."
+        }
+        val store = RemoteWipeStore(app)
+        val now = System.currentTimeMillis()
+        val decision = RemoteWipeRequest.decide(
+            argument = argument,
+            open = store.read(),
+            nowMs = now,
+            gatesOpen = DeviceRemoteWipe.gatesOpen(app),
+            windowMs = RemoteWipeRequest.WINDOW_MS,
+        )
+        return when (decision) {
+            is RemoteWipeRequest.Decision.Open -> {
+                store.write(RemoteWipeRequest.Open(now, decision.expiresAtMs))
+                val minutes = RemoteWipeRequest.WINDOW_MS / 60_000L
+                "SHIELDRA: NOTHING was erased. To erase this phone, send /wipe confirm within " +
+                    "$minutes minutes. Send /wipe cancel to stop. Unlocking the phone also stops it."
+            }
+            RemoteWipeRequest.Decision.Erase -> when (val outcome = DeviceRemoteWipe.eraseIfConfirmed(app, now)) {
+                DeviceRemoteWipe.Outcome.Erased -> {
+                    store.clear()
+                    "SHIELDRA: the phone is being erased now."
+                }
+                is DeviceRemoteWipe.Outcome.Refused -> {
+                    store.clear()
+                    "SHIELDRA: the erase was refused (${outcome.reason}). Nothing was erased."
+                }
+                is DeviceRemoteWipe.Outcome.Failed -> {
+                    store.clear()
+                    "SHIELDRA: the platform refused the erase (${outcome.reason}). Nothing was erased."
+                }
+            }
+            RemoteWipeRequest.Decision.Cancel -> {
+                store.clear()
+                "SHIELDRA: the wipe request is cancelled. Nothing was erased."
+            }
+            RemoteWipeRequest.Decision.Expired -> {
+                store.clear()
+                "SHIELDRA: the confirmation window has passed. Nothing was erased."
+            }
+            RemoteWipeRequest.Decision.NothingWaiting ->
+                "SHIELDRA: no wipe request is waiting. Send /wipe first."
+            RemoteWipeRequest.Decision.GatesClosed -> {
+                store.clear()
+                "SHIELDRA: a protection gate is not in place, so the erase was refused. Nothing was erased."
+            }
+        }
     }
 
     private fun status(): String {

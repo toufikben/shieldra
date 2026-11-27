@@ -1,17 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  A-33 (restored 2026-11-07 by owner order), extended by A-46 (owner decision 2026-11-10): two
-  policies, each with one job.
+  A-33 (restored 2026-11-07 by owner order), extended by A-46 (owner decision 2026-11-10) and P2-3
+  (owner decision 2026-11-27): three policies, each with one job.
   WATCH_LOGIN lets the platform tell SHIELDRA that an unlock attempt failed, so the Lock guard can
   photograph and alert once the owner's threshold is reached. FORCE_LOCK lets a confirmed snatch close
   the screen at once — the owner asked for a real lock after the theft, before any photo is taken.
+  WIPE_DATA is the owner's remote erase (P2-3): it runs only after `/wipe` opens a ten-minute window,
+  only on `/wipe confirm` inside it, and only while the owner's own switch, the plan, the armed flag
+  and this grant all hold — every one of them asked at the moment of the erase, and the window is
+  cancelled by the owner proving the phone is his.
   SHIELDRA never reads the password and requests no other administrator power: no password reset, no
-  wipe, no keyguard change. The owner can switch the role off or uninstall the app at any time, and an
-  administrator granted before this policy existed must be switched off and on once to gain it.
+  keyguard change. The owner can switch the role off or uninstall the app at any time, and an
+  administrator granted before a policy existed must be switched off and on once to gain it.
 -->
 <device-admin xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-policies>
         <watch-login />
         <force-lock />
+        <wipe-data />
     </uses-policies>
 </device-admin>
