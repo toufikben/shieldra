@@ -72,9 +72,9 @@ class MotionGraceSwitchTruthTest {
     fun p4_25_the_delayed_response_asks_whether_protection_is_still_armed() {
         val body = fireBody()
         assertTrue(
-            body.contains("armed"),
-            "the delayed response never asks whether protection is still armed, so the only thing " +
-                "standing between a disarm and a siren is one cancel call that a settings Save skips",
+            Regex("""\.armed\b""").containsMatchIn(body),
+            "the delayed response never reads the armed flag, so the only thing standing between a " +
+                "disarm and a siren is one cancel call that a settings Save skips",
         )
     }
 }
