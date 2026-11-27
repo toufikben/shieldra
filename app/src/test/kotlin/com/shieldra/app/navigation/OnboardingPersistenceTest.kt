@@ -19,7 +19,7 @@ class OnboardingPersistenceTest {
     fun qk7_a_first_run_starts_at_the_welcome_screen() {
         assertEquals(
             ShieldraRoutes.ONBOARDING_WELCOME,
-            OnboardingState.startDestination(onboardingCompleted = false),
+            OnboardingState.startDestination(onboardingCompleted = false, introCardsSeen = true),
         )
     }
 
@@ -27,7 +27,7 @@ class OnboardingPersistenceTest {
     fun qk7_a_cold_start_after_onboarding_starts_at_the_dashboard() {
         assertEquals(
             ShieldraRoutes.DASHBOARD,
-            OnboardingState.startDestination(onboardingCompleted = true),
+            OnboardingState.startDestination(onboardingCompleted = true, introCardsSeen = true),
         )
     }
 
@@ -38,7 +38,7 @@ class OnboardingPersistenceTest {
             ShieldraRoutes.ONBOARDING_PERMISSIONS,
             ShieldraRoutes.ONBOARDING_PROTECTION,
         )
-        val start = OnboardingState.startDestination(onboardingCompleted = true)
+        val start = OnboardingState.startDestination(onboardingCompleted = true, introCardsSeen = true)
 
         assertNotEquals(ShieldraRoutes.ONBOARDING_WELCOME, start, "The welcome page must not come back")
         assertFalse(
@@ -57,13 +57,13 @@ class OnboardingPersistenceTest {
 
         assertEquals(
             ShieldraRoutes.ONBOARDING_WELCOME,
-            OnboardingState.startDestination(record.isCompleted()),
+            OnboardingState.startDestination(record.isCompleted(), introCardsSeen = true),
             "Nothing recorded yet means a first run",
         )
         record.markCompleted()
         assertEquals(
             ShieldraRoutes.DASHBOARD,
-            OnboardingState.startDestination(record.isCompleted()),
+            OnboardingState.startDestination(record.isCompleted(), introCardsSeen = true),
             "One recorded completion is enough for every later start",
         )
     }

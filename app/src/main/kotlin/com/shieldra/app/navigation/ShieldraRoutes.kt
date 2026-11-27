@@ -6,6 +6,11 @@ object ShieldraRoutes {
     /** The notification setup screen as a first-run step: same screen, same single request (A-6). */
     const val ONBOARDING_NOTIFICATIONS = "onboarding/notifications"
     const val ONBOARDING_PROTECTION = "onboarding/protection"
+    /**
+     * P4-22 (owner order 2026-11-26): the short tour, after setup and before the dashboard. Its own
+     * route rather than part of onboarding, because a finished setup may never restart onboarding.
+     */
+    const val ONBOARDING_INTRO = "onboarding/intro"
 
     const val DASHBOARD = "main/dashboard"
     const val MAP = "main/map"
