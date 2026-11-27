@@ -219,11 +219,11 @@ class RemoteCommandPoller(context: Context) {
     private fun batteryPercent(): Int? = runCatching {
         app.getSystemService(BatteryManager::class.java)
             ?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-    }.getOrNull()
+    }.getOrNull()?.takeIf { it in 0..100 }
 
     private fun batteryCharging(): Boolean = runCatching {
         app.getSystemService(BatteryManager::class.java)?.isCharging
-    }.getOrDefault(false)
+    }.getOrNull() ?: false
 
     private fun network(): String {
         val cm = app.getSystemService(ConnectivityManager::class.java) ?: return "unknown"
