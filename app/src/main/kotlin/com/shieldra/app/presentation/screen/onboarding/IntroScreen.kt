@@ -34,6 +34,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -72,7 +75,9 @@ fun IntroScreen(
 ) {
     val spacing = ShieldraTheme.spacing
     val cards = IntroCards.cards
-    val index = rememberIntroIndex(cards.size)
+    // The current card, held across recompositions but not across process death: an interrupted tour
+    // starts again from the first card rather than resuming at an arbitrary place.
+    var index by remember { mutableIntStateOf(0) }
     val last = index == cards.lastIndex
     val card = cards[index]
 
@@ -120,7 +125,7 @@ fun IntroScreen(
         Spacer(Modifier.height(spacing.xxl))
         ShieldraFullWidthButton(
             text = stringResource(if (last) R.string.intro_action_done else R.string.intro_action_next),
-            onClick = { if (last) onDone() else index.value += 1 },
+            onClick = { if (last) onDone() else index += 1 },
         )
         Spacer(Modifier.height(spacing.s))
         ShieldraFullWidthButton(
@@ -130,11 +135,6 @@ fun IntroScreen(
         )
     }
 }
-
-/** The current card, held across recompositions but not across process death: the tour restarts. */
-@Composable
-private fun rememberIntroIndex(count: Int) =
-    androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
 
 /** One dot per card, the current one filled: the owner can see how much is left before he commits. */
 @Composable

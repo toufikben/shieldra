@@ -51,6 +51,9 @@ class MainActivity : FragmentActivity() {
             // device the process is reclaimed constantly, and an assumed first run reopened
             // onboarding in front of a phone that already holds real evidence (Q-K-7, A-27).
             val onboarding = remember { PreferencesOnboardingCompletionRecord(application) }
+            // P4-22: the tour's own recorded fact. A separate preference from onboarding completion,
+            // because a finished setup must not be read as a finished tour.
+            val introCards = remember { com.shieldra.app.navigation.PreferencesIntroCardsRecord(application) }
             val themeMode by AppSettings.theme.collectAsState()
             val dark = themeMode.isDark(isSystemInDarkTheme())
             // Keep the status and navigation bar icons readable when the owner forces a theme that
@@ -67,8 +70,12 @@ class MainActivity : FragmentActivity() {
             ShieldraTheme(darkTheme = dark) {
                 Box {
                     ShieldraNavHost(
-                        startDestination = OnboardingState.startDestination(onboarding.isCompleted()),
+                        startDestination = OnboardingState.startDestination(
+                            onboardingCompleted = onboarding.isCompleted(),
+                            introCardsSeen = introCards.isSeen(),
+                        ),
                         onOnboardingCompleted = onboarding::markCompleted,
+                        onIntroCardsSeen = introCards::markSeen,
                     )
                     if (locked.value) {
                         AppLockScreen(

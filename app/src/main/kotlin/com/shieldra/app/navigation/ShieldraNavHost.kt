@@ -148,6 +148,8 @@ fun ShieldraNavHost(
     // Leaving onboarding is a recorded fact, not a navigation detail: without it every cold start
     // after a process kill would put the welcome page in front of a returning owner (Q-K-7, A-27).
     onOnboardingCompleted: () -> Unit = {},
+    // P4-22: the tour's completion is the same kind of fact — recorded, not a navigation detail.
+    onIntroCardsSeen: () -> Unit = {},
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -499,7 +501,11 @@ fun ShieldraNavHost(
                         navController.navigate(ShieldraRoutes.ONBOARDING_PERMISSIONS)
                     },
                     onSkip = {
+                        // P4-22: skipping setup is also declining the tour. Recording both keeps a
+                        // cold start from opening the tour later in front of a phone that was never
+                        // configured — the tour describes switches the owner has not seen yet.
                         onOnboardingCompleted()
+                        onIntroCardsSeen()
                         navController.navigate(ShieldraRoutes.DASHBOARD) {
                             popUpTo(ShieldraRoutes.ONBOARDING_WELCOME) { inclusive = true }
                         }
@@ -538,6 +544,21 @@ fun ShieldraNavHost(
                     onOpenSurvivalGuide = { navController.navigate(ShieldraRoutes.SURVIVAL_GUIDE) },
                     onContinue = {
                         onOnboardingCompleted()
+                        // P4-22: setup ends at the tour, not at the dashboard. The owner has just
+                        // configured the guards; this is the moment a sentence about each one is worth
+                        // reading, and the tour is skippable in one tap.
+                        navController.navigate(ShieldraRoutes.ONBOARDING_INTRO) {
+                            popUpTo(ShieldraRoutes.ONBOARDING_WELCOME) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            // P4-22: the one-time tour. Its own route, after setup; finishing or skipping records it and
+            // lands on the dashboard, so no path through it can strand the owner inside onboarding.
+            composable(ShieldraRoutes.ONBOARDING_INTRO) {
+                com.shieldra.app.presentation.screen.onboarding.IntroScreen(
+                    onDone = {
+                        onIntroCardsSeen()
                         navController.navigate(ShieldraRoutes.DASHBOARD) {
                             popUpTo(ShieldraRoutes.ONBOARDING_WELCOME) { inclusive = true }
                         }
