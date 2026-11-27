@@ -28,7 +28,7 @@
     <string name="intro_lock_title">Wrong-unlock guard</string>
     <string name="intro_lock_body">Two wrong unlock attempts on this phone are recorded, and the front camera takes a photo. Shieldra never reads your password and cannot reset it. The default threshold is 2 attempts.</string>
     <string name="intro_motion_title">Motion guard</string>
-    <string name="intro_motion_body">The phone's motion sensor watches for a lift or a walk while protection is armed. On a match, Shieldra records it and answers the way you chose: stay silent, or sound the siren after a short grace so you can stop it.</string>
+    <string name="intro_motion_body">The phone\'s motion sensor watches for a lift or a walk while protection is armed. On a match, Shieldra records it and answers the way you chose: stay silent, or sound the siren after a short grace so you can stop it.</string>
     <string name="intro_sim_title">SIM guard</string>
     <string name="intro_sim_body">If the SIM card is replaced while protection is armed, Shieldra records it and alerts you. The cards present when you armed are the baseline.</string>
     <string name="intro_battery_title">Battery guard</string>
@@ -46,7 +46,7 @@
     <string name="intro_siren_title">Siren</string>
     <string name="intro_siren_body">A loud alarm at full volume, capped at 2 minutes so a stolen bot token cannot ring the phone until the battery dies. Send /alarm again to repeat it.</string>
     <string name="intro_tracking_title">Live tracking</string>
-    <string name="intro_tracking_body">/track on sends your phone's position every few minutes for a set period, widening the interval as the battery drops so tracking does not empty it.</string>
+    <string name="intro_tracking_body">/track on sends your phone\'s position every few minutes for a set period, widening the interval as the battery drops so tracking does not empty it.</string>
     <string name="intro_wipe_title">Remote erase</string>
     <string name="intro_wipe_body">Off by default and separate from remote control. /wipe never erases: you must send /wipe confirm within 10 minutes, and unlocking the phone cancels it.</string>
     <string name="tab_dashboard">Home</string>
