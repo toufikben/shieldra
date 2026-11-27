@@ -50,7 +50,7 @@ class RetentionSettingReachabilityTest {
         )
         val store = main("kotlin/com/shieldra/protection/ProtectionSettings.kt")
         assertTrue(
-            store.contains("putInt(KEY_RETENTION, settings.retentionDays)"),
+            Regex("""KEY_RETENTION,\s*settings\.retentionDays""").containsMatchIn(store),
             "save() no longer persists retentionDays, so even a new control would be lost on the next read",
         )
     }

@@ -82,7 +82,7 @@ class RetentionBoundsTruthTest {
     fun p4_26_the_writer_clips_the_retention_window() {
         val body = saveBody()
         assertTrue(
-            body.contains("KEY_RETENTION, settings.retentionDays.coerceIn("),
+            Regex("""KEY_RETENTION,\s*settings\.retentionDays\.coerceIn\(""").containsMatchIn(body),
             "the retention window is stored as written, so a value from an older build or a backup " +
                 "sits outside the range the screen offers and the policy documents, and the slider " +
                 "draws a handle past the end of its own track",
