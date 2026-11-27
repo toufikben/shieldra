@@ -51,6 +51,19 @@ class PreferencesOnboardingCompletionRecord(context: Context) : OnboardingComple
  * else reopens the flow.
  */
 object OnboardingState {
-    fun startDestination(onboardingCompleted: Boolean): String =
-        if (onboardingCompleted) ShieldraRoutes.DASHBOARD else ShieldraRoutes.ONBOARDING_WELCOME
+    /**
+     * P4-22: the start destination depends on two recorded facts, in this order.
+     *
+     * Setup comes first, always: a phone that has never been configured opens the welcome page, because
+     * the tour describes a product the owner has not turned on yet and would explain switches he cannot
+     * see. Once setup is done, a tour he has not seen opens once. After that, the dashboard.
+     *
+     * There is deliberately no one-argument overload: a caller that forgot the tour would silently skip
+     * it on every install, and that is not a mistake worth making easy.
+     */
+    fun startDestination(onboardingCompleted: Boolean, introCardsSeen: Boolean): String = when {
+        !onboardingCompleted -> ShieldraRoutes.ONBOARDING_WELCOME
+        !introCardsSeen -> ShieldraRoutes.ONBOARDING_INTRO
+        else -> ShieldraRoutes.DASHBOARD
+    }
 }
