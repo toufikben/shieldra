@@ -75,12 +75,14 @@ class RemoteCredentialFreshnessTruthTest {
     @Test
     fun p4_30_the_loop_re_reads_the_bot_credentials() {
         val body = loopBody()
-        val reads = Regex("""DeliverySettingsStore\(app\)\.load\(\)""").findAll(body).count()
+        val loopStart = body.indexOf("while (!Thread.currentThread().isInterrupted")
+        assertTrue(loopStart > 0, "the poll loop's condition is gone, so this finding must be re-measured")
+        val inside = body.substring(loopStart)
         assertTrue(
-            reads > 1,
-            "the poll loop reads the bot credentials once and polls with them for the rest of the " +
-                "thread's life, so a mistyped token or chat id that the owner corrects is never " +
-                "picked up while the poller runs — the commands simply stop answering",
+            Regex("""DeliverySettingsStore\(app\)\.load\(\)""").containsMatchIn(inside),
+            "the poll loop reads the bot credentials once, before it starts, and polls with them for " +
+                "the rest of the thread's life, so a mistyped token or chat id that the owner corrects " +
+                "is never picked up while the poller runs — the commands simply stop answering",
         )
     }
 }
