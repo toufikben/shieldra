@@ -145,19 +145,29 @@ class RemoteCommandPoller(context: Context) {
     /** `/track on` streams a location pin every tracking-interval minutes until `/track off`. */
     @Synchronized
     private fun startTrack(client: TelegramCommandClient, chat: String) {
-        if (trackWorker != null) return
-        trackWorker = Thread({
-            val intervalMs = ProtectionSettingsStore(app).load().trackingIntervalMinutes.coerceAtLeast(1) * 60_000L
-            while (!Thread.currentThread().isInterrupted && active()) {
-                val fix = runBlocking { LocationFix(app).current() }
-                if (fix != null) client.replyLocation(chat, fix.latitude, fix.longitude, fix.accuracyMeters)
-                try {
-                    Thread.sleep(intervalMs)
-                } catch (e: InterruptedException) {
-                    break
+        // P4-28: same shape as `start`. This loop ends on its own when the plan or the switch says
+        // no, and a field that kept naming that thread made `/track on` a permanent no-op.
+        if (trackWorker?.isAlive == true) return
+        val thread = Thread({
+            try {
+                val intervalMs = ProtectionSettingsStore(app).load().trackingIntervalMinutes.coerceAtLeast(1) * 60_000L
+                while (!Thread.currentThread().isInterrupted && active()) {
+                    val fix = runBlocking { LocationFix(app).current() }
+                    if (fix != null) client.replyLocation(chat, fix.latitude, fix.longitude, fix.accuracyMeters)
+                    try {
+                        Thread.sleep(intervalMs)
+                    } catch (e: InterruptedException) {
+                        break
+                    }
+                }
+            } finally {
+                synchronized(this@RemoteCommandPoller) {
+                    if (trackWorker === Thread.currentThread()) trackWorker = null
                 }
             }
-        }, "shieldra-track").apply { isDaemon = true; start() }
+        }, "shieldra-track").apply { isDaemon = true }
+        trackWorker = thread
+        thread.start()
     }
 
     @Synchronized
