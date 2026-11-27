@@ -254,6 +254,10 @@ object ProtectionRuntime {
         // P4-25: the same for the Motion guard. A grace response already waiting must not sound the
         // siren and take a photo for a guard the owner just switched off on this screen.
         if (!settings.motionEnabled) runCatching { TableModeResponder.cancel(app) }
+        // P4-27: remote control is a live switch too. The service starts the poller when it starts, so
+        // turning the switch on from this screen has to reach the instance that is already running —
+        // otherwise the switch reads on over a bot that answers nothing until the next restart.
+        runCatching { ProtectionService.syncRemoteControl(app) }
         if (!armed) {
             runCatching {
                 PendingCaptures(app).clear()

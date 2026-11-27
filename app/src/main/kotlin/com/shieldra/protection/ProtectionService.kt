@@ -845,6 +845,28 @@ class ProtectionService : Service() {
         }
 
         /**
+         * P4-27: applies the owner's remote-control switch to the service that is already running.
+         *
+         * The service starts the poller in `onStartCommand`, which is the right place for a start and
+         * the wrong place for a switch: the owner turns this on from the Protection screen while
+         * protection is armed, and nothing restarts the service to notice. `active()` already ends the
+         * loop when the switch or the plan says no (P4-20), so only the on direction was missing —
+         * and a switch that only ever turns a feature off is not a switch. A Save therefore reaches
+         * the live instance here, exactly as it reaches the countdown, the patrol and the zone tick.
+         */
+        fun syncRemoteControl(context: Context) {
+            val live = liveInstance ?: return
+            val settings = ProtectionSettingsStore(context.applicationContext).load()
+            if (settings.remoteCommandsEnabled &&
+                com.shieldra.billing.TierGate.allowsRemote(settings.tier)
+            ) {
+                live.remoteCommands.start()
+            } else {
+                live.remoteCommands.stop()
+            }
+        }
+
+        /**
          * Captures a photo and a fix for an already-created event (the Motion guard's) and sends it,
          * when the service is live. Returns true if a live instance took it or queued it for a retry;
          * false means protection is not armed and nothing could be arranged, so the caller keeps its
