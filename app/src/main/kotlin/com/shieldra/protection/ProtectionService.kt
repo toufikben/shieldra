@@ -294,12 +294,21 @@ class ProtectionService : Service() {
         }
     }
 
-    /** Watches the battery while protection runs; a crossed level fires one "last breath" capture. */
+    /**
+     * Watches the battery while protection runs; a crossed level fires one "last breath" capture.
+     *
+     * P4-24: the receiver is registered for the life of the service and the switch is asked on every
+     * tick, not once at registration. Deciding at registration broke both directions of the owner's
+     * own switch: switched off while armed, the receiver stayed and kept capturing; switched on while
+     * armed, `applySettings` never re-registered it, so the switch showed on with no guard behind it.
+     */
     private fun startBatteryGuard() {
         if (batteryReceiver != null) return
-        if (!ProtectionSettingsStore(applicationContext).load().batteryEnabled) return
         val receiver = object : android.content.BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
+                // The switch is the owner's and it can change while this instance lives.
+                val settings = ProtectionSettingsStore(applicationContext)
+                if (!settings.load().batteryEnabled) return
                 val level = intent.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1)
                 val scale = intent.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1)
                 if (level < 0 || scale <= 0) return
@@ -307,7 +316,7 @@ class ProtectionService : Service() {
                 val status = intent.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1)
                 val charging = status == android.os.BatteryManager.BATTERY_STATUS_CHARGING ||
                     status == android.os.BatteryManager.BATTERY_STATUS_FULL
-                ProtectionSettingsStore(applicationContext).markCheck()
+                settings.markCheck()
                 if (battery.onLevel(percent, charging) is BatteryBreathLogic.Verdict.Breath) {
                     capture(SecurityEventType.BATTERY_SIGNAL, null)
                 }
