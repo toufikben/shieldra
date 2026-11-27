@@ -19,7 +19,36 @@
     <string name="welcome_subtitle">Security events are recorded on this phone.</string>
     <string name="welcome_body">What you trigger is recorded and stored here, on this device. You can start Motion monitoring from the dashboard.</string>
     <string name="welcome_skip">Skip for now</string>
-
+    <!-- P4-22: the one-time tour. Every number stated here is asserted against the code that enforces
+         it (the two-minute siren cap, the ten-minute wipe window, the thirty-day retention, the
+         two-attempt lock threshold), so a sentence cannot promise more than the app does. -->
+    <string name="action_skip">Skip</string>
+    <string name="intro_action_next">Next</string>
+    <string name="intro_action_done">Start using Shieldra</string>
+    <string name="intro_lock_title">Wrong-unlock guard</string>
+    <string name="intro_lock_body">Two wrong unlock attempts on this phone are recorded, and the front camera takes a photo. Shieldra never reads your password and cannot reset it. The default threshold is 2 attempts.</string>
+    <string name="intro_motion_title">Motion guard</string>
+    <string name="intro_motion_body">The phone's motion sensor watches for a lift or a walk while protection is armed. On a match, Shieldra records it and answers the way you chose: stay silent, or sound the siren after a short grace so you can stop it.</string>
+    <string name="intro_sim_title">SIM guard</string>
+    <string name="intro_sim_body">If the SIM card is replaced while protection is armed, Shieldra records it and alerts you. The cards present when you armed are the baseline.</string>
+    <string name="intro_battery_title">Battery guard</string>
+    <string name="intro_battery_body">When the battery falls to 10%, Shieldra records it before the phone dies, so a thief cannot simply wait for it to go flat.</string>
+    <string name="intro_snatch_title">Snatch protection</string>
+    <string name="intro_snatch_body">A snatch locks the screen at once and opens a ten-minute window: if you do not prove the phone is yours, Shieldra starts sending photos and location. Unlocking with your credential closes it.</string>
+    <string name="intro_safe_zones_title">Safe zones</string>
+    <string name="intro_safe_zones_body">Places where you do not want to be watched — home, work. Inside one, the loud guards stay quiet, and evidence still records.</string>
+    <string name="intro_evidence_title">Evidence</string>
+    <string name="intro_evidence_body">Photos, sound and location are stored encrypted on this phone only. They are deleted after 30 days by default, and you choose the number.</string>
+    <string name="intro_delivery_title">Alerts and delivery</string>
+    <string name="intro_delivery_body">Every event is recorded on the phone first. If you set up Telegram or email, it is also sent there — and if sending fails, it waits and retries rather than being lost.</string>
+    <string name="intro_remote_title">Remote control</string>
+    <string name="intro_remote_body">From your own Telegram chat: /locate for a map pin, /photo for a front-camera photo, /alarm for a siren of 2 minutes, /status for battery and network. Only your chat id is obeyed.</string>
+    <string name="intro_siren_title">Siren</string>
+    <string name="intro_siren_body">A loud alarm at full volume, capped at 2 minutes so a stolen bot token cannot ring the phone until the battery dies. Send /alarm again to repeat it.</string>
+    <string name="intro_tracking_title">Live tracking</string>
+    <string name="intro_tracking_body">/track on sends your phone's position every few minutes for a set period, widening the interval as the battery drops so tracking does not empty it.</string>
+    <string name="intro_wipe_title">Remote erase</string>
+    <string name="intro_wipe_body">Off by default and separate from remote control. /wipe never erases: you must send /wipe confirm within 10 minutes, and unlocking the phone cancels it.</string>
     <string name="tab_dashboard">Home</string>
     <string name="tab_history">History</string>
     <string name="tab_settings">Settings</string>

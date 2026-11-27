@@ -6,6 +6,35 @@
     <string name="welcome_subtitle">تُسجَّل الأحداث الأمنية على هذا الهاتف.</string>
     <string name="welcome_body">ما تُطلقه يُسجَّل ويُحفظ هنا، على هذا الجهاز. يمكنك تشغيل مراقبة الحركة من اللوحة الرئيسية.</string>
     <string name="welcome_skip">تخطَّ حاليًا</string>
+    <!-- P4-22: البطاقات التعريفية. كل رقم مذكور هنا مثبَّت باختبار على الكود الذي ينفّذه (سقف
+         الصفّارة دقيقتان، نافذة المحو عشر دقائق، الاحتفاظ 30 يوماً، حدّ محاولات القفل مرتين). -->
+    <string name="action_skip">تخطّي</string>
+    <string name="intro_action_next">التالي</string>
+    <string name="intro_action_done">ابدأ استخدام Shieldra</string>
+    <string name="intro_lock_title">حارس القفل</string>
+    <string name="intro_lock_body">محاولتا فتح خاطئتان على هذا الهاتف تُسجَّلان، وتأخذ الكاميرا الأمامية صورة. لا تقرأ Shieldra كلمة مرورك ولا تستطيع تغييرها. الحدّ الافتراضي: مرتين.</string>
+    <string name="intro_motion_title">حارس الحركة</string>
+    <string name="intro_motion_body">يستشعر مستشعر الحركة رفع الهاتف أو المشي به والحماية مفعّلة. عند التطابق تسجّل Shieldra الحدث وتجيب بالطريقة التي اخترتها: صمت، أو صفّارة بعد مهلة قصيرة لتتمكّن من إيقافها.</string>
+    <string name="intro_sim_title">حارس الشريحة</string>
+    <string name="intro_sim_body">إذا استُبدلت شريحة الاتصال والحماية مفعّلة، تسجّل Shieldra ذلك وتنبّهك. والشرائح الموجودة لحظة التسليح هي خط الأساس.</string>
+    <string name="intro_battery_title">حارس البطارية</string>
+    <string name="intro_battery_body">عند هبوط البطارية إلى 10% تسجّل Shieldra ذلك قبل أن ينطفئ الهاتف، فلا يكفي السارق أن ينتظر فراغها.</string>
+    <string name="intro_snatch_title">الحماية من الخطف</string>
+    <string name="intro_snatch_body">الخطف يقفل الشاشة فوراً ويفتح نافذة عشر دقائق: إن لم تُثبت أن الهاتف لك، تبدأ Shieldra إرسال الصور والموقع. وفتح الهاتف بمعرّفك يُغلق الحادثة.</string>
+    <string name="intro_safe_zones_title">المناطق الآمنة</string>
+    <string name="intro_safe_zones_body">أماكن لا تريد أن تُراقَب فيها — البيت، العمل. داخلها تصمت الحرّاس الصاخبة، ويبقى تسجيل الأدلة.</string>
+    <string name="intro_evidence_title">الأدلة</string>
+    <string name="intro_evidence_body">الصور والصوت والموقع تُخزَّن مشفَّرة على هذا الهاتف وحده. وتُحذف بعد 30 يوماً افتراضياً، وأنت من يختار العدد.</string>
+    <string name="intro_delivery_title">التنبيهات والتسليم</string>
+    <string name="intro_delivery_body">كل حدث يُسجَّل على الهاتف أولاً. وإن أعددت تلغرام أو البريد يُرسَل إليه أيضاً — وإن فشل الإرسال ينتظر ويُعاد، ولا يُفقد.</string>
+    <string name="intro_remote_title">التحكّم عن بُعد</string>
+    <string name="intro_remote_body">من محادثتك أنت مع البوت: /locate لموقع على الخريطة، /photo لصورة بالكاميرا الأمامية، /alarm لصفّارة مدّتها دقيقتان، /status للبطارية والشبكة. ولا يُطاع إلا معرّف محادثتك.</string>
+    <string name="intro_siren_title">الصفّارة</string>
+    <string name="intro_siren_body">إنذار صاخب بأقصى صوت، بسقف دقيقتين حتى لا يُدوّر رمز بوت مسروق الصفّارة حتى تفرغ البطارية. أرسل /alarm مرة أخرى لتكرارها.</string>
+    <string name="intro_tracking_title">التتبّع المباشر</string>
+    <string name="intro_tracking_body">‏/track on يبثّ موقع الهاتف كل بضع دقائق لمدة محدّدة، ويتّسع الفاصل كلّما هبطت البطارية حتى لا يفرغها التتبّع.</string>
+    <string name="intro_wipe_title">المحو عن بُعد</string>
+    <string name="intro_wipe_body">مطفأ افتراضياً ومنفصل عن التحكّم عن بُعد. ‏/wipe لا يمحو أبداً: يلزمك /wipe confirm خلال عشر دقائق، وفتح الهاتف يُلغيه.</string>
 
     <string name="tab_dashboard">الرئيسية</string>
     <string name="tab_history">السجل</string>

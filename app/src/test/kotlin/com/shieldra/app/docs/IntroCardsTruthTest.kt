@@ -126,13 +126,18 @@ class IntroCardsTruthTest {
 
     @Test
     fun p4_22_one_tap_skips_the_tour() {
+        // The tour has exactly one exit — the same one the last card uses — and it is offered as a
+        // labelled control from the first card on. Asserting on the label and its variant rather than on
+        // a parameter name keeps the claim about what the owner sees: a Skip button beside Next.
         assertTrue(
-            introScreen.contains("onSkip"),
-            "the tour has no skip, so an owner who knows the app must page through it to get in",
+            introScreen.contains("R.string.action_skip"),
+            "the tour offers no skip, so an owner who already knows the app must page through it to get in",
         )
         assertTrue(
-            introScreen.contains("action_skip"),
-            "the skip is not offered as its own labelled control",
+            Regex("""text\s*=\s*stringResource\(R\.string\.action_skip\)[\s\S]{0,200}?ShieldraButtonVariant\.Ghost""")
+                .containsMatchIn(introScreen),
+            "the skip is not a ghost button beside the primary action, so it competes with Next instead of " +
+                "standing beside it",
         )
     }
 
@@ -185,7 +190,7 @@ class IntroCardsTruthTest {
 
     @Test
     fun p4_22_the_lock_card_names_the_threshold() {
-        for ((locale, marker) in listOf("values" to "2", "values-ar" to "مرتين")) {
+        for ((locale, marker) in listOf("values" to "2 attempts", "values-ar" to "مرتين")) {
             val body = stringValue("intro_lock_body", locale).orEmpty()
             assertTrue(
                 body.contains(marker),
