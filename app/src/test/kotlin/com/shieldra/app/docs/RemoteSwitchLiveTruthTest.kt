@@ -51,6 +51,14 @@ class RemoteSwitchLiveTruthTest {
         return runtime.substring(start, if (end > start) end else runtime.length)
     }
 
+    /** The service body that applies the switch, wherever the writer chose to put it. */
+    private fun syncBody(): String {
+        val start = service.indexOf("fun syncRemoteControl(")
+        assertTrue(start > 0, "the live remote-control applier is gone, so this must be re-measured")
+        val end = service.indexOf("\n    /**", start)
+        return service.substring(start, if (end > start) end else service.length)
+    }
+
     /** The service still gates its own start on the switch and the plan, so this is about Save. */
     @Test
     fun p4_27_the_service_still_starts_the_poller_when_it_starts() {
@@ -83,9 +91,20 @@ class RemoteSwitchLiveTruthTest {
     fun p4_27_a_save_starts_or_stops_remote_control() {
         val body = applyBody()
         assertTrue(
-            body.contains("remoteCommandsEnabled"),
-            "a Save never looks at the remote-control switch, so turning it on while armed shows an " +
-                "on switch over a bot that answers nothing until the service restarts",
+            body.contains("syncRemoteControl("),
+            "a Save never reaches remote control, so turning it on while armed shows an on switch " +
+                "over a bot that answers nothing until the service restarts",
+        )
+        val sync = syncBody()
+        assertTrue(
+            sync.contains("remoteCommandsEnabled") && sync.contains("allowsRemote"),
+            "the live switch is applied without asking the owner's switch and the plan, so a free " +
+                "plan or a switched-off guard could keep a poller running",
+        )
+        assertTrue(
+            sync.contains("remoteCommands.start()") && sync.contains("remoteCommands.stop()"),
+            "the live switch is applied in one direction only, so the owner cannot turn remote " +
+                "control off without restarting the service",
         )
     }
 }
