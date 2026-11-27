@@ -512,7 +512,7 @@ fun ProtectionSetupScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(spacing.sm))
+            Spacer(Modifier.height(spacing.s))
             // P2-3 (owner decision 2026-11-27): the erase is its own switch, off by default, and it
             // never rides on the remote-control switch above. The subtitle states the double
             // confirmation in the owner's own words, because a warning he did not read is not a warning.
