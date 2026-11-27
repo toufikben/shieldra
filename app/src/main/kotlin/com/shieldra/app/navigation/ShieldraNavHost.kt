@@ -1038,11 +1038,6 @@ fun ShieldraNavHost(
                                         deliveryStore.save(updated)
                                         deliveryStore.load()
                                     }
-                                    // P4-28: the poller reads the bot credentials once, when its thread
-                                    // starts, and a poller that gave up on an unfinished setup stays
-                                    // down until something restarts it. Finishing the setup here is
-                                    // exactly that moment.
-                                    runCatching { ProtectionService.syncRemoteControl(context) }
                                     navController.popBackStack()
                                     snackbarHostState.showSnackbar(channelsSavedMessage)
                                 }
