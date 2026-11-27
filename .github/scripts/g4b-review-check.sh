@@ -457,17 +457,37 @@ pass "notifications are local, permission-gated, and never claim delivery"
 # delivers ACTION_PASSWORD_FAILED to an active admin that declares USES_POLICY_WATCH_LOGIN
 # (AOSP DevicePolicyManagerService.reportFailedPasswordAttempt), and locks on demand only for an admin
 # that was granted USES_POLICY_FORCE_LOCK. The declaration pins exactly those two policies, lockNow()
-# has one caller, and every wipe, reset or password power stays forbidden.
+# has one caller, and every reset or password power stays forbidden.
+#
+# P2-3 (owner decision 2026-11-27) added the third and last policy: WIPE_DATA, the owner's remote erase.
+# It is admitted here on four conditions, all checked below, so the gate keeps its meaning instead of
+# being loosened to "anything goes":
+#   1. the declaration asks for it explicitly (no other policy may appear),
+#   2. exactly one file in app/src/main calls wipeData(),
+#   3. that file is DeviceRemoteWipe.kt,
+#   4. that file asks the owner's switch, the plan, the armed flag and the granted power, and it erases
+#      only through the confirmation rule in RemoteWipeRequest (ten-minute window, /wipe confirm).
+# A second caller, a missing gate, or a wipe that skips the window all fail.
 ADMIN_XML=app/src/main/res/xml/device_admin.xml
 [ -s "$ADMIN_XML" ] || fail "the Lock Guard lost its device-admin policy declaration"
 grep -q '<watch-login' "$ADMIN_XML" \
   || fail "the device-admin declaration no longer asks for watch-login, so Android will not report a wrong unlock"
 grep -q '<force-lock' "$ADMIN_XML" \
   || fail "the device-admin declaration lost force-lock, so a confirmed snatch cannot close the screen (A-46)"
-for forbidden in '<wipe-data' '<reset-password' '<password-quality' 'set-password'; do
+grep -q '<wipe-data' "$ADMIN_XML" \
+  || fail "the device-admin declaration lost wipe-data, so the owner's remote erase cannot run (P2-3)"
+for forbidden in '<reset-password' '<password-quality' 'set-password' '<expire-password' '<limit-password'; do
   if grep -q "$forbidden" "$ADMIN_XML"; then
-    fail "the device-admin policy grew '$forbidden'; the app observes wrong unlocks and closes one screen, nothing else"
+    fail "the device-admin policy grew '$forbidden'; the app observes wrong unlocks, closes one screen, and erases only on the owner's double confirmation"
   fi
+done
+# P2-3: every policy in the declaration must be one of the three the app can justify.
+DECLARED_POLICIES="$(grep -o '<[a-z-]*[[:space:]]*/>' "$ADMIN_XML" | tr -d '<>/ ' | sort -u || true)"
+for policy in $DECLARED_POLICIES; do
+  case "$policy" in
+    watch-login|force-lock|wipe-data) ;;
+    *) fail "the device-admin declaration asks for '$policy', which no owner decision covers" ;;
+  esac
 done
 MANIFEST=app/src/main/AndroidManifest.xml
 grep -q 'com.shieldra.protection.LockGuardReceiver' "$MANIFEST" \
@@ -487,8 +507,22 @@ LOCK_CALL_COUNT="$(grep -c 'lockNow[[:space:]]*(' app/src/main/kotlin/com/shield
 grep -q 'hasGrantedPolicy(admin, DeviceAdminInfo.USES_POLICY_FORCE_LOCK)' \
   app/src/main/kotlin/com/shieldra/protection/DeviceScreenLock.kt \
   || fail "the app cannot tell an admin granted before force-lock from one that holds it (NEEDS_REGRANT, A-46)"
-ADMIN_POWERS="$(grep -rn 'resetPassword[[:space:]]*(\|wipeData[[:space:]]*(\|setMaximumFailedPasswordsForWipe' app/src/main --include='*.kt' || true)"
+ADMIN_POWERS="$(grep -rn 'resetPassword[[:space:]]*(\|setMaximumFailedPasswordsForWipe' app/src/main --include='*.kt' || true)"
 [ -z "$ADMIN_POWERS" ] || fail "code gained a destructive device-admin power: $ADMIN_POWERS"
+# P2-3: the erase is destructive, so it is allowed only in its one gated file. The gate is checked as
+# source, not trusted: the switch, the plan, the armed flag and the granted power must all be asked
+# there, and the window must be the published one.
+WIPE_CALLERS="$(grep -rl 'wipeData[[:space:]]*(' app/src/main --include='*.kt' || true)"
+[ "$WIPE_CALLERS" = "app/src/main/kotlin/com/shieldra/protection/DeviceRemoteWipe.kt" ] \
+  || fail "the only wipeData() caller must be DeviceRemoteWipe.kt; got [$WIPE_CALLERS]"
+WIPE_SRC=app/src/main/kotlin/com/shieldra/protection/DeviceRemoteWipe.kt
+for gate in 'remoteWipeEnabled' 'allowsRemoteWipe' '\.armed' 'DeviceRemoteWipePower.isGranted' \
+            'RemoteWipeRequest.decide' 'RemoteWipeRequest.CONFIRM_ARGUMENT'; do
+  grep -q "$gate" "$WIPE_SRC" \
+    || fail "the erase path no longer asks '$gate', so a gate that closed inside the window still erases the phone"
+done
+grep -q 'RemoteWipeRequest.WINDOW_MS' app/src/main/kotlin/com/shieldra/protection/RemoteCommandPoller.kt \
+  || fail "the poller no longer uses the published wipe window, so the sentence it sends can disagree with it"
 if grep -q '"/lock"' app/src/main/kotlin/com/shieldra/protection/RemoteCommandPoller.kt; then
   fail "the retired /lock command came back into the remote poller"
 fi

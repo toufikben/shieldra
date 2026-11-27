@@ -290,6 +290,7 @@ class LocalShieldraStorage private constructor(
             "shieldra_onboarding",        // OnboardingState: which steps this install has been through
             "shieldra_notification",      // LocalEventNotifier: which events were already announced
             "shieldra_zone_state",        // ZoneStateStore: the last safe-zone reading the ladder reads
+        "shieldra_remote_wipe",       // RemoteWipeStore: an open wipe window (P2-3), a decision about erasing
         )
 
         /**
