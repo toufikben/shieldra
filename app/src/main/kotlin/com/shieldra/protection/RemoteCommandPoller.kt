@@ -166,10 +166,19 @@ class RemoteCommandPoller(context: Context) {
         if (trackWorker?.isAlive == true) return
         val thread = Thread({
             try {
-                val intervalMs = ProtectionSettingsStore(app).load().trackingIntervalMinutes.coerceAtLeast(1) * 60_000L
                 while (!Thread.currentThread().isInterrupted && active()) {
                     val fix = runBlocking { LocationFix(app).current() }
                     if (fix != null) client.replyLocation(chat, fix.latitude, fix.longitude, fix.accuracyMeters)
+                    // P4-31: the gap is recomputed every turn, the way the service's own trail does it
+                    // (`ProtectionService.scheduleTrackingTick`): the owner can change the interval
+                    // while this stream runs, and the battery widens it as it drains so the trail keeps
+                    // reporting instead of draining the last charge in a burst.
+                    val baseMinutes = ProtectionSettingsStore(app).load().trackingIntervalMinutes
+                    val intervalMs = TrackingCadence.intervalMs(
+                        baseMinutes,
+                        batteryPercent(),
+                        batteryCharging(),
+                    )
                     try {
                         Thread.sleep(intervalMs)
                     } catch (e: InterruptedException) {
@@ -193,9 +202,7 @@ class RemoteCommandPoller(context: Context) {
     }
 
     private fun status(): String {
-        val battery = runCatching {
-            app.getSystemService(BatteryManager::class.java)?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        }.getOrNull()
+        val battery = batteryPercent()
         return buildString {
             append("SHIELDRA status\n")
             append("Armed: yes\n")
@@ -203,6 +210,20 @@ class RemoteCommandPoller(context: Context) {
             append("Network: ").append(network())
         }
     }
+
+    /**
+     * P4-31: the same battery read the service's own trail uses
+     * (`ProtectionService.batteryPercent`), so both trails widen the gap identically as the phone
+     * drains. Null when the platform cannot answer, which `TrackingCadence` treats as the base gap.
+     */
+    private fun batteryPercent(): Int? = runCatching {
+        app.getSystemService(BatteryManager::class.java)
+            ?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+    }.getOrNull()
+
+    private fun batteryCharging(): Boolean = runCatching {
+        app.getSystemService(BatteryManager::class.java)?.isCharging
+    }.getOrDefault(false)
 
     private fun network(): String {
         val cm = app.getSystemService(ConnectivityManager::class.java) ?: return "unknown"
