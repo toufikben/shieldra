@@ -88,6 +88,16 @@ object TableModeResponder {
     }
 
     private fun fire(context: Context, eventId: String, snatchSignature: Boolean, siren: Boolean) {
+        // P4-25: the grace window outlives the decision that opened it. The owner can switch the
+        // Motion guard off (or protection off) while it waits, and `applySettings` does not cancel
+        // this response — it only stops the monitor. So the switch and the armed flag are read here,
+        // where the response acts, the same way the tracking tick, the countdown and the battery
+        // receiver read theirs.
+        val settings = ProtectionSettingsStore(context).load()
+        if (!settings.armed || !settings.motionEnabled) {
+            Log.i(TAG, "the response is dropped: the Motion guard or protection itself is off")
+            return
+        }
         // A Motion confirmed inside a fresh safe zone is the owner at home or at work, not a snatch:
         // the siren and the message are nuisance there (owner decision 2026-11-08). The response is
         // read at fire time, after any grace window, so a phone that has left the zone by then is loud

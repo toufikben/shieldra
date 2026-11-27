@@ -251,6 +251,9 @@ object ProtectionRuntime {
         // only about the next one. It ends without restarting the countdown — the owner is on this
         // screen, so a periodic signal must not start speaking over their own Save.
         if (!settings.snatchLockEnabled) runCatching { SnatchCoordinator.cancel(app) }
+        // P4-25: the same for the Motion guard. A grace response already waiting must not sound the
+        // siren and take a photo for a guard the owner just switched off on this screen.
+        if (!settings.motionEnabled) runCatching { TableModeResponder.cancel(app) }
         if (!armed) {
             runCatching {
                 PendingCaptures(app).clear()
