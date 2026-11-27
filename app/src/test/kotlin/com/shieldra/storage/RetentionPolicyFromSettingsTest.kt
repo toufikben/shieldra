@@ -34,4 +34,21 @@ class RetentionPolicyFromSettingsTest {
         assertEquals(EvidenceRetentionPolicy.default, EvidenceRetentionPolicy.fromOwnerDays(0))
         assertEquals(EvidenceRetentionPolicy.default, EvidenceRetentionPolicy.fromOwnerDays(-5))
     }
+
+    /** P4-26: a value outside the published range is clipped to it, not honoured. */
+    @Test
+    fun a_setting_below_the_published_floor_is_raised_to_it() {
+        val policy = EvidenceRetentionPolicy.fromOwnerDays(EvidenceRetentionPolicy.MIN_OWNER_DAYS - 3)
+
+        assertEquals(EvidenceRetentionPolicy.MIN_OWNER_DAYS.toLong(), policy.evidenceRetentionDays)
+        assertEquals(EvidenceRetentionPolicy.MIN_OWNER_DAYS.toLong(), policy.quarantineRetentionDays)
+    }
+
+    @Test
+    fun a_setting_above_the_published_ceiling_is_lowered_to_it() {
+        val policy = EvidenceRetentionPolicy.fromOwnerDays(EvidenceRetentionPolicy.MAX_OWNER_DAYS + 5_000)
+
+        assertEquals(EvidenceRetentionPolicy.MAX_OWNER_DAYS.toLong(), policy.evidenceRetentionDays)
+        assertEquals(EvidenceRetentionPolicy.MAX_OWNER_DAYS.toLong(), policy.quarantineRetentionDays)
+    }
 }

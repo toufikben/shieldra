@@ -133,10 +133,16 @@ data class EvidenceRetentionPolicy(
          * The policy the owner's [days] setting asks for. A setting that cannot be honoured (zero or
          * negative) keeps the approved windows: expiry authorizes irreversible deletion, so a broken
          * preference must never be read as "delete everything now".
+         *
+         * P4-26: a value outside [MIN_OWNER_DAYS]..[MAX_OWNER_DAYS] is clipped to that pair rather than
+         * honoured. The bounds are published here and the settings slider draws inside them, so a value
+         * written before those bounds existed (or restored from a backup) must not quietly become a
+         * window the screen cannot express — below the floor the sweep would delete evidence the owner
+         * never had a chance to read.
          */
         fun fromOwnerDays(days: Int): EvidenceRetentionPolicy {
             if (days <= 0) return default
-            val evidence = days.toLong()
+            val evidence = days.coerceIn(MIN_OWNER_DAYS, MAX_OWNER_DAYS).toLong()
             return EvidenceRetentionPolicy(
                 quarantineRetentionDays = evidence,
                 evidenceRetentionDays = evidence,

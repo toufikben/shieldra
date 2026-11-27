@@ -121,7 +121,17 @@ class ProtectionSettingsStore(context: Context) {
             .putLong(KEY_COUNTDOWN_INTERVAL, settings.countdownIntervalMs)
             .putString(KEY_MOTION_RESPONSE, settings.motionResponse.name)
             .putInt(KEY_MOTION_GRACE, settings.motionGraceSeconds.coerceIn(MotionResponsePlan.MIN_GRACE_SECONDS, MotionResponsePlan.MAX_GRACE_SECONDS))
-            .putInt(KEY_RETENTION, settings.retentionDays)
+            // P4-26: the owner's retention window has published bounds too (`MIN_OWNER_DAYS` /
+            // `MAX_OWNER_DAYS`), and the slider draws inside them. Clipping here keeps a value
+            // written by an older build or a restored backup from sitting outside the range the
+            // screen offers — the one field this writer used to store as written.
+            .putInt(
+                KEY_RETENTION,
+                settings.retentionDays.coerceIn(
+                    com.shieldra.storage.EvidenceRetentionPolicy.MIN_OWNER_DAYS,
+                    com.shieldra.storage.EvidenceRetentionPolicy.MAX_OWNER_DAYS,
+                ),
+            )
             .putBoolean(KEY_REMOTE, settings.remoteCommandsEnabled)
             .putBoolean(KEY_TRACK, settings.liveTrackingEnabled)
             .putInt(KEY_TRACK_INTERVAL, settings.trackingIntervalMinutes.coerceIn(TrackingCadence.MIN_INTERVAL_MINUTES, TrackingCadence.MAX_INTERVAL_MINUTES))
