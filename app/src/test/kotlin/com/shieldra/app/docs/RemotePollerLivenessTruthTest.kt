@@ -94,4 +94,17 @@ class RemotePollerLivenessTruthTest {
                 "Telegram setup that has already been done",
         )
     }
+
+    /** The location stream has the same shape: its thread also ends on its own. */
+    @Test
+    fun p4_28_a_finished_track_thread_is_not_recorded_as_running() {
+        val start = poller.indexOf("private fun startTrack(")
+        assertTrue(start > 0, "the location stream is gone, so this finding must be re-measured")
+        val body = poller.substring(start, poller.indexOf("\n    @Synchronized\n    private fun stopTrack(", start))
+        assertTrue(
+            body.contains("isAlive"),
+            "the location stream refuses on a field its own loop left set when the plan or the switch " +
+                "ended it, so /track on can never work again in this process",
+        )
+    }
 }
