@@ -34,8 +34,22 @@ class RemoteCommandPoller(context: Context) {
 
     @Synchronized
     fun start() {
-        if (worker != null) return
-        worker = Thread({ loop() }, "shieldra-remote").apply { isDaemon = true; start() }
+        // P4-28: a finished thread is not a running one. `loop()` returns on its own in ordinary
+        // cases — Telegram not set up yet, a disarm, the switch off, a lapsed plan — and a field that
+        // kept naming that thread made every later start a no-op for the rest of the process. The
+        // thread clears the field itself when it leaves, and this check covers the window between.
+        if (worker?.isAlive == true) return
+        val thread = Thread({
+            try {
+                loop()
+            } finally {
+                synchronized(this@RemoteCommandPoller) {
+                    if (worker === Thread.currentThread()) worker = null
+                }
+            }
+        }, "shieldra-remote").apply { isDaemon = true }
+        worker = thread
+        thread.start()
     }
 
     @Synchronized
