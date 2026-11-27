@@ -63,6 +63,7 @@ object OnboardingState {
      */
     fun startDestination(onboardingCompleted: Boolean, introCardsSeen: Boolean): String = when {
         !onboardingCompleted -> ShieldraRoutes.ONBOARDING_WELCOME
+        !introCardsSeen -> ShieldraRoutes.ONBOARDING_INTRO
         else -> ShieldraRoutes.DASHBOARD
     }
 }
