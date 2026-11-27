@@ -26,7 +26,8 @@ class RemoteWipeGateTruthTest {
             ?: error("no app module above ${File("").absolutePath}")
     }
 
-    private fun source(path: String): String = File(root, "app/src/main/kotlin/com/shieldra/$path").readText()
+    private fun source(path: String): String =
+        File(root, "app/src/main/kotlin/com/shieldra/$path").let { if (it.isFile) it.readText() else "" }
 
     private val poller: String by lazy { source("protection/RemoteCommandPoller.kt") }
     private val wipe: String by lazy { source("protection/DeviceRemoteWipe.kt") }
