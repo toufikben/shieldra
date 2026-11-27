@@ -59,7 +59,10 @@ class RemotePollerLivenessTruthTest {
         assertTrue(start > 0, "the poll loop is gone, so this finding must be re-measured")
         val body = poller.substring(start, poller.indexOf("\n    private fun execute(", start))
         assertTrue(
-            body.contains("if (!delivery.telegramEnabled || !delivery.telegram.isComplete) return"),
+            Regex("""if \(!initial\.telegramEnabled \|\| !initial\.telegram\.isComplete\) return""")
+                .containsMatchIn(body) ||
+                Regex("""if \(!delivery\.telegramEnabled \|\| !delivery\.telegram\.isComplete\) return""")
+                    .containsMatchIn(body),
             "the loop no longer returns early on an unfinished Telegram setup, so this finding must " +
                 "be re-measured",
         )
