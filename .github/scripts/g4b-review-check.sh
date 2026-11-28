@@ -1522,8 +1522,14 @@ ONB_CODE="$(grep -hvE '^[[:space:]]*(/\*|\*|//)' "$ONB")"
 if printf '%s\n' "$ONB_CODE" | grep -qE 'OkHttp|firebase|WorkManager|Connectivity|Service|Room|SecurityEvent|EventId'; then
   fail "onboarding persistence reaches a network, a service or the event store; Q-K-7 forbids that (A-27)"
 fi
-grep -q 'OnboardingState.startDestination(onboarding.isCompleted())' app/src/main/kotlin/com/shieldra/app/MainActivity.kt \
+grep -q 'OnboardingState.startDestination(' app/src/main/kotlin/com/shieldra/app/MainActivity.kt \
   || fail "the cold start no longer reads the recorded completion (A-27)"
+# P4-22: the start destination now answers two recorded facts. The completion is still one of them, and
+# it is still passed from the record rather than assumed; the tour's fact is passed beside it.
+grep -q 'onboardingCompleted = onboarding.isCompleted()' app/src/main/kotlin/com/shieldra/app/MainActivity.kt \
+  || fail "the cold start no longer reads the recorded completion (A-27)"
+grep -q 'introCardsSeen = introCards.isSeen()' app/src/main/kotlin/com/shieldra/app/MainActivity.kt \
+  || fail "the cold start assumes the tour is done instead of reading its record (P4-22)"
 grep -q 'onOnboardingCompleted = onboarding::markCompleted' app/src/main/kotlin/com/shieldra/app/MainActivity.kt \
   || fail "nothing records the completion, so onboarding reopens on the next cold start (A-27)"
 [ "$(grep -c 'onOnboardingCompleted()' "$NAVHOST")" = "2" ] \
