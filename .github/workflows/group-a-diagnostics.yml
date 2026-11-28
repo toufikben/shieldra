@@ -200,6 +200,7 @@ jobs:
           path: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            app/build/outputs/bundle/release/app-release.aab
           retention-days: 14
           if-no-files-found: error
 
