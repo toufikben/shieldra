@@ -32,7 +32,7 @@
     <string name="intro_sim_title">SIM guard</string>
     <string name="intro_sim_body">If the SIM card is replaced while protection is armed, Shieldra records it and alerts you. The cards present when you armed are the baseline.</string>
     <string name="intro_battery_title">Battery guard</string>
-    <string name="intro_battery_body">When the battery falls to 10%, Shieldra records it before the phone dies, so a thief cannot simply wait for it to go flat.</string>
+    <string name="intro_battery_body" formatted="false">When the battery falls to 10%, Shieldra records it before the phone dies, so a thief cannot simply wait for it to go flat.</string>
     <string name="intro_snatch_title">Snatch protection</string>
     <string name="intro_snatch_body">A snatch locks the screen at once and opens a ten-minute window: if you do not prove the phone is yours, Shieldra starts sending photos and location. Unlocking with your credential closes it.</string>
     <string name="intro_safe_zones_title">Safe zones</string>

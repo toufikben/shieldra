@@ -18,7 +18,7 @@
     <string name="intro_sim_title">حارس الشريحة</string>
     <string name="intro_sim_body">إذا استُبدلت شريحة الاتصال والحماية مفعّلة، تسجّل Shieldra ذلك وتنبّهك. والشرائح الموجودة لحظة التسليح هي خط الأساس.</string>
     <string name="intro_battery_title">حارس البطارية</string>
-    <string name="intro_battery_body">عند هبوط البطارية إلى 10% تسجّل Shieldra ذلك قبل أن ينطفئ الهاتف، فلا يكفي السارق أن ينتظر فراغها.</string>
+    <string name="intro_battery_body" formatted="false">عند هبوط البطارية إلى 10% تسجّل Shieldra ذلك قبل أن ينطفئ الهاتف، فلا يكفي السارق أن ينتظر فراغها.</string>
     <string name="intro_snatch_title">الحماية من الخطف</string>
     <string name="intro_snatch_body">الخطف يقفل الشاشة فوراً ويفتح نافذة عشر دقائق: إن لم تُثبت أن الهاتف لك، تبدأ Shieldra إرسال الصور والموقع. وفتح الهاتف بمعرّفك يُغلق الحادثة.</string>
     <string name="intro_safe_zones_title">المناطق الآمنة</string>
